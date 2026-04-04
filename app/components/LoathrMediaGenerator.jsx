@@ -1,36 +1,40 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive } from "lucide-react";
-import { BarChart, Bar, AreaChart, Area, ResponsiveContainer } from "recharts";
 
-const FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=DM+Serif+Display&display=swap";
-const PAD = 20;
-const HD = { fontFamily: "'Maheni','DM Serif Display',Georgia,serif", fontStyle: "normal" };
-const CP = { fontFamily: "'Courier Prime',monospace" };
+var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=DM+Serif+Display&display=swap";
+var PAD = 14;
+var HD = { fontFamily: "'Maheni','DM Serif Display',Georgia,serif", fontStyle: "normal" };
+var CP = { fontFamily: "'Courier Prime',monospace" };
+var TS = "0 2px 20px rgba(0,0,0,0.8)";
+var TS2 = "0 1px 8px rgba(0,0,0,0.9)";
 
-const PALETTES = {
-  film:   { bg: "#1a1a2e", accent: "#c8a050", light: "#f5f0e4", text: "#f5f0e4" },
-  photo:  { bg: "#3d3d3a", accent: "#d85a30", light: "#f7f5f0", text: "#f7f5f0" },
-  sports: { bg: "#111111", accent: "#e63946", light: "#f8f8f8", accent2: "#f2e307", text: "#ffffff" },
-  trivia: { bg: "#7ECFC0", accent: "#B8A4D0", light: "#ffffff",    text: "#ffffff" },
-  art:    { bg: "#1a0a3e", accent: "#e83e8c", light: "#f8f0ff", accent2: "#4dc9f6", text: "#f8f0ff" },
+var PALETTES = {
+  film:   { bg: "#1a1a2e", accent: "#c8a050", text: "#f5f0e4" },
+  photo:  { bg: "#3d3d3a", accent: "#d85a30", text: "#f7f5f0" },
+  sports: { bg: "#111111", accent: "#e63946", accent2: "#f2e307", text: "#ffffff" },
+  trivia: { bg: "#7ECFC0", accent: "#B8A4D0", text: "#ffffff" },
+  art:    { bg: "#1a0a3e", accent: "#e83e8c", accent2: "#4dc9f6", text: "#f8f0ff" },
 };
 
-const CATEGORIES = [
+var CAT_LABELS = { film: "FILM & TV", photo: "PHOTOGRAPHY", sports: "SPORTS \u00D7 CULTURE", trivia: "DID YOU KNOW?", art: "ART & MUSIC" };
+var CLOSER_TAGS = { film: "FOLLOW FOR MORE", photo: "FOLLOW FOR MORE", sports: "GAME. CULTURE. REPEAT.", trivia: "NOW YOU KNOW", art: "SEE. HEAR. FEEL." };
+
+var CATEGORIES = [
   { id: "film", label: "Film & TV", icon: Clapperboard },
   { id: "photo", label: "Photography", icon: Aperture },
-  { id: "sports", label: "Sports × Culture", icon: Trophy },
+  { id: "sports", label: "Sports \u00D7 Culture", icon: Trophy },
   { id: "trivia", label: "Did You Know?", icon: Lightbulb },
   { id: "art", label: "Art & Music", icon: Palette },
 ];
 
-const OPTION_TYPES = [
-  { id: "deep", label: "Deep Dive", desc: "Educational, long-form", icon: BookOpen },
-  { id: "hot", label: "Hot Take", desc: "Provocative, shareable", icon: Zap },
-  { id: "timeline", label: "Timeline", desc: "Historical arc", icon: TrendingUp },
+var OPTION_TYPES = [
+  { id: "deep", label: "Deep Dive", desc: "Educational, detailed", icon: BookOpen },
+  { id: "hot", label: "Hot Take", desc: "Punchy, provocative", icon: Zap },
+  { id: "timeline", label: "Timeline", desc: "Chronological arc", icon: TrendingUp },
 ];
 
-const SUBCATEGORIES = {
+var SUBCATEGORIES = {
   film: {
     "Directing": ["The rise of the actor-director", "First-time directors who broke out", "Directing actors vs directing camera", "Directors who started in music videos", "The one-take philosophy"],
     "Cinematography": ["Natural light cinematography", "One-take sequences that changed cinema", "Anamorphic vs spherical lenses", "Women in cinematography", "The death of the zoom"],
@@ -65,570 +69,515 @@ const SUBCATEGORIES = {
   },
 };
 
-const CATEGORY_ICONS = {
+var CATEGORY_ICONS = {
   film: [Film, Clapperboard, Eye, Mic], photo: [Camera, Aperture, Eye, CircleDot],
   sports: [Trophy, TrendingUp, Star, Users], trivia: [Lightbulb, BookOpen, Star, Eye],
   art: [Music, Palette, Star, Eye],
 };
 
-
-// ─── SHARED COMPONENTS ───
-function ColorBlock({ style, children }) {
-  return <div style={{ position: "absolute", ...style }}>{children}</div>;
-}
-
-function HeadingBar({ num, title, pal }) {
-  return (
-    <div style={{ background: "#000", padding: "10px 20px", display: "flex", alignItems: "baseline", gap: 6 }}>
-      {num != null && <span style={{ ...CP, fontSize: 9, color: "rgba(255,255,255,0.18)" }}>{String(num).padStart(2, "0")} —</span>}
-      <span style={{ ...HD, fontSize: 12, color: pal.light || "#fff" }}>{title}</span>
-    </div>
-  );
-}
-
-function StatBox({ value, label, color }) {
-  return (
-    <div style={{ flex: 1, background: "#000", padding: "14px 10px", textAlign: "center", border: "2px solid #000" }}>
-      <div style={{ ...HD, fontSize: 30, color, lineHeight: 1 }}>{value}</div>
-      <div style={{ ...CP, fontSize: 7, color: "rgba(255,255,255,0.3)", marginTop: 3, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
-    </div>
-  );
-}
-
-function LabelCard({ label, sublabel, color }) {
-  return (
-    <div style={{ background: "#000", padding: "10px 12px", flex: 1, textAlign: "center" }}>
-      <div style={{ ...HD, fontSize: 11, color }}>{label}</div>
-      {sublabel && <div style={{ ...CP, fontSize: 7, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>{sublabel}</div>}
-    </div>
-  );
-}
-
+// ─── ACCENT UNDERLINE ───
 function Accent({ children, color }) {
   return <span style={{ textDecoration: "underline", textDecorationColor: color, textUnderlineOffset: 3, textDecorationThickness: 1, color: "inherit" }}>{children}</span>;
 }
 
-function Wm({ color = "rgba(255,255,255,0.08)" }) {
-  return <div style={{ position: "absolute", bottom: 8, right: PAD, ...CP, fontSize: 7, color, userSelect: "none", zIndex: 4 }}>LOATHR</div>;
-}
-
-function ImgZone({ url, alt, credit, source, placeholder, pal, style }) {
-  if (url) return (
-    <div style={{ position: "relative", overflow: "hidden", border: "2px solid #000", ...style }}>
-      <img src={url} alt={alt || ""} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: "saturate(0.85) brightness(0.9)" }} onError={e => { e.target.style.display = "none"; }} />
-      {credit && <div style={{ position: "absolute", bottom: 4, right: 6, ...CP, fontSize: 7, color: "rgba(255,255,255,0.4)", zIndex: 2 }}>{credit} / {source}</div>}
-    </div>
-  );
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: pal?.bg || "#1a1a2e", border: "2px solid #000", ...style }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <Camera size={14} style={{ opacity: 0.25, color: pal?.accent || "#888" }} />
-        <span style={{ ...CP, fontSize: 7, color: pal?.accent || "#888", opacity: 0.4, letterSpacing: "0.08em" }}>{placeholder || "IMAGE LOADS IN PRODUCTION"}</span>
-      </div>
-    </div>
-  );
-}
-
-function Spark({ data, color, h = 36 }) {
-  return <ResponsiveContainer width="100%" height={h}><AreaChart data={data} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}><Area type="monotone" dataKey="v" stroke={color} fill={color} fillOpacity={0.15} strokeWidth={1.5} dot={false} /></AreaChart></ResponsiveContainer>;
-}
-
-// ─── IMAGE SEARCH ───
-const searchUnsplash = async (query, apiKey) => {
-  const r = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=5&orientation=portrait`, { headers: { Authorization: `Client-ID ${apiKey}` } });
-  if (!r.ok) throw new Error(`Unsplash ${r.status}`);
-  const d = await r.json();
-  return (d.results || []).map(img => ({ url: img.urls?.regular, thumb: img.urls?.small, alt: img.alt_description || query, credit: img.user?.name, source: "Unsplash" }));
-};
-
-const searchPexels = async (query, apiKey) => {
-  const r = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5&orientation=portrait`, { headers: { Authorization: apiKey } });
-  if (!r.ok) throw new Error(`Pexels ${r.status}`);
-  const d = await r.json();
-  return (d.photos || []).map(img => ({ url: img.src?.large, thumb: img.src?.medium, alt: query, credit: img.photographer, source: "Pexels" }));
-};
-
-const testApiConnection = async (service, key) => {
-  try {
-    const url = service === "unsplash" ? "https://api.unsplash.com/search/photos?query=test&per_page=1" : "https://api.pexels.com/v1/search?query=test&per_page=1";
-    const headers = service === "unsplash" ? { Authorization: `Client-ID ${key}` } : { Authorization: key };
-    const r = await fetch(url, { headers });
-    if (r.ok) return { ok: true, msg: "Connected" };
-    if (r.status === 401) return { ok: false, msg: "Invalid key" };
-    return { ok: false, msg: `Error ${r.status}` };
-  } catch (e) {
-    return { ok: false, msg: e.message?.includes("fetch") ? "Blocked by sandbox — deploy standalone" : (e.message || "Failed") };
-  }
-};
-
-
-// ─── COVER SLIDE (unified Oh Hey! color-block structure) ───
-function CoverSlide({ slide, category, image }) {
-  const p = PALETTES[category];
-  const catLabel = CATEGORIES.find(c => c.id === category)?.label || "";
-  // Each category gets a unique color-block position
-  const blocks = {
-    film:   { bottom: 0, right: 0, width: "50%", height: "38%", background: p.accent },
-    photo:  { top: 0, right: 0, width: "45%", height: "48%", background: p.accent },
-    sports: { bottom: 0, left: 0, width: "100%", height: "30%", background: p.accent },
-    trivia: { bottom: 0, right: 0, width: "50%", height: "40%", background: p.accent },
-    art:    { top: 0, left: 0, width: "40%", height: "44%", background: p.accent },
-  };
-  const block = blocks[category];
-  const hasImage = image?.url;
-
-  return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: hasImage ? "#000" : p.bg }}>
-      {/* Background image with overlay */}
-      {hasImage && (
-        <>
-          <img src={image.url} alt={image.alt || ""} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.7)" }} />
-          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)" }} />
-        </>
-      )}
-      {/* Color block accent */}
-      <ColorBlock style={{ ...block,
-        borderLeft: block.left != null ? "none" : "2px solid #000",
-        borderTop: block.top != null ? "none" : "2px solid #000",
-        borderRight: block.right != null ? "none" : "2px solid #000",
-        borderBottom: block.bottom != null ? "none" : "2px solid #000",
-        opacity: hasImage ? 0.9 : 1 }} />
-      {/* Secondary accent block for sports/art */}
-      {category === "sports" && <ColorBlock style={{ top: "11%", right: 16, width: 32, height: 32, background: p.accent2, border: "2px solid #000" }} />}
-      {category === "art" && <ColorBlock style={{ bottom: "13%", right: 16, width: 28, height: 28, background: p.accent2, border: "2px solid #000" }} />}
-
-      <div style={{ padding: PAD, display: "flex", flexDirection: "column", height: "100%", position: "relative", zIndex: 1 }}>
-        <div style={{ ...CP, fontSize: 7, letterSpacing: "0.15em", color: hasImage ? `rgba(255,255,255,0.7)` : `${p.accent}88` }}>LOATHR — {catLabel.toUpperCase()}</div>
-        <div style={{ flex: 1, display: "flex", flexDirection: category === "art" ? "column" : "column", justifyContent: category === "art" ? "flex-end" : "center" }}>
-          <div style={{ background: "#000", padding: PAD }}>
-            <div style={{ ...HD, fontSize: slide.title?.length > 35 ? 30 : 36, color: p.text, lineHeight: 1.05 }}>
-              {formatTitle(slide.title, p.accent)}
-            </div>
-            <div style={{ ...CP, fontSize: 9, color: `${p.text}66`, marginTop: 10, fontStyle: "italic" }}>{slide.subtitle}</div>
-          </div>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ ...CP, fontSize: 7, color: `${p.text}33` }}>ISSUE {String((slide.title || "").length * 7 % 200 + 1).padStart(3, "0")}</div>
-          {slide.heading && <div style={{ background: "#000", padding: "3px 8px" }}><div style={{ ...CP, fontSize: 7, color: p.accent, letterSpacing: "0.08em" }}>{slide.heading?.toUpperCase()}</div></div>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Format title with accent underline on last phrase
-function formatTitle(title, accentColor) {
+function formatTitle(title, color) {
   if (!title) return "";
-  const words = title.split(" ");
-  if (words.length <= 3) return <Accent color={accentColor}>{title}</Accent>;
-  const cutoff = Math.max(2, words.length - Math.ceil(words.length / 3));
-  return <>{words.slice(0, cutoff).join(" ")} <Accent color={accentColor}>{words.slice(cutoff).join(" ")}</Accent></>;
+  var words = title.split(" ");
+  if (words.length <= 3) return <Accent color={color}>{title}</Accent>;
+  var cut = Math.max(2, words.length - Math.ceil(words.length / 3));
+  return <>{words.slice(0, cut).join(" ")} <Accent color={color}>{words.slice(cut).join(" ")}</Accent></>;
 }
 
-// ─── CONTENT SLIDE (unified) ───
-function ContentSlide({ slide, index, category, image }) {
-  const p = PALETTES[category];
-  const bodyColor = "#777777";
+// ─── MOSAIC BACKGROUND ───
+// Fills the entire slide with 1-4 images in a grid. 2px black borders between panels.
+function MosaicBg({ images, pal, layout, opacity, children }) {
+  var imgs = images || [];
+  var op = opacity || 1;
+  var ly = layout || "single";
+
+  // Render a single image panel or fallback color
+  function Panel({ url, bg, style }) {
+    if (url) return <div style={{ position: "relative", overflow: "hidden", ...style }}><img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} /></div>;
+    return <div style={{ background: bg || pal.bg, ...style }} />;
+  }
+
+  var grid;
+  if (ly === "2v") {
+    grid = <div style={{ position: "absolute", inset: 0, display: "flex", opacity: op }}>
+      <Panel url={imgs[0]} style={{ flex: 1, borderRight: "2px solid #000000" }} />
+      <Panel url={imgs[1]} bg={pal.bg + "cc"} style={{ flex: 1 }} />
+    </div>;
+  } else if (ly === "2h") {
+    grid = <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", opacity: op }}>
+      <Panel url={imgs[0]} style={{ flex: 1, borderBottom: "2px solid #000000" }} />
+      <Panel url={imgs[1]} bg={pal.bg + "cc"} style={{ flex: 1 }} />
+    </div>;
+  } else if (ly === "3L") {
+    grid = <div style={{ position: "absolute", inset: 0, display: "flex", opacity: op }}>
+      <Panel url={imgs[0]} style={{ flex: 3, borderRight: "2px solid #000000" }} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <Panel url={imgs[1]} bg={pal.bg + "cc"} style={{ flex: 1, borderBottom: "2px solid #000000" }} />
+        <Panel url={imgs[2]} bg={pal.bg + "aa"} style={{ flex: 1 }} />
+      </div>
+    </div>;
+  } else if (ly === "3h") {
+    grid = <div style={{ position: "absolute", inset: 0, display: "flex", opacity: op }}>
+      <Panel url={imgs[0]} style={{ flex: 2, borderRight: "2px solid #000000" }} />
+      <Panel url={imgs[1]} bg={pal.bg + "cc"} style={{ flex: 1, borderRight: "2px solid #000000" }} />
+      <Panel url={imgs[2]} bg={pal.bg + "aa"} style={{ flex: 1 }} />
+    </div>;
+  } else if (ly === "4g") {
+    grid = <div style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr 1fr", opacity: op }}>
+      <Panel url={imgs[0]} style={{ borderRight: "2px solid #000000", borderBottom: "2px solid #000000" }} />
+      <Panel url={imgs[1]} bg={pal.bg + "cc"} style={{ borderBottom: "2px solid #000000" }} />
+      <Panel url={imgs[2]} bg={pal.bg + "aa"} style={{ borderRight: "2px solid #000000" }} />
+      <Panel url={imgs[3]} bg={pal.bg + "88"} style={{}} />
+    </div>;
+  } else {
+    grid = <div style={{ position: "absolute", inset: 0, opacity: op }}>
+      <Panel url={imgs[0]} style={{ position: "absolute", inset: 0 }} />
+      {!imgs[0] && <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><Camera size={24} style={{ opacity: 0.08, color: pal.accent }} /></div>}
+    </div>;
+  }
 
   return (
-    <div style={{ width: "100%", height: "100%", background: p.light, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
-      <HeadingBar num={index} title={slide.heading || `Part ${index}`} pal={p} />
-      {/* Optional color accent strip */}
-      {(category === "trivia") && (
-        <div style={{ height: 3, display: "flex" }}><div style={{ flex: 1, background: p.bg }} /><div style={{ flex: 1, background: p.accent }} /></div>
-      )}
-      <div style={{ padding: `16px ${PAD}px`, flex: 1, display: "flex", flexDirection: "column" }}>
-        {/* Inline image block */}
-        {image?.url && (
-          <ImgZone url={image.url} alt={image.alt} credit={image.credit} source={image.source} pal={p}
-            style={{ width: "100%", height: 80, marginBottom: 10, flexShrink: 0 }} />
-        )}
-        <div style={{ ...CP, fontSize: 9, color: bodyColor, lineHeight: 1.9, flex: 1 }}>{formatBody(slide.body, p)}</div>
-
-        {/* Label cards for key terms */}
-        {slide.highlight && (
-          <div style={{ display: "flex", gap: 8, margin: "14px 0" }}>
-            <LabelCard label={slide.highlight.split("—")[0]?.trim()} sublabel={slide.highlight.split("—")[1]?.trim()} color={p.accent} />
-          </div>
-        )}
-
-        {/* Pull quote */}
-        {slide.quote && (
-          <div style={{ ...CP, fontSize: 9, fontStyle: "italic", color: p.bg?.startsWith("#1") ? "#333333" : p.bg, borderLeft: "2px solid #000", paddingLeft: 10, lineHeight: 1.5 }}>"{slide.quote}"</div>
-        )}
-        <Wm color={`${bodyColor}22`} />
-      </div>
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
+      {grid}
+      {children}
     </div>
   );
 }
 
-// Format body with bold caps and accent underlines
-function formatBody(text, pal) {
-  if (!text) return "";
-  // Split on sequences of 2+ UPPERCASE words and style them
-  const parts = text.split(/(\b[A-Z][A-Z\s]{2,}[A-Z]\b)/g);
-  return parts.map((part, i) =>
-    /^[A-Z\s]+$/.test(part) && part.trim().length > 2
-      ? <span key={i} style={{ fontWeight: 700, color: pal.accent, fontSize: "0.95em" }}>{part}</span>
-      : part
+// Pick a mosaic layout based on how many images are available and the slide index
+function pickLayout(imgCount, slideIndex, optionType) {
+  if (imgCount <= 1) return "single";
+  if (optionType === "deep") {
+    var deepLayouts = ["3L", "3h", "2v", "2h", "4g"];
+    return deepLayouts[slideIndex % deepLayouts.length];
+  }
+  if (optionType === "hot") {
+    var hotLayouts = ["2v", "single", "2h", "single"];
+    return hotLayouts[slideIndex % hotLayouts.length];
+  }
+  // timeline
+  var tlLayouts = ["2h", "2v", "3L", "4g", "2h"];
+  return tlLayouts[slideIndex % tlLayouts.length];
+}
+
+// Collect images for a mosaic from the images map
+function gatherImages(images, slideIndex, count) {
+  var result = [];
+  for (var i = 0; i < count; i++) {
+    var key = slideIndex + i;
+    if (images && images[key]) result.push(images[key].url);
+    else if (images && images[i]) result.push(images[i].url);
+  }
+  return result;
+}
+
+// ─── OVERLAYS ───
+function BottomGrad({ h }) {
+  return <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: h || "28%", background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 50%, transparent 100%)", zIndex: 3 }} />;
+}
+function TopGrad() {
+  return <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "10%", background: "linear-gradient(to bottom, rgba(0,0,0,0.5), transparent)", zIndex: 3 }} />;
+}
+function RadialVig() {
+  return <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0.2), rgba(0,0,0,0.65))", zIndex: 3 }} />;
+}
+
+// ─── COVER SLIDE ───
+function CoverSlide({ slide, category, image, images, optionType }) {
+  var p = PALETTES[category];
+  var imgUrls = gatherImages(images, 0, 4);
+  var layout = pickLayout(imgUrls.length, 0, optionType);
+
+  return (
+    <MosaicBg images={imgUrls} pal={p} layout={layout}>
+      <BottomGrad h="30%" /><TopGrad />
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: p.accent, opacity: 0.8, zIndex: 4 }} />
+      <div style={{ position: "absolute", top: 10, left: PAD, zIndex: 4, ...CP, fontSize: 7, letterSpacing: "0.2em", color: p.accent + "99" }}>{"LOATHR \u2014 " + CAT_LABELS[category]}</div>
+      <div style={{ position: "absolute", top: 9, right: PAD, width: 8, height: 8, background: p.accent, zIndex: 4 }} />
+      {p.accent2 && <div style={{ position: "absolute", top: 9, right: PAD + 14, width: 6, height: 6, background: p.accent2, zIndex: 4 }} />}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 " + PAD + "px " + PAD + "px", zIndex: 4 }}>
+        <div style={{ ...HD, fontSize: slide.title && slide.title.length > 35 ? 26 : 32, color: p.text, lineHeight: 1.05, textShadow: TS }}>
+          {formatTitle(slide.title, p.accent)}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+          <div style={{ ...CP, fontSize: 7, color: p.text + "66", fontStyle: "italic" }}>{slide.subtitle}</div>
+          {slide.heading && <div style={{ ...CP, fontSize: 6, color: p.accent + "88", letterSpacing: "0.08em" }}>{(slide.heading || "").toUpperCase()}</div>}
+        </div>
+      </div>
+    </MosaicBg>
+  );
+}
+
+// ─── CONTENT SLIDE ───
+function ContentSlide({ slide, index, category, images, optionType }) {
+  var p = PALETTES[category];
+  var imgUrls = gatherImages(images, index, 3);
+  var layout = pickLayout(imgUrls.length, index, optionType);
+
+  return (
+    <MosaicBg images={imgUrls} pal={p} layout={layout}>
+      <BottomGrad h="32%" /><TopGrad />
+      <div style={{ position: "absolute", top: 10, left: PAD, zIndex: 4, display: "flex", alignItems: "baseline", gap: 4 }}>
+        <span style={{ ...CP, fontSize: 7, color: p.accent + "33" }}>{String(index).padStart(2, "0")} \u2014</span>
+        <span style={{ ...HD, fontSize: 11, color: p.text + "99" }}>{slide.heading || "Part " + index}</span>
+      </div>
+      {slide.year && <div style={{ position: "absolute", top: 10, right: PAD, zIndex: 4, ...CP, fontSize: 7, color: p.accent + "55", letterSpacing: "0.08em" }}>{slide.year}</div>}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 " + PAD + "px " + PAD + "px", zIndex: 4 }}>
+        <div style={{ ...CP, fontSize: 9, color: p.text + "bb", lineHeight: 1.9, textShadow: TS2 }}>{slide.body}</div>
+        {slide.highlight && <div style={{ ...CP, fontSize: 8, fontStyle: "italic", color: p.accent + "88", marginTop: 4 }}>{slide.highlight}</div>}
+        {slide.specs && <div style={{ ...CP, fontSize: 7, color: p.text + "55", marginTop: 4 }}>{slide.specs}</div>}
+      </div>
+    </MosaicBg>
   );
 }
 
 // ─── STAT SLIDE ───
-function StatSlide({ slide, index, category }) {
-  const p = PALETTES[category];
-  const spark = slide.stat ? Array.from({ length: 8 }, (_, i) => ({ v: Math.round(10 + Math.abs(Math.sin(i * 0.8 + parseInt(slide.stat) || 1)) * 40) })) : null;
+function StatSlide({ slide, index, category, images, optionType }) {
+  var p = PALETTES[category];
+  var imgUrls = gatherImages(images, index, 3);
+  var layout = pickLayout(imgUrls.length, index, optionType);
 
   return (
-    <div style={{ width: "100%", height: "100%", background: p.light, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
-      <HeadingBar num={index} title={slide.heading || "By the Numbers"} pal={p} />
-      <div style={{ padding: `16px ${PAD}px`, flex: 1, display: "flex", flexDirection: "column" }}>
-        {slide.stat && (
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <StatBox value={slide.stat} label={slide.statLabel || "KEY METRIC"} color={p.accent} />
-            {slide.stat2 && <StatBox value={slide.stat2} label={slide.stat2Label || "SECONDARY"} color={p.accent2 || p.accent} />}
-          </div>
-        )}
-        {spark && <div style={{ marginBottom: 10, opacity: 0.5 }}><Spark data={spark} color={p.accent} h={28} /></div>}
-        <div style={{ ...CP, fontSize: 9, color: "#888", lineHeight: 1.85, flex: 1 }}>{slide.body}</div>
-        <Wm color="#ddd" />
+    <MosaicBg images={imgUrls} pal={p} layout={layout}>
+      <RadialVig />
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "22%", background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)", zIndex: 3 }} />
+      <div style={{ position: "absolute", top: 10, left: PAD, zIndex: 4, ...CP, fontSize: 7, color: p.accent + "44", letterSpacing: "0.12em" }}>{String(index).padStart(2, "0")} \u2014 BY THE NUMBERS</div>
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 4, display: "flex", gap: 24, textAlign: "center" }}>
+        <div>
+          <div style={{ ...HD, fontSize: slide.stat2 ? 40 : 52, color: p.accent, lineHeight: 1, textShadow: "0 4px 30px rgba(0,0,0,0.8)" }}>{slide.stat}</div>
+          <div style={{ ...CP, fontSize: 7, color: p.text + "55", letterSpacing: "0.12em", marginTop: 4 }}>{(slide.statLabel || "KEY METRIC").toUpperCase()}</div>
+        </div>
+        {slide.stat2 && <div>
+          <div style={{ ...HD, fontSize: 40, color: p.accent2 || p.text, lineHeight: 1, textShadow: "0 4px 30px rgba(0,0,0,0.8)" }}>{slide.stat2}</div>
+          <div style={{ ...CP, fontSize: 7, color: p.text + "55", letterSpacing: "0.12em", marginTop: 4 }}>{(slide.stat2Label || "SECONDARY").toUpperCase()}</div>
+        </div>}
       </div>
-    </div>
+      <div style={{ position: "absolute", bottom: PAD, left: PAD, right: PAD, zIndex: 4 }}>
+        <div style={{ ...CP, fontSize: 9, color: p.text + "88", lineHeight: 1.7, textShadow: TS2 }}>{slide.body}</div>
+      </div>
+    </MosaicBg>
   );
 }
 
-// ─── SPLIT FRAME SLIDE (image + content) ───
-function SplitSlide({ slide, index, category, image }) {
-  const p = PALETTES[category];
+// ─── QUOTE SLIDE ───
+function QuoteSlide({ slide, index, category, images }) {
+  var p = PALETTES[category];
+  var imgUrls = gatherImages(images, index, 1);
+  var quoteText = slide.quote || slide.highlight || slide.body || "";
+  if (quoteText && quoteText.charAt(0) !== '"') quoteText = '"' + quoteText + '"';
+
   return (
-    <div style={{ width: "100%", height: "100%", background: p.light, display: "flex", position: "relative", overflow: "hidden" }}>
-      <div style={{ width: "40%", borderRight: "2px solid #000", position: "relative" }}>
-        {image?.url ? (
-          <img src={image.url} alt={image.alt || ""} style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.9)" }} />
-        ) : (
-          <div style={{ width: "100%", height: "100%", background: p.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Camera size={18} style={{ opacity: 0.15, color: p.accent }} />
-          </div>
-        )}
+    <MosaicBg images={imgUrls} pal={p} layout="single">
+      <RadialVig />
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "82%", textAlign: "center", zIndex: 4 }}>
+        <div style={{ width: 20, height: 1, background: p.accent + "55", margin: "0 auto 14px" }} />
+        <div style={{ ...CP, fontSize: 13, fontWeight: 700, fontStyle: "italic", color: p.text + "dd", lineHeight: 1.5, textShadow: TS }}>{quoteText}</div>
+        <div style={{ width: 20, height: 1, background: p.accent + "55", margin: "14px auto" }} />
+        {slide.source && <div style={{ ...CP, fontSize: 7, color: p.accent + "88", letterSpacing: "0.1em" }}>{slide.source.toUpperCase()}</div>}
       </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <div style={{ background: "#000", padding: "10px 14px", display: "flex", alignItems: "baseline", gap: 4 }}>
-          <span style={{ ...CP, fontSize: 9, color: "rgba(255,255,255,0.18)" }}>{String(index).padStart(2, "0")} —</span>
-          <span style={{ ...HD, fontSize: 12, color: p.light }}>{slide.heading}</span>
-        </div>
-        <div style={{ padding: 14, flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <div style={{ ...CP, fontSize: 9, color: "#888", lineHeight: 1.85 }}>{slide.body}</div>
-        </div>
-      </div>
-    </div>
+    </MosaicBg>
   );
 }
 
 // ─── CLOSER SLIDE ───
-function CloserSlide({ category, hashtags }) {
-  const p = PALETTES[category];
+function CloserSlide({ category, hashtags, images }) {
+  var p = PALETTES[category];
+  var imgUrls = gatherImages(images, 0, 3);
+  var layout = imgUrls.length >= 3 ? "3h" : imgUrls.length >= 2 ? "2v" : "single";
+
   return (
-    <div style={{ width: "100%", height: "100%", background: p.bg, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", position: "relative" }}>
-      <div style={{ ...CP, fontSize: 8, letterSpacing: "0.3em", color: `${p.text}33` }}>FOLLOW FOR MORE</div>
-      <div style={{ ...CP, fontSize: 14, letterSpacing: "0.35em", color: `${p.text}18`, marginTop: 14 }}>L O A T H R</div>
-      <div style={{ width: 60, height: 1, background: `${p.accent}44`, margin: "10px auto" }} />
-      <div style={{ ...CP, fontSize: 8, color: `${p.text}22`, marginTop: 4 }}>{hashtags}</div>
-    </div>
+    <MosaicBg images={imgUrls} pal={p} layout={layout} opacity={0.2}>
+      <RadialVig />
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 4 }}>
+        <div style={{ ...CP, fontSize: 7, letterSpacing: "0.3em", color: p.accent + "44" }}>{CLOSER_TAGS[category]}</div>
+        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.45em", color: p.text + "1F", marginTop: 14 }}>L O A T H R</div>
+        <div style={{ width: 30, height: 1, background: p.accent + "22", margin: "10px auto" }} />
+        <div style={{ ...CP, fontSize: 7, color: p.text + "11", marginTop: 4 }}>{hashtags}</div>
+      </div>
+    </MosaicBg>
   );
 }
 
-
 // ─── SLIDE RENDERER ───
-function SlideRenderer({ category, slideData, slideIndex, totalSlides, images }) {
-  const img = images?.[slideIndex];
-  if (slideIndex === totalSlides - 1) return <CloserSlide category={category} hashtags={slideData.hashtags || ""} />;
-  if (slideIndex === 0) return <CoverSlide slide={slideData} category={category} image={img} />;
-  // Route to stat slide if it has stat data
-  if (slideData.stat) return <StatSlide slide={slideData} index={slideIndex} category={category} />;
-  // Route to split slide for even-indexed content slides with images
-  if (img?.url && slideIndex % 3 === 0) return <SplitSlide slide={slideData} index={slideIndex} category={category} image={img} />;
-  return <ContentSlide slide={slideData} index={slideIndex} category={category} image={img} />;
+function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, optionType }) {
+  if (slideIndex === totalSlides - 1) return <CloserSlide category={category} hashtags={slideData.hashtags || ""} images={images} />;
+  if (slideIndex === 0) return <CoverSlide slide={slideData} category={category} images={images} optionType={optionType} />;
+  if (slideData.stat) return <StatSlide slide={slideData} index={slideIndex} category={category} images={images} optionType={optionType} />;
+  if (slideData.quote || (slideIndex === totalSlides - 2 && slideData.highlight)) return <QuoteSlide slide={slideData} index={slideIndex} category={category} images={images} />;
+  return <ContentSlide slide={slideData} index={slideIndex} category={category} images={images} optionType={optionType} />;
 }
 
-// ─── PNG EXPORT SYSTEM ───
-const loadScript = (src) => {
-  return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${src}"]`)) return resolve();
-    const s = document.createElement("script");
+// ─── IMAGE SEARCH ───
+var searchUnsplash = async function(query, apiKey) {
+  var r = await fetch("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(query) + "&per_page=10&orientation=portrait", { headers: { Authorization: "Client-ID " + apiKey } });
+  if (!r.ok) throw new Error("Unsplash " + r.status);
+  var d = await r.json();
+  return (d.results || []).map(function(img) { return { url: img.urls ? img.urls.regular : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; });
+};
+
+var searchPexels = async function(query, apiKey) {
+  var r = await fetch("https://api.pexels.com/v1/search?query=" + encodeURIComponent(query) + "&per_page=10&orientation=portrait", { headers: { Authorization: apiKey } });
+  if (!r.ok) throw new Error("Pexels " + r.status);
+  var d = await r.json();
+  return (d.photos || []).map(function(img) { return { url: img.src ? img.src.large : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; });
+};
+
+var testApiConnection = async function(service, key) {
+  try {
+    var url = service === "unsplash" ? "https://api.unsplash.com/search/photos?query=test&per_page=1" : "https://api.pexels.com/v1/search?query=test&per_page=1";
+    var headers = service === "unsplash" ? { Authorization: "Client-ID " + key } : { Authorization: key };
+    var r = await fetch(url, { headers: headers });
+    if (r.ok) return { ok: true, msg: "Connected" };
+    if (r.status === 401) return { ok: false, msg: "Invalid key" };
+    return { ok: false, msg: "Error " + r.status };
+  } catch (e) {
+    return { ok: false, msg: e.message && e.message.indexOf("fetch") >= 0 ? "Blocked by sandbox" : (e.message || "Failed") };
+  }
+};
+
+// ─── PNG EXPORT ───
+var loadScript = function(src) {
+  return new Promise(function(resolve, reject) {
+    if (document.querySelector('script[src="' + src + '"]')) return resolve();
+    var s = document.createElement("script");
     s.src = src;
     s.onload = resolve;
-    s.onerror = () => reject(new Error("Script load failed: " + src));
+    s.onerror = function() { reject(new Error("Script load failed")); };
     document.head.appendChild(s);
   });
 };
 
-const exportSlides = async (slides, category, slideRef, setCurrentSlide, setExportStatus) => {
+var exportSlides = async function(slides, category, slideRef, setCurrentSlide, setExportStatus) {
   setExportStatus("Loading export libraries...");
   try {
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
   } catch (e) {
-    setExportStatus("Export requires deployment — CDN blocked in sandbox");
-    setTimeout(() => setExportStatus(null), 3000);
+    setExportStatus("Export requires deployment");
+    setTimeout(function() { setExportStatus(null); }, 3000);
     return;
   }
-
-  const zip = new window.JSZip();
-  const imgFolder = zip.folder("LOATHR-" + category.toUpperCase());
-
-  for (let i = 0; i < slides.length; i++) {
+  var zip = new window.JSZip();
+  var imgFolder = zip.folder("LOATHR-" + category.toUpperCase());
+  for (var i = 0; i < slides.length; i++) {
     setExportStatus("Rendering slide " + (i + 1) + " of " + slides.length + "...");
     setCurrentSlide(i);
-    // Wait for React to re-render the preview
-    await new Promise(r => setTimeout(r, 300));
-
-    const el = slideRef.current;
+    await new Promise(function(r) { setTimeout(r, 350); });
+    var el = slideRef.current;
     if (!el) continue;
-
     try {
-      const canvas = await window.html2canvas(el, {
-        width: el.offsetWidth,
-        height: el.offsetHeight,
-        scale: 1080 / el.offsetWidth,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-        logging: false,
-      });
-      const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
+      var canvas = await window.html2canvas(el, { width: el.offsetWidth, height: el.offsetHeight, scale: 1080 / el.offsetWidth, useCORS: true, allowTaint: true, backgroundColor: null, logging: false });
+      var blob = await new Promise(function(r) { canvas.toBlob(r, "image/png"); });
       if (blob) imgFolder.file("slide-" + String(i + 1).padStart(2, "0") + ".png", blob);
-    } catch (err) {
-      console.error("Failed slide " + (i + 1), err);
-    }
+    } catch (err) { console.error("Failed slide " + (i + 1), err); }
   }
-
   setExportStatus("Creating ZIP...");
   try {
-    const content = await zip.generateAsync({ type: "blob" });
-    const url = URL.createObjectURL(content);
-    const a = document.createElement("a");
+    var content = await zip.generateAsync({ type: "blob" });
+    var url = URL.createObjectURL(content);
+    var a = document.createElement("a");
     a.href = url;
     a.download = "LOATHR-" + category.toUpperCase() + "-carousel.zip";
     a.click();
     URL.revokeObjectURL(url);
     setExportStatus("Downloaded!");
-  } catch (e) {
-    setExportStatus("ZIP creation failed");
-  }
-  setTimeout(() => setExportStatus(null), 2000);
+  } catch (e) { setExportStatus("ZIP creation failed"); }
+  setTimeout(function() { setExportStatus(null); }, 2000);
 };
+
+// ─── DIFFERENTIATED PROMPTS ───
+function buildPrompt(catLabel, topic, optionType) {
+  var base = "You are a senior content strategist for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\n";
+
+  if (optionType === "deep") {
+    return base + "Create a DEEP DIVE carousel (6-7 slides). This is educational and detailed.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title, subtitle, heading (sub-topic tag)\n- Slides 1-4 (content): heading, body (3-4 sentences, educational depth, KEY TERMS IN CAPS), highlight (key insight), specs (technical detail or little-known fact)\n- Slide 5 (stat): heading, stat, statLabel, body (one sentence connecting the number to the narrative)\n- Last slide: hashtags string\n\nStyle: authoritative, well-researched, each slide builds on the last. Body text should teach something specific. Include specs field with a technical detail on each content slide.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Deep Dive\",\"slides\":[{...}]}";
+  }
+
+  if (optionType === "hot") {
+    return base + "Create a HOT TAKE carousel (5-6 slides). This is punchy, provocative, and shareable.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title (provocative statement or question), subtitle (one-line hook), heading (sub-topic tag)\n- Slides 1-2 (content): heading, body (2 SHORT punchy sentences, KEY TERMS IN CAPS, confrontational tone), highlight (hot take statement)\n- Slide 3 (stat): heading, stat, statLabel, stat2, stat2Label, body (contrast the two numbers to make a point)\n- Slide 4 (quote): quote (bold attributed quote that supports the take), source (person's name)\n- Last slide: hashtags string\n\nStyle: bold, opinionated, designed to spark debate. Short sentences. Strong claims. Every slide should make someone want to share or argue.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Hot Take\",\"slides\":[{...}]}";
+  }
+
+  return base + "Create a TIMELINE carousel (6-7 slides). This is a chronological journey.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title (should imply a historical arc), subtitle, heading (sub-topic tag)\n- Slides 1-4 (content): heading (era or event name), year (specific year like \"1973\" or \"2001\"), body (2-3 sentences about what happened, KEY TERMS IN CAPS), highlight (why this moment mattered)\n- Slide 5 (stat): heading, stat, statLabel, year, body (a number that captures the transformation)\n- Last slide: hashtags string\n\nStyle: narrative, each slide is a distinct era. The year field is REQUIRED on every content and stat slide. Body text should set the scene for that era. Build a clear before-and-after arc.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Timeline\",\"slides\":[{...}]}";
+}
 
 // ─── SETTINGS PANEL ───
 function Settings({ apiKeys, setApiKeys, show, setShow, apiStatus, onTest }) {
   return (
     <div style={{ marginBottom: 16, textAlign: "center" }}>
-      <button onClick={() => setShow(!show)} style={{ background: "none", border: "0.5px solid var(--color-border-tertiary)", padding: "8px 14px", cursor: "pointer", fontSize: 11, ...CP, letterSpacing: "0.05em", color: "var(--color-text-secondary)", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <button onClick={function() { setShow(!show); }} style={{ background: "none", border: "0.5px solid var(--color-border-tertiary)", padding: "8px 14px", cursor: "pointer", fontSize: 11, ...CP, letterSpacing: "0.05em", color: "var(--color-text-secondary)", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: 6 }}>
         <Hash size={12} />{show ? "Hide" : "API"} Settings
-        {apiStatus.unsplash?.ok || apiStatus.pexels?.ok ? <CheckCircle size={12} style={{ color: "var(--color-text-success)" }} /> : null}
+        {(apiStatus.unsplash && apiStatus.unsplash.ok) || (apiStatus.pexels && apiStatus.pexels.ok) ? <CheckCircle size={12} style={{ color: "var(--color-text-success)" }} /> : null}
       </button>
       {show && (
         <div style={{ marginTop: 10, padding: 16, border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)", textAlign: "left" }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.1em", color: "var(--color-text-tertiary)", marginBottom: 10, textTransform: "uppercase" }}>Image APIs (optional)</div>
           {[{ key: "unsplash", label: "Unsplash Access Key", hint: "unsplash.com/developers" },
-            { key: "pexels", label: "Pexels API Key", hint: "pexels.com/api" }].map(({ key, label, hint }) => (
-            <div key={key} style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 10, color: "var(--color-text-secondary)", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>{label}
-                {apiStatus[key] && <span style={{ fontSize: 9, color: apiStatus[key].ok ? "var(--color-text-success)" : "var(--color-text-warning)", display: "inline-flex", alignItems: "center", gap: 3 }}>
-                  {apiStatus[key].ok ? <CheckCircle size={9} /> : <AlertTriangle size={9} />}{apiStatus[key].msg}
-                </span>}
+            { key: "pexels", label: "Pexels API Key", hint: "pexels.com/api" }].map(function(item) {
+            return (
+              <div key={item.key} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 10, color: "var(--color-text-secondary)", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>{item.label}
+                  {apiStatus[item.key] && <span style={{ fontSize: 9, color: apiStatus[item.key].ok ? "var(--color-text-success)" : "var(--color-text-warning)", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    {apiStatus[item.key].ok ? <CheckCircle size={9} /> : <AlertTriangle size={9} />}{apiStatus[item.key].msg}
+                  </span>}
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input type="password" value={apiKeys[item.key]} onChange={function(e) { setApiKeys(function(p) { var n = {}; for (var k in p) n[k] = p[k]; n[item.key] = e.target.value; return n; }); }}
+                    placeholder={item.hint} style={{ flex: 1, padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 11, ...CP }} />
+                  <button onClick={function() { onTest(item.key); }} disabled={!apiKeys[item.key]}
+                    style={{ padding: "6px 12px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: apiKeys[item.key] ? "pointer" : "default", ...CP, fontSize: 9, color: "var(--color-text-secondary)", opacity: apiKeys[item.key] ? 1 : 0.4 }}>Test</button>
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <input type="password" value={apiKeys[key]} onChange={e => setApiKeys(p => ({ ...p, [key]: e.target.value }))}
-                  placeholder={hint} style={{ flex: 1, padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 11, ...CP }} />
-                <button onClick={() => onTest(key)} disabled={!apiKeys[key]}
-                  style={{ padding: "6px 12px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: apiKeys[key] ? "pointer" : "default", ...CP, fontSize: 9, color: "var(--color-text-secondary)", opacity: apiKeys[key] ? 1 : 0.4 }}>Test</button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-
 // ─── MAIN COMPONENT ───
 export default function LoathrMediaGenerator() {
-  const [category, setCategory] = useState(null);
-  const [topic, setTopic] = useState("");
-  const [options, setOptions] = useState(null);
-  const [selectedOption, setSelectedOption] = useState(0);
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState(null);
-  const [apiKeys, setApiKeys] = useState({
-  unsplash: process.env.NEXT_PUBLIC_UNSPLASH_KEY || "",
-  pexels: process.env.NEXT_PUBLIC_PEXELS_KEY || "",
-});
-  const [showSettings, setShowSettings] = useState(false);
-  const [images, setImages] = useState({});
-  const [apiStatus, setApiStatus] = useState({});
-  const [imgStatus, setImgStatus] = useState(null);
-  const [trending, setTrending] = useState([]);
-  const [isFetchingTrending, setIsFetchingTrending] = useState(false);
-  const [subcat, setSubcat] = useState(null);
-  const [shuffleKey, setShuffleKey] = useState(0);
-  const [refinedAngles, setRefinedAngles] = useState([]);
-  const [isRefining, setIsRefining] = useState(false);
-  const [exportStatus, setExportStatus] = useState(null);
-  const slideRef = useRef(null);
+  var _s = useState, _cb = useCallback, _ef = useEffect, _ref = useRef;
+  var cs = _s(null), category = cs[0], setCategory = cs[1];
+  var ts = _s(""), topic = ts[0], setTopic = ts[1];
+  var os = _s(null), options = os[0], setOptions = os[1];
+  var ss = _s(0), selectedOption = ss[0], setSelectedOption = ss[1];
+  var cls = _s(0), currentSlide = cls[0], setCurrentSlide = cls[1];
+  var gs = _s(false), isGenerating = gs[0], setIsGenerating = gs[1];
+  var es = _s(null), error = es[0], setError = es[1];
+  var aks = _s({ unsplash: "", pexels: "" }), apiKeys = aks[0], setApiKeys = aks[1];
+  var shs = _s(false), showSettings = shs[0], setShowSettings = shs[1];
+  var ims = _s({}), images = ims[0], setImages = ims[1];
+  var aps = _s({}), apiStatus = aps[0], setApiStatus = aps[1];
+  var iss = _s(null), imgStatus = iss[0], setImgStatus = iss[1];
+  var trs = _s([]), trending = trs[0], setTrending = trs[1];
+  var fts = _s(false), isFetchingTrending = fts[0], setIsFetchingTrending = fts[1];
+  var scs = _s(null), subcat = scs[0], setSubcat = scs[1];
+  var sks = _s(0), shuffleKey = sks[0], setShuffleKey = sks[1];
+  var ras = _s([]), refinedAngles = ras[0], setRefinedAngles = ras[1];
+  var irs = _s(false), isRefining = irs[0], setIsRefining = irs[1];
+  var exs = _s(null), exportStatus = exs[0], setExportStatus = exs[1];
+  var slideRef = _ref(null);
 
-  useEffect(() => { const l = document.createElement("link"); l.href = FONT_URL; l.rel = "stylesheet"; document.head.appendChild(l); }, []);
+  _ef(function() { var l = document.createElement("link"); l.href = FONT_URL; l.rel = "stylesheet"; document.head.appendChild(l); }, []);
 
-  const cat = CATEGORIES.find(c => c.id === category);
-  const pal = category ? PALETTES[category] : null;
-  const cur = options?.[selectedOption];
-  const total = cur?.slides?.length || 0;
+  var cat = CATEGORIES.find(function(c) { return c.id === category; });
+  var pal = category ? PALETTES[category] : null;
+  var cur = options ? options[selectedOption] : null;
+  var total = cur && cur.slides ? cur.slides.length : 0;
+  var optType = OPTION_TYPES[selectedOption] ? OPTION_TYPES[selectedOption].id : "deep";
 
-  const getVisibleTopics = useCallback(() => {
+  var getVisibleTopics = _cb(function() {
     if (!category) return [];
-    const subs = SUBCATEGORIES[category];
+    var subs = SUBCATEGORIES[category];
     if (!subs) return [];
-    let pool = subcat && subs[subcat] ? subs[subcat] : Object.values(subs).flat();
-    const shuffled = [...pool];
-    let s = shuffleKey + 1;
-    for (let i = shuffled.length - 1; i > 0; i--) { s = (s * 16807) % 2147483647; const j = s % (i + 1); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
+    var pool = subcat && subs[subcat] ? subs[subcat] : Object.values(subs).flat();
+    var shuffled = pool.slice();
+    var s = shuffleKey + 1;
+    for (var i = shuffled.length - 1; i > 0; i--) { s = (s * 16807) % 2147483647; var j = s % (i + 1); var tmp = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = tmp; }
     return shuffled.slice(0, 6);
   }, [category, subcat, shuffleKey]);
 
-  const surpriseMe = useCallback(() => {
+  var surpriseMe = _cb(function() {
     if (!category) return;
-    const all = Object.values(SUBCATEGORIES[category]).flat();
-    const a = all[Math.floor(Math.random() * all.length)];
-    let b = all[Math.floor(Math.random() * all.length)];
+    var all = Object.values(SUBCATEGORIES[category]).flat();
+    var a = all[Math.floor(Math.random() * all.length)];
+    var b = all[Math.floor(Math.random() * all.length)];
     while (b === a) b = all[Math.floor(Math.random() * all.length)];
-    setTopic(`${a.split(" ").slice(0, 3).join(" ")} meets ${b.split(" ").slice(-3).join(" ")}`);
+    setTopic(a.split(" ").slice(0, 3).join(" ") + " meets " + b.split(" ").slice(-3).join(" "));
     setRefinedAngles([]);
   }, [category]);
 
-  const refineTopic = useCallback(async () => {
+  var refineTopic = _cb(async function() {
     if (!topic.trim() || !category) return;
     setIsRefining(true); setRefinedAngles([]);
     try {
-      const r = await fetch("/api/generate", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+      var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 800, messages: [{ role: "user",
-          content: `You're a content strategist. Generate 3 sharper angles on "${topic}" for "${cat.label}" Instagram carousels. Respond ONLY with JSON: [{"angle":"title","hook":"one sentence"}]` }] }),
-      });
-      const d = await r.json().catch(() => null);
-      if (!d) throw new Error(`API returned empty response (status ${r.status})`);
-      if (d.error) throw new Error(d.error.message || d.error);
-      const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-      if (!text.trim()) throw new Error("No text in response");
-      const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+          content: "You're a content strategist. Generate 3 sharper angles on \"" + topic + "\" for \"" + cat.label + "\" Instagram carousels. Respond ONLY with JSON: [{\"angle\":\"title\",\"hook\":\"one sentence\"}]" }] }) });
+      var d = await r.json();
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
       if (Array.isArray(parsed)) setRefinedAngles(parsed);
-    } catch (err) { console.error("Refine failed:", err); }
+    } catch (err) { console.error(err); }
     finally { setIsRefining(false); }
   }, [topic, category, cat]);
 
-  const fetchTrending = useCallback(async () => {
+  var fetchTrending = _cb(async function() {
     if (!category) return;
     setIsFetchingTrending(true); setTrending([]);
-    const catContext = { film: "film, TV, cinema, streaming, directing", photo: "photography, cameras, visual storytelling", sports: "sports with music, fashion, art, culture", trivia: "surprising facts, science discoveries, cultural oddities", art: "music, visual arts, album releases, art history" };
+    var catContext = { film: "film, TV, cinema, streaming, directing", photo: "photography, cameras, visual storytelling", sports: "sports with music, fashion, art, culture", trivia: "surprising facts, science discoveries, cultural oddities", art: "music, visual arts, album releases, art history" };
     try {
-      const msgs = [{ role: "user", content: `Search for trending topics in: ${catContext[category]}. Find 6 specific timely topics for Instagram carousels. Respond ONLY with JSON: [{"topic":"title","hook":"why trending now"}]` }];
-      const toolsDef = [{ type: "web_search_20250305", name: "web_search" }];
-
-      let r = await fetch("/api/generate", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, tools: toolsDef, messages: msgs }),
-      });
-      let d = await r.json().catch(() => null);
-      if (!d) throw new Error(`API returned empty response (status ${r.status})`);
-      if (d.error) throw new Error(d.error.message || d.error);
-
-      // Handle pause_turn — server may pause while executing web search
-      let loops = 0;
-      while (d.stop_reason === "pause_turn" && loops < 3) {
-        loops++;
-        msgs.push({ role: "assistant", content: d.content });
-        r = await fetch("/api/generate", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, tools: toolsDef, messages: msgs }),
-        });
-        d = await r.json().catch(() => null);
-        if (!d) throw new Error(`API returned empty response (status ${r.status})`);
-        if (d.error) throw new Error(d.error.message || d.error);
-      }
-
-      const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-      if (!text.trim()) throw new Error("No text in response");
-      const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+      var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000,
+          tools: [{ type: "web_search_20250305", name: "web_search" }],
+          messages: [{ role: "user", content: "Search for trending topics in: " + catContext[category] + ". Find 6 specific timely topics for Instagram carousels. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why trending now\"}]" }] }) });
+      var d = await r.json();
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
       if (Array.isArray(parsed)) setTrending(parsed);
-    } catch (err) { console.error("Trending fetch failed:", err); }
+    } catch (err) { console.error(err); }
     finally { setIsFetchingTrending(false); }
   }, [category]);
 
-  const handleTest = useCallback(async (service) => {
-    setApiStatus(p => ({ ...p, [service]: { ok: false, msg: "Testing..." } }));
-    const result = await testApiConnection(service, apiKeys[service]);
-    setApiStatus(p => ({ ...p, [service]: result }));
+  var handleTest = _cb(async function(service) {
+    setApiStatus(function(p) { var n = {}; for (var k in p) n[k] = p[k]; n[service] = { ok: false, msg: "Testing..." }; return n; });
+    var result = await testApiConnection(service, apiKeys[service]);
+    setApiStatus(function(p) { var n = {}; for (var k in p) n[k] = p[k]; n[service] = result; return n; });
   }, [apiKeys]);
 
-  const generate = useCallback(async () => {
+  var generate = _cb(async function() {
     if (!topic.trim() || !category) return;
     setIsGenerating(true); setError(null); setOptions(null); setImages({});
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
-
-    const catInfo = CATEGORIES.find(c => c.id === category);
-    const prompt = `You are a senior content strategist for LOATHR, an editorial Instagram brand. Create 3 carousel post options for "${catInfo.label}" on: "${topic}".
-
-Each option is a different angle (Deep Dive, Hot Take, Timeline). Each has 5-7 slides.
-
-SLIDE TYPES:
-- Slide 0 (cover): title, subtitle, heading (sub-topic tag)
-- Middle slides: heading, body (2-3 sentences with KEY TERMS IN CAPS), highlight (key phrase), quote (optional), stat/statLabel/stat2/stat2Label (optional for stat slides)
-- Last slide: hashtags string
-
-Use CAPS for emphasis words in body text. Make stat slides data-rich with specific numbers.
-
-Respond ONLY with valid JSON, no markdown:
-[{"angle":"Deep Dive","slides":[{...}]},{"angle":"Hot Take","slides":[{...}]},{"angle":"Timeline","slides":[{...}]}]`;
+    var catInfo = CATEGORIES.find(function(c) { return c.id === category; });
 
     try {
-      const r = await fetch("/api/generate", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }),
-      });
-      const d = await r.json().catch(() => null);
-      if (!d) throw new Error(`API returned empty response (status ${r.status})`);
-      if (d.error) throw new Error(d.error.message || d.error);
-      const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-      if (!text.trim()) throw new Error("Empty response from API");
-      const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
-      if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Invalid response format");
-      setOptions(parsed);
+      // Generate all 3 options with differentiated prompts
+      var results = [];
+      var types = ["deep", "hot", "timeline"];
+      for (var t = 0; t < 3; t++) {
+        var prompt = buildPrompt(catInfo.label, topic, types[t]);
+        var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
+        var d = await r.json();
+        if (d.error) throw new Error(d.error);
+        var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+        var parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+        if (parsed && parsed.slides) results.push(parsed);
+        else if (Array.isArray(parsed) && parsed[0]) results.push(parsed[0]);
+      }
+      if (results.length === 0) throw new Error("No valid options generated");
+      setOptions(results);
 
       // Attempt image search
-      const imgKey = apiKeys.unsplash || apiKeys.pexels;
-      if (imgKey && parsed[0]?.slides?.length) {
+      var imgKey = apiKeys.unsplash || apiKeys.pexels;
+      if (imgKey) {
         setImgStatus("Searching for images...");
         try {
-          const searchFn = apiKeys.unsplash ? searchUnsplash : searchPexels;
-          const key = apiKeys.unsplash || apiKeys.pexels;
-          const results = await searchFn(`${catInfo.label} ${topic}`, key);
-          if (results.length > 0) {
-            const imgMap = {};
-            results.forEach((img, i) => { imgMap[i] = img; });
+          var searchFn = apiKeys.unsplash ? searchUnsplash : searchPexels;
+          var key = apiKeys.unsplash || apiKeys.pexels;
+          var imgs = await searchFn(catInfo.label + " " + topic, key);
+          if (imgs.length > 0) {
+            var imgMap = {};
+            imgs.forEach(function(img, i) { imgMap[i] = img; });
             setImages(imgMap);
-            setImgStatus(`${results.length} images loaded`);
-          } else { setImgStatus("No images found — using placeholders"); }
-        } catch (e) { setImgStatus(`Image search failed: ${e.message}`); }
+            setImgStatus(imgs.length + " images loaded");
+          } else { setImgStatus("No images found"); }
+        } catch (e) { setImgStatus("Image search failed: " + e.message); }
       }
     } catch (err) { setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
   }, [topic, category, apiKeys]);
 
-  // ─── RENDER ───
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px" }}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}`}</style>
-      {/* Header */}
+      <style>{"@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}"}</style>
+
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         <div style={{ ...CP, fontSize: 14, letterSpacing: "0.4em", color: "var(--color-text-primary)", fontWeight: 700 }}>L O A T H R</div>
         <div style={{ width: 40, height: 1, background: "var(--color-border-tertiary)", margin: "8px auto" }} />
@@ -637,174 +586,119 @@ Respond ONLY with valid JSON, no markdown:
 
       <Settings apiKeys={apiKeys} setApiKeys={setApiKeys} show={showSettings} setShow={setShowSettings} apiStatus={apiStatus} onTest={handleTest} />
 
-      {/* Category selector */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, justifyContent: "center", flexWrap: "wrap" }}>
-        {CATEGORIES.map(c => {
-          const p = PALETTES[c.id];
-          const sel = category === c.id;
-          const Icon = c.icon;
+        {CATEGORIES.map(function(c) {
+          var p = PALETTES[c.id]; var sel = category === c.id; var Icon = c.icon;
           return (
-            <button key={c.id} onClick={() => { setCategory(c.id); setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); }}
-              style={{ padding: "8px 12px", cursor: "pointer", border: sel ? `2px solid ${p.accent}` : "1px solid var(--color-border-tertiary)", background: sel ? `${p.accent}12` : "transparent", display: "flex", alignItems: "center", gap: 5, fontSize: 10, ...CP, color: sel ? p.accent : "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+            <button key={c.id} onClick={function() { setCategory(c.id); setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); }}
+              style={{ padding: "8px 12px", cursor: "pointer", border: sel ? "2px solid " + p.accent : "1px solid var(--color-border-tertiary)", background: sel ? p.accent + "12" : "transparent", display: "flex", alignItems: "center", gap: 5, fontSize: 10, ...CP, color: sel ? p.accent : "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
               <Icon size={12} />{c.label}
-            </button>
-          );
+            </button>);
         })}
       </div>
 
-      {/* Topic input area */}
       {category && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-            <input value={topic} onChange={e => { setTopic(e.target.value); setRefinedAngles([]); }}
-              placeholder={`Topic for ${cat.label}...`}
+            <input value={topic} onChange={function(e) { setTopic(e.target.value); setRefinedAngles([]); }}
+              placeholder={"Topic for " + cat.label + "..."}
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 12, ...CP }} />
             <button onClick={generate} disabled={!topic.trim() || isGenerating}
-              style={{ padding: "10px 18px", background: pal.accent, color: "#fff", border: "none", cursor: topic.trim() && !isGenerating ? "pointer" : "default", ...CP, fontSize: 10, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() && !isGenerating ? 1 : 0.4 }}>
+              style={{ padding: "10px 18px", background: pal.accent, color: "#ffffff", border: "none", cursor: topic.trim() && !isGenerating ? "pointer" : "default", ...CP, fontSize: 10, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() && !isGenerating ? 1 : 0.4 }}>
               {isGenerating ? <Loader size={14} style={{ animation: "spin 1s linear infinite" }} /> : "GENERATE"}
             </button>
           </div>
-
-          {/* Action buttons row */}
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
-            <button onClick={fetchTrending} disabled={isFetchingTrending} title="Trending topics"
-              style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}>
-              <Flame size={11} />{isFetchingTrending ? "..." : "Trending"}
-            </button>
-            <button onClick={() => setShuffleKey(k => k + 1)} title="Shuffle topics"
-              style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}>
-              <Shuffle size={11} />Shuffle
-            </button>
-            <button onClick={surpriseMe} title="Random mashup"
-              style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}>
-              <Zap size={11} />Surprise
-            </button>
-            {topic.trim() && (
-              <button onClick={refineTopic} disabled={isRefining} title="AI refine"
-                style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}>
-                <Sparkles size={11} />{isRefining ? "..." : "Refine"}
-              </button>
-            )}
+            <button onClick={fetchTrending} disabled={isFetchingTrending} style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Flame size={11} />{isFetchingTrending ? "..." : "Trending"}</button>
+            <button onClick={function() { setShuffleKey(function(k) { return k + 1; }); }} style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Shuffle size={11} />Shuffle</button>
+            <button onClick={surpriseMe} style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Zap size={11} />Surprise</button>
+            {topic.trim() && <button onClick={refineTopic} disabled={isRefining} style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Sparkles size={11} />{isRefining ? "..." : "Refine"}</button>}
           </div>
-
-          {/* Refined angles */}
-          {refinedAngles.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
-              {refinedAngles.map((r, i) => (
-                <button key={i} onClick={() => { setTopic(r.angle); setRefinedAngles([]); }}
-                  style={{ padding: "8px 12px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
-                  <ChevronRight size={12} style={{ color: pal.accent, flexShrink: 0 }} />
-                  <div><div style={{ fontSize: 11, color: "var(--color-text-primary)", ...CP }}>{r.angle}</div>
-                  <div style={{ fontSize: 9, color: "var(--color-text-tertiary)", marginTop: 2 }}>{r.hook}</div></div>
-                </button>
-              ))}
+          {refinedAngles.length > 0 && <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+            {refinedAngles.map(function(r, i) { return (
+              <button key={i} onClick={function() { setTopic(r.angle); setRefinedAngles([]); }}
+                style={{ padding: "8px 12px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
+                <ChevronRight size={12} style={{ color: pal.accent, flexShrink: 0 }} />
+                <div><div style={{ fontSize: 11, color: "var(--color-text-primary)", ...CP }}>{r.angle}</div>
+                <div style={{ fontSize: 9, color: "var(--color-text-tertiary)", marginTop: 2 }}>{r.hook}</div></div>
+              </button>); })}
+          </div>}
+          {trending.length > 0 && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", marginBottom: 10 }}>
+            {trending.map(function(t, i) { return (
+              <button key={i} onClick={function() { setTopic(t.topic); setRefinedAngles([]); }}
+                style={{ padding: "6px 12px", border: "1px solid " + pal.accent + "44", background: pal.accent + "08", cursor: "pointer", ...CP, fontSize: 10, color: pal.accent }} title={t.hook}>
+                <Flame size={9} style={{ display: "inline", marginRight: 4, verticalAlign: "middle" }} />{t.topic}
+              </button>); })}
+          </div>}
+          {trending.length === 0 && SUBCATEGORIES[category] && <div>
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center", marginBottom: 8 }}>
+              <button onClick={function() { setSubcat(null); }} style={{ padding: "4px 10px", cursor: "pointer", ...CP, fontSize: 9, letterSpacing: "0.05em", border: "0.5px solid " + (!subcat ? pal.accent : "var(--color-border-tertiary)"), background: !subcat ? pal.accent + "15" : "transparent", color: !subcat ? pal.accent : "var(--color-text-tertiary)", textTransform: "uppercase" }}>All</button>
+              {Object.keys(SUBCATEGORIES[category]).map(function(s) { return (
+                <button key={s} onClick={function() { setSubcat(s); }} style={{ padding: "4px 10px", cursor: "pointer", ...CP, fontSize: 9, letterSpacing: "0.05em", border: "0.5px solid " + (subcat === s ? pal.accent : "var(--color-border-tertiary)"), background: subcat === s ? pal.accent + "15" : "transparent", color: subcat === s ? pal.accent : "var(--color-text-tertiary)", textTransform: "uppercase" }}>{s}</button>); })}
             </div>
-          )}
-
-          {/* Trending topics */}
-          {trending.length > 0 && (
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", marginBottom: 10 }}>
-              {trending.map((t, i) => (
-                <button key={i} onClick={() => { setTopic(t.topic); setRefinedAngles([]); }}
-                  style={{ padding: "6px 12px", border: `1px solid ${pal.accent}44`, background: `${pal.accent}08`, cursor: "pointer", ...CP, fontSize: 10, color: pal.accent }} title={t.hook}>
-                  <Flame size={9} style={{ display: "inline", marginRight: 4, verticalAlign: "middle" }} />{t.topic}
-                </button>
-              ))}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+              {getVisibleTopics().map(function(t) { return (
+                <button key={t + "-" + shuffleKey} onClick={function() { setTopic(t); setRefinedAngles([]); }}
+                  style={{ padding: "6px 12px", cursor: "pointer", fontSize: 10, border: "0.5px solid var(--color-border-tertiary)", background: topic === t ? pal.accent + "12" : "transparent", color: topic === t ? pal.accent : "var(--color-text-tertiary)", ...CP }}>{t}</button>); })}
             </div>
-          )}
-
-          {/* Subcategory filter pills */}
-          {trending.length === 0 && SUBCATEGORIES[category] && (
-            <>
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center", marginBottom: 8 }}>
-                <button onClick={() => setSubcat(null)}
-                  style={{ padding: "4px 10px", cursor: "pointer", ...CP, fontSize: 9, letterSpacing: "0.05em", border: `0.5px solid ${!subcat ? pal.accent : "var(--color-border-tertiary)"}`, background: !subcat ? `${pal.accent}15` : "transparent", color: !subcat ? pal.accent : "var(--color-text-tertiary)", textTransform: "uppercase" }}>All</button>
-                {Object.keys(SUBCATEGORIES[category]).map(s => (
-                  <button key={s} onClick={() => setSubcat(s)}
-                    style={{ padding: "4px 10px", cursor: "pointer", ...CP, fontSize: 9, letterSpacing: "0.05em", border: `0.5px solid ${subcat === s ? pal.accent : "var(--color-border-tertiary)"}`, background: subcat === s ? `${pal.accent}15` : "transparent", color: subcat === s ? pal.accent : "var(--color-text-tertiary)", textTransform: "uppercase" }}>{s}</button>
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
-                {getVisibleTopics().map((t, i) => (
-                  <button key={`${t}-${shuffleKey}`} onClick={() => { setTopic(t); setRefinedAngles([]); }}
-                    style={{ padding: "6px 12px", cursor: "pointer", fontSize: 10, border: "0.5px solid var(--color-border-tertiary)", background: topic === t ? `${pal.accent}12` : "transparent", color: topic === t ? pal.accent : "var(--color-text-tertiary)", ...CP }}>
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+          </div>}
         </div>
       )}
 
-      {/* Status messages */}
       {isGenerating && <div style={{ textAlign: "center", padding: "50px 0" }}><div style={{ ...CP, fontSize: 11, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", animation: "pulse 1.5s ease-in-out infinite" }}>Crafting your carousel...</div></div>}
       {error && <div style={{ padding: "14px 18px", background: "var(--color-background-danger)", border: "1px solid var(--color-border-danger)", color: "var(--color-text-danger)", fontSize: 12, marginBottom: 16 }}>{error}</div>}
-      {imgStatus && options && <div style={{ textAlign: "center", marginBottom: 12, ...CP, fontSize: 10, color: imgStatus.includes("loaded") ? "var(--color-text-success)" : "var(--color-text-warning)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>{imgStatus.includes("loaded") ? <CheckCircle size={11} /> : <AlertTriangle size={11} />}{imgStatus}</div>}
+      {imgStatus && options && <div style={{ textAlign: "center", marginBottom: 12, ...CP, fontSize: 10, color: imgStatus.indexOf("loaded") >= 0 ? "var(--color-text-success)" : "var(--color-text-warning)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>{imgStatus.indexOf("loaded") >= 0 ? <CheckCircle size={11} /> : <AlertTriangle size={11} />}{imgStatus}</div>}
 
-      {/* Option selector */}
-      {options && (
-        <div style={{ marginBottom: 14, textAlign: "center" }}>
-          <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 10, textTransform: "uppercase" }}>Choose an angle</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            {options.map((opt, i) => { const info = OPTION_TYPES[i]; const InfoIcon = info?.icon || BookOpen; return (
-              <button key={i} onClick={() => { setSelectedOption(i); setCurrentSlide(0); }}
-                style={{ flex: 1, padding: "12px 10px", cursor: "pointer", border: `1px solid ${selectedOption === i ? pal.accent : "var(--color-border-tertiary)"}`, background: selectedOption === i ? "var(--color-background-secondary)" : "transparent", textAlign: "left" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--color-text-primary)", ...CP }}><InfoIcon size={12} />{info?.label || opt.angle}</div>
-                <div style={{ fontSize: 10, color: "var(--color-text-tertiary)", marginTop: 2 }}>{info?.desc}</div>
-                <div style={{ ...CP, fontSize: 9, color: "var(--color-text-tertiary)", marginTop: 3 }}>{opt.slides?.length || 0} slides</div>
-              </button>); })}
+      {options && <div style={{ marginBottom: 14, textAlign: "center" }}>
+        <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 10, textTransform: "uppercase" }}>Choose an angle</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {options.map(function(opt, i) { var info = OPTION_TYPES[i]; var InfoIcon = info ? info.icon : BookOpen; return (
+            <button key={i} onClick={function() { setSelectedOption(i); setCurrentSlide(0); }}
+              style={{ flex: 1, padding: "12px 10px", cursor: "pointer", border: "1px solid " + (selectedOption === i ? pal.accent : "var(--color-border-tertiary)"), background: selectedOption === i ? "var(--color-background-secondary)" : "transparent", textAlign: "left" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--color-text-primary)", ...CP }}><InfoIcon size={12} />{info ? info.label : (opt.angle || "Option " + (i+1))}</div>
+              <div style={{ fontSize: 10, color: "var(--color-text-tertiary)", marginTop: 2 }}>{info ? info.desc : ""}</div>
+              <div style={{ ...CP, fontSize: 9, color: "var(--color-text-tertiary)", marginTop: 3 }}>{opt.slides ? opt.slides.length : 0} slides</div>
+            </button>); })}
+        </div>
+      </div>}
+
+      {cur && <div style={{ marginBottom: 18, textAlign: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", textTransform: "uppercase" }}>Slide {currentSlide + 1} / {total}</div>
+          <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus); }} disabled={!!exportStatus}
+            style={{ padding: "6px 12px", border: "1px solid " + pal.accent, background: "transparent", cursor: exportStatus ? "default" : "pointer", display: "flex", alignItems: "center", gap: 5, ...CP, fontSize: 9, color: pal.accent, letterSpacing: "0.08em", opacity: exportStatus ? 0.5 : 1 }}>
+            <Archive size={11} />{exportStatus || "EXPORT PNG ZIP"}
+          </button>
+        </div>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
+            <SlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} optionType={optType} />
           </div>
         </div>
-      )}
-
-      {/* Slide preview */}
-      {cur && (
-        <div style={{ marginBottom: 18, textAlign: "center" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", textTransform: "uppercase" }}>Slide {currentSlide + 1} / {total}</div>
-            {/* Export button */}
-            <button onClick={() => exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus)} disabled={!!exportStatus}
-              style={{ padding: "6px 12px", border: `1px solid ${pal.accent}`, background: "transparent", cursor: exportStatus ? "default" : "pointer", display: "flex", alignItems: "center", gap: 5, ...CP, fontSize: 9, color: pal.accent, letterSpacing: "0.08em", opacity: exportStatus ? 0.5 : 1 }}>
-              <Archive size={11} />{exportStatus || "EXPORT PNG ZIP"}
-            </button>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 14 }}>
+          <button onClick={function() { setCurrentSlide(Math.max(0, currentSlide - 1)); }} disabled={currentSlide === 0}
+            style={{ width: 34, height: 34, cursor: currentSlide === 0 ? "default" : "pointer", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", opacity: currentSlide === 0 ? 0.3 : 1 }}>{"\u2039"}</button>
+          <div style={{ display: "flex", gap: 5 }}>
+            {cur.slides.map(function(_, i) { return <button key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: i === currentSlide ? 18 : 6, height: 6, cursor: "pointer", border: "none", background: i === currentSlide ? pal.accent : "var(--color-border-tertiary)", transition: "all 0.2s" }} />; })}
           </div>
-
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
-              <SlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} />
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 14 }}>
-            <button onClick={() => setCurrentSlide(Math.max(0, currentSlide - 1))} disabled={currentSlide === 0}
-              style={{ width: 34, height: 34, cursor: currentSlide === 0 ? "default" : "pointer", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", opacity: currentSlide === 0 ? 0.3 : 1 }}>&#8249;</button>
-            <div style={{ display: "flex", gap: 5 }}>
-              {cur.slides.map((_, i) => <button key={i} onClick={() => setCurrentSlide(i)} style={{ width: i === currentSlide ? 18 : 6, height: 6, cursor: "pointer", border: "none", background: i === currentSlide ? pal.accent : "var(--color-border-tertiary)", transition: "all 0.2s" }} />)}
-            </div>
-            <button onClick={() => setCurrentSlide(Math.min(total - 1, currentSlide + 1))} disabled={currentSlide === total - 1}
-              style={{ width: 34, height: 34, cursor: currentSlide === total - 1 ? "default" : "pointer", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", opacity: currentSlide === total - 1 ? 0.3 : 1 }}>&#8250;</button>
-          </div>
-
-          {/* Thumbnail strip */}
-          <div style={{ marginTop: 18 }}>
-            <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 8, textTransform: "uppercase" }}>All Slides</div>
-            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, justifyContent: "center" }}>
-              {cur.slides.map((slide, i) => (
-                <div key={i} onClick={() => setCurrentSlide(i)} style={{ minWidth: 100, height: 125, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: `2px solid ${i === currentSlide ? pal.accent : "transparent"}`, opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
-                  <div style={{ width: 340, height: 425, transform: "scale(0.295)", transformOrigin: "top left", pointerEvents: "none" }}>
-                    <SlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} />
-                  </div>
+          <button onClick={function() { setCurrentSlide(Math.min(total - 1, currentSlide + 1)); }} disabled={currentSlide === total - 1}
+            style={{ width: 34, height: 34, cursor: currentSlide === total - 1 ? "default" : "pointer", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", opacity: currentSlide === total - 1 ? 0.3 : 1 }}>{"\u203A"}</button>
+        </div>
+        <div style={{ marginTop: 18 }}>
+          <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 8, textTransform: "uppercase" }}>All Slides</div>
+          <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 8, justifyContent: "center" }}>
+            {cur.slides.map(function(slide, i) { return (
+              <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? pal.accent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
+                <div style={{ width: 340, height: 425, transform: "scale(0.2)", transformOrigin: "top left", pointerEvents: "none" }}>
+                  <SlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} optionType={optType} />
                 </div>
-              ))}
-            </div>
+              </div>); })}
           </div>
         </div>
-      )}
+      </div>}
 
       <div style={{ textAlign: "center", padding: "18px 0 12px", borderTop: "0.5px solid var(--color-border-tertiary)", marginTop: 16 }}>
-        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.3em", color: "var(--color-text-tertiary)", opacity: 0.4 }}>L O A T H R — MEDIA GENERATOR</div>
+        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.3em", color: "var(--color-text-tertiary)", opacity: 0.4 }}>L O A T H R \u2014 MEDIA GENERATOR</div>
       </div>
     </div>
   );
