@@ -1,8 +1,10 @@
+import { NextResponse } from "next/server";
+
 export async function POST(request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {
-    return Response.json(
+    return NextResponse.json(
       { error: "ANTHROPIC_API_KEY is not configured" },
       { status: 500 }
     );
@@ -33,7 +35,7 @@ export async function POST(request) {
 
     const text = await response.text();
     if (!text) {
-      return Response.json(
+      return NextResponse.json(
         { error: `Anthropic API returned empty response (status ${response.status})` },
         { status: response.status || 502 }
       );
@@ -43,22 +45,22 @@ export async function POST(request) {
     try {
       data = JSON.parse(text);
     } catch {
-      return Response.json(
+      return NextResponse.json(
         { error: `Anthropic API returned invalid JSON: ${text.slice(0, 200)}` },
         { status: 502 }
       );
     }
 
     if (!response.ok) {
-      return Response.json(
+      return NextResponse.json(
         { error: data.error?.message || "Anthropic API request failed" },
         { status: response.status }
       );
     }
 
-    return Response.json(data);
+    return NextResponse.json(data);
   } catch (error) {
-    return Response.json(
+    return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 }
     );
