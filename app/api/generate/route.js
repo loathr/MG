@@ -26,7 +26,7 @@ export async function POST(request) {
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
-        "anthropic-version": "2025-04-01",
+        "anthropic-version": "2025-03-01",
       },
       body: JSON.stringify(payload),
     });
