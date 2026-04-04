@@ -204,7 +204,7 @@ function CoverSlide({ slide, category, image, images, optionType }) {
           {formatTitle(slide.title, p.accent)}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
-          <div style={{ ...CP, fontSize: 7, color: p.text + "66", fontStyle: "italic" }}>{slide.subtitle}</div>
+          <div style={{ ...CP, fontSize: 7, color: "#ffffffcc", fontStyle: "italic" }}>{slide.subtitle}</div>
           {slide.heading && <div style={{ ...CP, fontSize: 6, color: p.accent + "88", letterSpacing: "0.08em" }}>{(slide.heading || "").toUpperCase()}</div>}
         </div>
       </div>
@@ -223,13 +223,13 @@ function ContentSlide({ slide, index, category, images, optionType }) {
       <BottomGrad h="32%" /><TopGrad />
       <div style={{ position: "absolute", top: 10, left: PAD, zIndex: 4, display: "flex", alignItems: "baseline", gap: 4 }}>
         <span style={{ ...CP, fontSize: 7, color: p.accent + "33" }}>{String(index).padStart(2, "0")} \u2014</span>
-        <span style={{ ...HD, fontSize: 11, color: p.text + "99" }}>{slide.heading || "Part " + index}</span>
+        <span style={{ ...HD, fontSize: 11, color: "#ffffffdd" }}>{slide.heading || "Part " + index}</span>
       </div>
       {slide.year && <div style={{ position: "absolute", top: 10, right: PAD, zIndex: 4, ...CP, fontSize: 7, color: p.accent + "55", letterSpacing: "0.08em" }}>{slide.year}</div>}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 " + PAD + "px " + PAD + "px", zIndex: 4 }}>
-        <div style={{ ...CP, fontSize: 9, color: p.text + "bb", lineHeight: 1.9, textShadow: TS2 }}>{slide.body}</div>
+        <div style={{ ...CP, fontSize: 9, color: "#ffffffe6", lineHeight: 1.9, textShadow: TS2 }}>{slide.body}</div>
         {slide.highlight && <div style={{ ...CP, fontSize: 8, fontStyle: "italic", color: p.accent + "88", marginTop: 4 }}>{slide.highlight}</div>}
-        {slide.specs && <div style={{ ...CP, fontSize: 7, color: p.text + "55", marginTop: 4 }}>{slide.specs}</div>}
+        {slide.specs && <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", marginTop: 4 }}>{slide.specs}</div>}
       </div>
     </MosaicBg>
   );
@@ -249,15 +249,15 @@ function StatSlide({ slide, index, category, images, optionType }) {
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 4, display: "flex", gap: 24, textAlign: "center" }}>
         <div>
           <div style={{ ...HD, fontSize: slide.stat2 ? 40 : 52, color: p.accent, lineHeight: 1, textShadow: "0 4px 30px rgba(0,0,0,0.8)" }}>{slide.stat}</div>
-          <div style={{ ...CP, fontSize: 7, color: p.text + "55", letterSpacing: "0.12em", marginTop: 4 }}>{(slide.statLabel || "KEY METRIC").toUpperCase()}</div>
+          <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.12em", marginTop: 4 }}>{(slide.statLabel || "KEY METRIC").toUpperCase()}</div>
         </div>
         {slide.stat2 && <div>
           <div style={{ ...HD, fontSize: 40, color: p.accent2 || p.text, lineHeight: 1, textShadow: "0 4px 30px rgba(0,0,0,0.8)" }}>{slide.stat2}</div>
-          <div style={{ ...CP, fontSize: 7, color: p.text + "55", letterSpacing: "0.12em", marginTop: 4 }}>{(slide.stat2Label || "SECONDARY").toUpperCase()}</div>
+          <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.12em", marginTop: 4 }}>{(slide.stat2Label || "SECONDARY").toUpperCase()}</div>
         </div>}
       </div>
       <div style={{ position: "absolute", bottom: PAD, left: PAD, right: PAD, zIndex: 4 }}>
-        <div style={{ ...CP, fontSize: 9, color: p.text + "88", lineHeight: 1.7, textShadow: TS2 }}>{slide.body}</div>
+        <div style={{ ...CP, fontSize: 9, color: "#ffffffcc", lineHeight: 1.7, textShadow: TS2 }}>{slide.body}</div>
       </div>
     </MosaicBg>
   );
@@ -275,7 +275,7 @@ function QuoteSlide({ slide, index, category, images }) {
       <RadialVig />
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "82%", textAlign: "center", zIndex: 4 }}>
         <div style={{ width: 20, height: 1, background: p.accent + "55", margin: "0 auto 14px" }} />
-        <div style={{ ...CP, fontSize: 13, fontWeight: 700, fontStyle: "italic", color: p.text + "dd", lineHeight: 1.5, textShadow: TS }}>{quoteText}</div>
+        <div style={{ ...CP, fontSize: 13, fontWeight: 700, fontStyle: "italic", color: "#ffffffee", lineHeight: 1.5, textShadow: TS }}>{quoteText}</div>
         <div style={{ width: 20, height: 1, background: p.accent + "55", margin: "14px auto" }} />
         {slide.source && <div style={{ ...CP, fontSize: 7, color: p.accent + "88", letterSpacing: "0.1em" }}>{slide.source.toUpperCase()}</div>}
       </div>
@@ -294,9 +294,9 @@ function CloserSlide({ category, hashtags, images }) {
       <RadialVig />
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 4 }}>
         <div style={{ ...CP, fontSize: 7, letterSpacing: "0.3em", color: p.accent + "44" }}>{CLOSER_TAGS[category]}</div>
-        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.45em", color: p.text + "1F", marginTop: 14 }}>L O A T H R</div>
+        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.45em", color: "#ffffff88", marginTop: 14 }}>L O A T H R</div>
         <div style={{ width: 30, height: 1, background: p.accent + "22", margin: "10px auto" }} />
-        <div style={{ ...CP, fontSize: 7, color: p.text + "11", marginTop: 4 }}>{hashtags}</div>
+        <div style={{ ...CP, fontSize: 7, color: "#ffffff66", marginTop: 4 }}>{hashtags}</div>
       </div>
     </MosaicBg>
   );
@@ -576,7 +576,7 @@ export default function LoathrMediaGenerator() {
 
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px" }}>
-      <style>{"@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}"}</style>
+      <style>{"@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Regular.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Italic.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Italic.ttf') format('truetype');font-weight:400;font-style:italic;font-display:swap}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}"}</style>
 
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         <div style={{ ...CP, fontSize: 14, letterSpacing: "0.4em", color: "var(--color-text-primary)", fontWeight: 700 }}>L O A T H R</div>

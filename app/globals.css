@@ -1,8 +1,18 @@
 @font-face {
   font-family: 'Maheni';
-  src: url('/fonts/Maheni-Regular.ttf') format('truetype');
+  src: url('/Fonts/Maheni/Maheni-Regular.otf') format('opentype'),
+       url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Maheni';
+  src: url('/Fonts/Maheni/Maheni-Italic.otf') format('opentype'),
+       url('/Fonts/Maheni/Maheni-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
   font-display: swap;
 }
 
