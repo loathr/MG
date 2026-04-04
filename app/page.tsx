@@ -1,5 +1,5 @@
 "use client";
-import LoathrMediaGenerator from '../app/components/LoathrMediaGenerator';
+import LoathrMediaGenerator from './components/LoathrMediaGenerator';
 
 export default function Home() {
   return <LoathrMediaGenerator />;

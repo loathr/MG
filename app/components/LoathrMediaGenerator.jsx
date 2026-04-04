@@ -1,3 +1,4 @@
+"use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive } from "lucide-react";
 import { BarChart, Bar, AreaChart, Area, ResponsiveContainer } from "recharts";
@@ -264,8 +265,13 @@ function ContentSlide({ slide, index, category, image }) {
 // Format body with bold caps and accent underlines
 function formatBody(text, pal) {
   if (!text) return "";
-  // Simple approach: return as-is, the AI prompt should generate styled content
-  return text;
+  // Split on sequences of 2+ UPPERCASE words and style them
+  const parts = text.split(/(\b[A-Z][A-Z\s]{2,}[A-Z]\b)/g);
+  return parts.map((part, i) =>
+    /^[A-Z\s]+$/.test(part) && part.trim().length > 2
+      ? <span key={i} style={{ fontWeight: 700, color: pal.accent, fontSize: "0.95em" }}>{part}</span>
+      : part
+  );
 }
 
 // ─── STAT SLIDE ───
