@@ -509,7 +509,8 @@ export default function LoathrMediaGenerator() {
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 800, messages: [{ role: "user",
           content: `You're a content strategist. Generate 3 sharper angles on "${topic}" for "${cat.label}" Instagram carousels. Respond ONLY with JSON: [{"angle":"title","hook":"one sentence"}]` }] }),
       });
-      const d = await r.json();
+      const d = await r.json().catch(() => null);
+      if (!d) throw new Error(`API returned empty response (status ${r.status})`);
       if (d.error) throw new Error(d.error.message || d.error);
       const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("");
       if (!text.trim()) throw new Error("No text in response");
@@ -531,7 +532,8 @@ export default function LoathrMediaGenerator() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, tools: toolsDef, messages: msgs }),
       });
-      let d = await r.json();
+      let d = await r.json().catch(() => null);
+      if (!d) throw new Error(`API returned empty response (status ${r.status})`);
       if (d.error) throw new Error(d.error.message || d.error);
 
       // Handle pause_turn — server may pause while executing web search
@@ -543,7 +545,8 @@ export default function LoathrMediaGenerator() {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, tools: toolsDef, messages: msgs }),
         });
-        d = await r.json();
+        d = await r.json().catch(() => null);
+        if (!d) throw new Error(`API returned empty response (status ${r.status})`);
         if (d.error) throw new Error(d.error.message || d.error);
       }
 
@@ -586,7 +589,8 @@ Respond ONLY with valid JSON, no markdown:
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }),
       });
-      const d = await r.json();
+      const d = await r.json().catch(() => null);
+      if (!d) throw new Error(`API returned empty response (status ${r.status})`);
       if (d.error) throw new Error(d.error.message || d.error);
       const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("");
       if (!text.trim()) throw new Error("Empty response from API");

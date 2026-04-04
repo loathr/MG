@@ -31,7 +31,23 @@ export async function POST(request) {
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    if (!text) {
+      return Response.json(
+        { error: `Anthropic API returned empty response (status ${response.status})` },
+        { status: response.status || 502 }
+      );
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return Response.json(
+        { error: `Anthropic API returned invalid JSON: ${text.slice(0, 200)}` },
+        { status: 502 }
+      );
+    }
 
     if (!response.ok) {
       return Response.json(
