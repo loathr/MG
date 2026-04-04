@@ -449,7 +449,7 @@ export default function LoathrMediaGenerator() {
   var cls = _s(0), currentSlide = cls[0], setCurrentSlide = cls[1];
   var gs = _s(false), isGenerating = gs[0], setIsGenerating = gs[1];
   var es = _s(null), error = es[0], setError = es[1];
-  var aks = _s({ unsplash: "", pexels: "" }), apiKeys = aks[0], setApiKeys = aks[1];
+  var aks = _s({ unsplash: process.env.NEXT_PUBLIC_UNSPLASH_KEY || "", pexels: process.env.NEXT_PUBLIC_PEXELS_KEY || "" }), apiKeys = aks[0], setApiKeys = aks[1];
   var shs = _s(false), showSettings = shs[0], setShowSettings = shs[1];
   var ims = _s({}), images = ims[0], setImages = ims[1];
   var aps = _s({}), apiStatus = aps[0], setApiStatus = aps[1];
