@@ -1,29 +1,50 @@
 export async function POST(request) {
-  const body = await request.json();
+  const apiKey = process.env.ANTHROPIC_API_KEY;
 
-  const headers = {
-    "Content-Type": "application/json",
-    "x-api-key": process.env.ANTHROPIC_API_KEY,
-    "anthropic-version": "2023-06-01",
-  };
-
-  const payload = {
-    model: body.model || "claude-sonnet-4-20250514",
-    max_tokens: body.max_tokens || 4000,
-    messages: body.messages,
-  };
-
-  // Support web search tool for trending topics
-  if (body.tools) {
-    payload.tools = body.tools;
+  if (!apiKey) {
+    return Response.json(
+      { error: "ANTHROPIC_API_KEY is not configured" },
+      { status: 500 }
+    );
   }
 
-  const response = await fetch("/api/generate", {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-  });
+  try {
+    const body = await request.json();
 
-  const data = await response.json();
-  return Response.json(data);
+    const payload = {
+      model: body.model || "claude-sonnet-4-20250514",
+      max_tokens: body.max_tokens || 4000,
+      messages: body.messages,
+    };
+
+    if (body.tools) {
+      payload.tools = body.tools;
+    }
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return Response.json(
+        { error: data.error?.message || "Anthropic API request failed" },
+        { status: response.status }
+      );
+    }
+
+    return Response.json(data);
+  } catch (error) {
+    return Response.json(
+      { error: error.message || "Internal server error" },
+      { status: 500 }
+    );
+  }
 }

@@ -510,10 +510,12 @@ export default function LoathrMediaGenerator() {
           content: `You're a content strategist. Generate 3 sharper angles on "${topic}" for "${cat.label}" Instagram carousels. Respond ONLY with JSON: [{"angle":"title","hook":"one sentence"}]` }] }),
       });
       const d = await r.json();
+      if (d.error) throw new Error(d.error.message || d.error);
       const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+      if (!text.trim()) throw new Error("No text in response");
       const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
       if (Array.isArray(parsed)) setRefinedAngles(parsed);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("Refine failed:", err); }
     finally { setIsRefining(false); }
   }, [topic, category, cat]);
 
@@ -522,17 +524,34 @@ export default function LoathrMediaGenerator() {
     setIsFetchingTrending(true); setTrending([]);
     const catContext = { film: "film, TV, cinema, streaming, directing", photo: "photography, cameras, visual storytelling", sports: "sports with music, fashion, art, culture", trivia: "surprising facts, science discoveries, cultural oddities", art: "music, visual arts, album releases, art history" };
     try {
-      const r = await fetch("/api/generate", {
+      const msgs = [{ role: "user", content: `Search for trending topics in: ${catContext[category]}. Find 6 specific timely topics for Instagram carousels. Respond ONLY with JSON: [{"topic":"title","hook":"why trending now"}]` }];
+      const toolsDef = [{ type: "web_search_20250305", name: "web_search" }];
+
+      let r = await fetch("/api/generate", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{ role: "user", content: `Search for trending topics in: ${catContext[category]}. Find 6 specific timely topics for Instagram carousels. Respond ONLY with JSON: [{"topic":"title","hook":"why trending now"}]` }] }),
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, tools: toolsDef, messages: msgs }),
       });
-      const d = await r.json();
+      let d = await r.json();
+      if (d.error) throw new Error(d.error.message || d.error);
+
+      // Handle pause_turn — server may pause while executing web search
+      let loops = 0;
+      while (d.stop_reason === "pause_turn" && loops < 3) {
+        loops++;
+        msgs.push({ role: "assistant", content: d.content });
+        r = await fetch("/api/generate", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, tools: toolsDef, messages: msgs }),
+        });
+        d = await r.json();
+        if (d.error) throw new Error(d.error.message || d.error);
+      }
+
       const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+      if (!text.trim()) throw new Error("No text in response");
       const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
       if (Array.isArray(parsed)) setTrending(parsed);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("Trending fetch failed:", err); }
     finally { setIsFetchingTrending(false); }
   }, [category]);
 
@@ -568,7 +587,9 @@ Respond ONLY with valid JSON, no markdown:
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }),
       });
       const d = await r.json();
+      if (d.error) throw new Error(d.error.message || d.error);
       const text = (d.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+      if (!text.trim()) throw new Error("Empty response from API");
       const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
       if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Invalid response format");
       setOptions(parsed);
