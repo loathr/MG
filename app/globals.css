@@ -18,8 +18,8 @@
 
 @font-face {
   font-family: 'Foun';
-  src: url('/Fonts/foun-modern-retro-condensed-01-2026-03-31-23-36-17-utc%20(1)/OpenType-PS/Foun.otf') format('opentype'),
-       url('/Fonts/foun-modern-retro-condensed-01-2026-03-31-23-36-17-utc%20(1)/OpenType-TT/Foun.ttf') format('truetype');
+  src: url('/Fonts/Foun/OpenType-PS/Foun.otf') format('opentype'),
+       url('/Fonts/Foun/OpenType-TT/Foun.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -27,8 +27,8 @@
 
 @font-face {
   font-family: 'Wenssep';
-  src: url('/Fonts/wenssep-modern-serif-font-2026-03-31-23-13-04-utc/Wenssep.otf') format('opentype'),
-       url('/Fonts/wenssep-modern-serif-font-2026-03-31-23-13-04-utc/Wenssep.ttf') format('truetype');
+  src: url('/Fonts/Wenssep/Wenssep.otf') format('opentype'),
+       url('/Fonts/Wenssep/Wenssep.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
