@@ -222,7 +222,7 @@ function S3RayGun({ slide, index, category, images }) {
         <div style={{ width: "40%", background: "#000000", borderRight: "2px solid " + p.accent2, padding: (M_TOP + 6) + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden" }}>
           <div style={{ ...FN, fontSize: 12, color: "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }}>{slide.heading || "Part " + index}</div>
           <div style={{ ...HD, fontSize: 8.5, color: "#ffffffe6", lineHeight: 1.45, textAlign: "right", overflow: "hidden" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
-          {slide.highlight && <div style={{ ...HD, fontSize: 7.5, fontStyle: "italic", color: p.accent2 + "cc", marginTop: 4, textAlign: "right" }}>{slide.highlight}</div>}
+          {slide.highlight && <div style={{ ...WS, fontSize: 7.5, fontStyle: "italic", color: p.accent2 + "cc", marginTop: 4, textAlign: "right" }}>{slide.highlight}</div>}
         </div>
         <div style={{ flex: 1, position: "relative" }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
@@ -242,7 +242,7 @@ function S3RayGun({ slide, index, category, images }) {
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "38%", background: "#000000", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden" }}>
         <div style={{ ...FN, fontSize: 12, color: "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
         <div style={{ ...HD, fontSize: 8.5, color: "#ffffffe6", lineHeight: 1.45, textAlign: "left", overflow: "hidden" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-        {slide.highlight && <div style={{ ...HD, fontSize: 7.5, fontStyle: "italic", color: p.accent + "cc", marginTop: 4 }}>{slide.highlight}</div>}
+        {slide.highlight && <div style={{ ...WS, fontSize: 7.5, fontStyle: "italic", color: p.accent + "cc", marginTop: 4 }}>{slide.highlight}</div>}
       </div>
     </div>
   );
@@ -335,7 +335,7 @@ function S5Face({ slide, index, category, images }) {
           <div style={{ overflow: "hidden" }}>
             <div style={{ ...HD, fontSize: 8.5, color: "#ffffffe6", lineHeight: 1.45, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
             <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />
-            {slide.highlight && <div style={{ ...HD, fontSize: 7.5, color: p.accent2 + "cc", fontStyle: "italic", textAlign: "right" }}>{slide.highlight}</div>}
+            {slide.highlight && <div style={{ ...WS, fontSize: 7.5, color: p.accent2 + "cc", fontStyle: "italic", textAlign: "right" }}>{slide.highlight}</div>}
           </div>
         </div>
       </div>
