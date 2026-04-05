@@ -132,18 +132,19 @@ function S2Arena({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
   return (
-    <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.55) 65%, rgba(0,0,0,0.92))">
-      <div style={{ position: "absolute", top: "5%", right: 6, zIndex: 1 }}>
-        <div style={{ ...HD, fontSize: 120, color: p.accent + "07", lineHeight: 0.85, letterSpacing: -4 }}>{String(index).padStart(2, "0")}</div>
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "72%" }}>
+        {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+        {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
       </div>
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: PAD, zIndex: 3 }}>
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "28%", background: "#000000", padding: PAD, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
           <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.05em" }}>{(slide.heading || "PART " + index).toUpperCase()}</div>
-          <div style={{ ...WS, fontSize: 10, color: "#ffffffe6", lineHeight: 2.0, textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>{slide.body}</div>
+          <div style={{ ...WS, fontSize: 10, color: "#ffffffe6", lineHeight: 1.8 }}>{slide.body}</div>
           {slide.specs && <div style={{ ...WS, fontSize: 8, color: "#ffffffaa", marginTop: 4 }}>{slide.specs}</div>}
         </div>
       </div>
-    </ImgBg>
+    </div>
   );
 }
 
@@ -153,23 +154,18 @@ function S3RayGun({ slide, index, category, images }) {
   var url = getImg(images, index);
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, width: "68%", height: "62%" }}>
+      <div style={{ position: "absolute", top: 0, left: 0, width: "80%", height: "72%" }}>
         {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
         {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
         <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 3, background: p.accent }} />
         <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 3, background: p.accent }} />
       </div>
-      <div style={{ position: "absolute", top: "14%", right: PAD, width: "48%", zIndex: 3, transform: "rotate(1deg)" }}>
+      <div style={{ position: "absolute", bottom: PAD, left: PAD, right: PAD, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
           <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{(slide.heading || "PART " + index).toUpperCase()}</div>
           <div style={{ ...WS, fontSize: 10, color: "#ffffffe6", lineHeight: 1.9, textShadow: "0 1px 8px rgba(0,0,0,0.9)" }}>{slide.body}</div>
           {slide.highlight && <div style={{ ...WS, fontSize: 9, fontStyle: "italic", color: "#ffffffcc", marginTop: 4 }}>{slide.highlight}</div>}
         </div>
-      </div>
-      <div style={{ position: "absolute", bottom: PAD, left: PAD, display: "flex", gap: 4, zIndex: 3 }}>
-        <div style={{ width: 6, height: 6, background: p.accent }} />
-        {p.accent2 && <div style={{ width: 6, height: 6, background: p.accent2 }} />}
-        <div style={{ ...CP, fontSize: 6, color: p.accent + "44", marginLeft: 4 }}>{String(index).padStart(2, "0")}</div>
       </div>
     </div>
   );
@@ -213,11 +209,11 @@ function S5Face({ slide, index, category, images }) {
         {slide.year && <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700 }}>{slide.year}</span>}
       </div>
       <div style={{ position: "absolute", top: 22, left: 0, right: 0, bottom: 0, display: "flex" }}>
-        <div style={{ width: "48%", position: "relative", borderRight: "2px solid " + p.accent }}>
+        <div style={{ width: "62%", position: "relative", borderRight: "2px solid " + p.accent }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
         </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: PAD }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: 12, background: "#000000" }}>
           <div style={{ textAlign: "left" }}>
             <div style={{ ...WS, fontSize: 10, color: "#ffffffe6", lineHeight: 2.0 }}>{slide.body}</div>
             <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "8px 0" }} />
@@ -253,12 +249,9 @@ function S7Blitz({ category, hashtags, images }) {
   var url = getImg(images, 0);
   return (
     <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.75)">
-      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 140, height: 140, border: "1px solid " + p.accent + "33", borderRadius: "50%", zIndex: 2 }} />
-      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 100, height: 100, border: "1px solid " + p.accent + "22", borderRadius: "50%", zIndex: 2 }} />
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 3 }}>
         <div style={{ ...CP, fontSize: 8, letterSpacing: "0.25em", color: p.accent + "99" }}>{CLOSER_TAGS[category]}</div>
         <div style={{ ...CP, fontSize: 22, letterSpacing: "0.35em", color: "#ffffffbb", marginTop: 12, fontWeight: 700 }}>LOATHR</div>
-        <div style={{ width: 30, height: 1, background: p.accent + "55", margin: "10px auto" }} />
       </div>
     </ImgBg>
   );
