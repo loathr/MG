@@ -193,6 +193,26 @@ function S2Arena({ slide, index, category, images }) {
 function S3RayGun({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
+  var flipped = index % 2 === 0;
+
+  if (flipped) {
+    // Text left, image right (carousel position 5)
+    return (
+      <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
+        <div style={{ width: "38%", background: "#000000", borderRight: "2px solid " + p.accent, padding: "10px " + PAD + "px " + INNER_BOT + "px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 4, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
+          <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
+          {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent + "cc", marginTop: 4 }}>{slide.highlight}</div>}
+        </div>
+        <div style={{ flex: 1, position: "relative" }}>
+          {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+          {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
+        </div>
+      </div>
+    );
+  }
+
+  // Image top, text bottom (carousel position 2)
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "65%", borderBottom: "2px solid " + p.accent }}>
