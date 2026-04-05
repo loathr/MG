@@ -371,7 +371,7 @@ function S7Blitz({ category, hashtags, images }) {
         <div style={{ ...CP, fontSize: 7, letterSpacing: "0.25em", color: p.accent + "99" }}>{CLOSER_TAGS[category]}</div>
         <div style={{ position: "relative", display: "inline-block", marginTop: 10 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.35em", color: "#ffffffbb", fontWeight: 700 }}>
-            <span>LO</span><span style={{ position: "relative" }}>A<div style={{ position: "absolute", bottom: -10, left: "50%", transform: "translateX(-50%)", width: 6, height: 6, background: p.accent }} /></span><span style={{ position: "relative" }}>T<div style={{ position: "absolute", bottom: -10, left: "50%", transform: "translateX(-50%)", width: 6, height: 6, background: p.accent2 }} /></span><span>HR</span>
+            <span>LO</span><span style={{ position: "relative" }}>A<span style={{ position: "absolute", bottom: -10, left: "50%", transform: "translateX(-50%)", width: 6, height: 6, display: "block", background: p.accent }} /></span><span style={{ position: "relative" }}>T<span style={{ position: "absolute", bottom: -10, left: "50%", transform: "translateX(-50%)", width: 6, height: 6, display: "block", background: p.accent2 }} /></span><span>HR</span>
           </div>
         </div>
       </div>
