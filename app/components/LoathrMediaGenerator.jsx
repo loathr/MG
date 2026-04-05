@@ -135,13 +135,22 @@ function styleBody(text, accentColor, accent2Color) {
   });
 }
 
-// Margin awareness: ensures content stays 1" from header/footer borders
-function SafeContent({ position, children, style }) {
-  var base = { position: "absolute", left: PAD, right: PAD, zIndex: 3 };
-  if (position === "top") base.top = INNER_TOP;
-  else if (position === "bottom") base.bottom = INNER_BOT;
-  else if (position === "full") { base.top = INNER_TOP; base.bottom = INNER_BOT; }
-  return <div style={Object.assign({}, base, style || {})}>{children}</div>;
+// Margin-aware auto-fit: shrinks text if it overflows its container
+function AutoFit({ children, style, maxShrink }) {
+  var ref = useRef(null);
+  var _s2 = useState(1), scale = _s2[0], setScale = _s2[1];
+  useEffect(function() {
+    var el = ref.current;
+    if (!el) return;
+    var shrink = maxShrink || 0.7;
+    if (el.scrollHeight > el.clientHeight) {
+      var ratio = el.clientHeight / el.scrollHeight;
+      setScale(Math.max(shrink, ratio));
+    } else {
+      setScale(1);
+    }
+  });
+  return <div ref={ref} style={Object.assign({}, style || {}, { fontSize: scale < 1 ? "calc(" + (style && style.fontSize ? style.fontSize : "inherit") + " * " + scale + ")" : undefined, overflow: "hidden" })}>{children}</div>;
 }
 
 function getImg(images, idx) {
@@ -188,7 +197,7 @@ function S2Arena({ slide, index, category, images }) {
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.25)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
         <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
         <div style={{ ...HD, fontSize: 9.5, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-        {slide.specs && <div><div style={{ width: "30%", height: 1, background: p.accent + "33", margin: "10px 0" }} /><div style={{ ...HD, fontSize: 7.5, color: "#ffffffaa", textAlign: "justify" }}>{slide.specs}</div></div>}
+        {slide.specs && <div><div style={{ width: "30%", height: 1, background: p.accent + "33", margin: "10px 0" }} /><div style={{ ...HD, fontSize: 7.5, color: "#ffffffaa", textAlign: "left" }}>{slide.specs}</div></div>}
       </div>
       <div style={{ position: "absolute", bottom: 8, left: PAD, zIndex: 4 }}>
         <div style={{ ...CP, fontSize: 6, color: "#ffffff33" }}>{String(index).padStart(2, "0")}</div>
@@ -519,6 +528,8 @@ export default function LoathrMediaGenerator() {
 
   var cat = CATEGORIES.find(function(c) { return c.id === category; });
   var pal = category ? PALETTES[category] : null;
+  // UI-safe accent color (grey for photo since white/black disappear on UI)
+  var uiAccent = category === "photo" ? "#888888" : (pal ? pal.accent : "#888888");
   var cur = options ? options[selectedOption] : null;
   var total = cur && cur.slides ? cur.slides.length : 0;
 
@@ -648,7 +659,7 @@ export default function LoathrMediaGenerator() {
           var p = PALETTES[c.id]; var sel = category === c.id; var Icon = c.icon;
           return (
             <button key={c.id} onClick={function() { setCategory(c.id); setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); }}
-              style={{ padding: "8px 12px", cursor: "pointer", border: sel ? "2px solid " + p.accent : "1px solid var(--color-border-tertiary)", background: sel ? p.accent + "12" : "transparent", display: "flex", alignItems: "center", gap: 5, fontSize: 10, ...CP, color: sel ? p.accent : "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              style={{ padding: "8px 12px", cursor: "pointer", border: sel ? "2px solid " + (c.id === "photo" ? "#888888" : p.accent) : "1px solid var(--color-border-tertiary)", background: sel ? (c.id === "photo" ? "#88888822" : p.accent + "12") : "transparent", display: "flex", alignItems: "center", gap: 5, fontSize: 10, ...CP, color: sel ? (c.id === "photo" ? "#888888" : p.accent) : "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
               <Icon size={12} />{c.label}
             </button>);
         })}
@@ -662,7 +673,7 @@ export default function LoathrMediaGenerator() {
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 12, ...CP }} />
             {!isGenerating ? (
               <button onClick={generate} disabled={!topic.trim()}
-                style={{ padding: "10px 18px", background: pal.accent, color: "#ffffff", border: "none", cursor: topic.trim() ? "pointer" : "default", ...CP, fontSize: 10, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() ? 1 : 0.4 }}>
+                style={{ padding: "10px 18px", background: uiAccent, color: "#ffffff", border: "none", cursor: topic.trim() ? "pointer" : "default", ...CP, fontSize: 10, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() ? 1 : 0.4 }}>
                 GENERATE
               </button>
             ) : (
@@ -682,7 +693,7 @@ export default function LoathrMediaGenerator() {
             {refinedAngles.map(function(r, i) { return (
               <button key={i} onClick={function() { setTopic(r.angle); setRefinedAngles([]); }}
                 style={{ padding: "8px 12px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
-                <ChevronRight size={12} style={{ color: pal.accent, flexShrink: 0 }} />
+                <ChevronRight size={12} style={{ color: uiAccent, flexShrink: 0 }} />
                 <div><div style={{ fontSize: 11, color: "var(--color-text-primary)", ...CP }}>{r.angle}</div>
                 <div style={{ fontSize: 9, color: "var(--color-text-tertiary)", marginTop: 2 }}>{r.hook}</div></div>
               </button>); })}
@@ -690,20 +701,20 @@ export default function LoathrMediaGenerator() {
           {trending.length > 0 && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", marginBottom: 10 }}>
             {trending.map(function(t, i) { return (
               <button key={i} onClick={function() { setTopic(t.topic); setRefinedAngles([]); }}
-                style={{ padding: "6px 12px", border: "1px solid " + pal.accent + "44", background: pal.accent + "08", cursor: "pointer", ...CP, fontSize: 10, color: pal.accent }} title={t.hook}>
+                style={{ padding: "6px 12px", border: "1px solid " + uiAccent + "44", background: uiAccent + "08", cursor: "pointer", ...CP, fontSize: 10, color: uiAccent }} title={t.hook}>
                 <Flame size={9} style={{ display: "inline", marginRight: 4, verticalAlign: "middle" }} />{t.topic}
               </button>); })}
           </div>}
           {trending.length === 0 && SUBCATEGORIES[category] && <div>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center", marginBottom: 8 }}>
-              <button onClick={function() { setSubcat(null); }} style={{ padding: "4px 10px", cursor: "pointer", ...CP, fontSize: 9, letterSpacing: "0.05em", border: "0.5px solid " + (!subcat ? pal.accent : "var(--color-border-tertiary)"), background: !subcat ? pal.accent + "15" : "transparent", color: !subcat ? pal.accent : "var(--color-text-tertiary)", textTransform: "uppercase" }}>All</button>
+              <button onClick={function() { setSubcat(null); }} style={{ padding: "4px 10px", cursor: "pointer", ...CP, fontSize: 9, letterSpacing: "0.05em", border: "0.5px solid " + (!subcat ? uiAccent : "var(--color-border-tertiary)"), background: !subcat ? uiAccent + "15" : "transparent", color: !subcat ? uiAccent : "var(--color-text-tertiary)", textTransform: "uppercase" }}>All</button>
               {Object.keys(SUBCATEGORIES[category]).map(function(s) { return (
-                <button key={s} onClick={function() { setSubcat(s); }} style={{ padding: "4px 10px", cursor: "pointer", ...CP, fontSize: 9, letterSpacing: "0.05em", border: "0.5px solid " + (subcat === s ? pal.accent : "var(--color-border-tertiary)"), background: subcat === s ? pal.accent + "15" : "transparent", color: subcat === s ? pal.accent : "var(--color-text-tertiary)", textTransform: "uppercase" }}>{s}</button>); })}
+                <button key={s} onClick={function() { setSubcat(s); }} style={{ padding: "4px 10px", cursor: "pointer", ...CP, fontSize: 9, letterSpacing: "0.05em", border: "0.5px solid " + (subcat === s ? uiAccent : "var(--color-border-tertiary)"), background: subcat === s ? uiAccent + "15" : "transparent", color: subcat === s ? uiAccent : "var(--color-text-tertiary)", textTransform: "uppercase" }}>{s}</button>); })}
             </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
               {getVisibleTopics().map(function(t) { return (
                 <button key={t + "-" + shuffleKey} onClick={function() { setTopic(t); setRefinedAngles([]); }}
-                  style={{ padding: "6px 12px", cursor: "pointer", fontSize: 10, border: "0.5px solid var(--color-border-tertiary)", background: topic === t ? pal.accent + "12" : "transparent", color: topic === t ? pal.accent : "var(--color-text-tertiary)", ...CP }}>{t}</button>); })}
+                  style={{ padding: "6px 12px", cursor: "pointer", fontSize: 10, border: "0.5px solid var(--color-border-tertiary)", background: topic === t ? uiAccent + "12" : "transparent", color: topic === t ? uiAccent : "var(--color-text-tertiary)", ...CP }}>{t}</button>); })}
             </div>
           </div>}
         </div>
@@ -718,7 +729,7 @@ export default function LoathrMediaGenerator() {
         <div style={{ display: "flex", gap: 8 }}>
           {options.map(function(opt, i) { var info = OPTION_TYPES[i]; var InfoIcon = info ? info.icon : BookOpen; return (
             <button key={i} onClick={function() { setSelectedOption(i); setCurrentSlide(0); }}
-              style={{ flex: 1, padding: "12px 10px", cursor: "pointer", border: "1px solid " + (selectedOption === i ? pal.accent : "var(--color-border-tertiary)"), background: selectedOption === i ? "var(--color-background-secondary)" : "transparent", textAlign: "left" }}>
+              style={{ flex: 1, padding: "12px 10px", cursor: "pointer", border: "1px solid " + (selectedOption === i ? uiAccent : "var(--color-border-tertiary)"), background: selectedOption === i ? "var(--color-background-secondary)" : "transparent", textAlign: "left" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--color-text-primary)", ...CP }}><InfoIcon size={12} />{info ? info.label : (opt.angle || "Option " + (i + 1))}</div>
               <div style={{ fontSize: 10, color: "var(--color-text-tertiary)", marginTop: 2 }}>{info ? info.desc : ""}</div>
               <div style={{ ...CP, fontSize: 9, color: "var(--color-text-tertiary)", marginTop: 3 }}>{opt.slides ? opt.slides.length : 0} slides</div>
@@ -730,7 +741,7 @@ export default function LoathrMediaGenerator() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", textTransform: "uppercase" }}>Slide {currentSlide + 1} / {total}</div>
           <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus); }} disabled={!!exportStatus}
-            style={{ padding: "6px 12px", border: "1px solid " + pal.accent, background: "transparent", cursor: exportStatus ? "default" : "pointer", display: "flex", alignItems: "center", gap: 5, ...CP, fontSize: 9, color: pal.accent, letterSpacing: "0.08em", opacity: exportStatus ? 0.5 : 1 }}>
+            style={{ padding: "6px 12px", border: "1px solid " + uiAccent, background: "transparent", cursor: exportStatus ? "default" : "pointer", display: "flex", alignItems: "center", gap: 5, ...CP, fontSize: 9, color: uiAccent, letterSpacing: "0.08em", opacity: exportStatus ? 0.5 : 1 }}>
             <Archive size={11} />{exportStatus || "EXPORT PNG ZIP"}
           </button>
         </div>
@@ -743,7 +754,7 @@ export default function LoathrMediaGenerator() {
           <button onClick={function() { setCurrentSlide(Math.max(0, currentSlide - 1)); }} disabled={currentSlide === 0}
             style={{ width: 34, height: 34, cursor: currentSlide === 0 ? "default" : "pointer", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", opacity: currentSlide === 0 ? 0.3 : 1 }}>{"\u2039"}</button>
           <div style={{ display: "flex", gap: 5 }}>
-            {cur.slides.map(function(_, i) { return <button key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: i === currentSlide ? 18 : 6, height: 6, cursor: "pointer", border: "none", background: i === currentSlide ? pal.accent : "var(--color-border-tertiary)", transition: "all 0.2s" }} />; })}
+            {cur.slides.map(function(_, i) { return <button key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: i === currentSlide ? 18 : 6, height: 6, cursor: "pointer", border: "none", background: i === currentSlide ? uiAccent : "var(--color-border-tertiary)", transition: "all 0.2s" }} />; })}
           </div>
           <button onClick={function() { setCurrentSlide(Math.min(total - 1, currentSlide + 1)); }} disabled={currentSlide === total - 1}
             style={{ width: 34, height: 34, cursor: currentSlide === total - 1 ? "default" : "pointer", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", opacity: currentSlide === total - 1 ? 0.3 : 1 }}>{"\u203A"}</button>
@@ -752,7 +763,7 @@ export default function LoathrMediaGenerator() {
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 8, textTransform: "uppercase" }}>All Slides</div>
           <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 8, justifyContent: "center" }}>
             {cur.slides.map(function(slide, i) { return (
-              <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? pal.accent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
+              <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? uiAccent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
                 <div style={{ width: 340, height: 425, transform: "scale(0.2)", transformOrigin: "top left", pointerEvents: "none" }}>
                   <SlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} />
                 </div>
