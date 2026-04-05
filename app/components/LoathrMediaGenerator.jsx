@@ -354,8 +354,8 @@ function S2Arena({ slide, index, category, images }) {
     : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</StickyNote>
     : textContent;
   return (
-    <ImgBg url={url} pal={p} category={category} darken="rgba(0,0,0,0.25)">
-      <div style={{ position: "absolute", bottom: styled ? M_BOT + 10 : 0, left: M_SIDE, right: M_SIDE, zIndex: 3, ...(styled ? {} : { left: 0, right: 0, background: "rgba(0,0,0,0.25)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px" }) }}>
+    <ImgBg url={url} pal={p} category={category} darken={styled ? null : "rgba(0,0,0,0.25)"}>
+      <div style={{ position: "absolute", bottom: styled ? M_BOT : 0, left: M_SIDE, right: M_SIDE, zIndex: 3, ...(styled ? {} : { left: 0, right: 0, background: "rgba(0,0,0,0.25)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px" }) }}>
         {wrappedText}
       </div>
       <div style={{ position: "absolute", bottom: M_PAGE, right: M_SIDE, zIndex: 4 }}>
@@ -384,10 +384,19 @@ function S3RayGun({ slide, index, category, images }) {
     var flippedWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</BubbleBox>
       : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</StickyNote>
       : flippedText;
+    if (styled) {
+      return (
+        <ImgBg url={url} pal={p} category={category}>
+          <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: "50%", zIndex: 3 }}>
+            {flippedWrapped}
+          </div>
+        </ImgBg>
+      );
+    }
     return (
       <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
-        <div style={{ width: "40%", background: "#000000", borderRight: styled ? "none" : "2px solid " + p.accent2, padding: (M_TOP + 6) + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          {flippedWrapped}
+        <div style={{ width: "40%", background: "#000000", borderRight: "2px solid " + p.accent2, padding: (M_TOP + 6) + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          {flippedText}
         </div>
         <div style={{ flex: 1, position: "relative" }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
@@ -406,14 +415,23 @@ function S3RayGun({ slide, index, category, images }) {
   var normalWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</BubbleBox>
     : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</StickyNote>
     : normalText;
+  if (styled) {
+    return (
+      <ImgBg url={url} pal={p} category={category}>
+        <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+          {normalWrapped}
+        </div>
+      </ImgBg>
+    );
+  }
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: styled ? "58%" : "62%", borderBottom: styled ? "none" : "2px solid " + p.accent }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "62%", borderBottom: "2px solid " + p.accent }}>
         {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
         {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
       </div>
-      <div style={{ position: "absolute", bottom: styled ? M_BOT : 0, left: M_SIDE, right: M_SIDE, ...(styled ? {} : { left: 0, right: 0, height: "38%", background: "#000000", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px" }), overflow: "hidden", zIndex: 3 }}>
-        {normalWrapped}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "38%", background: "#000000", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden", zIndex: 3 }}>
+        {normalText}
       </div>
     </div>
   );
@@ -508,15 +526,25 @@ function S5Face({ slide, index, category, images }) {
         <span style={{ flex: 1 }} />
         {slide.year && <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700 }}>{slide.year}</span>}
       </div>
-      <div style={{ position: "absolute", top: M_TOP + 5, left: 0, right: 0, bottom: 0, display: "flex" }}>
-        <div style={{ width: "62%", position: "relative", borderRight: styled ? "none" : "2px solid " + p.accent }}>
+      {styled ? (
+        <div style={{ position: "absolute", top: M_TOP + 5, left: 0, right: 0, bottom: 0 }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
+          <div style={{ position: "absolute", bottom: M_BOT, right: M_SIDE, left: "50%", zIndex: 3 }}>
+            {s5Wrapped}
+          </div>
         </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: (M_TOP + 4) + "px " + (M_SIDE - 2) + "px " + M_BOT + "px", background: "#000000", overflow: "hidden" }}>
-          {s5Wrapped}
+      ) : (
+        <div style={{ position: "absolute", top: M_TOP + 5, left: 0, right: 0, bottom: 0, display: "flex" }}>
+          <div style={{ width: "62%", position: "relative", borderRight: "2px solid " + p.accent }}>
+            {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+            {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
+          </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: (M_TOP + 4) + "px " + (M_SIDE - 2) + "px " + M_BOT + "px", background: "#000000", overflow: "hidden" }}>
+            {s5Text}
+          </div>
         </div>
-      </div>
+      )}
       <div style={{ position: "absolute", bottom: M_PAGE, right: M_SIDE, zIndex: 5 }}>
         <div style={{ ...CP, fontSize: 7, color: "#ffffff66" }}>{String(index).padStart(2, "0")}</div>
       </div>
@@ -1169,70 +1197,70 @@ export default function LoathrMediaGenerator() {
         <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 16 }}>
           {/* Hammering */}
           <div>
-            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.5 }}>
-              <circle cx="16" cy="6" r="4" stroke="var(--color-text-tertiary)" strokeWidth="1.5" fill="none"/>
-              <line x1="16" y1="10" x2="16" y2="24" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-              <line x1="16" y1="24" x2="10" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-              <line x1="16" y1="24" x2="22" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-              <line x1="16" y1="14" x2="8" y2="20" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+            <svg width="40" height="50" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.8 }}>
+              <circle cx="16" cy="6" r="4" stroke="#888888" strokeWidth="1.5" fill="none"/>
+              <line x1="16" y1="10" x2="16" y2="24" stroke="#888888" strokeWidth="1.5"/>
+              <line x1="16" y1="24" x2="10" y2="36" stroke="#888888" strokeWidth="1.5"/>
+              <line x1="16" y1="24" x2="22" y2="36" stroke="#888888" strokeWidth="1.5"/>
+              <line x1="16" y1="14" x2="8" y2="20" stroke="#888888" strokeWidth="1.5"/>
               <g style={{ transformOrigin: "8px 20px", animation: "hammer 0.6s ease-in-out infinite" }}>
-                <line x1="8" y1="20" x2="4" y2="14" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-                <rect x="1" y="11" width="6" height="4" rx="1" fill="var(--color-text-tertiary)" opacity="0.4"/>
+                <line x1="8" y1="20" x2="4" y2="14" stroke="#888888" strokeWidth="1.5"/>
+                <rect x="1" y="11" width="6" height="4" rx="1" fill="#888888" opacity="0.4"/>
               </g>
             </svg>
-            <div style={{ ...CP, fontSize: 5, color: "var(--color-text-tertiary)", opacity: 0.4, marginTop: 2 }}>building</div>
+            <div style={{ ...CP, fontSize: 5, color: "#888888", opacity: 0.7, marginTop: 2 }}>building</div>
           </div>
           {/* Painting */}
           <div>
-            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.5 }}>
-              <circle cx="16" cy="6" r="4" stroke="var(--color-text-tertiary)" strokeWidth="1.5" fill="none"/>
-              <line x1="16" y1="10" x2="16" y2="24" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-              <line x1="16" y1="24" x2="11" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-              <line x1="16" y1="24" x2="21" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-              <line x1="16" y1="14" x2="10" y2="18" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+            <svg width="40" height="50" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.8 }}>
+              <circle cx="16" cy="6" r="4" stroke="#888888" strokeWidth="1.5" fill="none"/>
+              <line x1="16" y1="10" x2="16" y2="24" stroke="#888888" strokeWidth="1.5"/>
+              <line x1="16" y1="24" x2="11" y2="36" stroke="#888888" strokeWidth="1.5"/>
+              <line x1="16" y1="24" x2="21" y2="36" stroke="#888888" strokeWidth="1.5"/>
+              <line x1="16" y1="14" x2="10" y2="18" stroke="#888888" strokeWidth="1.5"/>
               <g style={{ animation: "paint 0.8s ease-in-out infinite" }}>
-                <line x1="16" y1="14" x2="26" y2="10" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-                <line x1="26" y1="10" x2="28" y2="6" stroke="var(--color-text-tertiary)" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="16" y1="14" x2="26" y2="10" stroke="#888888" strokeWidth="1.5"/>
+                <line x1="26" y1="10" x2="28" y2="6" stroke="#888888" strokeWidth="2" strokeLinecap="round"/>
               </g>
             </svg>
-            <div style={{ ...CP, fontSize: 5, color: "var(--color-text-tertiary)", opacity: 0.4, marginTop: 2 }}>painting</div>
+            <div style={{ ...CP, fontSize: 5, color: "#888888", opacity: 0.7, marginTop: 2 }}>painting</div>
           </div>
           {/* Sweeping */}
           <div>
-            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.5 }}>
-              <circle cx="16" cy="6" r="4" stroke="var(--color-text-tertiary)" strokeWidth="1.5" fill="none"/>
-              <line x1="16" y1="10" x2="16" y2="24" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-              <line x1="16" y1="24" x2="12" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-              <line x1="16" y1="24" x2="20" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-              <line x1="16" y1="15" x2="10" y2="19" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+            <svg width="40" height="50" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.8 }}>
+              <circle cx="16" cy="6" r="4" stroke="#888888" strokeWidth="1.5" fill="none"/>
+              <line x1="16" y1="10" x2="16" y2="24" stroke="#888888" strokeWidth="1.5"/>
+              <line x1="16" y1="24" x2="12" y2="36" stroke="#888888" strokeWidth="1.5"/>
+              <line x1="16" y1="24" x2="20" y2="36" stroke="#888888" strokeWidth="1.5"/>
+              <line x1="16" y1="15" x2="10" y2="19" stroke="#888888" strokeWidth="1.5"/>
               <g style={{ transformOrigin: "16px 15px", animation: "sweep 0.7s ease-in-out infinite" }}>
-                <line x1="16" y1="15" x2="24" y2="19" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-                <line x1="24" y1="19" x2="24" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-                <line x1="21" y1="34" x2="27" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="2"/>
+                <line x1="16" y1="15" x2="24" y2="19" stroke="#888888" strokeWidth="1.5"/>
+                <line x1="24" y1="19" x2="24" y2="36" stroke="#888888" strokeWidth="1.5"/>
+                <line x1="21" y1="34" x2="27" y2="36" stroke="#888888" strokeWidth="2"/>
               </g>
             </svg>
-            <div style={{ ...CP, fontSize: 5, color: "var(--color-text-tertiary)", opacity: 0.4, marginTop: 2 }}>tidying</div>
+            <div style={{ ...CP, fontSize: 5, color: "#888888", opacity: 0.7, marginTop: 2 }}>tidying</div>
           </div>
           {/* Carrying */}
           <div>
-            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.5 }}>
-              <circle cx="16" cy="6" r="4" stroke="var(--color-text-tertiary)" strokeWidth="1.5" fill="none"/>
-              <line x1="16" y1="10" x2="16" y2="24" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+            <svg width="40" height="50" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.8 }}>
+              <circle cx="16" cy="6" r="4" stroke="#888888" strokeWidth="1.5" fill="none"/>
+              <line x1="16" y1="10" x2="16" y2="24" stroke="#888888" strokeWidth="1.5"/>
               <g style={{ animation: "walk 0.5s ease-in-out infinite" }}>
-                <line x1="16" y1="24" x2="10" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+                <line x1="16" y1="24" x2="10" y2="36" stroke="#888888" strokeWidth="1.5"/>
               </g>
               <g style={{ animation: "walk 0.5s ease-in-out infinite 0.25s" }}>
-                <line x1="16" y1="24" x2="22" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+                <line x1="16" y1="24" x2="22" y2="36" stroke="#888888" strokeWidth="1.5"/>
               </g>
               <g style={{ animation: "carry 0.5s ease-in-out infinite" }}>
-                <line x1="8" y1="14" x2="24" y2="14" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-                <rect x="8" y="8" width="16" height="6" rx="1" stroke="var(--color-text-tertiary)" strokeWidth="1" fill="none" opacity="0.4"/>
+                <line x1="8" y1="14" x2="24" y2="14" stroke="#888888" strokeWidth="1.5"/>
+                <rect x="8" y="8" width="16" height="6" rx="1" stroke="#888888" strokeWidth="1" fill="none" opacity="0.4"/>
               </g>
             </svg>
-            <div style={{ ...CP, fontSize: 5, color: "var(--color-text-tertiary)", opacity: 0.4, marginTop: 2 }}>loading</div>
+            <div style={{ ...CP, fontSize: 5, color: "#888888", opacity: 0.7, marginTop: 2 }}>loading</div>
           </div>
         </div>
-        <div style={{ ...CP, fontSize: 8, color: "var(--color-text-tertiary)", letterSpacing: "0.15em", opacity: 0.5, animation: "pulse 1.5s ease-in-out infinite" }}>WORKING ON YOUR CAROUSEL</div>
+        <div style={{ ...CP, fontSize: 8, color: "#888888", letterSpacing: "0.15em", opacity: 0.7, animation: "pulse 1.5s ease-in-out infinite" }}>WORKING ON YOUR CAROUSEL</div>
       </div>}
       {error && <div style={{ padding: "14px 18px", background: "var(--color-background-danger)", border: "1px solid var(--color-border-danger)", color: "var(--color-text-danger)", fontSize: 12, marginBottom: 16 }}>{error}</div>}
       {imgStatus && options && <div style={{ textAlign: "center", marginBottom: 12, ...CP, fontSize: 10, color: imgStatus.indexOf("loaded") >= 0 ? "var(--color-text-success)" : "var(--color-text-warning)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>{imgStatus.indexOf("loaded") >= 0 ? <CheckCircle size={11} /> : <AlertTriangle size={11} />}{imgStatus}</div>}
