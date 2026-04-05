@@ -14,11 +14,11 @@ var WS = { fontFamily: "'Wenssep',Georgia,serif" };
 var CP = { fontFamily: "'Courier Prime',monospace" };
 
 var PALETTES = {
-  film:   { bg: "#1a1a2e", accent: "#c8a050", accent2: "#e8d5a0", text: "#f5f0e4" },
-  photo:  { bg: "#3d3d3a", accent: "#d85a30", accent2: "#f0a878", text: "#f7f5f0" },
+  film:   { bg: "#1a1a2e", accent: "#e6a817", accent2: "#c8a050", text: "#f5f0e4" },
+  photo:  { bg: "#0a0a0a", accent: "#ffffff", accent2: "#888888", text: "#ffffff" },
   sports: { bg: "#111111", accent: "#e63946", accent2: "#f2e307", text: "#ffffff" },
-  trivia: { bg: "#1a3a35", accent: "#7ECFC0", accent2: "#B8A4D0", text: "#ffffff" },
-  art:    { bg: "#1a0a3e", accent: "#e83e8c", accent2: "#4dc9f6", text: "#f8f0ff" },
+  trivia: { bg: "#0d1f2d", accent: "#1abc9c", accent2: "#8e44ad", text: "#ffffff" },
+  art:    { bg: "#1a0a3e", accent: "#ff2d55", accent2: "#0984e3", text: "#f8f0ff" },
   fashion: { bg: "#141420", accent: "#00d2d3", accent2: "#ff9ff3", text: "#f5f5f0" },
 };
 
