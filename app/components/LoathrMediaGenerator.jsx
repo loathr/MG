@@ -13,6 +13,69 @@ var FN = { fontFamily: "'Foun',Georgia,serif" };
 var WS = { fontFamily: "'Wenssep',Georgia,serif" };
 var CP = { fontFamily: "'Courier Prime',monospace" };
 
+// --- MAGAZINE EDITION SYSTEM ---
+var PERSONAS = [
+  { id: "historian", voice: "You are The Historian. Uncover forgotten details and lost context. Use phrases like 'what is rarely discussed', 'the record shows', 'buried in the archives'. Tone: revelatory, authoritative, like uncovering a secret." },
+  { id: "critic", voice: "You are The Critic. Give sharp cultural commentary with strong opinions. Use phrases like 'the uncomfortable truth is', 'what nobody admits', 'the real story'. Tone: provocative, confident, contrarian." },
+  { id: "insider", voice: "You are The Insider with behind-the-scenes access. Use phrases like 'what most people miss', 'behind closed doors', 'the industry secret'. Tone: conspiratorial, intimate, exclusive." },
+  { id: "storyteller", voice: "You are The Storyteller. Open with a vivid scene or moment. Use phrases like 'picture this', 'it started when', 'the turning point came'. Tone: cinematic, immersive, narrative." },
+  { id: "researcher", voice: "You are The Researcher. Lead with surprising data and evidence. Use phrases like 'the data reveals', 'studies show', 'the numbers tell a different story'. Tone: precise, eye-opening, analytical." },
+];
+
+var FRESHNESS_SEEDS = [
+  "Approach through economics and money: who profits, who pays, what is the hidden financial story.",
+  "Frame around human psychology: why do people behave this way, what emotional need does it serve.",
+  "Focus on technology disruption: what innovation changed everything, what is being displaced.",
+  "Explore cultural clash: whose traditions collide, what identity tensions exist.",
+  "Tell the untold backstory: the person, moment, or decision that started it all but nobody discusses.",
+  "Make a bold prediction: where is this heading in 5 years, what is the inevitable conclusion.",
+  "Frame as a failure story: what went wrong, who miscalculated, what lesson was learned.",
+  "Find a surprising parallel: connect this to something completely unrelated in another field.",
+];
+
+var WRITING_STYLES = [
+  "heading, body (3-4 sentences with KEY TERMS IN CAPS), highlight (key insight)",
+  "heading (posed as a question), body (conversational answer style, KEY TERMS IN CAPS), highlight (quotable one-liner)",
+  "heading (bold declaration), body (supporting evidence, KEY TERMS IN CAPS), highlight (challenge to the reader)",
+  "heading (scene-setting), body (first-person observation style, KEY TERMS IN CAPS), highlight (the lesson)",
+  "heading (then vs now framing), body (compare two eras or perspectives, KEY TERMS IN CAPS), highlight (what shifted)",
+];
+
+var IMG_FILTERS = [
+  "saturate(0.85) brightness(0.75)",
+  "grayscale(0.4) contrast(1.1) brightness(0.8)",
+  "sepia(0.25) brightness(0.85)",
+  "saturate(1.2) brightness(0.7) contrast(1.05)",
+  "grayscale(1) brightness(0.85) contrast(1.1)",
+];
+
+var COVER_STYLES = ["classic", "split", "typeOnly", "fullBleed"];
+
+// --- EDITION UTILITIES ---
+function pickPersona(seed) { return PERSONAS[Math.abs(seed) % PERSONAS.length]; }
+function pickFreshness(seed) { return FRESHNESS_SEEDS[Math.abs(seed) % FRESHNESS_SEEDS.length]; }
+function pickWritingStyle(seed) { return WRITING_STYLES[Math.abs(seed) % WRITING_STYLES.length]; }
+function pickCoverStyle(seed) { return COVER_STYLES[Math.abs(seed) % COVER_STYLES.length]; }
+function getImgFilter(index, seed) { return IMG_FILTERS[(index + seed) % IMG_FILTERS.length]; }
+
+function getEditionId(topic, category) {
+  var hash = 0;
+  var str = topic + category;
+  for (var i = 0; i < str.length; i++) { hash = ((hash << 5) - hash) + str.charCodeAt(i); hash = hash & hash; }
+  var issueNum = Math.abs(hash % 900) + 100;
+  var months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+  var d = new Date();
+  return { num: issueNum, label: "ISSUE " + issueNum + " \u2014 " + months[d.getMonth()] + " " + d.getFullYear(), seed: Math.abs(hash) };
+}
+
+function getSlideImageQuery(slide, categoryLabel, topic) {
+  var heading = slide.heading || slide.title || slide.name || slide.headline || "";
+  var caps = (slide.body || "").split(" ").filter(function(w) { return w.length > 4 && w === w.toUpperCase(); }).slice(0, 2).join(" ");
+  if (heading && heading.length > 3) return categoryLabel + " " + heading;
+  if (caps) return categoryLabel + " " + caps;
+  return categoryLabel + " " + topic;
+}
+
 var PALETTES = {
   film:   { bg: "#1a1a2e", accent: "#e6a817", accent2: "#c8a050", text: "#f5f0e4" },
   photo:  { bg: "#0a0a0a", accent: "#ffffff", accent2: "#888888", text: "#ffffff" },
@@ -140,10 +203,11 @@ function EditorialFill({ pal, category }) {
   );
 }
 
-function ImgBg({ url, pal, children, darken, category }) {
+function ImgBg({ url, pal, children, darken, category, imgFilter }) {
+  var filt = imgFilter || "saturate(0.85) brightness(0.75)";
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: pal.bg }}>
-      {url && <img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+      {url && <img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: filt }} onError={function(e) { e.target.style.display = "none"; }} />}
       {!url && <EditorialFill pal={pal} category={category} />}
       {darken && <div style={{ position: "absolute", inset: 0, background: darken }} />}
       {children}
@@ -452,6 +516,12 @@ function StickyNote({ children, style, accent, accent2, seed }) {
   );
 }
 
+// Micro-citation for sources
+function MicroCite({ sources }) {
+  if (!sources) return null;
+  return <div style={{ ...CP, fontSize: 4, color: "#ffffff33", marginTop: 4, textAlign: "right" }}>{sources}</div>;
+}
+
 function getImg(images, idx) {
   if (!images) return null;
   var keys = Object.keys(images);
@@ -464,13 +534,15 @@ function getImg(images, idx) {
 }
 
 // --- S1 COVER (Vibe / The Source) ---
-function S1Cover({ slide, category, images }) {
+function S1Cover({ slide, category, images, edition }) {
   var p = PALETTES[category];
   var url = getImg(images, 0);
+  var edLabel = edition ? edition.label : "";
   return (
     <ImgBg url={url} pal={p} category={category} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
         <div style={{ position: "absolute", top: M_TOP, left: 0, right: 0, textAlign: "center", zIndex: 2 }}>
           <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "6B", fontWeight: 700, textDecoration: "line-through", textDecorationColor: p.accent + "6B", textDecorationThickness: 1 }}>LOATHR</div>
+          {edLabel && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: p.accent + "44", marginTop: 3 }}>{edLabel}</div>}
         </div>
         <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
           <div style={{ textAlign: "center" }}>
@@ -502,6 +574,7 @@ function S2Arena({ slide, index, category, images }) {
     <div style={{ ...FN, fontSize: 13, color: useSticky ? "inherit" : "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
     <div style={{ ...HD, fontSize: 9.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.5, textAlign: "left" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
     {slide.specs && <div style={{ marginTop: 8, border: "1px solid " + p.accent + "44", padding: "4px 6px", background: "rgba(255,255,255,0.03)" }}><div style={{ ...WS, fontSize: 5.3, color: useSticky ? "inherit" : "#ffffffaa", textAlign: "left" }}>{slide.specs}</div></div>}
+    <MicroCite sources={slide.sources} />
   </div>;
   var wrappedText = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</BubbleBox>
     : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</StickyNote>
@@ -540,6 +613,7 @@ function S3RayGun({ slide, index, category, images }) {
         <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "3px 8px", boxShadow: "2px 2px 0px " + p.accent2 }}>{slide.highlight}</div>
         <div style={{ width: 3, background: p.accent2, flexShrink: 0 }} />
       </div>}
+      <MicroCite sources={slide.sources} />
     </div>;
     var flippedWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</BubbleBox>
       : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</StickyNote>
@@ -563,6 +637,7 @@ function S3RayGun({ slide, index, category, images }) {
       <div style={{ width: 3, background: p.accent, flexShrink: 0 }} />
       <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "3px 8px", boxShadow: "2px 2px 0px " + p.accent }}>{slide.highlight}</div>
     </div>}
+    <MicroCite sources={slide.sources} />
   </div>;
   var normalWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</BubbleBox>
     : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</StickyNote>
@@ -894,7 +969,7 @@ function RecSlideRenderer({ category, slideData, slideIndex, totalSlides, images
 }
 
 // --- SLIDE RENDERER ---
-function SlideRenderer({ category, slideData, slideIndex, totalSlides, images }) {
+function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, edition }) {
   var p = PALETTES[category];
   var lastIdx = totalSlides - 1;
   // Alternate border color per slide
@@ -903,7 +978,7 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images })
   // Pos 1=Cover, 2=S3, 3=S5, 4=S2, 5=S3flip, 6=S4stat/S6quote, last=Closer
   var slide;
   if (slideIndex === lastIdx) slide = <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} />;
-  else if (slideIndex === 0) slide = <S1Cover slide={slideData} category={category} images={images} />;
+  else if (slideIndex === 0) slide = <S1Cover slide={slideData} category={category} images={images} edition={edition} />;
   else if (slideIndex === lastIdx - 1 && (slideData.stat || slideData.quote)) {
     // Second-to-last: stat or quote
     slide = slideData.stat
@@ -1096,18 +1171,22 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
 };
 
 // --- DIFFERENTIATED PROMPTS ---
-function buildPrompt(catLabel, topic, optionType) {
-  var base = "You are a senior content strategist for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\n";
+function buildPrompt(catLabel, topic, optionType, editionSeed) {
+  var persona = pickPersona(editionSeed || 0);
+  var freshness = pickFreshness((editionSeed || 0) + (optionType === "hot" ? 1 : optionType === "timeline" ? 2 : 0));
+  var style = pickWritingStyle((editionSeed || 0) + (optionType === "deep" ? 0 : optionType === "hot" ? 2 : 4));
+  var base = persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\n\n";
+  var citations = "\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'. Keep them factual and brief.";
 
   if (optionType === "deep") {
-    return base + "Create a DEEP DIVE carousel (6-7 slides). Educational and detailed.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title, subtitle, heading\n- Slides 1-4 (content): heading, body (3-4 sentences, KEY TERMS IN CAPS), highlight, specs (technical detail)\n- Slide 5 (stat): heading, stat, statLabel, body\n- Last slide: hashtags string\n\nInclude at least one slide with a quote field and source field.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Deep Dive\",\"slides\":[{...}]}";
+    return base + "Create a DEEP DIVE carousel (6-7 slides). Educational and detailed.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title, subtitle, heading\n- Slides 1-4 (content): " + style + ", specs (technical detail), sources (1-2 brief citations)\n- Slide 5 (stat): heading, stat, statLabel, body, sources\n- Last slide: hashtags string\n\nInclude at least one slide with a quote field and source field." + citations + "\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Deep Dive\",\"slides\":[{...}]}";
   }
 
   if (optionType === "hot") {
-    return base + "Create a HOT TAKE carousel (5-6 slides). Punchy, provocative, shareable.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title (provocative), subtitle (one-line hook), heading\n- Slides 1-2 (content): heading, body (2 SHORT sentences, KEY TERMS IN CAPS), highlight\n- Slide 3 (stat): heading, stat, statLabel, stat2, stat2Label, body\n- Slide 4 (quote): quote (bold quote), source (person name)\n- Last slide: hashtags string\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Hot Take\",\"slides\":[{...}]}";
+    return base + "Create a HOT TAKE carousel (5-6 slides). Punchy, provocative, shareable.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title (provocative), subtitle (one-line hook), heading\n- Slides 1-2 (content): " + style + ", sources (brief citation)\n- Slide 3 (stat): heading, stat, statLabel, stat2, stat2Label, body, sources\n- Slide 4 (quote): quote (bold quote), source (person name)\n- Last slide: hashtags string" + citations + "\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Hot Take\",\"slides\":[{...}]}";
   }
 
-  return base + "Create a TIMELINE carousel (6-7 slides). Chronological journey.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title (implies historical arc), subtitle, heading\n- Slides 1-4 (content): heading (era name), year (REQUIRED, e.g. \"1973\"), body (2-3 sentences, KEY TERMS IN CAPS), highlight\n- Slide 5 (stat): heading, stat, statLabel, year, body\n- Last slide: hashtags string\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Timeline\",\"slides\":[{...}]}";
+  return base + "Create a TIMELINE carousel (6-7 slides). Chronological journey.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title (implies historical arc), subtitle, heading\n- Slides 1-4 (content): heading (era name), year (REQUIRED), " + style + ", sources (brief citation)\n- Slide 5 (stat): heading, stat, statLabel, year, body, sources\n- Last slide: hashtags string" + citations + "\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Timeline\",\"slides\":[{...}]}";
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -1172,6 +1251,7 @@ export default function LoathrMediaGenerator() {
   var irs = _s(false), isRefining = irs[0], setIsRefining = irs[1];
   var exs = _s(null), exportStatus = exs[0], setExportStatus = exs[1];
   var rms = _s(false), isRecMode = rms[0], setIsRecMode = rms[1];
+  var eds = _s(null), editionData = eds[0], setEditionData = eds[1];
   var slideRef = _ref(null);
   var abortRef = _ref(null);
 
@@ -1263,12 +1343,14 @@ export default function LoathrMediaGenerator() {
     setIsGenerating(true); setError(null); setOptions(null); setImages({});
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
     var catInfo = CATEGORIES.find(function(c) { return c.id === category; });
+    var edition = getEditionId(topic, category);
+    setEditionData(edition);
     try {
       var results = [];
       var types = ["deep", "hot", "timeline"];
       for (var t = 0; t < 3; t++) {
         if (controller.signal.aborted) throw new Error("Generation cancelled");
-        var prompt = buildPrompt(catInfo.label, topic, types[t]);
+        var prompt = buildPrompt(catInfo.label, topic, types[t], edition.seed + t);
         var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
           signal: controller.signal,
           body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
@@ -1289,14 +1371,26 @@ export default function LoathrMediaGenerator() {
         try {
           var searchFn = unsplashKey ? searchUnsplash : searchPexels;
           var key = unsplashKey || pexelsKey;
+          // Main topic search
           var imgs = await searchFn(catInfo.label + " " + topic, key);
-          // Add vintage images to fill gaps
-          if (imgs.length < 10) {
+          // Per-slide contextual search for first selected option
+          if (results[0] && results[0].slides) {
+            var perSlide = results[0].slides.slice(1, 5);
+            for (var ps = 0; ps < perSlide.length && imgs.length < 15; ps++) {
+              try {
+                var sq = getSlideImageQuery(perSlide[ps], catInfo.label, topic);
+                var extra = await searchFn(sq, key);
+                if (extra.length > 0) imgs.push(extra[Math.floor(Math.random() * extra.length)]);
+              } catch (pe) { /* continue */ }
+            }
+          }
+          // Add vintage images to fill gaps — mixed sources
+          if (imgs.length < 12) {
             setImgStatus("Adding vintage media...");
             try {
               var vintageImgs = await searchVintage(category, topic);
               imgs = imgs.concat(vintageImgs);
-            } catch (ve) { /* continue with what we have */ }
+            } catch (ve) { /* continue */ }
           }
           if (imgs.length > 0) {
             var imgMap = {};
@@ -1306,10 +1400,22 @@ export default function LoathrMediaGenerator() {
           } else { setImgStatus("No images found"); }
         } catch (e) { setImgStatus("Image search failed: " + e.message); }
       } else {
-        // No stock API keys — try vintage APIs only (free, no keys needed)
+        // No stock API keys — vintage APIs only
         setImgStatus("Searching vintage archives...");
         try {
           var vintageOnly = await searchVintage(category, topic);
+          // Per-slide vintage search
+          if (results[0] && results[0].slides && vintageOnly.length < 8) {
+            var apis = VINTAGE_APIS[category] || [searchMetMuseum, searchLibCongress];
+            var vsSlides = results[0].slides.slice(1, 5);
+            for (var vs = 0; vs < vsSlides.length && vintageOnly.length < 10; vs++) {
+              try {
+                var vsq = getSlideImageQuery(vsSlides[vs], catInfo.label, topic);
+                var vExtra = await apis[vs % apis.length](vsq);
+                if (vExtra.length > 0) vintageOnly.push(vExtra[0]);
+              } catch (vpe) { /* continue */ }
+            }
+          }
           if (vintageOnly.length > 0) {
             var vMap = {};
             vintageOnly.forEach(function(img, i) { vMap[i] = img; });
@@ -1558,7 +1664,7 @@ export default function LoathrMediaGenerator() {
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
           <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff", outline: "1.5px solid #000000", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
-            {isRecMode ? <RecSlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} />}
+            {isRecMode ? <RecSlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 14 }}>
@@ -1576,7 +1682,7 @@ export default function LoathrMediaGenerator() {
             {cur.slides.map(function(slide, i) { return (
               <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? uiAccent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
                 <div style={{ width: 340, height: 425, transform: "scale(0.2)", transformOrigin: "top left", pointerEvents: "none" }}>
-                  {isRecMode ? <RecSlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} />}
+                  {isRecMode ? <RecSlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} edition={editionData} />}
                 </div>
               </div>); })}
           </div>
