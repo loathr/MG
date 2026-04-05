@@ -197,7 +197,7 @@ function S2Arena({ slide, index, category, images }) {
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.25)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", zIndex: 3 }}>
         <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
         <div style={{ ...HD, fontSize: 9.5, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-        {slide.specs && <div><div style={{ width: "30%", height: 1, background: p.accent + "33", margin: "10px 0" }} /><div style={{ ...HD, fontSize: 7.5, color: "#ffffffaa", textAlign: "left" }}>{slide.specs}</div></div>}
+        {slide.specs && <div><div style={{ width: "30%", height: 1, background: p.accent + "33", margin: "10px 0" }} /><div style={{ ...WS, fontSize: 7.5, color: "#ffffffaa", textAlign: "left" }}>{slide.specs}</div></div>}
       </div>
       <div style={{ position: "absolute", bottom: M_PAGE, right: M_SIDE, zIndex: 4 }}>
         <div style={{ ...CP, fontSize: 7, color: "#ffffff66" }}>{String(index).padStart(2, "0")}</div>
@@ -354,7 +354,7 @@ function S6Purple({ slide, index, category, images }) {
         <div style={{ textAlign: "left" }}>
           <div style={{ ...HD, fontSize: 11.5, fontStyle: "italic", color: "#ffffffdd", lineHeight: 1.5, textAlign: "justify" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
           <div style={{ width: 12, height: 1, background: p.accent + "66", margin: "8px 0" }} />
-          {slide.source && <div style={{ ...CP, fontSize: 7, color: p.accent + "99", letterSpacing: "0.08em" }}>{slide.source}</div>}
+          {slide.source && <div style={{ ...WS, fontSize: 7, color: p.accent + "99", letterSpacing: "0.08em" }}>{slide.source}</div>}
         </div>
       </div>
     </ImgBg>
@@ -369,10 +369,10 @@ function S7Blitz({ category, hashtags, images }) {
     <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.75)">
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 3 }}>
         <div style={{ ...CP, fontSize: 7, letterSpacing: "0.25em", color: p.accent + "99" }}>{CLOSER_TAGS[category]}</div>
-        <div style={{ ...CP, fontSize: 11, letterSpacing: "0.35em", color: "#ffffffbb", marginTop: 10, fontWeight: 700 }}>LOATHR</div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 8 }}>
-          <div style={{ width: 6, height: 6, background: p.accent }} />
-          <div style={{ width: 6, height: 6, background: p.accent2 }} />
+        <div style={{ position: "relative", display: "inline-block", marginTop: 10 }}>
+          <div style={{ ...CP, fontSize: 10, letterSpacing: "0.35em", color: "#ffffffbb", fontWeight: 700 }}>LOATHR</div>
+          <div style={{ position: "absolute", bottom: -10, left: "28%", width: 6, height: 6, background: p.accent }} />
+          <div style={{ position: "absolute", bottom: -10, left: "48%", width: 6, height: 6, background: p.accent2 }} />
         </div>
       </div>
     </ImgBg>
