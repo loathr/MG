@@ -3,27 +3,25 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive } from "lucide-react";
 
 var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=DM+Serif+Display&display=swap";
-var PAD = 14;
-var HD = { fontFamily: "'Maheni','DM Serif Display',Georgia,serif", fontStyle: "normal" };
+var PAD = 18;
+var HD = { fontFamily: "'Maheni','DM Serif Display',Georgia,serif", fontStyle: "normal", textTransform: "uppercase" };
 var CP = { fontFamily: "'Courier Prime',monospace" };
-var TS = "0 2px 20px rgba(0,0,0,0.8)";
-var TS2 = "0 1px 8px rgba(0,0,0,0.9)";
 
 var PALETTES = {
   film:   { bg: "#1a1a2e", accent: "#c8a050", text: "#f5f0e4" },
   photo:  { bg: "#3d3d3a", accent: "#d85a30", text: "#f7f5f0" },
   sports: { bg: "#111111", accent: "#e63946", accent2: "#f2e307", text: "#ffffff" },
-  trivia: { bg: "#7ECFC0", accent: "#B8A4D0", text: "#ffffff" },
+  trivia: { bg: "#1a3a35", accent: "#7ECFC0", accent2: "#B8A4D0", text: "#ffffff" },
   art:    { bg: "#1a0a3e", accent: "#e83e8c", accent2: "#4dc9f6", text: "#f8f0ff" },
 };
 
-var CAT_LABELS = { film: "FILM & TV", photo: "PHOTOGRAPHY", sports: "SPORTS \u00D7 CULTURE", trivia: "DID YOU KNOW?", art: "ART & MUSIC" };
+var CAT_LABELS = { film: "FILM & TV", photo: "PHOTOGRAPHY", sports: "SPORTS \u00d7 CULTURE", trivia: "DID YOU KNOW?", art: "ART & MUSIC" };
 var CLOSER_TAGS = { film: "FOLLOW FOR MORE", photo: "FOLLOW FOR MORE", sports: "GAME. CULTURE. REPEAT.", trivia: "NOW YOU KNOW", art: "SEE. HEAR. FEEL." };
 
 var CATEGORIES = [
   { id: "film", label: "Film & TV", icon: Clapperboard },
   { id: "photo", label: "Photography", icon: Aperture },
-  { id: "sports", label: "Sports \u00D7 Culture", icon: Trophy },
+  { id: "sports", label: "Sports \u00d7 Culture", icon: Trophy },
   { id: "trivia", label: "Did You Know?", icon: Lightbulb },
   { id: "art", label: "Art & Music", icon: Palette },
 ];
@@ -69,13 +67,7 @@ var SUBCATEGORIES = {
   },
 };
 
-var CATEGORY_ICONS = {
-  film: [Film, Clapperboard, Eye, Mic], photo: [Camera, Aperture, Eye, CircleDot],
-  sports: [Trophy, TrendingUp, Star, Users], trivia: [Lightbulb, BookOpen, Star, Eye],
-  art: [Music, Palette, Star, Eye],
-};
-
-// ─── ACCENT UNDERLINE ───
+// --- HELPERS ---
 function Accent({ children, color }) {
   return <span style={{ textDecoration: "underline", textDecorationColor: color, textUnderlineOffset: 3, textDecorationThickness: 1, color: "inherit" }}>{children}</span>;
 }
@@ -83,235 +75,208 @@ function Accent({ children, color }) {
 function formatTitle(title, color) {
   if (!title) return "";
   var words = title.split(" ");
-  if (words.length <= 3) return <Accent color={color}>{title}</Accent>;
+  if (words.length <= 3) return <Accent color={color}>{title.toUpperCase()}</Accent>;
   var cut = Math.max(2, words.length - Math.ceil(words.length / 3));
-  return <>{words.slice(0, cut).join(" ")} <Accent color={color}>{words.slice(cut).join(" ")}</Accent></>;
+  return <>{words.slice(0, cut).join(" ").toUpperCase()} <Accent color={color}>{words.slice(cut).join(" ").toUpperCase()}</Accent></>;
 }
 
-// ─── MOSAIC BACKGROUND ───
-// Fills the entire slide with 1-4 images in a grid. 2px black borders between panels.
-function MosaicBg({ images, pal, layout, opacity, children }) {
-  var imgs = images || [];
-  var op = opacity || 1;
-  var ly = layout || "single";
-
-  // Render a single image panel or fallback color
-  function Panel({ url, bg, style }) {
-    if (url) return <div style={{ position: "relative", overflow: "hidden", ...style }}><img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} /></div>;
-    return <div style={{ background: bg || pal.bg, ...style }} />;
-  }
-
-  var grid;
-  if (ly === "2v") {
-    grid = <div style={{ position: "absolute", inset: 0, display: "flex", opacity: op }}>
-      <Panel url={imgs[0]} style={{ flex: 1, borderRight: "2px solid #000000" }} />
-      <Panel url={imgs[1]} bg={pal.bg + "cc"} style={{ flex: 1 }} />
-    </div>;
-  } else if (ly === "2h") {
-    grid = <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", opacity: op }}>
-      <Panel url={imgs[0]} style={{ flex: 1, borderBottom: "2px solid #000000" }} />
-      <Panel url={imgs[1]} bg={pal.bg + "cc"} style={{ flex: 1 }} />
-    </div>;
-  } else if (ly === "3L") {
-    grid = <div style={{ position: "absolute", inset: 0, display: "flex", opacity: op }}>
-      <Panel url={imgs[0]} style={{ flex: 3, borderRight: "2px solid #000000" }} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <Panel url={imgs[1]} bg={pal.bg + "cc"} style={{ flex: 1, borderBottom: "2px solid #000000" }} />
-        <Panel url={imgs[2]} bg={pal.bg + "aa"} style={{ flex: 1 }} />
-      </div>
-    </div>;
-  } else if (ly === "3h") {
-    grid = <div style={{ position: "absolute", inset: 0, display: "flex", opacity: op }}>
-      <Panel url={imgs[0]} style={{ flex: 2, borderRight: "2px solid #000000" }} />
-      <Panel url={imgs[1]} bg={pal.bg + "cc"} style={{ flex: 1, borderRight: "2px solid #000000" }} />
-      <Panel url={imgs[2]} bg={pal.bg + "aa"} style={{ flex: 1 }} />
-    </div>;
-  } else if (ly === "4g") {
-    grid = <div style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gridTemplateRows: "1fr 1fr", opacity: op }}>
-      <Panel url={imgs[0]} style={{ borderRight: "2px solid #000000", borderBottom: "2px solid #000000" }} />
-      <Panel url={imgs[1]} bg={pal.bg + "cc"} style={{ borderBottom: "2px solid #000000" }} />
-      <Panel url={imgs[2]} bg={pal.bg + "aa"} style={{ borderRight: "2px solid #000000" }} />
-      <Panel url={imgs[3]} bg={pal.bg + "88"} style={{}} />
-    </div>;
-  } else {
-    grid = <div style={{ position: "absolute", inset: 0, opacity: op }}>
-      <Panel url={imgs[0]} style={{ position: "absolute", inset: 0 }} />
-      {!imgs[0] && <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><Camera size={24} style={{ opacity: 0.08, color: pal.accent }} /></div>}
-    </div>;
-  }
-
+function ImgBg({ url, pal, children, darken }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
-      {grid}
+      {url && <img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+      {!url && <div style={{ position: "absolute", inset: 0, background: pal.bg }} />}
+      {darken && <div style={{ position: "absolute", inset: 0, background: darken }} />}
       {children}
     </div>
   );
 }
 
-// Pick a mosaic layout based on how many images are available and the slide index
-function pickLayout(imgCount, slideIndex, optionType) {
-  if (imgCount <= 1) return "single";
-  if (optionType === "deep") {
-    var deepLayouts = ["3L", "3h", "2v", "2h", "4g"];
-    return deepLayouts[slideIndex % deepLayouts.length];
-  }
-  if (optionType === "hot") {
-    var hotLayouts = ["2v", "single", "2h", "single"];
-    return hotLayouts[slideIndex % hotLayouts.length];
-  }
-  // timeline
-  var tlLayouts = ["2h", "2v", "3L", "4g", "2h"];
-  return tlLayouts[slideIndex % tlLayouts.length];
+function getImg(images, idx) {
+  if (!images) return null;
+  if (images[idx]) return images[idx].url;
+  var keys = Object.keys(images);
+  if (keys.length > 0) return images[keys[idx % keys.length]] ? images[keys[idx % keys.length]].url : null;
+  return null;
 }
 
-// Collect images for a mosaic from the images map
-function gatherImages(images, slideIndex, count) {
-  var result = [];
-  for (var i = 0; i < count; i++) {
-    var key = slideIndex + i;
-    if (images && images[key]) result.push(images[key].url);
-    else if (images && images[i]) result.push(images[i].url);
-  }
-  return result;
-}
-
-// ─── OVERLAYS ───
-function BottomGrad({ h }) {
-  return <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: h || "28%", background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 50%, transparent 100%)", zIndex: 3 }} />;
-}
-function TopGrad() {
-  return <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "10%", background: "linear-gradient(to bottom, rgba(0,0,0,0.5), transparent)", zIndex: 3 }} />;
-}
-function RadialVig() {
-  return <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0.2), rgba(0,0,0,0.65))", zIndex: 3 }} />;
-}
-
-// ─── COVER SLIDE ───
-function CoverSlide({ slide, category, image, images, optionType }) {
+// --- S1 COVER (Vibe / The Source) ---
+function S1Cover({ slide, category, images }) {
   var p = PALETTES[category];
-  var imgUrls = gatherImages(images, 0, 4);
-  var layout = pickLayout(imgUrls.length, 0, optionType);
-
+  var url = getImg(images, 0);
   return (
-    <MosaicBg images={imgUrls} pal={p} layout={layout}>
-      <BottomGrad h="30%" /><TopGrad />
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: p.accent, opacity: 0.8, zIndex: 4 }} />
-      <div style={{ position: "absolute", top: 10, left: PAD, zIndex: 4, ...CP, fontSize: 7, letterSpacing: "0.2em", color: p.accent + "99" }}>{"LOATHR \u2014 " + CAT_LABELS[category]}</div>
-      <div style={{ position: "absolute", top: 9, right: PAD, width: 8, height: 8, background: p.accent, zIndex: 4 }} />
-      {p.accent2 && <div style={{ position: "absolute", top: 9, right: PAD + 14, width: 6, height: 6, background: p.accent2, zIndex: 4 }} />}
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 " + PAD + "px " + PAD + "px", zIndex: 4 }}>
-        <div style={{ ...HD, fontSize: slide.title && slide.title.length > 35 ? 26 : 32, color: p.text, lineHeight: 1.05, textShadow: TS }}>
-          {formatTitle(slide.title, p.accent)}
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
-          <div style={{ ...CP, fontSize: 7, color: "#ffffffcc", fontStyle: "italic" }}>{slide.subtitle}</div>
-          {slide.heading && <div style={{ ...CP, fontSize: 6, color: p.accent + "88", letterSpacing: "0.08em" }}>{(slide.heading || "").toUpperCase()}</div>}
+    <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.88))">
+      <div style={{ position: "absolute", top: 8, left: 0, right: 0, textAlign: "center", zIndex: 2 }}>
+        <div style={{ ...CP, fontSize: 22, letterSpacing: "0.5em", color: p.accent + "14", fontWeight: 700 }}>LOATHR</div>
+      </div>
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: PAD, zIndex: 3 }}>
+        <div style={{ textAlign: "left" }}>
+          <div style={{ ...HD, fontSize: slide.title && slide.title.length > 35 ? 26 : 32, color: p.text, lineHeight: 1.0, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }}>
+            {formatTitle(slide.title, p.accent)}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
+            <div style={{ width: 8, height: 8, background: p.accent }} />
+            {p.accent2 && <div style={{ width: 5, height: 5, background: p.accent2 }} />}
+            <div style={{ ...CP, fontSize: 7, color: p.text + "55", letterSpacing: "0.08em" }}>{CAT_LABELS[category]}</div>
+          </div>
+          {slide.subtitle && <div style={{ ...CP, fontSize: 8, color: p.text + "44", marginTop: 6, fontStyle: "italic" }}>{slide.subtitle}</div>}
         </div>
       </div>
-    </MosaicBg>
+    </ImgBg>
   );
 }
 
-// ─── CONTENT SLIDE ───
-function ContentSlide({ slide, index, category, images, optionType }) {
+// --- S2 CONTENT (Arena Homme+) ---
+function S2Arena({ slide, index, category, images }) {
   var p = PALETTES[category];
-  var imgUrls = gatherImages(images, index, 3);
-  var layout = pickLayout(imgUrls.length, index, optionType);
-
+  var url = getImg(images, index);
   return (
-    <MosaicBg images={imgUrls} pal={p} layout={layout}>
-      <BottomGrad h="32%" /><TopGrad />
-      <div style={{ position: "absolute", top: 10, left: PAD, zIndex: 4, display: "flex", alignItems: "baseline", gap: 4 }}>
-        <span style={{ ...CP, fontSize: 7, color: p.accent + "33" }}>{String(index).padStart(2, "0")} \u2014</span>
-        <span style={{ ...HD, fontSize: 11, color: "#ffffffdd" }}>{slide.heading || "Part " + index}</span>
+    <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.55) 65%, rgba(0,0,0,0.92))">
+      <div style={{ position: "absolute", top: "5%", right: 6, zIndex: 1 }}>
+        <div style={{ ...HD, fontSize: 120, color: p.accent + "07", lineHeight: 0.85, letterSpacing: -4 }}>{String(index).padStart(2, "0")}</div>
       </div>
-      {slide.year && <div style={{ position: "absolute", top: 10, right: PAD, zIndex: 4, ...CP, fontSize: 7, color: p.accent + "55", letterSpacing: "0.08em" }}>{slide.year}</div>}
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "0 " + PAD + "px " + PAD + "px", zIndex: 4 }}>
-        <div style={{ ...CP, fontSize: 9, color: "#ffffffe6", lineHeight: 1.9, textShadow: TS2 }}>{slide.body}</div>
-        {slide.highlight && <div style={{ ...CP, fontSize: 8, fontStyle: "italic", color: p.accent + "88", marginTop: 4 }}>{slide.highlight}</div>}
-        {slide.specs && <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", marginTop: 4 }}>{slide.specs}</div>}
-      </div>
-    </MosaicBg>
-  );
-}
-
-// ─── STAT SLIDE ───
-function StatSlide({ slide, index, category, images, optionType }) {
-  var p = PALETTES[category];
-  var imgUrls = gatherImages(images, index, 3);
-  var layout = pickLayout(imgUrls.length, index, optionType);
-
-  return (
-    <MosaicBg images={imgUrls} pal={p} layout={layout}>
-      <RadialVig />
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "22%", background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)", zIndex: 3 }} />
-      <div style={{ position: "absolute", top: 10, left: PAD, zIndex: 4, ...CP, fontSize: 7, color: p.accent + "44", letterSpacing: "0.12em" }}>{String(index).padStart(2, "0")} \u2014 BY THE NUMBERS</div>
-      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 4, display: "flex", gap: 24, textAlign: "center" }}>
-        <div>
-          <div style={{ ...HD, fontSize: slide.stat2 ? 40 : 52, color: p.accent, lineHeight: 1, textShadow: "0 4px 30px rgba(0,0,0,0.8)" }}>{slide.stat}</div>
-          <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.12em", marginTop: 4 }}>{(slide.statLabel || "KEY METRIC").toUpperCase()}</div>
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: PAD, zIndex: 3 }}>
+        <div style={{ textAlign: "left" }}>
+          <div style={{ ...HD, fontSize: 11, color: p.text + "99", marginBottom: 5 }}>{(slide.heading || "PART " + index).toUpperCase()}</div>
+          <div style={{ ...CP, fontSize: 9, color: p.text + "88", lineHeight: 2.0, textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>{slide.body}</div>
+          {slide.specs && <div style={{ ...CP, fontSize: 7, color: p.text + "44", marginTop: 4 }}>{slide.specs}</div>}
         </div>
-        {slide.stat2 && <div>
-          <div style={{ ...HD, fontSize: 40, color: p.accent2 || p.text, lineHeight: 1, textShadow: "0 4px 30px rgba(0,0,0,0.8)" }}>{slide.stat2}</div>
-          <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.12em", marginTop: 4 }}>{(slide.stat2Label || "SECONDARY").toUpperCase()}</div>
-        </div>}
       </div>
-      <div style={{ position: "absolute", bottom: PAD, left: PAD, right: PAD, zIndex: 4 }}>
-        <div style={{ ...CP, fontSize: 9, color: "#ffffffcc", lineHeight: 1.7, textShadow: TS2 }}>{slide.body}</div>
-      </div>
-    </MosaicBg>
+    </ImgBg>
   );
 }
 
-// ─── QUOTE SLIDE ───
-function QuoteSlide({ slide, index, category, images }) {
+// --- S3 CONTENT (Ray Gun / 90s crash) ---
+function S3RayGun({ slide, index, category, images }) {
   var p = PALETTES[category];
-  var imgUrls = gatherImages(images, index, 1);
+  var url = getImg(images, index);
+  return (
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
+      <div style={{ position: "absolute", top: 0, left: 0, width: "68%", height: "62%" }}>
+        {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+        {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
+        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 3, background: p.accent }} />
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 3, background: p.accent }} />
+      </div>
+      <div style={{ position: "absolute", top: "14%", right: PAD, width: "48%", zIndex: 3, transform: "rotate(1deg)" }}>
+        <div style={{ textAlign: "left" }}>
+          <div style={{ ...HD, fontSize: 11, color: p.text + "88", marginBottom: 4 }}>{(slide.heading || "PART " + index).toUpperCase()}</div>
+          <div style={{ ...CP, fontSize: 9, color: p.text + "99", lineHeight: 1.9, textShadow: "0 1px 8px rgba(0,0,0,0.9)" }}>{slide.body}</div>
+          {slide.highlight && <div style={{ ...CP, fontSize: 8, fontStyle: "italic", color: p.accent + "77", marginTop: 4 }}>{slide.highlight}</div>}
+        </div>
+      </div>
+      <div style={{ position: "absolute", bottom: PAD, left: PAD, display: "flex", gap: 4, zIndex: 3 }}>
+        <div style={{ width: 6, height: 6, background: p.accent }} />
+        {p.accent2 && <div style={{ width: 6, height: 6, background: p.accent2 }} />}
+        <div style={{ ...CP, fontSize: 6, color: p.accent + "44", marginLeft: 4 }}>{String(index).padStart(2, "0")}</div>
+      </div>
+    </div>
+  );
+}
+
+// --- S4 STAT (Emigre scale clash) ---
+function S4Emigre({ slide, index, category, images }) {
+  var p = PALETTES[category];
+  var url = getImg(images, index);
+  return (
+    <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.45)">
+      <div style={{ position: "absolute", top: PAD, left: PAD, zIndex: 3 }}>
+        <div style={{ ...CP, fontSize: 6, color: p.accent + "55", letterSpacing: "0.15em" }}>{String(index).padStart(2, "0")} \u2014 BY THE NUMBERS</div>
+      </div>
+      <div style={{ position: "absolute", top: "22%", left: PAD, zIndex: 3 }}>
+        <div style={{ textAlign: "left" }}>
+          <div style={{ ...HD, fontSize: slide.stat2 ? 48 : 64, color: p.accent, lineHeight: 0.85, letterSpacing: -1 }}>{slide.stat}</div>
+          <div style={{ ...CP, fontSize: 6, color: p.text + "44", letterSpacing: "0.12em", marginTop: 3 }}>{(slide.statLabel || "KEY METRIC").toUpperCase()}</div>
+        </div>
+      </div>
+      {slide.stat2 && <div style={{ position: "absolute", top: "55%", right: PAD, textAlign: "right", zIndex: 3 }}>
+        <div style={{ ...HD, fontSize: 38, color: p.accent2 || p.text, lineHeight: 0.85 }}>{slide.stat2}</div>
+        <div style={{ ...CP, fontSize: 6, color: p.text + "33", letterSpacing: "0.1em", marginTop: 3 }}>{(slide.stat2Label || "SECONDARY").toUpperCase()}</div>
+      </div>}
+      <div style={{ position: "absolute", bottom: PAD, left: PAD, right: PAD, zIndex: 3 }}>
+        <div style={{ ...CP, fontSize: 9, color: p.text + "77", lineHeight: 1.8, textAlign: "left", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>{slide.body}</div>
+      </div>
+    </ImgBg>
+  );
+}
+
+// --- S5 CONTENT (i-D / The Face / 80s grid) ---
+function S5Face({ slide, index, category, images }) {
+  var p = PALETTES[category];
+  var url = getImg(images, index);
+  return (
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 22, background: p.accent, display: "flex", alignItems: "center", padding: "0 " + PAD + "px", zIndex: 4 }}>
+        <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700, letterSpacing: "0.1em" }}>{String(index).padStart(2, "0")} \u2014 {(slide.heading || "SECTION").toUpperCase()}</span>
+        <span style={{ flex: 1 }} />
+        {slide.year && <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700 }}>{slide.year}</span>}
+      </div>
+      <div style={{ position: "absolute", top: 22, left: 0, right: 0, bottom: 0, display: "flex" }}>
+        <div style={{ width: "48%", position: "relative", borderRight: "2px solid " + p.accent }}>
+          {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+          {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
+        </div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: PAD }}>
+          <div style={{ textAlign: "left" }}>
+            <div style={{ ...CP, fontSize: 9, color: p.text + "88", lineHeight: 2.0 }}>{slide.body}</div>
+            <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "8px 0" }} />
+            {slide.highlight && <div style={{ ...CP, fontSize: 8, color: p.accent + "66", fontStyle: "italic" }}>{slide.highlight}</div>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- S6 QUOTE (Purple Magazine whisper) ---
+function S6Purple({ slide, index, category, images }) {
+  var p = PALETTES[category];
+  var url = getImg(images, index);
   var quoteText = slide.quote || slide.highlight || slide.body || "";
-  if (quoteText && quoteText.charAt(0) !== '"') quoteText = '"' + quoteText + '"';
-
   return (
-    <MosaicBg images={imgUrls} pal={p} layout="single">
-      <RadialVig />
-      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: "82%", textAlign: "center", zIndex: 4 }}>
-        <div style={{ width: 20, height: 1, background: p.accent + "55", margin: "0 auto 14px" }} />
-        <div style={{ ...CP, fontSize: 13, fontWeight: 700, fontStyle: "italic", color: "#ffffffee", lineHeight: 1.5, textShadow: TS }}>{quoteText}</div>
-        <div style={{ width: 20, height: 1, background: p.accent + "55", margin: "14px auto" }} />
-        {slide.source && <div style={{ ...CP, fontSize: 7, color: p.accent + "88", letterSpacing: "0.1em" }}>{slide.source.toUpperCase()}</div>}
+    <ImgBg url={url} pal={p} darken="radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.1), rgba(0,0,0,0.5))">
+      <div style={{ position: "absolute", top: "55%", left: 0, right: 0, padding: PAD, zIndex: 3 }}>
+        <div style={{ textAlign: "left" }}>
+          <div style={{ ...CP, fontSize: 12, fontStyle: "italic", color: p.text + "99", lineHeight: 1.7, textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
+          <div style={{ width: 12, height: 1, background: p.accent + "44", margin: "8px 0" }} />
+          {slide.source && <div style={{ ...CP, fontSize: 7, color: p.accent + "66", letterSpacing: "0.1em" }}>{slide.source.toUpperCase()}</div>}
+        </div>
       </div>
-    </MosaicBg>
+    </ImgBg>
   );
 }
 
-// ─── CLOSER SLIDE ───
-function CloserSlide({ category, hashtags, images }) {
+// --- S7 CLOSER (Blitz geometric fade) ---
+function S7Blitz({ category, hashtags, images }) {
   var p = PALETTES[category];
-  var imgUrls = gatherImages(images, 0, 3);
-  var layout = imgUrls.length >= 3 ? "3h" : imgUrls.length >= 2 ? "2v" : "single";
-
+  var url = getImg(images, 0);
   return (
-    <MosaicBg images={imgUrls} pal={p} layout={layout} opacity={0.2}>
-      <RadialVig />
-      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 4 }}>
-        <div style={{ ...CP, fontSize: 7, letterSpacing: "0.3em", color: p.accent + "44" }}>{CLOSER_TAGS[category]}</div>
-        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.45em", color: "#ffffff88", marginTop: 14 }}>L O A T H R</div>
-        <div style={{ width: 30, height: 1, background: p.accent + "22", margin: "10px auto" }} />
-        <div style={{ ...CP, fontSize: 7, color: "#ffffff66", marginTop: 4 }}>{hashtags}</div>
+    <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.75)">
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 140, height: 140, border: "1px solid " + p.accent + "14", borderRadius: "50%", zIndex: 2 }} />
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 100, height: 100, border: "1px solid " + p.accent + "0a", borderRadius: "50%", zIndex: 2 }} />
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 3 }}>
+        <div style={{ ...CP, fontSize: 7, letterSpacing: "0.25em", color: p.accent + "44" }}>{CLOSER_TAGS[category]}</div>
+        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.45em", color: p.text + "18", marginTop: 12 }}>LOATHR</div>
+        <div style={{ width: 24, height: 1, background: p.accent + "22", margin: "8px auto" }} />
+        {hashtags && <div style={{ ...CP, fontSize: 7, color: p.text + "0d", marginTop: 4 }}>{hashtags}</div>}
       </div>
-    </MosaicBg>
+    </ImgBg>
   );
 }
 
-// ─── SLIDE RENDERER ───
-function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, optionType }) {
-  if (slideIndex === totalSlides - 1) return <CloserSlide category={category} hashtags={slideData.hashtags || ""} images={images} />;
-  if (slideIndex === 0) return <CoverSlide slide={slideData} category={category} images={images} optionType={optionType} />;
-  if (slideData.stat) return <StatSlide slide={slideData} index={slideIndex} category={category} images={images} optionType={optionType} />;
-  if (slideData.quote || (slideIndex === totalSlides - 2 && slideData.highlight)) return <QuoteSlide slide={slideData} index={slideIndex} category={category} images={images} />;
-  return <ContentSlide slide={slideData} index={slideIndex} category={category} images={images} optionType={optionType} />;
+// --- SLIDE RENDERER ---
+function SlideRenderer({ category, slideData, slideIndex, totalSlides, images }) {
+  var lastIdx = totalSlides - 1;
+  if (slideIndex === lastIdx) return <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} />;
+  if (slideIndex === 0) return <S1Cover slide={slideData} category={category} images={images} />;
+  if (slideData.stat) return <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
+  if (slideData.quote) return <S6Purple slide={slideData} index={slideIndex} category={category} images={images} />;
+  var layouts = [S2Arena, S3RayGun, S5Face];
+  var pick = slideIndex % layouts.length;
+  var Component = layouts[pick];
+  return <Component slide={slideData} index={slideIndex} category={category} images={images} />;
 }
 
-// ─── IMAGE SEARCH ───
+// --- IMAGE SEARCH ---
 var searchUnsplash = async function(query, apiKey) {
   var r = await fetch("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(query) + "&per_page=10&orientation=portrait", { headers: { Authorization: "Client-ID " + apiKey } });
   if (!r.ok) throw new Error("Unsplash " + r.status);
@@ -339,7 +304,7 @@ var testApiConnection = async function(service, key) {
   }
 };
 
-// ─── PNG EXPORT ───
+// --- PNG EXPORT ---
 var loadScript = function(src) {
   return new Promise(function(resolve, reject) {
     if (document.querySelector('script[src="' + src + '"]')) return resolve();
@@ -378,33 +343,33 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
   setExportStatus("Creating ZIP...");
   try {
     var content = await zip.generateAsync({ type: "blob" });
-    var url = URL.createObjectURL(content);
+    var blobUrl = URL.createObjectURL(content);
     var a = document.createElement("a");
-    a.href = url;
+    a.href = blobUrl;
     a.download = "LOATHR-" + category.toUpperCase() + "-carousel.zip";
     a.click();
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(blobUrl);
     setExportStatus("Downloaded!");
   } catch (e) { setExportStatus("ZIP creation failed"); }
   setTimeout(function() { setExportStatus(null); }, 2000);
 };
 
-// ─── DIFFERENTIATED PROMPTS ───
+// --- DIFFERENTIATED PROMPTS ---
 function buildPrompt(catLabel, topic, optionType) {
   var base = "You are a senior content strategist for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\n";
 
   if (optionType === "deep") {
-    return base + "Create a DEEP DIVE carousel (6-7 slides). This is educational and detailed.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title, subtitle, heading (sub-topic tag)\n- Slides 1-4 (content): heading, body (3-4 sentences, educational depth, KEY TERMS IN CAPS), highlight (key insight), specs (technical detail or little-known fact)\n- Slide 5 (stat): heading, stat, statLabel, body (one sentence connecting the number to the narrative)\n- Last slide: hashtags string\n\nStyle: authoritative, well-researched, each slide builds on the last. Body text should teach something specific. Include specs field with a technical detail on each content slide.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Deep Dive\",\"slides\":[{...}]}";
+    return base + "Create a DEEP DIVE carousel (6-7 slides). Educational and detailed.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title, subtitle, heading\n- Slides 1-4 (content): heading, body (3-4 sentences, KEY TERMS IN CAPS), highlight, specs (technical detail)\n- Slide 5 (stat): heading, stat, statLabel, body\n- Last slide: hashtags string\n\nInclude at least one slide with a quote field and source field.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Deep Dive\",\"slides\":[{...}]}";
   }
 
   if (optionType === "hot") {
-    return base + "Create a HOT TAKE carousel (5-6 slides). This is punchy, provocative, and shareable.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title (provocative statement or question), subtitle (one-line hook), heading (sub-topic tag)\n- Slides 1-2 (content): heading, body (2 SHORT punchy sentences, KEY TERMS IN CAPS, confrontational tone), highlight (hot take statement)\n- Slide 3 (stat): heading, stat, statLabel, stat2, stat2Label, body (contrast the two numbers to make a point)\n- Slide 4 (quote): quote (bold attributed quote that supports the take), source (person's name)\n- Last slide: hashtags string\n\nStyle: bold, opinionated, designed to spark debate. Short sentences. Strong claims. Every slide should make someone want to share or argue.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Hot Take\",\"slides\":[{...}]}";
+    return base + "Create a HOT TAKE carousel (5-6 slides). Punchy, provocative, shareable.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title (provocative), subtitle (one-line hook), heading\n- Slides 1-2 (content): heading, body (2 SHORT sentences, KEY TERMS IN CAPS), highlight\n- Slide 3 (stat): heading, stat, statLabel, stat2, stat2Label, body\n- Slide 4 (quote): quote (bold quote), source (person name)\n- Last slide: hashtags string\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Hot Take\",\"slides\":[{...}]}";
   }
 
-  return base + "Create a TIMELINE carousel (6-7 slides). This is a chronological journey.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title (should imply a historical arc), subtitle, heading (sub-topic tag)\n- Slides 1-4 (content): heading (era or event name), year (specific year like \"1973\" or \"2001\"), body (2-3 sentences about what happened, KEY TERMS IN CAPS), highlight (why this moment mattered)\n- Slide 5 (stat): heading, stat, statLabel, year, body (a number that captures the transformation)\n- Last slide: hashtags string\n\nStyle: narrative, each slide is a distinct era. The year field is REQUIRED on every content and stat slide. Body text should set the scene for that era. Build a clear before-and-after arc.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Timeline\",\"slides\":[{...}]}";
+  return base + "Create a TIMELINE carousel (6-7 slides). Chronological journey.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title (implies historical arc), subtitle, heading\n- Slides 1-4 (content): heading (era name), year (REQUIRED, e.g. \"1973\"), body (2-3 sentences, KEY TERMS IN CAPS), highlight\n- Slide 5 (stat): heading, stat, statLabel, year, body\n- Last slide: hashtags string\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Timeline\",\"slides\":[{...}]}";
 }
 
-// ─── SETTINGS PANEL ───
+// --- SETTINGS PANEL ---
 function Settings({ apiKeys, setApiKeys, show, setShow, apiStatus, onTest }) {
   return (
     <div style={{ marginBottom: 16, textAlign: "center" }}>
@@ -425,7 +390,7 @@ function Settings({ apiKeys, setApiKeys, show, setShow, apiStatus, onTest }) {
                   </span>}
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <input type="password" value={apiKeys[item.key]} onChange={function(e) { setApiKeys(function(p) { var n = {}; for (var k in p) n[k] = p[k]; n[item.key] = e.target.value; return n; }); }}
+                  <input type="password" value={apiKeys[item.key]} onChange={function(e) { setApiKeys(function(prev) { var n = {}; for (var k in prev) n[k] = prev[k]; n[item.key] = e.target.value; return n; }); }}
                     placeholder={item.hint} style={{ flex: 1, padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 11, ...CP }} />
                   <button onClick={function() { onTest(item.key); }} disabled={!apiKeys[item.key]}
                     style={{ padding: "6px 12px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: apiKeys[item.key] ? "pointer" : "default", ...CP, fontSize: 9, color: "var(--color-text-secondary)", opacity: apiKeys[item.key] ? 1 : 0.4 }}>Test</button>
@@ -439,7 +404,7 @@ function Settings({ apiKeys, setApiKeys, show, setShow, apiStatus, onTest }) {
   );
 }
 
-// ─── MAIN COMPONENT ───
+// --- MAIN COMPONENT ---
 export default function LoathrMediaGenerator() {
   var _s = useState, _cb = useCallback, _ef = useEffect, _ref = useRef;
   var cs = _s(null), category = cs[0], setCategory = cs[1];
@@ -469,7 +434,6 @@ export default function LoathrMediaGenerator() {
   var pal = category ? PALETTES[category] : null;
   var cur = options ? options[selectedOption] : null;
   var total = cur && cur.slides ? cur.slides.length : 0;
-  var optType = OPTION_TYPES[selectedOption] ? OPTION_TYPES[selectedOption].id : "deep";
 
   var getVisibleTopics = _cb(function() {
     if (!category) return [];
@@ -535,9 +499,7 @@ export default function LoathrMediaGenerator() {
     setIsGenerating(true); setError(null); setOptions(null); setImages({});
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
     var catInfo = CATEGORIES.find(function(c) { return c.id === category; });
-
     try {
-      // Generate all 3 options with differentiated prompts
       var results = [];
       var types = ["deep", "hot", "timeline"];
       for (var t = 0; t < 3; t++) {
@@ -545,7 +507,7 @@ export default function LoathrMediaGenerator() {
         var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
         var d = await r.json();
-        if (d.error) throw new Error(d.error);
+        if (d.error) throw new Error(d.error.message || d.error);
         var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
         var parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
         if (parsed && parsed.slides) results.push(parsed);
@@ -553,8 +515,6 @@ export default function LoathrMediaGenerator() {
       }
       if (results.length === 0) throw new Error("No valid options generated");
       setOptions(results);
-
-      // Attempt image search
       var imgKey = apiKeys.unsplash || apiKeys.pexels;
       if (imgKey) {
         setImgStatus("Searching for images...");
@@ -576,12 +536,12 @@ export default function LoathrMediaGenerator() {
 
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px" }}>
-      <style>{"@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Regular.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Italic.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Italic.ttf') format('truetype');font-weight:400;font-style:italic;font-display:swap}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}"}</style>
+      <style>{"@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}"}</style>
 
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         <div style={{ ...CP, fontSize: 14, letterSpacing: "0.4em", color: "var(--color-text-primary)", fontWeight: 700 }}>L O A T H R</div>
         <div style={{ width: 40, height: 1, background: "var(--color-border-tertiary)", margin: "8px auto" }} />
-        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", color: "var(--color-text-tertiary)", textTransform: "uppercase" }}>Media Generator V3</div>
+        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", color: "var(--color-text-tertiary)", textTransform: "uppercase" }}>Media Generator</div>
       </div>
 
       <Settings apiKeys={apiKeys} setApiKeys={setApiKeys} show={showSettings} setShow={setShowSettings} apiStatus={apiStatus} onTest={handleTest} />
@@ -655,7 +615,7 @@ export default function LoathrMediaGenerator() {
           {options.map(function(opt, i) { var info = OPTION_TYPES[i]; var InfoIcon = info ? info.icon : BookOpen; return (
             <button key={i} onClick={function() { setSelectedOption(i); setCurrentSlide(0); }}
               style={{ flex: 1, padding: "12px 10px", cursor: "pointer", border: "1px solid " + (selectedOption === i ? pal.accent : "var(--color-border-tertiary)"), background: selectedOption === i ? "var(--color-background-secondary)" : "transparent", textAlign: "left" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--color-text-primary)", ...CP }}><InfoIcon size={12} />{info ? info.label : (opt.angle || "Option " + (i+1))}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--color-text-primary)", ...CP }}><InfoIcon size={12} />{info ? info.label : (opt.angle || "Option " + (i + 1))}</div>
               <div style={{ fontSize: 10, color: "var(--color-text-tertiary)", marginTop: 2 }}>{info ? info.desc : ""}</div>
               <div style={{ ...CP, fontSize: 9, color: "var(--color-text-tertiary)", marginTop: 3 }}>{opt.slides ? opt.slides.length : 0} slides</div>
             </button>); })}
@@ -672,7 +632,7 @@ export default function LoathrMediaGenerator() {
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
           <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
-            <SlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} optionType={optType} />
+            <SlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} />
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 14 }}>
@@ -686,11 +646,11 @@ export default function LoathrMediaGenerator() {
         </div>
         <div style={{ marginTop: 18 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 8, textTransform: "uppercase" }}>All Slides</div>
-          <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 8, justifyContent: "center" }}>
+          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, justifyContent: "center" }}>
             {cur.slides.map(function(slide, i) { return (
-              <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? pal.accent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
-                <div style={{ width: 340, height: 425, transform: "scale(0.2)", transformOrigin: "top left", pointerEvents: "none" }}>
-                  <SlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} optionType={optType} />
+              <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ minWidth: 100, height: 125, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? pal.accent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
+                <div style={{ width: 340, height: 425, transform: "scale(0.295)", transformOrigin: "top left", pointerEvents: "none" }}>
+                  <SlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} />
                 </div>
               </div>); })}
           </div>
