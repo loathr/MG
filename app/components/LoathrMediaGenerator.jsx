@@ -273,11 +273,11 @@ function getFramePosition(seed, slideIndex) {
   return positions[pick];
 }
 
-// 3 bubble styles: speech (sharp tail), thought (dot trail), caption (rotated box)
+// 7 bubble styles — enough for no repeats in any carousel
 function BubbleBox({ children, style, accent, accent2, seed }) {
-  var variant = seed % 3;
+  var variant = seed % 7;
   var tailSide = seed % 2 === 0 ? "left" : "right";
-  var rotation = (seed % 5 - 2) * 0.5; // -1 to 1 deg
+  var rotation = (seed % 5 - 2) * 0.5;
 
   if (variant === 0) {
     // Speech bubble — rounded with triangle tail
@@ -305,12 +305,55 @@ function BubbleBox({ children, style, accent, accent2, seed }) {
     );
   }
 
-  // Caption box — slight rotation with accent side bar
-  var barSide = tailSide === "left" ? "borderLeft" : "borderRight";
-  var barStyle = {};
-  barStyle[barSide] = "3px solid " + accent;
+  if (variant === 2) {
+    // Caption box — side bar
+    var barSide2 = tailSide === "left" ? "borderLeft" : "borderRight";
+    var barStyle2 = {};
+    barStyle2[barSide2] = "3px solid " + accent;
+    return (
+      <div style={Object.assign({}, { background: "rgba(0,0,0,0.88)", borderRadius: 4, padding: "10px 12px", transform: "rotate(" + rotation + "deg)" }, barStyle2, style || {})}>
+      {children}
+    </div>
+    );
+  }
+
+  if (variant === 3) {
+    // Exclamation bubble — thick accent border, no radius, bold frame
+    return (
+      <div style={Object.assign({}, { position: "relative", background: "rgba(0,0,0,0.85)", border: "2px solid " + accent, padding: "10px 12px", transform: "rotate(" + (rotation * -1) + "deg)" }, style || {})}>
+        <div style={{ position: "absolute", top: -4, left: tailSide === "left" ? 12 : "auto", right: tailSide === "right" ? 12 : "auto", width: 8, height: 8, background: accent2 || accent, transform: "rotate(45deg)" }} />
+        {children}
+      </div>
+    );
+  }
+
+  if (variant === 4) {
+    // Cloud bubble — double rounded border, softer feel
+    return (
+      <div style={Object.assign({}, { position: "relative", background: "rgba(0,0,0,0.82)", border: "1px solid " + accent2 + "66", borderRadius: 18, padding: "12px 14px", boxShadow: "0 0 0 3px " + accent + "15", transform: "rotate(" + rotation + "deg)" }, style || {})}>
+        {children}
+      </div>
+    );
+  }
+
+  if (variant === 5) {
+    // Arrow panel — accent arrow pointer on side
+    var arrowSide = tailSide === "left" ? "right" : "left";
+    return (
+      <div style={{ position: "relative" }}>
+        <div style={Object.assign({}, { background: "rgba(0,0,0,0.85)", borderTop: "2px solid " + accent, borderBottom: "2px solid " + accent2, padding: "10px 12px", transform: "rotate(" + rotation + "deg)" }, style || {})}>
+          {children}
+        </div>
+        <div style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", width: 0, height: 0, borderTop: "6px solid transparent", borderBottom: "6px solid transparent", ...(arrowSide === "left" ? { left: -8, borderRight: "8px solid " + accent } : { right: -8, borderLeft: "8px solid " + accent }) }} />
+      </div>
+    );
+  }
+
+  // Variant 6: Stamp frame — dashed border with accent corners
   return (
-    <div style={Object.assign({}, { background: "rgba(0,0,0,0.88)", borderRadius: 4, padding: "10px 12px", transform: "rotate(" + rotation + "deg)" }, barStyle, style || {})}>
+    <div style={Object.assign({}, { position: "relative", background: "rgba(0,0,0,0.85)", border: "1.5px dashed " + accent + "88", borderRadius: 6, padding: "10px 12px", transform: "rotate(" + rotation + "deg)" }, style || {})}>
+      <div style={{ position: "absolute", top: -2, left: -2, width: 5, height: 5, background: accent }} />
+      <div style={{ position: "absolute", bottom: -2, right: -2, width: 5, height: 5, background: accent2 || accent }} />
       {children}
     </div>
   );
@@ -318,7 +361,7 @@ function BubbleBox({ children, style, accent, accent2, seed }) {
 
 // Fashion sticky note styles
 function StickyNote({ children, style, accent, accent2, seed }) {
-  var variant = seed % 5;
+  var variant = seed % 7;
   var rotation = (seed % 7 - 3) * 0.6; // -1.8 to 1.8 deg
   var isLight = seed % 3 === 0;
   var bg = isLight ? "#f5f0e8" : "#1a1a1a";
@@ -371,13 +414,38 @@ function StickyNote({ children, style, accent, accent2, seed }) {
     );
   }
 
-  // Fabric swatch tag with hole punch
-  return (
-    <div style={Object.assign({}, { position: "relative", display: "flex", transform: "rotate(" + rotation + "deg)", boxShadow: "2px 3px 6px rgba(0,0,0,0.3)" }, style || {})}>
-      <div style={{ width: 20, background: accent + "33", display: "flex", alignItems: "center", justifyContent: "center", borderRight: "1px solid " + accent }}>
-        <div style={{ width: 7, height: 7, borderRadius: "50%", border: "1px solid " + accent, background: "transparent" }} />
+  if (variant === 4) {
+    // Fabric swatch tag with hole punch
+    return (
+      <div style={Object.assign({}, { position: "relative", display: "flex", transform: "rotate(" + rotation + "deg)", boxShadow: "2px 3px 6px rgba(0,0,0,0.3)" }, style || {})}>
+        <div style={{ width: 20, background: accent + "33", display: "flex", alignItems: "center", justifyContent: "center", borderRight: "1px solid " + accent }}>
+          <div style={{ width: 7, height: 7, borderRadius: "50%", border: "1px solid " + accent, background: "transparent" }} />
+        </div>
+        <div style={{ flex: 1, background: bg, padding: "10px 12px" }}>
+          <div style={{ color: textCol }}>{children}</div>
+        </div>
       </div>
-      <div style={{ flex: 1, background: bg, padding: "10px 12px" }}>
+    );
+  }
+
+  if (variant === 5) {
+    // Washi tape note — colored tape strips top and bottom
+    return (
+      <div style={Object.assign({}, { position: "relative", transform: "rotate(" + rotation + "deg)" }, style || {})}>
+        <div style={{ height: 6, background: accent + "44", borderRadius: 1 }} />
+        <div style={{ background: bg, padding: "10px 12px", boxShadow: "1px 2px 5px rgba(0,0,0,0.3)" }}>
+          <div style={{ color: textCol }}>{children}</div>
+        </div>
+        <div style={{ height: 6, background: accent2 + "44", borderRadius: 1 }} />
+      </div>
+    );
+  }
+
+  // Variant 6: Clip note — paper clip accent at top corner
+  return (
+    <div style={Object.assign({}, { position: "relative", transform: "rotate(" + rotation + "deg)" }, style || {})}>
+      <div style={{ position: "absolute", top: -6, width: 10, height: 18, border: "2px solid " + accent, borderRadius: "5px 5px 0 0", background: "transparent", zIndex: 2, ...(seed % 2 === 0 ? { right: 14 } : { left: 14 }) }} />
+      <div style={{ background: bg, padding: "10px 12px", boxShadow: "2px 3px 6px rgba(0,0,0,0.3)", border: "1px solid " + accent + "22" }}>
         <div style={{ color: textCol }}>{children}</div>
       </div>
     </div>
