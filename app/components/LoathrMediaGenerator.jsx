@@ -187,6 +187,7 @@ function AutoFit({ children, style, maxShrink }) {
 
 // Comic bubble categories
 var BUBBLE_CATS = { trivia: true, art: true, food: true };
+var STICKY_CATS = { fashion: true };
 
 // 3 bubble styles: speech (sharp tail), thought (dot trail), caption (rotated box)
 function BubbleBox({ children, style, accent, accent2, seed }) {
@@ -227,6 +228,74 @@ function BubbleBox({ children, style, accent, accent2, seed }) {
   return (
     <div style={Object.assign({}, { background: "rgba(0,0,0,0.88)", borderRadius: 4, padding: "10px 12px", transform: "rotate(" + rotation + "deg)" }, barStyle, style || {})}>
       {children}
+    </div>
+  );
+}
+
+// Fashion sticky note styles
+function StickyNote({ children, style, accent, accent2, seed }) {
+  var variant = seed % 5;
+  var rotation = (seed % 7 - 3) * 0.6; // -1.8 to 1.8 deg
+  var isLight = seed % 3 === 0;
+  var bg = isLight ? "#f5f0e8" : "#1a1a1a";
+  var textCol = isLight ? "#1a1a1a" : "#ffffffe6";
+
+  if (variant === 0) {
+    // Classic Post-it with folded corner
+    return (
+      <div style={Object.assign({}, { position: "relative", background: bg, padding: "12px 12px 12px 12px", transform: "rotate(" + rotation + "deg)", boxShadow: "3px 3px 8px rgba(0,0,0,0.4)" }, style || {})}>
+        <div style={{ position: "absolute", top: 0, right: 0, width: 0, height: 0, borderStyle: "solid", borderWidth: "0 16px 16px 0", borderColor: "transparent #0a0a0a transparent transparent" }} />
+        <div style={{ position: "absolute", top: 0, right: 0, width: 0, height: 0, borderStyle: "solid", borderWidth: "0 14px 14px 0", borderColor: "transparent " + accent + "33 transparent transparent" }} />
+        <div style={{ color: textCol }}>{children}</div>
+      </div>
+    );
+  }
+
+  if (variant === 1) {
+    // Taped note — tape strip across top
+    return (
+      <div style={Object.assign({}, { position: "relative", transform: "rotate(" + rotation + "deg)" }, style || {})}>
+        <div style={{ position: "relative", zIndex: 2, height: 8, background: accent + "55", margin: "0 20%", borderRadius: 1 }} />
+        <div style={{ background: bg, padding: "10px 12px", boxShadow: "2px 3px 6px rgba(0,0,0,0.3)" }}>
+          <div style={{ color: textCol }}>{children}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === 2) {
+    // Pinned card with pin dot
+    return (
+      <div style={Object.assign({}, { position: "relative", transform: "rotate(" + rotation + "deg)" }, style || {})}>
+        <div style={{ position: "absolute", top: -5, left: "50%", transform: "translateX(-50%)", width: 10, height: 10, borderRadius: "50%", background: accent2, boxShadow: "0 2px 4px rgba(0,0,0,0.5)", zIndex: 3 }} />
+        <div style={{ background: bg, padding: "14px 12px 10px", border: "1px solid " + accent + "22", boxShadow: "2px 4px 8px rgba(0,0,0,0.35)" }}>
+          <div style={{ color: textCol }}>{children}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === 3) {
+    // Torn edge note
+    return (
+      <div style={Object.assign({}, { position: "relative", transform: "rotate(" + rotation + "deg)" }, style || {})}>
+        <div style={{ background: bg, padding: "10px 12px 14px", boxShadow: "2px 3px 6px rgba(0,0,0,0.3)" }}>
+          <div style={{ color: textCol }}>{children}</div>
+        </div>
+        <div style={{ height: 6, background: "repeating-linear-gradient(90deg, " + bg + " 0px, " + bg + " 4px, transparent 4px, transparent 6px, " + bg + " 6px, " + bg + " 8px, transparent 8px, transparent 11px)", opacity: 0.9 }} />
+      </div>
+    );
+  }
+
+  // Fabric swatch tag with hole punch
+  return (
+    <div style={Object.assign({}, { position: "relative", display: "flex", transform: "rotate(" + rotation + "deg)", boxShadow: "2px 3px 6px rgba(0,0,0,0.3)" }, style || {})}>
+      <div style={{ width: 20, background: accent + "33", display: "flex", alignItems: "center", justifyContent: "center", borderRight: "1px solid " + accent }}>
+        <div style={{ width: 7, height: 7, borderRadius: "50%", border: "1px solid " + accent, background: "transparent" }} />
+      </div>
+      <div style={{ flex: 1, background: bg, padding: "10px 12px" }}>
+        <div style={{ color: textCol }}>{children}</div>
+      </div>
     </div>
   );
 }
@@ -274,15 +343,20 @@ function S2Arena({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
   var useBubble = BUBBLE_CATS[category];
+  var useSticky = STICKY_CATS[category];
+  var styled = useBubble || useSticky;
   var textContent = <div>
-    <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
-    <div style={{ ...HD, fontSize: 9.5, color: "#ffffffe6", lineHeight: 1.5, textAlign: "left" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-    {slide.specs && <div style={{ marginTop: 8, border: "1px solid " + p.accent + "44", padding: "4px 6px", background: "rgba(255,255,255,0.03)" }}><div style={{ ...WS, fontSize: 5.3, color: "#ffffffaa", textAlign: "left" }}>{slide.specs}</div></div>}
+    <div style={{ ...FN, fontSize: 13, color: useSticky ? "inherit" : "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
+    <div style={{ ...HD, fontSize: 9.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.5, textAlign: "left" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    {slide.specs && <div style={{ marginTop: 8, border: "1px solid " + p.accent + "44", padding: "4px 6px", background: "rgba(255,255,255,0.03)" }}><div style={{ ...WS, fontSize: 5.3, color: useSticky ? "inherit" : "#ffffffaa", textAlign: "left" }}>{slide.specs}</div></div>}
   </div>;
+  var wrappedText = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</BubbleBox>
+    : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</StickyNote>
+    : textContent;
   return (
     <ImgBg url={url} pal={p} category={category} darken="rgba(0,0,0,0.25)">
-      <div style={{ position: "absolute", bottom: useBubble ? M_BOT + 10 : 0, left: M_SIDE, right: M_SIDE, zIndex: 3, ...(useBubble ? {} : { left: 0, right: 0, background: "rgba(0,0,0,0.25)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px" }) }}>
-        {useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</BubbleBox> : textContent}
+      <div style={{ position: "absolute", bottom: styled ? M_BOT + 10 : 0, left: M_SIDE, right: M_SIDE, zIndex: 3, ...(styled ? {} : { left: 0, right: 0, background: "rgba(0,0,0,0.25)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px" }) }}>
+        {wrappedText}
       </div>
       <div style={{ position: "absolute", bottom: M_PAGE, right: M_SIDE, zIndex: 4 }}>
         <div style={{ ...CP, fontSize: 7, color: "#ffffff66" }}>{String(index).padStart(2, "0")}</div>
@@ -297,18 +371,23 @@ function S3RayGun({ slide, index, category, images }) {
   var url = getImg(images, index);
   var flipped = index % 2 === 0;
   var useBubble = BUBBLE_CATS[category];
+  var useSticky = STICKY_CATS[category];
+  var styled = useBubble || useSticky;
 
   if (flipped) {
     // Text left, image right (carousel position 5)
     var flippedText = <div>
-      <div style={{ ...FN, fontSize: 12, color: "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }}>{slide.heading || "Part " + index}</div>
-      <div style={{ ...HD, fontSize: 8.5, color: "#ffffffe6", lineHeight: 1.45, textAlign: "right", overflow: "hidden" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
+      <div style={{ ...FN, fontSize: 12, color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }}>{slide.heading || "Part " + index}</div>
+      <div style={{ ...HD, fontSize: 8.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right", overflow: "hidden" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
       {slide.highlight && <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", color: p.accent2 + "cc", marginTop: 6, textAlign: "right", borderRight: "3px solid " + p.accent2, paddingRight: 6 }}>{slide.highlight}</div>}
     </div>;
+    var flippedWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</BubbleBox>
+      : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</StickyNote>
+      : flippedText;
     return (
       <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
-        <div style={{ width: "40%", background: "#000000", borderRight: useBubble ? "none" : "2px solid " + p.accent2, padding: (M_TOP + 6) + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          {useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</BubbleBox> : flippedText}
+        <div style={{ width: "40%", background: "#000000", borderRight: styled ? "none" : "2px solid " + p.accent2, padding: (M_TOP + 6) + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          {flippedWrapped}
         </div>
         <div style={{ flex: 1, position: "relative" }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
@@ -320,18 +399,21 @@ function S3RayGun({ slide, index, category, images }) {
 
   // Image top, text bottom (carousel position 2)
   var normalText = <div>
-    <div style={{ ...FN, fontSize: 12, color: "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
-    <div style={{ ...HD, fontSize: 8.5, color: "#ffffffe6", lineHeight: 1.45, textAlign: "left", overflow: "hidden" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    <div style={{ ...FN, fontSize: 12, color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
+    <div style={{ ...HD, fontSize: 8.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "left", overflow: "hidden" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
     {slide.highlight && <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", color: p.accent + "cc", marginTop: 6, borderLeft: "3px solid " + p.accent, paddingLeft: 6 }}>{slide.highlight}</div>}
   </div>;
+  var normalWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</BubbleBox>
+    : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</StickyNote>
+    : normalText;
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: useBubble ? "58%" : "62%", borderBottom: useBubble ? "none" : "2px solid " + p.accent }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: styled ? "58%" : "62%", borderBottom: styled ? "none" : "2px solid " + p.accent }}>
         {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
         {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
       </div>
-      <div style={{ position: "absolute", bottom: useBubble ? M_BOT : 0, left: M_SIDE, right: M_SIDE, ...(useBubble ? {} : { left: 0, right: 0, height: "38%", background: "#000000", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px" }), overflow: "hidden", zIndex: 3 }}>
-        {useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</BubbleBox> : normalText}
+      <div style={{ position: "absolute", bottom: styled ? M_BOT : 0, left: M_SIDE, right: M_SIDE, ...(styled ? {} : { left: 0, right: 0, height: "38%", background: "#000000", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px" }), overflow: "hidden", zIndex: 3 }}>
+        {normalWrapped}
       </div>
     </div>
   );
@@ -409,11 +491,16 @@ function S5Face({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
   var useBubble = BUBBLE_CATS[category];
+  var useSticky = STICKY_CATS[category];
+  var styled = useBubble || useSticky;
   var s5Text = <div style={{ overflow: "hidden" }}>
-    <div style={{ ...HD, fontSize: 8.5, color: "#ffffffe6", lineHeight: 1.45, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-    {!useBubble && <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />}
+    <div style={{ ...HD, fontSize: 8.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    {!styled && <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />}
     {slide.highlight && <div style={{ ...WS, fontSize: 5.3, color: p.accent2 + "cc", fontStyle: "italic", textAlign: "right", marginTop: 6, borderRight: "3px solid " + p.accent2, paddingRight: 6 }}>{slide.highlight}</div>}
   </div>;
+  var s5Wrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</BubbleBox>
+    : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</StickyNote>
+    : s5Text;
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: M_TOP + 5, background: p.accent, display: "flex", alignItems: "center", padding: "0 " + M_SIDE + "px", zIndex: 4 }}>
@@ -422,12 +509,12 @@ function S5Face({ slide, index, category, images }) {
         {slide.year && <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700 }}>{slide.year}</span>}
       </div>
       <div style={{ position: "absolute", top: M_TOP + 5, left: 0, right: 0, bottom: 0, display: "flex" }}>
-        <div style={{ width: "62%", position: "relative", borderRight: useBubble ? "none" : "2px solid " + p.accent }}>
+        <div style={{ width: "62%", position: "relative", borderRight: styled ? "none" : "2px solid " + p.accent }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: (M_TOP + 4) + "px " + (M_SIDE - 2) + "px " + M_BOT + "px", background: "#000000", overflow: "hidden" }}>
-          {useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</BubbleBox> : s5Text}
+          {s5Wrapped}
         </div>
       </div>
       <div style={{ position: "absolute", bottom: M_PAGE, right: M_SIDE, zIndex: 5 }}>
