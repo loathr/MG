@@ -2,15 +2,15 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive } from "lucide-react";
 
-var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=DM+Serif+Display&display=swap";
+var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap";
 var PAD = 20;
 var PAD_TOP = 25;
 var PAD_BOT = 38;
 var INNER_TOP = 23; // 1 inch from header border at preview scale
 var INNER_BOT = 23; // 1 inch from footer border at preview scale
-var HD = { fontFamily: "'Maheni','DM Serif Display',Georgia,serif", fontStyle: "normal" };
-var FN = { fontFamily: "'Foun','DM Serif Display',Georgia,serif" };
-var WS = { fontFamily: "'Wenssep','Georgia',serif" };
+var HD = { fontFamily: "'Maheni',Georgia,serif", fontStyle: "normal" };
+var FN = { fontFamily: "'Foun',Georgia,serif" };
+var WS = { fontFamily: "'Wenssep',Georgia,serif" };
 var CP = { fontFamily: "'Courier Prime',monospace" };
 
 var PALETTES = {
