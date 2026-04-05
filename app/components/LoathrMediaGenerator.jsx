@@ -131,24 +131,27 @@ function S1Cover({ slide, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, 0);
   return (
-    <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.88))">
-      <div style={{ position: "absolute", top: PAD_TOP, left: PAD, right: PAD, textAlign: "center", zIndex: 2 }}>
-        <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "21", fontWeight: 700 }}>LOATHR</div>
-      </div>
-      <div style={{ position: "absolute", bottom: PAD_BOT, left: PAD, right: PAD, zIndex: 3 }}>
-        <div style={{ textAlign: "left" }}>
-          <div style={{ ...HD, fontSize: slide.title && slide.title.length > 35 ? 24 : 30, color: p.text, lineHeight: 1.05, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }}>
-            {formatTitle(slide.title, p.accent)}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
-            <div style={{ width: 8, height: 8, background: p.accent }} />
-            {p.accent2 && <div style={{ width: 5, height: 5, background: p.accent2 }} />}
-            <div style={{ ...CP, fontSize: 7, color: p.text + "55", letterSpacing: "0.08em" }}>{CAT_LABELS[category]}</div>
-          </div>
-          {slide.subtitle && <div style={{ ...CP, fontSize: 8, color: p.text + "44", marginTop: 6, fontStyle: "italic" }}>{slide.subtitle}</div>}
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", border: "1.5px solid #000000" }}>
+      <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
+        <div style={{ position: "absolute", top: PAD_TOP, left: PAD, right: PAD, textAlign: "center", zIndex: 2 }}>
+          <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "38", fontWeight: 700 }}>LOATHR</div>
         </div>
-      </div>
-    </ImgBg>
+        <div style={{ position: "absolute", top: "50%", left: PAD, right: PAD, transform: "translateY(-50%)", zIndex: 3 }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ ...HD, fontSize: slide.title && slide.title.length > 35 ? 24 : 30, color: p.text, lineHeight: 1.1, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }}>
+              {formatTitle(slide.title, p.accent)}
+            </div>
+            <div style={{ height: 3, background: "linear-gradient(to right, transparent, " + p.accent + ", transparent)", margin: "10px auto", width: "60%" }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6 }}>
+              <div style={{ width: 8, height: 8, background: p.accent }} />
+              {p.accent2 && <div style={{ width: 5, height: 5, background: p.accent2 }} />}
+              <div style={{ ...CP, fontSize: 7, color: p.text + "55", letterSpacing: "0.08em" }}>{CAT_LABELS[category]}</div>
+            </div>
+            {slide.subtitle && <div style={{ ...CP, fontSize: 8, color: p.text + "44", marginTop: 6, fontStyle: "italic" }}>{slide.subtitle}</div>}
+          </div>
+        </div>
+      </ImgBg>
+    </div>
   );
 }
 
