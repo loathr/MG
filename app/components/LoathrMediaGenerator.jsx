@@ -175,7 +175,7 @@ function S2Arena({ slide, index, category, images }) {
   var url = getImg(images, index);
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "70%", borderRight: "2px solid " + p.accent, borderBottom: "2px solid " + p.accent, borderLeft: "2px solid " + p.accent }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "70%", border: "2px solid " + p.accent }}>
         {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
         {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
       </div>
@@ -203,12 +203,12 @@ function S3RayGun({ slide, index, category, images }) {
     // Text left, image right (carousel position 5)
     return (
       <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
-        <div style={{ width: "38%", background: "#000000", borderRight: "2px solid " + p.accent, padding: "10px " + PAD + "px " + INNER_BOT + "px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div style={{ width: "38%", background: "#000000", borderRight: "2px solid " + p.accent2, padding: "10px " + PAD + "px " + INNER_BOT + "px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 4, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
           <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
           {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent2 + "cc", marginTop: 4 }}>{slide.highlight}</div>}
         </div>
-        <div style={{ flex: 1, position: "relative" }}>
+        <div style={{ flex: 1, position: "relative", border: "2px solid " + p.accent }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
         </div>
@@ -219,7 +219,7 @@ function S3RayGun({ slide, index, category, images }) {
   // Image top, text bottom (carousel position 2)
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "65%", borderBottom: "2px solid " + p.accent }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "65%", border: "2px solid " + p.accent2 }}>
         {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
         {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
       </div>
@@ -273,7 +273,7 @@ function S5Face({ slide, index, category, images }) {
         {slide.year && <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700 }}>{slide.year}</span>}
       </div>
       <div style={{ position: "absolute", top: PAD_TOP, left: 0, right: 0, bottom: 0, display: "flex" }}>
-        <div style={{ width: "62%", position: "relative", border: "2px solid " + p.accent }}>
+        <div style={{ width: "62%", position: "relative", border: "2px solid " + p.accent2 }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
         </div>
@@ -318,7 +318,7 @@ function S7Blitz({ category, hashtags, images }) {
     <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.75)">
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 3 }}>
         <div style={{ ...CP, fontSize: 7, letterSpacing: "0.25em", color: p.accent + "99" }}>{CLOSER_TAGS[category]}</div>
-        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.35em", color: p.accent2 + "cc", marginTop: 10, fontWeight: 700 }}>LOATHR</div>
+        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.35em", color: "#ffffffbb", marginTop: 10, fontWeight: 700 }}>LOATHR</div>
         <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 8 }}>
           <div style={{ width: 6, height: 6, background: p.accent }} />
           <div style={{ width: 6, height: 6, background: p.accent2 }} />
