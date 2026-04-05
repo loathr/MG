@@ -14,8 +14,8 @@ var WS = { fontFamily: "'Wenssep','Georgia',serif" };
 var CP = { fontFamily: "'Courier Prime',monospace" };
 
 var PALETTES = {
-  film:   { bg: "#1a1a2e", accent: "#c8a050", text: "#f5f0e4" },
-  photo:  { bg: "#3d3d3a", accent: "#d85a30", text: "#f7f5f0" },
+  film:   { bg: "#1a1a2e", accent: "#c8a050", accent2: "#e8d5a0", text: "#f5f0e4" },
+  photo:  { bg: "#3d3d3a", accent: "#d85a30", accent2: "#f0a878", text: "#f7f5f0" },
   sports: { bg: "#111111", accent: "#e63946", accent2: "#f2e307", text: "#ffffff" },
   trivia: { bg: "#1a3a35", accent: "#7ECFC0", accent2: "#B8A4D0", text: "#ffffff" },
   art:    { bg: "#1a0a3e", accent: "#e83e8c", accent2: "#4dc9f6", text: "#f8f0ff" },
@@ -110,12 +110,16 @@ function ImgBg({ url, pal, children, darken }) {
 }
 
 // Highlight KEY TERMS IN CAPS with accent color
-function styleBody(text, accentColor) {
+function styleBody(text, accentColor, accent2Color) {
   if (!text) return "";
+  var colors = [accentColor, accent2Color || accentColor];
+  var hitCount = 0;
   var parts = text.split(/(\b[A-Z][A-Z\s]{2,}[A-Z]\b)/g);
   return parts.map(function(part, i) {
     if (/^[A-Z\s]+$/.test(part) && part.trim().length > 2) {
-      return <span key={i} style={{ color: accentColor, fontWeight: 700 }}>{part}</span>;
+      var c = colors[hitCount % colors.length];
+      hitCount++;
+      return <span key={i} style={{ color: c, fontWeight: 700 }}>{part}</span>;
     }
     return part;
   });
@@ -178,7 +182,7 @@ function S2Arena({ slide, index, category, images }) {
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "30%", background: "#000000", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
           <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 5, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
-          <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
+          <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
           {slide.specs && <div style={{ ...WS, fontSize: 7, color: "#ffffffaa", marginTop: 4, textAlign: "justify" }}>{slide.specs}</div>}
         </div>
       </div>
@@ -201,8 +205,8 @@ function S3RayGun({ slide, index, category, images }) {
       <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
         <div style={{ width: "38%", background: "#000000", borderRight: "2px solid " + p.accent, padding: "10px " + PAD + "px " + INNER_BOT + "px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 4, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
-          <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
-          {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent + "cc", marginTop: 4 }}>{slide.highlight}</div>}
+          <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
+          {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent2 + "cc", marginTop: 4 }}>{slide.highlight}</div>}
         </div>
         <div style={{ flex: 1, position: "relative" }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
@@ -221,7 +225,7 @@ function S3RayGun({ slide, index, category, images }) {
       </div>
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "35%", background: "#000000", padding: "10px " + PAD + "px " + INNER_BOT + "px" }}>
         <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 4, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
-        <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
+        <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
         {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent + "cc", marginTop: 4 }}>{slide.highlight}</div>}
       </div>
     </div>
@@ -248,7 +252,7 @@ function S4Emigre({ slide, index, category, images }) {
         <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.stat2Label || "Secondary"}</div>
       </div>}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
-        <div style={{ ...WS, fontSize: 9, color: "#ffffffcc", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
+        <div style={{ ...WS, fontSize: 9, color: "#ffffffcc", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
       </div>
       <div style={{ position: "absolute", bottom: 8, left: PAD, zIndex: 4 }}>
         <div style={{ ...CP, fontSize: 6, color: "#ffffff33" }}>{String(index).padStart(2, "0")}</div>
@@ -275,9 +279,9 @@ function S5Face({ slide, index, category, images }) {
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: 12, background: "#000000", borderTop: "2px solid " + p.accent, borderRight: "2px solid " + p.accent, borderBottom: "2px solid " + p.accent }}>
           <div style={{ textAlign: "left" }}>
-            <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
+            <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
             <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "8px 0" }} />
-            {slide.highlight && <div style={{ ...WS, fontSize: 8, color: p.accent + "cc", fontStyle: "italic" }}>{slide.highlight}</div>}
+            {slide.highlight && <div style={{ ...WS, fontSize: 8, color: p.accent2 + "cc", fontStyle: "italic" }}>{slide.highlight}</div>}
           </div>
         </div>
       </div>
@@ -314,7 +318,11 @@ function S7Blitz({ category, hashtags, images }) {
     <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.75)">
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 3 }}>
         <div style={{ ...CP, fontSize: 7, letterSpacing: "0.25em", color: p.accent + "99" }}>{CLOSER_TAGS[category]}</div>
-        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.35em", color: "#ffffffbb", marginTop: 10, fontWeight: 700 }}>LOATHR</div>
+        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.35em", color: p.accent2 + "cc", marginTop: 10, fontWeight: 700 }}>LOATHR</div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 8 }}>
+          <div style={{ width: 6, height: 6, background: p.accent }} />
+          <div style={{ width: 6, height: 6, background: p.accent2 }} />
+        </div>
       </div>
     </ImgBg>
   );
