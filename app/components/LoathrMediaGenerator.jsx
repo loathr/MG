@@ -170,21 +170,19 @@ function S2Arena({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
   return (
-    <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
-      <div style={{ width: 28, background: "#000000", display: "flex", alignItems: "center", justifyContent: "center", borderRight: "2px solid " + p.accent, flexShrink: 0 }}>
-        <div style={{ ...FN, fontSize: 11, color: p.accent, letterSpacing: "0.1em", writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap" }}>{slide.heading || "Part " + index}</div>
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "70%", borderBottom: "2px solid " + p.accent }}>
+        {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+        {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
       </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <div style={{ flex: 7, position: "relative", borderBottom: "2px solid " + p.accent }}>
-          {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
-          {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
-        </div>
-        <div style={{ flex: 3, background: "#000000", padding: "10px " + PAD + "px " + INNER_BOT + "px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "30%", background: "#000000", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
+        <div style={{ textAlign: "left" }}>
+          <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 5, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
           <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
           {slide.specs && <div style={{ ...WS, fontSize: 7, color: "#ffffffaa", marginTop: 4, textAlign: "justify" }}>{slide.specs}</div>}
         </div>
       </div>
-      <div style={{ position: "absolute", bottom: 8, left: 32, zIndex: 4 }}>
+      <div style={{ position: "absolute", bottom: 8, left: PAD, zIndex: 4 }}>
         <div style={{ ...CP, fontSize: 6, color: "#ffffff33" }}>{String(index).padStart(2, "0")}</div>
       </div>
     </div>
@@ -196,21 +194,21 @@ function S3RayGun({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, width: "80%", height: "72%" }}>
-        {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
-        {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
-        <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 3, background: p.accent }} />
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 3, background: p.accent }} />
+    <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
+      <div style={{ width: 28, background: "#000000", display: "flex", alignItems: "center", justifyContent: "center", borderRight: "2px solid " + p.accent, flexShrink: 0 }}>
+        <div style={{ ...FN, fontSize: 11, color: p.accent, letterSpacing: "0.1em", writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap" }}>{slide.heading || "Part " + index}</div>
       </div>
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.9)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
-        <div style={{ textAlign: "left" }}>
-          <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 4, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: 7, position: "relative", borderBottom: "2px solid " + p.accent }}>
+          {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+          {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
+        </div>
+        <div style={{ flex: 3, background: "#000000", padding: "10px " + PAD + "px " + INNER_BOT + "px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
           {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent + "cc", marginTop: 4 }}>{slide.highlight}</div>}
         </div>
       </div>
-      <div style={{ position: "absolute", bottom: 8, left: PAD, zIndex: 4 }}>
+      <div style={{ position: "absolute", bottom: 8, left: 32, zIndex: 4 }}>
         <div style={{ ...CP, fontSize: 6, color: "#ffffff33" }}>{String(index).padStart(2, "0")}</div>
       </div>
     </div>
@@ -251,22 +249,25 @@ function S5Face({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
   return (
-    <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
-      <div style={{ width: 28, background: p.accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        <div style={{ ...FN, fontSize: 9, color: "#000000", fontWeight: 700, letterSpacing: "0.08em", writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap" }}>{slide.heading || "Section"}{slide.year ? " / " + slide.year : ""}</div>
-      </div>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <div style={{ flex: 6, position: "relative", borderBottom: "2px solid " + p.accent, borderRight: "2px solid " + p.accent }}>
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex" }}>
+        <div style={{ width: "62%", position: "relative", borderRight: "2px solid " + p.accent }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
         </div>
-        <div style={{ flex: 4, background: "#000000", padding: "10px " + PAD + "px " + INNER_BOT + "px", display: "flex", flexDirection: "column", justifyContent: "center", borderRight: "2px solid " + p.accent }}>
-          <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
-          <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />
-          {slide.highlight && <div style={{ ...WS, fontSize: 8, color: p.accent + "cc", fontStyle: "italic" }}>{slide.highlight}</div>}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#000000" }}>
+          <div style={{ padding: "8px " + PAD + "px", borderBottom: "2px solid " + p.accent }}>
+            <div style={{ ...FN, fontSize: 11, color: "#ffffff", letterSpacing: "0.03em" }}>{slide.heading || "Section"}</div>
+            {slide.year && <div style={{ ...CP, fontSize: 7, color: p.accent + "aa" }}>{slide.year}</div>}
+          </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "8px " + PAD + "px" }}>
+            <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
+            <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />
+            {slide.highlight && <div style={{ ...WS, fontSize: 8, color: p.accent + "cc", fontStyle: "italic" }}>{slide.highlight}</div>}
+          </div>
         </div>
       </div>
-      <div style={{ position: "absolute", bottom: 8, left: 32, zIndex: 5 }}>
+      <div style={{ position: "absolute", bottom: 8, left: PAD, zIndex: 5 }}>
         <div style={{ ...CP, fontSize: 6, color: "#ffffff33" }}>{String(index).padStart(2, "0")}</div>
       </div>
     </div>
