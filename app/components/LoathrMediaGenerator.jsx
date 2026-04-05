@@ -951,6 +951,100 @@ var testApiConnection = async function(service, key) {
   }
 };
 
+// --- VINTAGE/PUBLIC DOMAIN IMAGE APIs (all free, no keys) ---
+
+var searchMetMuseum = async function(query) {
+  try {
+    var r = await fetch("https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=" + encodeURIComponent(query));
+    if (!r.ok) return [];
+    var d = await r.json();
+    var ids = (d.objectIDs || []).slice(0, 6);
+    var results = [];
+    for (var i = 0; i < ids.length; i++) {
+      try {
+        var obj = await fetch("https://collectionapi.metmuseum.org/public/collection/v1/objects/" + ids[i]);
+        var item = await obj.json();
+        if (item.primaryImage) results.push({ url: item.primaryImage, thumb: item.primaryImageSmall || item.primaryImage, alt: item.title || query, credit: item.artistDisplayName || "Met Museum", source: "Met Museum" });
+      } catch (e) { /* skip */ }
+      if (results.length >= 4) break;
+    }
+    return results;
+  } catch (e) { return []; }
+};
+
+var searchArtChicago = async function(query) {
+  try {
+    var r = await fetch("https://api.artic.edu/api/v1/artworks/search?q=" + encodeURIComponent(query) + "&limit=6&fields=id,title,image_id,artist_title");
+    if (!r.ok) return [];
+    var d = await r.json();
+    return (d.data || []).filter(function(item) { return item.image_id; }).slice(0, 4).map(function(item) {
+      return { url: "https://www.artic.edu/iiif/2/" + item.image_id + "/full/843,/0/default.jpg", thumb: "https://www.artic.edu/iiif/2/" + item.image_id + "/full/200,/0/default.jpg", alt: item.title || query, credit: item.artist_title || "Art Institute Chicago", source: "AIC" };
+    });
+  } catch (e) { return []; }
+};
+
+var searchLibCongress = async function(query) {
+  try {
+    var r = await fetch("https://www.loc.gov/search/?q=" + encodeURIComponent(query) + "&fo=json&fa=online-format:image&c=6");
+    if (!r.ok) return [];
+    var d = await r.json();
+    return (d.results || []).filter(function(item) { return item.image_url && item.image_url.length > 0; }).slice(0, 4).map(function(item) {
+      var img = item.image_url[item.image_url.length - 1];
+      return { url: img, thumb: item.image_url[0] || img, alt: item.title || query, credit: "Library of Congress", source: "LOC" };
+    });
+  } catch (e) { return []; }
+};
+
+var searchNASA = async function(query) {
+  try {
+    var r = await fetch("https://images-api.nasa.gov/search?q=" + encodeURIComponent(query) + "&media_type=image");
+    if (!r.ok) return [];
+    var d = await r.json();
+    return (d.collection && d.collection.items || []).slice(0, 4).map(function(item) {
+      var link = item.links && item.links[0] ? item.links[0].href : null;
+      var data = item.data && item.data[0] ? item.data[0] : {};
+      return { url: link, thumb: link, alt: data.title || query, credit: data.photographer || "NASA", source: "NASA" };
+    }).filter(function(img) { return img.url; });
+  } catch (e) { return []; }
+};
+
+var searchEuropeana = async function(query) {
+  try {
+    var r = await fetch("https://api.europeana.eu/record/v2/search.json?query=" + encodeURIComponent(query) + "&rows=6&media=true&thumbnail=true&wskey=apidemo");
+    if (!r.ok) return [];
+    var d = await r.json();
+    return (d.items || []).filter(function(item) { return item.edmIsShownBy && item.edmIsShownBy[0]; }).slice(0, 4).map(function(item) {
+      return { url: item.edmIsShownBy[0], thumb: item.edmPreview ? item.edmPreview[0] : item.edmIsShownBy[0], alt: item.title ? item.title[0] : query, credit: item.dataProvider ? item.dataProvider[0] : "Europeana", source: "Europeana" };
+    });
+  } catch (e) { return []; }
+};
+
+// Category-to-vintage-API mapping
+var VINTAGE_APIS = {
+  film: [searchLibCongress, searchMetMuseum],
+  photo: [searchMetMuseum, searchArtChicago],
+  sports: [searchLibCongress, searchEuropeana],
+  trivia: [searchLibCongress, searchNASA],
+  art: [searchMetMuseum, searchArtChicago],
+  fashion: [searchMetMuseum, searchEuropeana],
+  food: [searchEuropeana, searchLibCongress],
+  nightlife: [searchLibCongress, searchEuropeana],
+};
+
+// Search vintage APIs for a category
+var searchVintage = async function(category, query) {
+  var apis = VINTAGE_APIS[category] || [searchMetMuseum, searchLibCongress];
+  var results = [];
+  for (var i = 0; i < apis.length; i++) {
+    if (results.length >= 6) break;
+    try {
+      var imgs = await apis[i](query);
+      results = results.concat(imgs);
+    } catch (e) { /* continue */ }
+  }
+  return results.slice(0, 8);
+};
+
 // --- PNG EXPORT ---
 var loadScript = function(src) {
   return new Promise(function(resolve, reject) {
@@ -1196,15 +1290,33 @@ export default function LoathrMediaGenerator() {
           var searchFn = unsplashKey ? searchUnsplash : searchPexels;
           var key = unsplashKey || pexelsKey;
           var imgs = await searchFn(catInfo.label + " " + topic, key);
+          // Add vintage images to fill gaps
+          if (imgs.length < 10) {
+            setImgStatus("Adding vintage media...");
+            try {
+              var vintageImgs = await searchVintage(category, topic);
+              imgs = imgs.concat(vintageImgs);
+            } catch (ve) { /* continue with what we have */ }
+          }
           if (imgs.length > 0) {
             var imgMap = {};
             imgs.forEach(function(img, i) { imgMap[i] = img; });
             setImages(imgMap);
-            setImgStatus(imgs.length + " images loaded");
+            setImgStatus(imgs.length + " images loaded (stock + vintage)");
           } else { setImgStatus("No images found"); }
         } catch (e) { setImgStatus("Image search failed: " + e.message); }
       } else {
-        setImgStatus("No image API keys configured");
+        // No stock API keys — try vintage APIs only (free, no keys needed)
+        setImgStatus("Searching vintage archives...");
+        try {
+          var vintageOnly = await searchVintage(category, topic);
+          if (vintageOnly.length > 0) {
+            var vMap = {};
+            vintageOnly.forEach(function(img, i) { vMap[i] = img; });
+            setImages(vMap);
+            setImgStatus(vintageOnly.length + " vintage images loaded");
+          } else { setImgStatus("No images found"); }
+        } catch (ve) { setImgStatus("Vintage search failed"); }
       }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
@@ -1264,6 +1376,9 @@ export default function LoathrMediaGenerator() {
           var searchFn = unsplashKey ? searchUnsplash : searchPexels;
           var key = unsplashKey || pexelsKey;
           var imgs = await searchFn(catInfo.label + " " + topic, key);
+          if (imgs.length < 10) {
+            try { var vi = await searchVintage(category, topic); imgs = imgs.concat(vi); } catch (ve) {}
+          }
           if (imgs.length > 0) {
             var imgMap = {};
             imgs.forEach(function(img, i) { imgMap[i] = img; });
@@ -1271,7 +1386,14 @@ export default function LoathrMediaGenerator() {
             setImgStatus(imgs.length + " images loaded");
           } else { setImgStatus("No images found"); }
         } catch (e) { setImgStatus("Image search failed: " + e.message); }
-      } else { setImgStatus("No image API keys configured"); }
+      } else {
+        setImgStatus("Searching vintage archives...");
+        try {
+          var vi2 = await searchVintage(category, topic);
+          if (vi2.length > 0) { var vm = {}; vi2.forEach(function(img, i) { vm[i] = img; }); setImages(vm); setImgStatus(vi2.length + " vintage images loaded"); }
+          else { setImgStatus("No images found"); }
+        } catch (ve) { setImgStatus("Vintage search failed"); }
+      }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Recommendation failed"); }
     finally { setIsGenerating(false); }
   }, [topic, category, apiKeys]);
