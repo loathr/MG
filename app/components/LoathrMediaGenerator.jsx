@@ -293,13 +293,13 @@ function S4Emigre({ slide, index, category, images }) {
       <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, layout.s1)}>
         <div>
           <div style={{ ...WS, fontSize: displayStat2 ? 48 : 64, color: p.accent, lineHeight: 0.85, letterSpacing: -1 }}>{displayStat}</div>
-          <div style={{ ...WS, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.statLabel || "Key Metric"}</div>
+          <div style={{ ...HD, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.statLabel || "Key Metric"}</div>
         </div>
       </div>
       {displayStat2 && <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, layout.s2)}>
         <div>
           <div style={{ ...WS, fontSize: 38, color: p.accent2 || p.text, lineHeight: 0.85 }}>{displayStat2}</div>
-          <div style={{ ...WS, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.stat2Label || "Secondary"}</div>
+          <div style={{ ...HD, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.stat2Label || "Secondary"}</div>
         </div>
       </div>}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", zIndex: 3 }}>
