@@ -143,12 +143,11 @@ function S1Cover({ slide, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, 0);
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", border: "1.5px solid #000000" }}>
-      <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
+    <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
         <div style={{ position: "absolute", top: PAD_TOP, left: PAD, right: PAD, textAlign: "center", zIndex: 2 }}>
           <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "38", fontWeight: 700 }}>LOATHR</div>
         </div>
-        <div style={{ position: "absolute", top: "50%", left: PAD, right: PAD, transform: "translateY(-50%)", zIndex: 3 }}>
+        <div style={{ position: "absolute", bottom: PAD_BOT, left: PAD, right: PAD, zIndex: 3 }}>
           <div style={{ textAlign: "center" }}>
             <div style={{ ...HD, fontSize: slide.title && slide.title.length > 35 ? 24 : 30, color: p.text, lineHeight: 1.1, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }}>
               {formatCoverTitle(slide.title, p.accent, p.text)}
@@ -163,7 +162,6 @@ function S1Cover({ slide, category, images }) {
           </div>
         </div>
       </ImgBg>
-    </div>
   );
 }
 
@@ -218,7 +216,7 @@ function S4Emigre({ slide, index, category, images }) {
   return (
     <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.6)">
       <div style={{ position: "absolute", top: PAD_TOP, left: PAD, zIndex: 3 }}>
-        <div style={{ ...CP, fontSize: 6, color: p.accent + "55", letterSpacing: "0.15em" }}>{String(index).padStart(2, "0")} \u2014 BY THE NUMBERS</div>
+        <div style={{ ...CP, fontSize: 6, color: p.accent + "55", letterSpacing: "0.15em" }}>{String(index).padStart(2, "0")} \u2014 By the Numbers</div>
       </div>
       <div style={{ position: "absolute", top: "24%", left: PAD, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
@@ -665,7 +663,7 @@ export default function LoathrMediaGenerator() {
           </button>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
+          <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff", outline: "1.5px solid #000000", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
             <SlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} />
           </div>
         </div>
