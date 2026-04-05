@@ -19,7 +19,7 @@ var PALETTES = {
   sports: { bg: "#111111", accent: "#e63946", accent2: "#f2e307", text: "#ffffff" },
   trivia: { bg: "#1a3a35", accent: "#7ECFC0", accent2: "#B8A4D0", text: "#ffffff" },
   art:    { bg: "#1a0a3e", accent: "#e83e8c", accent2: "#4dc9f6", text: "#f8f0ff" },
-  fashion: { bg: "#1c1c1c", accent: "#d4af37", accent2: "#c9b8a0", text: "#f5f5f0" },
+  fashion: { bg: "#141420", accent: "#00d2d3", accent2: "#ff9ff3", text: "#f5f5f0" },
 };
 
 var CAT_LABELS = { film: "FILM & TV", photo: "PHOTOGRAPHY", sports: "SPORTS \u00d7 CULTURE", trivia: "DID YOU KNOW?", art: "ART & MUSIC", fashion: "FASHION" };
