@@ -6,7 +6,9 @@ var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght
 var PAD = 20;
 var PAD_TOP = 25;
 var PAD_BOT = 38;
-var HD = { fontFamily: "'Maheni','DM Serif Display',Georgia,serif", fontStyle: "normal", textTransform: "uppercase" };
+var INNER_TOP = 23; // 1 inch from header border at preview scale
+var INNER_BOT = 23; // 1 inch from footer border at preview scale
+var HD = { fontFamily: "'Maheni','DM Serif Display',Georgia,serif", fontStyle: "normal" };
 var FN = { fontFamily: "'Foun','DM Serif Display',Georgia,serif" };
 var WS = { fontFamily: "'Wenssep','Georgia',serif" };
 var CP = { fontFamily: "'Courier Prime',monospace" };
@@ -79,9 +81,9 @@ function Accent({ children, color }) {
 function formatTitle(title, color) {
   if (!title) return "";
   var words = title.split(" ");
-  if (words.length <= 3) return <Accent color={color}>{title.toUpperCase()}</Accent>;
+  if (words.length <= 3) return <Accent color={color}>{title}</Accent>;
   var cut = Math.max(2, words.length - Math.ceil(words.length / 3));
-  return <>{words.slice(0, cut).join(" ").toUpperCase()} <Accent color={color}>{words.slice(cut).join(" ").toUpperCase()}</Accent></>;
+  return <>{words.slice(0, cut).join(" ")} <Accent color={color}>{words.slice(cut).join(" ")}</Accent></>;
 }
 
 function ImgBg({ url, pal, children, darken }) {
@@ -105,6 +107,15 @@ function styleBody(text, accentColor) {
     }
     return part;
   });
+}
+
+// Margin awareness: ensures content stays 1" from header/footer borders
+function SafeContent({ position, children, style }) {
+  var base = { position: "absolute", left: PAD, right: PAD, zIndex: 3 };
+  if (position === "top") base.top = INNER_TOP;
+  else if (position === "bottom") base.bottom = INNER_BOT;
+  else if (position === "full") { base.top = INNER_TOP; base.bottom = INNER_BOT; }
+  return <div style={Object.assign({}, base, style || {})}>{children}</div>;
 }
 
 function getImg(images, idx) {
@@ -153,9 +164,9 @@ function S2Arena({ slide, index, category, images }) {
       </div>
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "30%", background: "#000000", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
-          <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.05em" }}>{(slide.heading || "PART " + index).toUpperCase()}</div>
-          <div style={{ ...WS, fontSize: 10, color: "#ffffffe6", lineHeight: 1.8 }}>{styleBody(slide.body, p.accent)}</div>
-          {slide.specs && <div style={{ ...WS, fontSize: 8, color: "#ffffffaa", marginTop: 4 }}>{slide.specs}</div>}
+          <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 5, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
+          <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.8 }}>{styleBody(slide.body, p.accent)}</div>
+          {slide.specs && <div style={{ ...WS, fontSize: 7, color: "#ffffffaa", marginTop: 4 }}>{slide.specs}</div>}
         </div>
       </div>
     </div>
@@ -176,9 +187,9 @@ function S3RayGun({ slide, index, category, images }) {
       </div>
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.9)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
-          <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{(slide.heading || "PART " + index).toUpperCase()}</div>
-          <div style={{ ...WS, fontSize: 10, color: "#ffffffe6", lineHeight: 1.9 }}>{styleBody(slide.body, p.accent)}</div>
-          {slide.highlight && <div style={{ ...WS, fontSize: 9, fontStyle: "italic", color: p.accent + "cc", marginTop: 4 }}>{slide.highlight}</div>}
+          <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 4, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
+          <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.9 }}>{styleBody(slide.body, p.accent)}</div>
+          {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent + "cc", marginTop: 4 }}>{slide.highlight}</div>}
         </div>
       </div>
     </div>
@@ -197,15 +208,15 @@ function S4Emigre({ slide, index, category, images }) {
       <div style={{ position: "absolute", top: "24%", left: PAD, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
           <div style={{ ...FN, fontSize: slide.stat2 ? 48 : 64, color: p.accent, lineHeight: 0.85, letterSpacing: -1 }}>{slide.stat}</div>
-          <div style={{ ...CP, fontSize: 6, color: p.text + "44", letterSpacing: "0.12em", marginTop: 3 }}>{(slide.statLabel || "KEY METRIC").toUpperCase()}</div>
+          <div style={{ ...CP, fontSize: 6, color: p.text + "44", letterSpacing: "0.12em", marginTop: 3 }}>{slide.statLabel || "Key Metric"}</div>
         </div>
       </div>
       {slide.stat2 && <div style={{ position: "absolute", top: "52%", right: PAD, textAlign: "right", zIndex: 3 }}>
         <div style={{ ...FN, fontSize: 38, color: p.accent2 || p.text, lineHeight: 0.85 }}>{slide.stat2}</div>
-        <div style={{ ...CP, fontSize: 6, color: p.text + "33", letterSpacing: "0.1em", marginTop: 3 }}>{(slide.stat2Label || "SECONDARY").toUpperCase()}</div>
+        <div style={{ ...CP, fontSize: 6, color: p.text + "33", letterSpacing: "0.1em", marginTop: 3 }}>{slide.stat2Label || "Secondary"}</div>
       </div>}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
-        <div style={{ ...WS, fontSize: 10, color: "#ffffffcc", lineHeight: 1.8, textAlign: "left" }}>{styleBody(slide.body, p.accent)}</div>
+        <div style={{ ...WS, fontSize: 9, color: "#ffffffcc", lineHeight: 1.8, textAlign: "left" }}>{styleBody(slide.body, p.accent)}</div>
       </div>
     </ImgBg>
   );
@@ -218,7 +229,7 @@ function S5Face({ slide, index, category, images }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: PAD_TOP, background: p.accent, display: "flex", alignItems: "center", padding: "0 " + PAD + "px", zIndex: 4 }}>
-        <span style={{ ...FN, fontSize: 8, color: "#000000", fontWeight: 700, letterSpacing: "0.1em" }}>{String(index).padStart(2, "0")} \u2014 {(slide.heading || "SECTION").toUpperCase()}</span>
+        <span style={{ ...FN, fontSize: 8, color: "#000000", fontWeight: 700, letterSpacing: "0.05em" }}>{String(index).padStart(2, "0")} \u2014 {slide.heading || "Section"}</span>
         <span style={{ flex: 1 }} />
         {slide.year && <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700 }}>{slide.year}</span>}
       </div>
@@ -229,9 +240,9 @@ function S5Face({ slide, index, category, images }) {
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: 12, background: "#000000" }}>
           <div style={{ textAlign: "left" }}>
-            <div style={{ ...WS, fontSize: 10, color: "#ffffffe6", lineHeight: 2.0 }}>{styleBody(slide.body, p.accent)}</div>
+            <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 2.0 }}>{styleBody(slide.body, p.accent)}</div>
             <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "8px 0" }} />
-            {slide.highlight && <div style={{ ...WS, fontSize: 9, color: p.accent + "cc", fontStyle: "italic" }}>{slide.highlight}</div>}
+            {slide.highlight && <div style={{ ...WS, fontSize: 8, color: p.accent + "cc", fontStyle: "italic" }}>{slide.highlight}</div>}
           </div>
         </div>
       </div>
@@ -248,9 +259,9 @@ function S6Purple({ slide, index, category, images }) {
     <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.9))">
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
-          <div style={{ ...WS, fontSize: 13, fontStyle: "italic", color: "#ffffffdd", lineHeight: 1.7 }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
+          <div style={{ ...WS, fontSize: 11, fontStyle: "italic", color: "#ffffffdd", lineHeight: 1.7 }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
           <div style={{ width: 12, height: 1, background: p.accent + "66", margin: "8px 0" }} />
-          {slide.source && <div style={{ ...CP, fontSize: 7, color: p.accent + "99", letterSpacing: "0.1em" }}>{slide.source.toUpperCase()}</div>}
+          {slide.source && <div style={{ ...CP, fontSize: 7, color: p.accent + "99", letterSpacing: "0.08em" }}>{slide.source}</div>}
         </div>
       </div>
     </ImgBg>
