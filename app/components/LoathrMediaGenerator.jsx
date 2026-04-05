@@ -188,6 +188,56 @@ function AutoFit({ children, style, maxShrink }) {
 // Comic bubble categories
 var BUBBLE_CATS = { trivia: true, art: true, food: true };
 var STICKY_CATS = { fashion: true };
+var FORMAL_CATS = { film: true, photo: true, sports: true, nightlife: true };
+
+// Formal frame styles for editorial categories
+function FormalFrame({ children, style, accent, accent2, seed }) {
+  var variant = seed % 3;
+  var bg = "rgba(0,0,0,0.8)";
+  var lineW = 1.5;
+
+  if (variant === 0) {
+    // L-bracket frame — corner brackets only
+    var sz = 10;
+    return (
+      <div style={Object.assign({}, { position: "relative", background: bg, padding: "10px 12px" }, style || {})}>
+        <div style={{ position: "absolute", top: -1, left: -1, width: sz, height: lineW, background: accent }} />
+        <div style={{ position: "absolute", top: -1, left: -1, width: lineW, height: sz, background: accent }} />
+        <div style={{ position: "absolute", top: -1, right: -1, width: sz, height: lineW, background: accent }} />
+        <div style={{ position: "absolute", top: -1, right: -1, width: lineW, height: sz, background: accent }} />
+        <div style={{ position: "absolute", bottom: -1, left: -1, width: sz, height: lineW, background: accent2 || accent }} />
+        <div style={{ position: "absolute", bottom: -1, left: -1, width: lineW, height: sz, background: accent2 || accent }} />
+        <div style={{ position: "absolute", bottom: -1, right: -1, width: sz, height: lineW, background: accent2 || accent }} />
+        <div style={{ position: "absolute", bottom: -1, right: -1, width: lineW, height: sz, background: accent2 || accent }} />
+        {children}
+      </div>
+    );
+  }
+
+  if (variant === 1) {
+    // Notch frame — accent squares at corners with thin border
+    return (
+      <div style={Object.assign({}, { position: "relative", background: bg, padding: "10px 12px", border: "1px solid " + accent + "44" }, style || {})}>
+        <div style={{ position: "absolute", top: -3, left: -3, width: 6, height: 6, background: accent }} />
+        <div style={{ position: "absolute", top: -3, right: -3, width: 6, height: 6, background: accent2 || accent }} />
+        <div style={{ position: "absolute", bottom: -3, left: -3, width: 6, height: 6, background: accent2 || accent }} />
+        <div style={{ position: "absolute", bottom: -3, right: -3, width: 6, height: 6, background: accent }} />
+        {children}
+      </div>
+    );
+  }
+
+  // Side rail — vertical accent bar on alternating side
+  var side = seed % 2 === 0 ? "left" : "right";
+  var railStyle = {};
+  railStyle["border" + (side === "left" ? "Left" : "Right")] = "3px solid " + accent;
+  railStyle["padding" + (side === "left" ? "Left" : "Right")] = "10px";
+  return (
+    <div style={Object.assign({}, { position: "relative", background: bg, padding: "10px 12px" }, railStyle, style || {})}>
+      {children}
+    </div>
+  );
+}
 
 // 3 bubble styles: speech (sharp tail), thought (dot trail), caption (rotated box)
 function BubbleBox({ children, style, accent, accent2, seed }) {
@@ -344,7 +394,8 @@ function S2Arena({ slide, index, category, images }) {
   var url = getImg(images, index);
   var useBubble = BUBBLE_CATS[category];
   var useSticky = STICKY_CATS[category];
-  var styled = useBubble || useSticky;
+  var useFormal = FORMAL_CATS[category];
+  var styled = useBubble || useSticky || useFormal;
   var textContent = <div>
     <div style={{ ...FN, fontSize: 13, color: useSticky ? "inherit" : "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
     <div style={{ ...HD, fontSize: 9.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.5, textAlign: "left" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
@@ -352,6 +403,7 @@ function S2Arena({ slide, index, category, images }) {
   </div>;
   var wrappedText = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</BubbleBox>
     : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</StickyNote>
+    : useFormal ? <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</FormalFrame>
     : textContent;
   return (
     <ImgBg url={url} pal={p} category={category} darken={styled ? null : "rgba(0,0,0,0.25)"}>
@@ -372,7 +424,8 @@ function S3RayGun({ slide, index, category, images }) {
   var flipped = index % 2 === 0;
   var useBubble = BUBBLE_CATS[category];
   var useSticky = STICKY_CATS[category];
-  var styled = useBubble || useSticky;
+  var useFormal = FORMAL_CATS[category];
+  var styled = useBubble || useSticky || useFormal;
 
   if (flipped) {
     // Text left, image right (carousel position 5)
@@ -383,6 +436,7 @@ function S3RayGun({ slide, index, category, images }) {
     </div>;
     var flippedWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</BubbleBox>
       : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</StickyNote>
+      : useFormal ? <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</FormalFrame>
       : flippedText;
     if (styled) {
       return (
@@ -414,6 +468,7 @@ function S3RayGun({ slide, index, category, images }) {
   </div>;
   var normalWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</BubbleBox>
     : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</StickyNote>
+    : useFormal ? <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</FormalFrame>
     : normalText;
   if (styled) {
     return (
@@ -510,7 +565,8 @@ function S5Face({ slide, index, category, images }) {
   var url = getImg(images, index);
   var useBubble = BUBBLE_CATS[category];
   var useSticky = STICKY_CATS[category];
-  var styled = useBubble || useSticky;
+  var useFormal = FORMAL_CATS[category];
+  var styled = useBubble || useSticky || useFormal;
   var s5Text = <div style={{ overflow: "hidden" }}>
     <div style={{ ...HD, fontSize: 8.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
     {!styled && <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />}
@@ -518,6 +574,7 @@ function S5Face({ slide, index, category, images }) {
   </div>;
   var s5Wrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</BubbleBox>
     : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</StickyNote>
+    : useFormal ? <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</FormalFrame>
     : s5Text;
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
