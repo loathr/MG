@@ -646,10 +646,10 @@ export default function LoathrMediaGenerator() {
         </div>
         <div style={{ marginTop: 18 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 8, textTransform: "uppercase" }}>All Slides</div>
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 8, justifyContent: "center" }}>
+          <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 8, justifyContent: "center" }}>
             {cur.slides.map(function(slide, i) { return (
-              <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ minWidth: 100, height: 125, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? pal.accent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
-                <div style={{ width: 340, height: 425, transform: "scale(0.295)", transformOrigin: "top left", pointerEvents: "none" }}>
+              <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? pal.accent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
+                <div style={{ width: 340, height: 425, transform: "scale(0.2)", transformOrigin: "top left", pointerEvents: "none" }}>
                   <SlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} />
                 </div>
               </div>); })}
