@@ -672,12 +672,14 @@ export default function LoathrMediaGenerator() {
       }
       if (results.length === 0) throw new Error("No valid options generated");
       setOptions(results);
-      var imgKey = apiKeys.unsplash || apiKeys.pexels;
+      var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
+      var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
+      var imgKey = unsplashKey || pexelsKey;
       if (imgKey) {
         setImgStatus("Searching for images...");
         try {
-          var searchFn = apiKeys.unsplash ? searchUnsplash : searchPexels;
-          var key = apiKeys.unsplash || apiKeys.pexels;
+          var searchFn = unsplashKey ? searchUnsplash : searchPexels;
+          var key = unsplashKey || pexelsKey;
           var imgs = await searchFn(catInfo.label + " " + topic, key);
           if (imgs.length > 0) {
             var imgMap = {};
@@ -686,8 +688,10 @@ export default function LoathrMediaGenerator() {
             setImgStatus(imgs.length + " images loaded");
           } else { setImgStatus("No images found"); }
         } catch (e) { setImgStatus("Image search failed: " + e.message); }
+      } else {
+        setImgStatus("No image API keys configured");
       }
-    } catch (err) { setError(err.message || "Generation failed"); }
+    } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
   }, [topic, category, apiKeys]);
 
