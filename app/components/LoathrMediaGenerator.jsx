@@ -415,6 +415,154 @@ function S7Blitz({ category, hashtags, images }) {
   );
 }
 
+// --- REC SLIDES (LOATHR Recommends) ---
+
+// Rec Slide 1: Destination Card
+function RecDestination({ slide, category, images }) {
+  var p = PALETTES[category];
+  var url = getImg(images, 0);
+  return (
+    <ImgBg url={url} pal={p} category={category} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.9))">
+      <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, zIndex: 3 }}>
+        <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: p.accent + "99" }}>LOATHR RECOMMENDS</div>
+      </div>
+      <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+        <div style={{ ...FN, fontSize: 24, color: "#ffffff", lineHeight: 1.05, textTransform: "uppercase" }}>{slide.title}</div>
+        <div style={{ ...HD, fontSize: 9, color: "#ffffffcc", marginTop: 6, lineHeight: 1.5 }}>{slide.subtitle}</div>
+        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+          <div style={{ ...CP, fontSize: 6, color: "#000", background: p.accent, padding: "2px 6px" }}>{slide.mood || category}</div>
+          {slide.city && <div style={{ ...CP, fontSize: 6, color: "#000", background: p.accent2, padding: "2px 6px" }}>{slide.city}</div>}
+        </div>
+      </div>
+    </ImgBg>
+  );
+}
+
+// Rec Slide 2: Hidden Gem
+function RecHiddenGem({ slide, category, images }) {
+  var p = PALETTES[category];
+  var url = getImg(images, 1);
+  return (
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "55%", borderBottom: "2px solid " + p.accent }}>
+        {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+        {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
+        <div style={{ position: "absolute", top: 8, left: M_SIDE, zIndex: 2 }}>
+          <div style={{ ...CP, fontSize: 6, color: "#000", background: p.accent, padding: "2px 6px", display: "inline-block" }}>HIDDEN GEM</div>
+        </div>
+      </div>
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "45%", background: "#000000", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden" }}>
+        <div style={{ ...FN, fontSize: 13, color: "#ffffff", textTransform: "uppercase" }}>{slide.name}</div>
+        <div style={{ ...WS, fontSize: 5.3, color: p.accent + "cc", marginTop: 2 }}>{slide.neighborhood}</div>
+        <div style={{ ...HD, fontSize: 8, color: "#ffffffdd", marginTop: 6, fontStyle: "italic", lineHeight: 1.5, borderLeft: "3px solid " + p.accent, paddingLeft: 6 }}>{slide.hook}</div>
+        <div style={{ ...HD, fontSize: 8, color: "#ffffffbb", marginTop: 6, lineHeight: 1.4 }}>{slide.body}</div>
+        {slide.detail && <div style={{ marginTop: 6, border: "1px solid " + p.accent + "44", padding: "3px 6px", background: "rgba(255,255,255,0.03)", display: "inline-block" }}><div style={{ ...WS, fontSize: 5, color: "#ffffffaa" }}>{slide.established} · {slide.detail}{slide.priceRange ? " · " + slide.priceRange : ""}</div></div>}
+      </div>
+    </div>
+  );
+}
+
+// Rec Slide 3: New Opening
+function RecNewOpening({ slide, category, images }) {
+  var p = PALETTES[category];
+  var url = getImg(images, 2);
+  return (
+    <ImgBg url={url} pal={p} category={category} darken="linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.92))">
+      <div style={{ position: "absolute", top: M_TOP, right: M_SIDE, zIndex: 3 }}>
+        <div style={{ ...CP, fontSize: 6, color: "#000", background: p.accent2, padding: "2px 6px", display: "inline-block" }}>JUST OPENED</div>
+      </div>
+      <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+        <div style={{ ...FN, fontSize: 14, color: "#ffffff", textTransform: "uppercase", textAlign: "right" }}>{slide.name}</div>
+        <div style={{ ...WS, fontSize: 5.3, color: p.accent2 + "cc", textAlign: "right", marginTop: 2 }}>{slide.neighborhood}</div>
+        <div style={{ ...HD, fontSize: 8, color: "#ffffffcc", marginTop: 8, lineHeight: 1.4, textAlign: "left" }}>{slide.body}</div>
+        {slide.quote && <div style={{ ...HD, fontSize: 8, fontStyle: "italic", color: "#ffffffdd", marginTop: 6, borderRight: "3px solid " + p.accent2, paddingRight: 6, textAlign: "right", lineHeight: 1.5 }}>"{slide.quote}"</div>}
+        {slide.source && <div style={{ ...WS, fontSize: 5, color: p.accent2 + "99", textAlign: "right", marginTop: 2 }}>{"— " + slide.source}</div>}
+        {slide.detail && <div style={{ marginTop: 6, border: "1px solid " + p.accent2 + "44", padding: "3px 6px", background: "rgba(255,255,255,0.03)", display: "inline-block" }}><div style={{ ...WS, fontSize: 5, color: "#ffffffaa" }}>{slide.opened} · {slide.style}{slide.detail ? " · " + slide.detail : ""}</div></div>}
+      </div>
+    </ImgBg>
+  );
+}
+
+// Rec Slide 4: Culture Read
+function RecCulture({ slide, category, images }) {
+  var p = PALETTES[category];
+  var url = getImg(images, 3);
+  return (
+    <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
+      <div style={{ width: "45%", position: "relative", borderRight: "2px solid " + p.accent }}>
+        {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+        {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
+        <div style={{ position: "absolute", bottom: 8, left: 8, zIndex: 2 }}>
+          <div style={{ ...CP, fontSize: 6, color: "#000", background: p.accent, padding: "2px 6px" }}>CULTURE</div>
+        </div>
+      </div>
+      <div style={{ flex: 1, padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", display: "flex", flexDirection: "column", justifyContent: "center", overflow: "hidden" }}>
+        <div style={{ ...FN, fontSize: 12, color: "#ffffff", textTransform: "uppercase", lineHeight: 1.1, marginBottom: 8 }}>{slide.headline}</div>
+        <div style={{ ...HD, fontSize: 8, color: "#ffffffcc", lineHeight: 1.45, textAlign: "right" }}>{slide.body}</div>
+        {slide.stat && <div style={{ marginTop: 8, borderTop: "1px solid " + p.accent + "33", paddingTop: 6 }}>
+          <div style={{ ...WS, fontSize: 20, color: p.accent, fontWeight: 700 }}>{slide.stat}</div>
+          <div style={{ ...HD, fontSize: 5.3, color: "#ffffffaa", marginTop: 2 }}>{slide.statLabel}</div>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+// Rec Slide 5: The Shortlist + Closer
+function RecShortlist({ slide, category, images }) {
+  var p = PALETTES[category];
+  var url = getImg(images, 4);
+  var items = slide.shortlist || [];
+  return (
+    <ImgBg url={url} pal={p} category={category} darken="rgba(0,0,0,0.82)">
+      <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+        <div style={{ ...FN, fontSize: 14, color: "#ffffff", textTransform: "uppercase", letterSpacing: "0.05em" }}>The Shortlist</div>
+        <div style={{ width: "20%", height: 2, background: p.accent, marginTop: 6 }} />
+      </div>
+      <div style={{ position: "absolute", top: "22%", left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+        {items.map(function(item, i) {
+          var c = i % 2 === 0 ? p.accent : p.accent2;
+          return <div key={i} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+              <div style={{ ...WS, fontSize: 18, color: c, fontWeight: 700, lineHeight: 1 }}>{String(i + 1).padStart(2, "0")}</div>
+              <div>
+                <div style={{ ...FN, fontSize: 10, color: "#ffffff", textTransform: "uppercase" }}>{item.name}</div>
+                <div style={{ ...WS, fontSize: 5.3, color: "#ffffffaa" }}>{item.neighborhood} · {item.type}</div>
+              </div>
+            </div>
+          </div>;
+        })}
+      </div>
+      <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3, textAlign: "center" }}>
+        <div style={{ width: "40%", height: 1, background: p.accent + "33", margin: "0 auto 8px" }} />
+        <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: p.accent + "88" }}>LOATHR RECOMMENDS</div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
+          <div style={{ width: 5, height: 5, background: p.accent }} />
+          <div style={{ width: 5, height: 5, background: p.accent2 }} />
+        </div>
+        {slide.tags && <div style={{ ...CP, fontSize: 5, color: "#ffffff44", marginTop: 4 }}>{slide.tags}</div>}
+      </div>
+    </ImgBg>
+  );
+}
+
+// Rec Slide Renderer
+function RecSlideRenderer({ category, slideData, slideIndex, totalSlides, images }) {
+  var p = PALETTES[category];
+  var borderColor = slideIndex % 2 === 0 ? p.accent : p.accent2;
+  var slide;
+  if (slideIndex === 0) slide = <RecDestination slide={slideData} category={category} images={images} />;
+  else if (slideIndex === 1) slide = <RecHiddenGem slide={slideData} category={category} images={images} />;
+  else if (slideIndex === 2) slide = <RecNewOpening slide={slideData} category={category} images={images} />;
+  else if (slideIndex === 3) slide = <RecCulture slide={slideData} category={category} images={images} />;
+  else slide = <RecShortlist slide={slideData} category={category} images={images} />;
+  return (
+    <div style={{ width: "100%", height: "100%", border: "2px solid " + borderColor, overflow: "hidden" }}>
+      {slide}
+    </div>
+  );
+}
+
 // --- SLIDE RENDERER ---
 function SlideRenderer({ category, slideData, slideIndex, totalSlides, images }) {
   var p = PALETTES[category];
@@ -538,6 +686,10 @@ function buildPrompt(catLabel, topic, optionType) {
   return base + "Create a TIMELINE carousel (6-7 slides). Chronological journey.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title (implies historical arc), subtitle, heading\n- Slides 1-4 (content): heading (era name), year (REQUIRED, e.g. \"1973\"), body (2-3 sentences, KEY TERMS IN CAPS), highlight\n- Slide 5 (stat): heading, stat, statLabel, year, body\n- Last slide: hashtags string\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Timeline\",\"slides\":[{...}]}";
 }
 
+function buildRecPrompt(catLabel, topic) {
+  return "You are a senior editorial content strategist for LOATHR, an Instagram lifestyle brand.\nCategory: \"" + catLabel + "\"\nCity/Topic: \"" + topic + "\"\n\nCreate a LOATHR RECOMMENDS editorial guide — a 5-slide carousel about food, drink, and nightlife in this location or topic.\n\nUse web search if available to find REAL venues, real openings, real cultural context. Do NOT hallucinate venue names.\n\nReturn ONLY valid JSON with this exact structure:\n{\n  \"destination\": { \"title\": \"City/Scene Name\", \"subtitle\": \"One evocative sentence about the destination\", \"mood\": \"food or nightlife\", \"city\": \"City\" },\n  \"hiddenGem\": { \"name\": \"Venue Name\", \"neighborhood\": \"Area, City\", \"hook\": \"One evocative sentence (what makes it special)\", \"body\": \"2-3 sentences cultural context\", \"established\": \"Est. 2019\", \"detail\": \"Walk-in only\", \"priceRange\": \"$$$\" },\n  \"newOpening\": { \"name\": \"Venue Name\", \"neighborhood\": \"Area, City\", \"body\": \"2-3 sentences about the venue and chef/owner\", \"quote\": \"A quote from a review or the chef\", \"source\": \"Person Name\", \"opened\": \"Opened 2025\", \"style\": \"Modern Japanese\", \"detail\": \"Reservations required\" },\n  \"culture\": { \"headline\": \"Why City Owns This Scene\", \"body\": \"3-4 sentences on history, immigration, economics shaping the scene\", \"stat\": \"3,200\", \"statLabel\": \"izakayas in Tokyo alone\" },\n  \"shortlist\": [\n    { \"name\": \"Venue 1\", \"neighborhood\": \"Area\", \"type\": \"Cuisine/Type\" },\n    { \"name\": \"Venue 2\", \"neighborhood\": \"Area\", \"type\": \"Cuisine/Type\" },\n    { \"name\": \"Venue 3\", \"neighborhood\": \"Area\", \"type\": \"Cuisine/Type\" }\n  ],\n  \"tags\": \"#hashtags #relevant #to #topic\"\n}\n\nRespond ONLY with valid JSON, no markdown.";
+}
+
 // --- SETTINGS PANEL ---
 function Settings({ apiKeys, setApiKeys, show, setShow, apiStatus, onTest }) {
   return (
@@ -595,6 +747,7 @@ export default function LoathrMediaGenerator() {
   var ras = _s([]), refinedAngles = ras[0], setRefinedAngles = ras[1];
   var irs = _s(false), isRefining = irs[0], setIsRefining = irs[1];
   var exs = _s(null), exportStatus = exs[0], setExportStatus = exs[1];
+  var rms = _s(false), isRecMode = rms[0], setIsRecMode = rms[1];
   var slideRef = _ref(null);
   var abortRef = _ref(null);
 
@@ -727,6 +880,59 @@ export default function LoathrMediaGenerator() {
     finally { setIsGenerating(false); }
   }, [topic, category, apiKeys]);
 
+  var generateRec = _cb(async function() {
+    if (!topic.trim() || !category) return;
+    if (abortRef.current) abortRef.current.abort();
+    var controller = new AbortController();
+    abortRef.current = controller;
+    setIsGenerating(true); setError(null); setOptions(null); setImages({});
+    setSelectedOption(0); setCurrentSlide(0); setImgStatus(null); setIsRecMode(true);
+    var catInfo = CATEGORIES.find(function(c) { return c.id === category; });
+    try {
+      var prompt = buildRecPrompt(catInfo.label, topic);
+      var msgs = [{ role: "user", content: prompt }];
+      var tools = [{ type: "web_search_20250305", name: "web_search" }];
+      var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 3000, messages: msgs, tools: tools }) });
+      var d = await r.json();
+      if (d.error) throw new Error(d.error.message || d.error);
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      if (!text.trim()) throw new Error("No text in response");
+      var cleaned = text.replace(/```json|```/g, "").trim();
+      cleaned = cleaned.replace(/,\s*([}\]])/g, "$1");
+      var parsed = JSON.parse(cleaned);
+      // Convert rec JSON into slides array format
+      var slides = [
+        parsed.destination || { title: topic, subtitle: "" },
+        parsed.hiddenGem || { name: "Hidden Gem", body: "" },
+        parsed.newOpening || { name: "New Opening", body: "" },
+        parsed.culture || { headline: "Culture", body: "" },
+        Object.assign({ shortlist: parsed.shortlist || [], tags: parsed.tags || "" }, parsed.destination || {})
+      ];
+      setOptions([{ angle: "Recommends", slides: slides }]);
+      // Image search
+      var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
+      var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
+      var imgKey = unsplashKey || pexelsKey;
+      if (imgKey) {
+        setImgStatus("Searching for images...");
+        try {
+          var searchFn = unsplashKey ? searchUnsplash : searchPexels;
+          var key = unsplashKey || pexelsKey;
+          var imgs = await searchFn(catInfo.label + " " + topic, key);
+          if (imgs.length > 0) {
+            var imgMap = {};
+            imgs.forEach(function(img, i) { imgMap[i] = img; });
+            setImages(imgMap);
+            setImgStatus(imgs.length + " images loaded");
+          } else { setImgStatus("No images found"); }
+        } catch (e) { setImgStatus("Image search failed: " + e.message); }
+      } else { setImgStatus("No image API keys configured"); }
+    } catch (err) { if (err.name !== "AbortError") setError(err.message || "Recommendation failed"); }
+    finally { setIsGenerating(false); }
+  }, [topic, category, apiKeys]);
+
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px" }}>
       <style>{"@font-face{font-family:'Foun';src:url('/Fonts/Foun/OpenType-PS/Foun.otf') format('opentype'),url('/Fonts/Foun/OpenType-TT/Foun.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Wenssep';src:url('/Fonts/Wenssep/Wenssep.otf') format('opentype'),url('/Fonts/Wenssep/Wenssep.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Regular.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}@keyframes walk{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}@keyframes hammer{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-45deg)}}@keyframes sweep{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}@keyframes paint{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}@keyframes carry{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-3px) rotate(-2deg)}75%{transform:translateY(-3px) rotate(2deg)}}@keyframes figfade{0%{opacity:1}45%{opacity:1}50%{opacity:0}95%{opacity:0}100%{opacity:1}}"}</style>
@@ -757,10 +963,18 @@ export default function LoathrMediaGenerator() {
               placeholder={"Topic for " + cat.label + "..."}
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 12, ...CP }} />
             {!isGenerating ? (
-              <button onClick={generate} disabled={!topic.trim()}
-                style={{ padding: "10px 18px", background: uiAccent, color: "#ffffff", border: "none", cursor: topic.trim() ? "pointer" : "default", ...CP, fontSize: 10, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() ? 1 : 0.4 }}>
-                GENERATE
-              </button>
+              <div style={{ display: "flex", gap: 4 }}>
+                <button onClick={function() { setIsRecMode(false); generate(); }} disabled={!topic.trim()}
+                  style={{ padding: "10px 14px", background: uiAccent, color: "#ffffff", border: "none", cursor: topic.trim() ? "pointer" : "default", ...CP, fontSize: 9, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() ? 1 : 0.4 }}>
+                  GENERATE
+                </button>
+                {(category === "food" || category === "nightlife") && (
+                  <button onClick={generateRec} disabled={!topic.trim()}
+                    style={{ padding: "10px 14px", background: "transparent", color: uiAccent, border: "1px solid " + uiAccent, cursor: topic.trim() ? "pointer" : "default", ...CP, fontSize: 9, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() ? 1 : 0.4 }}>
+                    RECOMMEND
+                  </button>
+                )}
+              </div>
             ) : (
               <button onClick={cancelGenerate}
                 style={{ padding: "10px 18px", background: "#e63946", color: "#ffffff", border: "none", cursor: "pointer", ...CP, fontSize: 10, letterSpacing: "0.1em", fontWeight: 700 }}>
@@ -877,7 +1091,7 @@ export default function LoathrMediaGenerator() {
       {error && <div style={{ padding: "14px 18px", background: "var(--color-background-danger)", border: "1px solid var(--color-border-danger)", color: "var(--color-text-danger)", fontSize: 12, marginBottom: 16 }}>{error}</div>}
       {imgStatus && options && <div style={{ textAlign: "center", marginBottom: 12, ...CP, fontSize: 10, color: imgStatus.indexOf("loaded") >= 0 ? "var(--color-text-success)" : "var(--color-text-warning)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>{imgStatus.indexOf("loaded") >= 0 ? <CheckCircle size={11} /> : <AlertTriangle size={11} />}{imgStatus}</div>}
 
-      {options && <div style={{ marginBottom: 14, textAlign: "center" }}>
+      {options && !isRecMode && <div style={{ marginBottom: 14, textAlign: "center" }}>
         <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 10, textTransform: "uppercase" }}>Choose an angle</div>
         <div style={{ display: "flex", gap: 8 }}>
           {options.map(function(opt, i) { var info = OPTION_TYPES[i]; var InfoIcon = info ? info.icon : BookOpen; return (
@@ -900,7 +1114,7 @@ export default function LoathrMediaGenerator() {
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
           <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff", outline: "1.5px solid #000000", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
-            <SlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} />
+            {isRecMode ? <RecSlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} />}
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 14 }}>
@@ -918,7 +1132,7 @@ export default function LoathrMediaGenerator() {
             {cur.slides.map(function(slide, i) { return (
               <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? uiAccent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
                 <div style={{ width: 340, height: 425, transform: "scale(0.2)", transformOrigin: "top left", pointerEvents: "none" }}>
-                  <SlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} />
+                  {isRecMode ? <RecSlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} />}
                 </div>
               </div>); })}
           </div>
