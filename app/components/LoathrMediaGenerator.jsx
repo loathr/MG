@@ -536,7 +536,7 @@ function S3RayGun({ slide, index, category, images }) {
     var flippedText = <div>
       <div style={{ ...FN, fontSize: 12, color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }}>{slide.heading || "Part " + index}</div>
       <div style={{ ...HD, fontSize: 8.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right", overflow: "hidden" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
-      {slide.highlight && <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", color: p.accent2 + "cc", marginTop: 6, textAlign: "right", borderRight: "3px solid " + p.accent2, paddingRight: 6 }}>{slide.highlight}</div>}
+      {slide.highlight && <div style={{ marginTop: 6, textAlign: "right" }}><span style={{ ...WS, fontSize: 5.3, fontStyle: "italic", color: "#ffffff", background: p.accent2, padding: "2px 6px", display: "inline", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" }}>{slide.highlight}</span></div>}
     </div>;
     var flippedWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</BubbleBox>
       : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</StickyNote>
@@ -556,7 +556,7 @@ function S3RayGun({ slide, index, category, images }) {
   var normalText = <div>
     <div style={{ ...FN, fontSize: 12, color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
     <div style={{ ...HD, fontSize: 8.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "left", overflow: "hidden" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-    {slide.highlight && <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", color: p.accent + "cc", marginTop: 6, borderLeft: "3px solid " + p.accent, paddingLeft: 6 }}>{slide.highlight}</div>}
+    {slide.highlight && <div style={{ marginTop: 6 }}><span style={{ ...WS, fontSize: 5.3, fontStyle: "italic", color: "#ffffff", background: p.accent, padding: "2px 6px", display: "inline", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" }}>{slide.highlight}</span></div>}
   </div>;
   var normalWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</BubbleBox>
     : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</StickyNote>
@@ -662,7 +662,7 @@ function S5Face({ slide, index, category, images }) {
   var s5Text = <div style={{ overflow: "hidden" }}>
     <div style={{ ...HD, fontSize: 8.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
     {!styled && <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />}
-    {slide.highlight && <div style={{ ...WS, fontSize: 5.3, color: p.accent2 + "cc", fontStyle: "italic", textAlign: "right", marginTop: 6, borderRight: "3px solid " + p.accent2, paddingRight: 6 }}>{slide.highlight}</div>}
+    {slide.highlight && <div style={{ marginTop: 6, textAlign: "right" }}><span style={{ ...WS, fontSize: 5.3, fontStyle: "italic", color: "#ffffff", background: p.accent2, padding: "2px 6px", display: "inline", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" }}>{slide.highlight}</span></div>}
   </div>;
   var s5Wrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</BubbleBox>
     : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</StickyNote>
