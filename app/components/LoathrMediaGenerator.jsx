@@ -155,10 +155,13 @@ function AutoFit({ children, style, maxShrink }) {
 
 function getImg(images, idx) {
   if (!images) return null;
-  if (images[idx]) return images[idx].url;
   var keys = Object.keys(images);
-  if (keys.length > 0) return images[keys[idx % keys.length]] ? images[keys[idx % keys.length]].url : null;
-  return null;
+  if (keys.length === 0) return null;
+  // Direct match first
+  if (images[idx] && images[idx].url) return images[idx].url;
+  // Cycle through available images so every slide gets one
+  var cycled = keys[idx % keys.length];
+  return images[cycled] && images[cycled].url ? images[cycled].url : null;
 }
 
 // --- S1 COVER (Vibe / The Source) ---
@@ -364,7 +367,8 @@ function S6Purple({ slide, index, category, images }) {
 // --- S7 CLOSER (Blitz geometric fade) ---
 function S7Blitz({ category, hashtags, images }) {
   var p = PALETTES[category];
-  var url = getImg(images, 0);
+  var keys = images ? Object.keys(images) : [];
+  var url = getImg(images, keys.length > 1 ? keys.length - 1 : 0);
   return (
     <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.75)">
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 3 }}>
