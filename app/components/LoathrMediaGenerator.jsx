@@ -1429,7 +1429,7 @@ export default function LoathrMediaGenerator() {
       }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
-  }, [topic, category, apiKeys]);
+  }, [topic, category, apiKeys, editionPicks]);
 
   var generateRec = _cb(async function() {
     if (!topic.trim() || !category) return;
