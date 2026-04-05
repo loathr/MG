@@ -4,7 +4,7 @@
        url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
-  font-display: swap;
+  font-display: block;
 }
 
 @font-face {
@@ -13,7 +13,7 @@
        url('/Fonts/Maheni/Maheni-Italic.ttf') format('truetype');
   font-weight: 400;
   font-style: italic;
-  font-display: swap;
+  font-display: block;
 }
 
 @font-face {
@@ -22,7 +22,7 @@
        url('/Fonts/Foun/OpenType-TT/Foun.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
-  font-display: swap;
+  font-display: block;
 }
 
 @font-face {
@@ -31,7 +31,7 @@
        url('/Fonts/Wenssep/Wenssep.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
-  font-display: swap;
+  font-display: block;
 }
 
 * {

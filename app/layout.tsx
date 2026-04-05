@@ -24,6 +24,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <head>
+        <link rel="preload" href="/Fonts/Foun/OpenType-TT/Foun.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
+        <link rel="preload" href="/Fonts/Wenssep/Wenssep.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
+        <link rel="preload" href="/Fonts/Maheni/Maheni-Regular.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
+      </head>
       <body>{children}</body>
     </html>
   );
