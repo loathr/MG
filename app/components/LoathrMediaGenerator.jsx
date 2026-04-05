@@ -729,7 +729,7 @@ export default function LoathrMediaGenerator() {
 
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px" }}>
-      <style>{"@font-face{font-family:'Foun';src:url('/Fonts/Foun/OpenType-PS/Foun.otf') format('opentype'),url('/Fonts/Foun/OpenType-TT/Foun.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Wenssep';src:url('/Fonts/Wenssep/Wenssep.otf') format('opentype'),url('/Fonts/Wenssep/Wenssep.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Regular.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}"}</style>
+      <style>{"@font-face{font-family:'Foun';src:url('/Fonts/Foun/OpenType-PS/Foun.otf') format('opentype'),url('/Fonts/Foun/OpenType-TT/Foun.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Wenssep';src:url('/Fonts/Wenssep/Wenssep.otf') format('opentype'),url('/Fonts/Wenssep/Wenssep.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Regular.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}@keyframes walk{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}@keyframes hammer{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-45deg)}}@keyframes sweep{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}@keyframes paint{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}@keyframes carry{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-3px) rotate(-2deg)}75%{transform:translateY(-3px) rotate(2deg)}}@keyframes figfade{0%{opacity:1}45%{opacity:1}50%{opacity:0}95%{opacity:0}100%{opacity:1}}"}</style>
 
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         <div style={{ ...CP, fontSize: 14, letterSpacing: "0.4em", color: "var(--color-text-primary)", fontWeight: 700 }}>L O A T H R</div>
@@ -805,7 +805,75 @@ export default function LoathrMediaGenerator() {
         </div>
       )}
 
-      {isGenerating && <div style={{ textAlign: "center", padding: "50px 0" }}><div style={{ ...CP, fontSize: 11, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", animation: "pulse 1.5s ease-in-out infinite" }}>Crafting your carousel...</div></div>}
+      {isGenerating && <div style={{ textAlign: "center", padding: "40px 0" }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 24, marginBottom: 16 }}>
+          {/* Hammering stick figure */}
+          <div style={{ animation: "figfade 8s ease infinite", animationDelay: "0s" }}>
+            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.4 }}>
+              <circle cx="16" cy="6" r="4" stroke="var(--color-text-tertiary)" strokeWidth="1.5" fill="none"/>
+              <line x1="16" y1="10" x2="16" y2="24" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              <line x1="16" y1="24" x2="10" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              <line x1="16" y1="24" x2="22" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              <line x1="16" y1="14" x2="8" y2="20" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              <g style={{ transformOrigin: "8px 20px", animation: "hammer 0.6s ease-in-out infinite" }}>
+                <line x1="8" y1="20" x2="4" y2="14" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+                <rect x="1" y="11" width="6" height="4" rx="1" fill="var(--color-text-tertiary)" opacity="0.3"/>
+              </g>
+            </svg>
+            <div style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 2 }}>building</div>
+          </div>
+          {/* Painting stick figure */}
+          <div style={{ animation: "figfade 8s ease infinite", animationDelay: "2s", opacity: 0 }}>
+            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.4 }}>
+              <circle cx="16" cy="6" r="4" stroke="var(--color-text-tertiary)" strokeWidth="1.5" fill="none"/>
+              <line x1="16" y1="10" x2="16" y2="24" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              <line x1="16" y1="24" x2="11" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              <line x1="16" y1="24" x2="21" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              <line x1="16" y1="14" x2="10" y2="18" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              <g style={{ animation: "paint 0.8s ease-in-out infinite" }}>
+                <line x1="16" y1="14" x2="26" y2="10" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+                <line x1="26" y1="10" x2="28" y2="6" stroke="var(--color-text-tertiary)" strokeWidth="2" strokeLinecap="round"/>
+              </g>
+            </svg>
+            <div style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 2 }}>painting</div>
+          </div>
+          {/* Sweeping stick figure */}
+          <div style={{ animation: "figfade 8s ease infinite", animationDelay: "4s", opacity: 0 }}>
+            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.4 }}>
+              <circle cx="16" cy="6" r="4" stroke="var(--color-text-tertiary)" strokeWidth="1.5" fill="none"/>
+              <line x1="16" y1="10" x2="16" y2="24" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              <line x1="16" y1="24" x2="12" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              <line x1="16" y1="24" x2="20" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              <line x1="16" y1="15" x2="10" y2="19" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              <g style={{ transformOrigin: "16px 15px", animation: "sweep 0.7s ease-in-out infinite" }}>
+                <line x1="16" y1="15" x2="24" y2="19" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+                <line x1="24" y1="19" x2="24" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+                <line x1="21" y1="34" x2="27" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="2"/>
+              </g>
+            </svg>
+            <div style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 2 }}>tidying</div>
+          </div>
+          {/* Carrying stick figure */}
+          <div style={{ animation: "figfade 8s ease infinite", animationDelay: "6s", opacity: 0 }}>
+            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.4 }}>
+              <circle cx="16" cy="6" r="4" stroke="var(--color-text-tertiary)" strokeWidth="1.5" fill="none"/>
+              <line x1="16" y1="10" x2="16" y2="24" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              <g style={{ animation: "walk 0.5s ease-in-out infinite" }}>
+                <line x1="16" y1="24" x2="10" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              </g>
+              <g style={{ animation: "walk 0.5s ease-in-out infinite 0.25s" }}>
+                <line x1="16" y1="24" x2="22" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+              </g>
+              <g style={{ animation: "carry 0.5s ease-in-out infinite" }}>
+                <line x1="8" y1="14" x2="24" y2="14" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+                <rect x="8" y="8" width="16" height="6" rx="1" stroke="var(--color-text-tertiary)" strokeWidth="1" fill="none" opacity="0.3"/>
+              </g>
+            </svg>
+            <div style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 2 }}>loading</div>
+          </div>
+        </div>
+        <div style={{ ...CP, fontSize: 8, color: "var(--color-text-tertiary)", letterSpacing: "0.15em", opacity: 0.4 }}>WORKING ON IT</div>
+      </div>}
       {error && <div style={{ padding: "14px 18px", background: "var(--color-background-danger)", border: "1px solid var(--color-border-danger)", color: "var(--color-text-danger)", fontSize: 12, marginBottom: 16 }}>{error}</div>}
       {imgStatus && options && <div style={{ textAlign: "center", marginBottom: 12, ...CP, fontSize: 10, color: imgStatus.indexOf("loaded") >= 0 ? "var(--color-text-success)" : "var(--color-text-warning)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>{imgStatus.indexOf("loaded") >= 0 ? <CheckCircle size={11} /> : <AlertTriangle size={11} />}{imgStatus}</div>}
 
