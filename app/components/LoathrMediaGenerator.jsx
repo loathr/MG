@@ -1,6 +1,6 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors } from "lucide-react";
+import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine } from "lucide-react";
 
 var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap";
 // Margins from inside the accent border frame
@@ -20,10 +20,12 @@ var PALETTES = {
   trivia: { bg: "#0d1f2d", accent: "#1abc9c", accent2: "#8e44ad", text: "#ffffff" },
   art:    { bg: "#1a0a3e", accent: "#ff2d55", accent2: "#0984e3", text: "#f8f0ff" },
   fashion: { bg: "#141420", accent: "#00d2d3", accent2: "#ff9ff3", text: "#f5f5f0" },
+  food: { bg: "#1a0f0a", accent: "#e67e22", accent2: "#27ae60", text: "#fff5eb" },
+  nightlife: { bg: "#0a0a1a", accent: "#9b59b6", accent2: "#f1c40f", text: "#f0e6ff" },
 };
 
-var CAT_LABELS = { film: "FILM & TV", photo: "PHOTOGRAPHY", sports: "SPORTS \u00d7 CULTURE", trivia: "DID YOU KNOW?", art: "ART & MUSIC", fashion: "FASHION" };
-var CLOSER_TAGS = { film: "FOLLOW FOR MORE", photo: "FOLLOW FOR MORE", sports: "GAME. CULTURE. REPEAT.", trivia: "NOW YOU KNOW", art: "SEE. HEAR. FEEL.", fashion: "DRESS. EXPRESS. REPEAT." };
+var CAT_LABELS = { film: "FILM & TV", photo: "PHOTOGRAPHY", sports: "SPORTS \u00d7 CULTURE", trivia: "DID YOU KNOW?", art: "ART & MUSIC", fashion: "FASHION", food: "FOOD & DRINK", nightlife: "NIGHTLIFE" };
+var CLOSER_TAGS = { film: "FOLLOW FOR MORE", photo: "FOLLOW FOR MORE", sports: "GAME. CULTURE. REPEAT.", trivia: "NOW YOU KNOW", art: "SEE. HEAR. FEEL.", fashion: "DRESS. EXPRESS. REPEAT.", food: "TASTE. SAVOR. SHARE.", nightlife: "AFTER DARK." };
 
 var CATEGORIES = [
   { id: "film", label: "Film & TV", icon: Clapperboard },
@@ -32,6 +34,8 @@ var CATEGORIES = [
   { id: "trivia", label: "Did You Know?", icon: Lightbulb },
   { id: "art", label: "Art & Music", icon: Palette },
   { id: "fashion", label: "Fashion", icon: Scissors },
+  { id: "food", label: "Food & Drink", icon: UtensilsCrossed },
+  { id: "nightlife", label: "Nightlife", icon: Wine },
 ];
 
 var OPTION_TYPES = [
@@ -80,6 +84,22 @@ var SUBCATEGORIES = {
     "Culture": ["Fashion week is dead debate", "The influencer vs editor power shift", "Sustainability as marketing tool", "Gender-fluid fashion going mainstream", "The return of maximalism"],
     "History": ["How Coco Chanel freed women", "The punk fashion revolution", "Hip-hop's impact on luxury brands", "The supermodel era vs now", "How the little black dress became iconic"],
     "Trends": ["Dopamine dressing explained", "The coastal grandmother aesthetic", "Mob wife fashion decoded", "Corporate sleaze and office siren", "The archive fashion obsession"],
+  },
+  food: {
+    "Fine Dining": ["The death of white tablecloth dining", "Omakase culture outside Japan", "Why tasting menus are shrinking", "The chef's table phenomenon", "Michelin's relevance debate"],
+    "Street Food": ["Street food going gourmet", "Night markets reshaping cities", "The taco truck revolution", "Hawker culture under threat", "Food trucks vs brick and mortar"],
+    "Culture": ["Food as identity politics", "The rise of solo dining", "Why everyone is a food critic now", "Mukbang and eating as content", "The brunch industrial complex"],
+    "Drinks": ["Natural wine explained", "The craft cocktail backlash", "Coffee's third wave evolution", "Mezcal replacing tequila", "Non-alcoholic spirits boom"],
+    "Trends": ["Fermentation obsession decoded", "Ultra-processed food awakening", "The plant-based plateau", "AI-generated recipes", "Ghost kitchens reshaping delivery"],
+    "History": ["How spice routes shaped empires", "The invention of the restaurant", "Prohibition's cocktail legacy", "Fast food's cultural conquest", "The origins of brunch"],
+  },
+  nightlife: {
+    "Clubs": ["The death and rebirth of clubbing", "Berlin techno's UNESCO status", "How Ibiza lost its edge", "Warehouse raves making a comeback", "The sober rave movement"],
+    "DJs & Music": ["The DJ as cultural architect", "Vinyl sets vs digital mixing", "How Afrobeats conquered the dancefloor", "The rise of the resident DJ", "Festival culture vs club culture"],
+    "Culture": ["Nightlife as political resistance", "The door policy debate", "How phones killed the dancefloor", "Queer nightlife shaping mainstream", "The economics of a night out"],
+    "Bars": ["The speakeasy revival", "Dive bars as cultural landmarks", "Hotel bars and lobby culture", "The death of the sports bar", "Wine bars replacing cocktail lounges"],
+    "Cities": ["Tokyo's golden gai mystique", "Lagos nightlife explosion", "New York vs London after dark", "The rise of Mexico City nightlife", "How cities are zoning out nightlife"],
+    "Trends": ["Daylight parties replacing clubs", "Immersive nightlife experiences", "The membership model takeover", "AI DJs and algorithmic dancefloors", "Wellness meets nightlife"],
   },
 };
 
@@ -621,7 +641,7 @@ export default function LoathrMediaGenerator() {
   var fetchTrending = _cb(async function() {
     if (!category) return;
     setIsFetchingTrending(true); setTrending([]);
-    var catContext = { film: "film, TV, cinema, streaming, directing", photo: "photography, cameras, visual storytelling", sports: "sports with music, fashion, art, culture", trivia: "surprising facts, science discoveries, cultural oddities", art: "music, visual arts, album releases, art history", fashion: "fashion, luxury brands, streetwear, designers, runway, style trends" };
+    var catContext = { film: "film, TV, cinema, streaming, directing", photo: "photography, cameras, visual storytelling", sports: "sports with music, fashion, art, culture", trivia: "surprising facts, science discoveries, cultural oddities", art: "music, visual arts, album releases, art history", fashion: "fashion, luxury brands, streetwear, designers, runway, style trends", food: "food, restaurants, chefs, cocktails, dining culture, culinary trends", nightlife: "nightlife, clubs, DJs, bars, parties, after-dark culture" };
     try {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000,
