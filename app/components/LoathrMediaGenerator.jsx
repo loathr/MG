@@ -128,11 +128,23 @@ function formatCoverTitle(title, accentColor, textColor) {
   return <>{mainWords} <span style={{ color: accentColor, whiteSpace: "nowrap" }}>{accentWords}</span></>;
 }
 
-function ImgBg({ url, pal, children, darken }) {
+function EditorialFill({ pal, category }) {
+  var label = CAT_LABELS[category] || "";
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
+    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, " + pal.bg + ", " + pal.accent + "15 30%, " + pal.bg + " 50%, " + (pal.accent2 || pal.accent) + "10 70%, " + pal.bg + ")", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: "15%", left: "-5%", fontSize: 80, fontWeight: 900, letterSpacing: "0.15em", color: pal.accent + "08", whiteSpace: "nowrap", transform: "rotate(-8deg)" }}>{label}</div>
+      <div style={{ position: "absolute", bottom: "20%", right: "-5%", fontSize: 60, fontWeight: 900, letterSpacing: "0.2em", color: (pal.accent2 || pal.accent) + "06", whiteSpace: "nowrap", transform: "rotate(-8deg)" }}>{label}</div>
+      <div style={{ position: "absolute", top: 0, left: "30%", width: 1, height: "100%", background: pal.accent + "08", transform: "rotate(15deg)" }} />
+      <div style={{ position: "absolute", top: 0, left: "65%", width: 1, height: "100%", background: (pal.accent2 || pal.accent) + "06", transform: "rotate(-10deg)" }} />
+    </div>
+  );
+}
+
+function ImgBg({ url, pal, children, darken, category }) {
+  return (
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: pal.bg }}>
       {url && <img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
-      {!url && <div style={{ position: "absolute", inset: 0, background: pal.bg }} />}
+      {!url && <EditorialFill pal={pal} category={category} />}
       {darken && <div style={{ position: "absolute", inset: 0, background: darken }} />}
       {children}
     </div>
@@ -189,7 +201,7 @@ function S1Cover({ slide, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, 0);
   return (
-    <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
+    <ImgBg url={url} pal={p} category={category} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
         <div style={{ position: "absolute", top: M_TOP, left: 0, right: 0, textAlign: "center", zIndex: 2 }}>
           <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "6B", fontWeight: 700, textDecoration: "line-through", textDecorationColor: p.accent + "6B", textDecorationThickness: 1 }}>LOATHR</div>
         </div>
@@ -216,7 +228,7 @@ function S2Arena({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
   return (
-    <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.25)">
+    <ImgBg url={url} pal={p} category={category} darken="rgba(0,0,0,0.25)">
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.25)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", zIndex: 3 }}>
         <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
         <div style={{ ...HD, fontSize: 9.5, color: "#ffffffe6", lineHeight: 1.5, textAlign: "left" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
@@ -246,7 +258,7 @@ function S3RayGun({ slide, index, category, images }) {
         </div>
         <div style={{ flex: 1, position: "relative" }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
-          {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
+          {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
         </div>
       </div>
     );
@@ -257,7 +269,7 @@ function S3RayGun({ slide, index, category, images }) {
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "62%", borderBottom: "2px solid " + p.accent }}>
         {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
-        {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
+        {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
       </div>
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "38%", background: "#000000", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden" }}>
         <div style={{ ...FN, fontSize: 12, color: "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
@@ -309,7 +321,7 @@ function S4Emigre({ slide, index, category, images }) {
   var displayStat = formatStat(slide.stat);
   var displayStat2 = slide.stat2 ? formatStat(slide.stat2) : null;
   return (
-    <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.6)">
+    <ImgBg url={url} pal={p} category={category} darken="rgba(0,0,0,0.6)">
       <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
         <div style={{ ...FN, fontSize: 12, color: "#ffffffcc", letterSpacing: "0.05em", textTransform: "uppercase", textAlign: "left" }}>By the Numbers</div>
       </div>
@@ -349,7 +361,7 @@ function S5Face({ slide, index, category, images }) {
       <div style={{ position: "absolute", top: M_TOP + 5, left: 0, right: 0, bottom: 0, display: "flex" }}>
         <div style={{ width: "62%", position: "relative", borderRight: "2px solid " + p.accent }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
-          {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
+          {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: (M_TOP + 4) + "px " + (M_SIDE - 2) + "px " + M_BOT + "px", background: "#000000", overflow: "hidden" }}>
           <div style={{ overflow: "hidden" }}>
@@ -372,7 +384,7 @@ function S6Purple({ slide, index, category, images }) {
   var url = getImg(images, index);
   var quoteText = slide.quote || slide.highlight || slide.body || "";
   return (
-    <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.9))">
+    <ImgBg url={url} pal={p} category={category} darken="linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.9))">
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", zIndex: 3 }}>
         <div>
           <div style={{ ...HD, fontSize: 11.5, fontStyle: "italic", color: "#ffffffdd", lineHeight: 1.5, textAlign: "left" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
@@ -390,7 +402,7 @@ function S7Blitz({ category, hashtags, images }) {
   var keys = images ? Object.keys(images) : [];
   var url = getImg(images, keys.length > 1 ? keys.length - 1 : 0);
   return (
-    <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.75)">
+    <ImgBg url={url} pal={p} category={category} darken="rgba(0,0,0,0.75)">
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 3 }}>
         <div style={{ ...CP, fontSize: 7, letterSpacing: "0.25em", color: p.accent + "99" }}>{CLOSER_TAGS[category]}</div>
         <div style={{ position: "relative", display: "inline-block", marginTop: 10 }}>
