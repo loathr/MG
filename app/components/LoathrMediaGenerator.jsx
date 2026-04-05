@@ -1171,10 +1171,11 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
 };
 
 // --- DIFFERENTIATED PROMPTS ---
-function buildPrompt(catLabel, topic, optionType, editionSeed) {
-  var persona = pickPersona(editionSeed || 0);
-  var freshness = pickFreshness((editionSeed || 0) + (optionType === "hot" ? 1 : optionType === "timeline" ? 2 : 0));
-  var style = pickWritingStyle((editionSeed || 0) + (optionType === "deep" ? 0 : optionType === "hot" ? 2 : 4));
+function buildPrompt(catLabel, topic, optionType, editionSeed, picks) {
+  var p = picks || { persona: -1, angle: -1, style: -1 };
+  var persona = p.persona >= 0 ? PERSONAS[p.persona] : pickPersona(editionSeed || 0);
+  var freshness = p.angle >= 0 ? FRESHNESS_SEEDS[p.angle] : pickFreshness((editionSeed || 0) + (optionType === "hot" ? 1 : optionType === "timeline" ? 2 : 0));
+  var style = p.style >= 0 ? WRITING_STYLES[p.style] : pickWritingStyle((editionSeed || 0) + (optionType === "deep" ? 0 : optionType === "hot" ? 2 : 4));
   var base = persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\n\n";
   var citations = "\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'. Keep them factual and brief.";
 
@@ -1252,6 +1253,8 @@ export default function LoathrMediaGenerator() {
   var exs = _s(null), exportStatus = exs[0], setExportStatus = exs[1];
   var rms = _s(false), isRecMode = rms[0], setIsRecMode = rms[1];
   var eds = _s(null), editionData = eds[0], setEditionData = eds[1];
+  var eps = _s({ persona: -1, angle: -1, style: -1 }), editionPicks = eps[0], setEditionPicks = eps[1];
+  var ess = _s(false), showEditionSettings = ess[0], setShowEditionSettings = ess[1];
   var slideRef = _ref(null);
   var abortRef = _ref(null);
 
@@ -1350,7 +1353,7 @@ export default function LoathrMediaGenerator() {
       var types = ["deep", "hot", "timeline"];
       for (var t = 0; t < 3; t++) {
         if (controller.signal.aborted) throw new Error("Generation cancelled");
-        var prompt = buildPrompt(catInfo.label, topic, types[t], edition.seed + t);
+        var prompt = buildPrompt(catInfo.label, topic, types[t], edition.seed + t, editionPicks);
         var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
           signal: controller.signal,
           body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
@@ -1529,7 +1532,7 @@ export default function LoathrMediaGenerator() {
 
       {category && (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+          <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
             <input value={topic} onChange={function(e) { setTopic(e.target.value); setRefinedAngles([]); }}
               placeholder={"Topic for " + cat.label + "..."}
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 12, ...CP }} />
@@ -1539,12 +1542,6 @@ export default function LoathrMediaGenerator() {
                   style={{ padding: "10px 14px", background: uiAccent, color: "#ffffff", border: "none", cursor: topic.trim() ? "pointer" : "default", ...CP, fontSize: 9, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() ? 1 : 0.4 }}>
                   GENERATE
                 </button>
-                {(category === "food" || category === "nightlife") && (
-                  <button onClick={generateRec} disabled={!topic.trim()}
-                    style={{ padding: "10px 14px", background: "transparent", color: uiAccent, border: "1px solid " + uiAccent, cursor: topic.trim() ? "pointer" : "default", ...CP, fontSize: 9, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() ? 1 : 0.4 }}>
-                    RECOMMEND
-                  </button>
-                )}
               </div>
             ) : (
               <button onClick={cancelGenerate}
@@ -1553,6 +1550,49 @@ export default function LoathrMediaGenerator() {
               </button>
             )}
           </div>
+          {/* Edition Settings */}
+          <div style={{ marginBottom: 6, textAlign: "center" }}>
+            <button onClick={function() { setShowEditionSettings(!showEditionSettings); }}
+              style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 8, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", opacity: 0.6 }}>
+              {showEditionSettings ? "\u25B2 HIDE EDITION SETTINGS" : "\u25BC EDITION SETTINGS"}
+            </button>
+          </div>
+          {showEditionSettings && <div style={{ marginBottom: 10, padding: 10, border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)" }}>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", marginBottom: 4 }}>VOICE</div>
+              <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                <button onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { persona: -1 }); }); }}
+                  style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.persona === -1 ? uiAccent + "22" : "transparent", color: editionPicks.persona === -1 ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>Random</button>
+                {PERSONAS.map(function(per, i) { return (
+                  <button key={per.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { persona: i }); }); }}
+                    style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.persona === i ? uiAccent + "22" : "transparent", color: editionPicks.persona === i ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7, textTransform: "capitalize" }}>{per.id}</button>
+                ); })}
+              </div>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", marginBottom: 4 }}>ANGLE</div>
+              <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                <button onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { angle: -1 }); }); }}
+                  style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.angle === -1 ? uiAccent + "22" : "transparent", color: editionPicks.angle === -1 ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>Random</button>
+                {["Economics", "Psychology", "Technology", "Cultural", "Backstory", "Prediction", "Failure", "Parallel"].map(function(label, i) { return (
+                  <button key={label} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { angle: i }); }); }}
+                    style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.angle === i ? uiAccent + "22" : "transparent", color: editionPicks.angle === i ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>{label}</button>
+                ); })}
+              </div>
+            </div>
+            <div>
+              <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", marginBottom: 4 }}>STYLE</div>
+              <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                <button onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { style: -1 }); }); }}
+                  style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.style === -1 ? uiAccent + "22" : "transparent", color: editionPicks.style === -1 ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>Random</button>
+                {["Classic", "Interview", "Manifesto", "Observation", "Contrast"].map(function(label, i) { return (
+                  <button key={label} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { style: i }); }); }}
+                    style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.style === i ? uiAccent + "22" : "transparent", color: editionPicks.style === i ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>{label}</button>
+                ); })}
+              </div>
+            </div>
+          </div>}
+
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
             <button onClick={fetchTrending} disabled={isFetchingTrending} style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Flame size={11} />{isFetchingTrending ? "..." : "Trending"}</button>
             <button onClick={function() { setShuffleKey(function(k) { return k + 1; }); }} style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Shuffle size={11} />Shuffle</button>
