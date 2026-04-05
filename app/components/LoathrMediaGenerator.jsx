@@ -1221,13 +1221,21 @@ export default function LoathrMediaGenerator() {
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
       if (!text.trim()) throw new Error("No text in response");
       var cleaned = text.replace(/```json|```/g, "").trim();
-      // Extract JSON object from text — Claude may add preamble/postamble with web search
+      // Extract JSON — find the object containing "destination" key
+      var parsed = null;
       var jsonStart = cleaned.indexOf("{");
-      var jsonEnd = cleaned.lastIndexOf("}");
-      if (jsonStart === -1 || jsonEnd === -1) throw new Error("No JSON found in response");
-      cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
-      cleaned = cleaned.replace(/,\s*([}\]])/g, "$1");
-      var parsed = JSON.parse(cleaned);
+      while (jsonStart !== -1 && !parsed) {
+        var jsonEnd = cleaned.lastIndexOf("}");
+        if (jsonEnd <= jsonStart) break;
+        var attempt = cleaned.slice(jsonStart, jsonEnd + 1);
+        attempt = attempt.replace(/,\s*([}\]])/g, "$1");
+        try {
+          var obj = JSON.parse(attempt);
+          if (obj.destination || obj.hiddenGem || obj.culture) { parsed = obj; break; }
+        } catch (e) { /* try next { */ }
+        jsonStart = cleaned.indexOf("{", jsonStart + 1);
+      }
+      if (!parsed) throw new Error("Could not parse recommendation JSON");
       // Convert rec JSON into slides array format
       var slides = [
         parsed.destination || { title: topic, subtitle: "" },
