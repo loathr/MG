@@ -5,6 +5,8 @@ import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Pal
 var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=DM+Serif+Display&display=swap";
 var PAD = 18;
 var HD = { fontFamily: "'Maheni','DM Serif Display',Georgia,serif", fontStyle: "normal", textTransform: "uppercase" };
+var FN = { fontFamily: "'Foun','DM Serif Display',Georgia,serif" };
+var WS = { fontFamily: "'Wenssep','Georgia',serif" };
 var CP = { fontFamily: "'Courier Prime',monospace" };
 
 var PALETTES = {
@@ -69,7 +71,7 @@ var SUBCATEGORIES = {
 
 // --- HELPERS ---
 function Accent({ children, color }) {
-  return <span style={{ textDecoration: "underline", textDecorationColor: color, textUnderlineOffset: 3, textDecorationThickness: 1, color: "inherit" }}>{children}</span>;
+  return <span style={{ textDecoration: "underline", textDecorationColor: color, textUnderlineOffset: 3, textDecorationThickness: 2, color: "inherit" }}>{children}</span>;
 }
 
 function formatTitle(title, color) {
@@ -136,9 +138,9 @@ function S2Arena({ slide, index, category, images }) {
       </div>
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: PAD, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
-          <div style={{ ...HD, fontSize: 11, color: p.text + "99", marginBottom: 5 }}>{(slide.heading || "PART " + index).toUpperCase()}</div>
-          <div style={{ ...CP, fontSize: 9, color: p.text + "88", lineHeight: 2.0, textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>{slide.body}</div>
-          {slide.specs && <div style={{ ...CP, fontSize: 7, color: p.text + "44", marginTop: 4 }}>{slide.specs}</div>}
+          <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.05em" }}>{(slide.heading || "PART " + index).toUpperCase()}</div>
+          <div style={{ ...WS, fontSize: 10, color: "#ffffffe6", lineHeight: 2.0, textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>{slide.body}</div>
+          {slide.specs && <div style={{ ...WS, fontSize: 8, color: "#ffffffaa", marginTop: 4 }}>{slide.specs}</div>}
         </div>
       </div>
     </ImgBg>
@@ -159,9 +161,9 @@ function S3RayGun({ slide, index, category, images }) {
       </div>
       <div style={{ position: "absolute", top: "14%", right: PAD, width: "48%", zIndex: 3, transform: "rotate(1deg)" }}>
         <div style={{ textAlign: "left" }}>
-          <div style={{ ...HD, fontSize: 11, color: p.text + "88", marginBottom: 4 }}>{(slide.heading || "PART " + index).toUpperCase()}</div>
-          <div style={{ ...CP, fontSize: 9, color: p.text + "99", lineHeight: 1.9, textShadow: "0 1px 8px rgba(0,0,0,0.9)" }}>{slide.body}</div>
-          {slide.highlight && <div style={{ ...CP, fontSize: 8, fontStyle: "italic", color: p.accent + "77", marginTop: 4 }}>{slide.highlight}</div>}
+          <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{(slide.heading || "PART " + index).toUpperCase()}</div>
+          <div style={{ ...WS, fontSize: 10, color: "#ffffffe6", lineHeight: 1.9, textShadow: "0 1px 8px rgba(0,0,0,0.9)" }}>{slide.body}</div>
+          {slide.highlight && <div style={{ ...WS, fontSize: 9, fontStyle: "italic", color: "#ffffffcc", marginTop: 4 }}>{slide.highlight}</div>}
         </div>
       </div>
       <div style={{ position: "absolute", bottom: PAD, left: PAD, display: "flex", gap: 4, zIndex: 3 }}>
@@ -193,7 +195,7 @@ function S4Emigre({ slide, index, category, images }) {
         <div style={{ ...CP, fontSize: 6, color: p.text + "33", letterSpacing: "0.1em", marginTop: 3 }}>{(slide.stat2Label || "SECONDARY").toUpperCase()}</div>
       </div>}
       <div style={{ position: "absolute", bottom: PAD, left: PAD, right: PAD, zIndex: 3 }}>
-        <div style={{ ...CP, fontSize: 9, color: p.text + "77", lineHeight: 1.8, textAlign: "left", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>{slide.body}</div>
+        <div style={{ ...WS, fontSize: 10, color: "#ffffffcc", lineHeight: 1.8, textAlign: "left", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>{slide.body}</div>
       </div>
     </ImgBg>
   );
@@ -217,9 +219,9 @@ function S5Face({ slide, index, category, images }) {
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: PAD }}>
           <div style={{ textAlign: "left" }}>
-            <div style={{ ...CP, fontSize: 9, color: p.text + "88", lineHeight: 2.0 }}>{slide.body}</div>
+            <div style={{ ...WS, fontSize: 10, color: "#ffffffe6", lineHeight: 2.0 }}>{slide.body}</div>
             <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "8px 0" }} />
-            {slide.highlight && <div style={{ ...CP, fontSize: 8, color: p.accent + "66", fontStyle: "italic" }}>{slide.highlight}</div>}
+            {slide.highlight && <div style={{ ...WS, fontSize: 9, color: "#ffffffcc", fontStyle: "italic" }}>{slide.highlight}</div>}
           </div>
         </div>
       </div>
@@ -236,7 +238,7 @@ function S6Purple({ slide, index, category, images }) {
     <ImgBg url={url} pal={p} darken="radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.1), rgba(0,0,0,0.5))">
       <div style={{ position: "absolute", top: "55%", left: 0, right: 0, padding: PAD, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
-          <div style={{ ...CP, fontSize: 12, fontStyle: "italic", color: p.text + "99", lineHeight: 1.7, textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
+          <div style={{ ...WS, fontSize: 13, fontStyle: "italic", color: "#ffffffdd", lineHeight: 1.7, textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
           <div style={{ width: 12, height: 1, background: p.accent + "44", margin: "8px 0" }} />
           {slide.source && <div style={{ ...CP, fontSize: 7, color: p.accent + "66", letterSpacing: "0.1em" }}>{slide.source.toUpperCase()}</div>}
         </div>
