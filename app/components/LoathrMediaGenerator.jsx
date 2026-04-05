@@ -519,7 +519,7 @@ function StickyNote({ children, style, accent, accent2, seed }) {
 // Micro-citation for sources
 function MicroCite({ sources }) {
   if (!sources) return null;
-  return <div style={{ ...CP, fontSize: 4, color: "#ffffff33", marginTop: 4, textAlign: "right" }}>{sources}</div>;
+  return <div style={{ ...CP, fontSize: 6, color: "#ffffff55", marginTop: 4, textAlign: "right" }}>{sources}</div>;
 }
 
 function getImg(images, idx) {
@@ -695,38 +695,114 @@ var STAT_LAYOUTS = [
   { s1: { top: "18%", left: "50%", transform: "translateX(-50%)", textAlign: "center" }, s2: { top: "42%", left: "50%", transform: "translateX(-50%)", textAlign: "center" } },
 ];
 
-// --- S4 STAT (Emigre scale clash) ---
+// --- S4 STAT (5 formats: comparison, killer, story, versus, timeline) ---
 function S4Emigre({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
-  var layoutIdx = (index + (slide.stat ? slide.stat.length : 0)) % STAT_LAYOUTS.length;
-  var layout = STAT_LAYOUTS[layoutIdx];
-  var displayStat = formatStat(slide.stat);
-  var displayStat2 = slide.stat2 ? formatStat(slide.stat2) : null;
+  var fmt = slide.statFormat || (slide.stat2 ? "comparison" : "killer");
+
+  // Format A: Comparison (before → after)
+  if (fmt === "comparison") {
+    return (
+      <ImgBg url={url} pal={p} category={category} darken="rgba(0,0,0,0.65)">
+        <div style={{ position: "absolute", top: "30%", left: 0, right: 0, zIndex: 3, display: "flex", justifyContent: "center", alignItems: "center", gap: 16 }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ ...WS, fontSize: 42, color: p.accent2 || "#ffffff88", lineHeight: 0.85 }}>{slide.before || slide.stat}</div>
+            <div style={{ ...HD, fontSize: 6, color: "#ffffffaa", marginTop: 4, letterSpacing: "0.1em" }}>{slide.beforeLabel || slide.statLabel || "BEFORE"}</div>
+          </div>
+          <div style={{ ...FN, fontSize: 20, color: p.accent }}>→</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ ...WS, fontSize: 42, color: p.accent, lineHeight: 0.85 }}>{slide.after || slide.stat2}</div>
+            <div style={{ ...HD, fontSize: 6, color: "#ffffffaa", marginTop: 4, letterSpacing: "0.1em" }}>{slide.afterLabel || slide.stat2Label || "AFTER"}</div>
+          </div>
+        </div>
+        <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3, textAlign: "center" }}>
+          <div style={{ ...HD, fontSize: 8, color: "#ffffffcc", fontStyle: "italic" }}>{slide.shift || slide.body}</div>
+          <MicroCite sources={slide.sources} />
+        </div>
+      </ImgBg>
+    );
+  }
+
+  // Format B: Killer Number (one massive stat)
+  if (fmt === "killer") {
+    return (
+      <ImgBg url={url} pal={p} category={category} darken="rgba(0,0,0,0.6)">
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 3, textAlign: "center", width: "80%" }}>
+          <div style={{ ...WS, fontSize: 64, color: p.accent, lineHeight: 0.85, letterSpacing: -2 }}>{slide.stat}</div>
+          <div style={{ ...HD, fontSize: 9, color: "#ffffffcc", marginTop: 10, lineHeight: 1.5 }}>{slide.caption || slide.statLabel || slide.body}</div>
+          <MicroCite sources={slide.sources} />
+        </div>
+      </ImgBg>
+    );
+  }
+
+  // Format C: Data Story (3 connected numbers)
+  if (fmt === "story") {
+    var stats = slide.stats || [{ num: slide.stat, label: slide.statLabel }, { num: slide.stat2, label: slide.stat2Label }, { num: "—", label: "—" }];
+    return (
+      <ImgBg url={url} pal={p} category={category} darken="rgba(0,0,0,0.7)">
+        <div style={{ position: "absolute", top: "18%", left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+          {stats.slice(0, 3).map(function(s, i) {
+            var c = i % 2 === 0 ? p.accent : p.accent2;
+            return <div key={i} style={{ marginBottom: 14, display: "flex", alignItems: "baseline", gap: 8 }}>
+              <div style={{ ...CP, fontSize: 7, color: "#ffffff44" }}>{String(i + 1).padStart(2, "0")}</div>
+              <div>
+                <div style={{ ...WS, fontSize: 28, color: c, lineHeight: 0.9 }}>{s.num}</div>
+                <div style={{ ...HD, fontSize: 6, color: "#ffffffaa", marginTop: 2, letterSpacing: "0.08em" }}>{s.label}</div>
+              </div>
+            </div>;
+          })}
+        </div>
+        <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+          <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>
+            <div style={{ ...HD, fontSize: 8, color: "#ffffffcc", fontStyle: "italic" }}>{slide.narrative || slide.body}</div>
+          </FormalFrame>
+          <MicroCite sources={slide.sources} />
+        </div>
+      </ImgBg>
+    );
+  }
+
+  // Format D: Versus (side by side comparison)
+  if (fmt === "versus") {
+    return (
+      <ImgBg url={url} pal={p} category={category} darken="rgba(0,0,0,0.65)">
+        <div style={{ position: "absolute", top: "20%", left: 0, right: 0, zIndex: 3, display: "flex", padding: "0 " + M_SIDE + "px" }}>
+          <div style={{ flex: 1, textAlign: "center", borderRight: "1px solid " + p.accent + "44", paddingRight: 8 }}>
+            <div style={{ ...FN, fontSize: 10, color: "#ffffffcc", textTransform: "uppercase", marginBottom: 6 }}>{slide.left || "A"}</div>
+            <div style={{ ...WS, fontSize: 36, color: p.accent, lineHeight: 0.85 }}>{slide.leftStat || slide.stat}</div>
+            <div style={{ ...HD, fontSize: 6, color: "#ffffffaa", marginTop: 4 }}>{slide.leftLabel || slide.statLabel}</div>
+          </div>
+          <div style={{ flex: 1, textAlign: "center", paddingLeft: 8 }}>
+            <div style={{ ...FN, fontSize: 10, color: "#ffffffcc", textTransform: "uppercase", marginBottom: 6 }}>{slide.right || "B"}</div>
+            <div style={{ ...WS, fontSize: 36, color: p.accent2 || p.accent, lineHeight: 0.85 }}>{slide.rightStat || slide.stat2}</div>
+            <div style={{ ...HD, fontSize: 6, color: "#ffffffaa", marginTop: 4 }}>{slide.rightLabel || slide.stat2Label}</div>
+          </div>
+        </div>
+        <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3, textAlign: "center" }}>
+          <div style={{ ...HD, fontSize: 9, color: p.accent, fontWeight: 700 }}>{slide.verdict || slide.body}</div>
+          <MicroCite sources={slide.sources} />
+        </div>
+      </ImgBg>
+    );
+  }
+
+  // Format E: Timeline Number (year-anchored stat)
   return (
     <ImgBg url={url} pal={p} category={category} darken="rgba(0,0,0,0.6)">
-      <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
-        <div style={{ ...FN, fontSize: 12, color: "#ffffffcc", letterSpacing: "0.05em", textTransform: "uppercase", textAlign: "left" }}>By the Numbers</div>
+      <div style={{ position: "absolute", top: "22%", left: "50%", transform: "translateX(-50%)", zIndex: 3, textAlign: "center" }}>
+        <div style={{ ...CP, fontSize: 10, color: "#ffffff44", letterSpacing: "0.3em" }}>{slide.year || ""}</div>
       </div>
-      <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, layout.s1)}>
-        <div>
-          <div style={{ ...WS, fontSize: displayStat2 ? 48 : 64, color: p.accent, lineHeight: 0.85, letterSpacing: -1 }}>{displayStat}</div>
-          <div style={{ ...HD, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.statLabel || "Key Metric"}</div>
-        </div>
+      <div style={{ position: "absolute", top: "38%", left: "50%", transform: "translateX(-50%)", zIndex: 3, textAlign: "center", width: "80%" }}>
+        <div style={{ ...WS, fontSize: 52, color: p.accent, lineHeight: 0.85 }}>{slide.stat}</div>
+        <div style={{ ...HD, fontSize: 7, color: "#ffffffaa", marginTop: 6, letterSpacing: "0.1em" }}>{slide.statLabel}</div>
       </div>
-      {displayStat2 && <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, layout.s2)}>
-        <div>
-          <div style={{ ...WS, fontSize: 38, color: p.accent2 || p.text, lineHeight: 0.85 }}>{displayStat2}</div>
-          <div style={{ ...HD, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.stat2Label || "Secondary"}</div>
-        </div>
-      </div>}
-      <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, getFramePosition((slide.stat || "").length + (slide.body || "").length, index))}>
+      <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 3}>
-          <div style={{ ...HD, fontSize: 9.5, color: "#ffffffcc", lineHeight: 1.5, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+          <div style={{ ...HD, fontSize: 8, color: "#ffffffcc", textAlign: "center" }}>{slide.context || slide.body}</div>
         </FormalFrame>
-      </div>
-      <div style={{ position: "absolute", bottom: M_PAGE, right: M_SIDE, zIndex: 4 }}>
-        <div style={{ ...CP, fontSize: 7, color: "#ffffff66" }}>{String(index).padStart(2, "0")}</div>
+        <MicroCite sources={slide.sources} />
       </div>
     </ImgBg>
   );
@@ -972,20 +1048,15 @@ function RecSlideRenderer({ category, slideData, slideIndex, totalSlides, images
 function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, edition }) {
   var p = PALETTES[category];
   var lastIdx = totalSlides - 1;
-  // Alternate border color per slide
   var borderColor = slideIndex % 2 === 0 ? p.accent : p.accent2;
-  // Fixed position-based layout assignment for consistency
-  // Pos 1=Cover, 2=S3, 3=S5, 4=S2, 5=S3flip, 6=S4stat/S6quote, last=Closer
+  // 10-slide layout: Cover, Origin, Turning Point, Hot Take, Human, Evidence, Voice, Ripple, Now, Closer
   var slide;
   if (slideIndex === lastIdx) slide = <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} />;
   else if (slideIndex === 0) slide = <S1Cover slide={slideData} category={category} images={images} edition={edition} />;
-  else if (slideIndex === lastIdx - 1 && (slideData.stat || slideData.quote)) {
-    // Second-to-last: stat or quote
-    slide = slideData.stat
-      ? <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />
-      : <S6Purple slide={slideData} index={slideIndex} category={category} images={images} />;
-  } else {
-    // Fixed rotation: S3, S5, S2, S3, S5, S2...
+  else if (slideData.statFormat || slideData.stat) slide = <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
+  else if (slideData.quote) slide = <S6Purple slide={slideData} index={slideIndex} category={category} images={images} />;
+  else {
+    // Rotate visual layouts across content slides
     var layouts = [S3RayGun, S5Face, S2Arena];
     var pick = (slideIndex - 1) % layouts.length;
     var Component = layouts[pick];
@@ -1171,23 +1242,13 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
 };
 
 // --- DIFFERENTIATED PROMPTS ---
-function buildPrompt(catLabel, topic, optionType, editionSeed, picks) {
+function buildPrompt(catLabel, topic, editionSeed, picks) {
   var p = picks || { persona: -1, angle: -1, style: -1 };
   var persona = p.persona >= 0 ? PERSONAS[p.persona] : pickPersona(editionSeed || 0);
-  var freshness = p.angle >= 0 ? FRESHNESS_SEEDS[p.angle] : pickFreshness((editionSeed || 0) + (optionType === "hot" ? 1 : optionType === "timeline" ? 2 : 0));
-  var style = p.style >= 0 ? WRITING_STYLES[p.style] : pickWritingStyle((editionSeed || 0) + (optionType === "deep" ? 0 : optionType === "hot" ? 2 : 4));
-  var base = persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\n\n";
-  var citations = "\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'. Keep them factual and brief.";
+  var freshness = p.angle >= 0 ? FRESHNESS_SEEDS[p.angle] : pickFreshness(editionSeed || 0);
+  var style = p.style >= 0 ? WRITING_STYLES[p.style] : pickWritingStyle(editionSeed || 0);
 
-  if (optionType === "deep") {
-    return base + "Create a DEEP DIVE carousel (6-7 slides). Educational and detailed.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title, subtitle, heading\n- Slides 1-4 (content): " + style + ", specs (technical detail), sources (1-2 brief citations)\n- Slide 5 (stat): heading, stat, statLabel, body, sources\n- Last slide: hashtags string\n\nInclude at least one slide with a quote field and source field." + citations + "\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Deep Dive\",\"slides\":[{...}]}";
-  }
-
-  if (optionType === "hot") {
-    return base + "Create a HOT TAKE carousel (5-6 slides). Punchy, provocative, shareable.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title (provocative), subtitle (one-line hook), heading\n- Slides 1-2 (content): " + style + ", sources (brief citation)\n- Slide 3 (stat): heading, stat, statLabel, stat2, stat2Label, body, sources\n- Slide 4 (quote): quote (bold quote), source (person name)\n- Last slide: hashtags string" + citations + "\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Hot Take\",\"slides\":[{...}]}";
-  }
-
-  return base + "Create a TIMELINE carousel (6-7 slides). Chronological journey.\n\nSLIDE STRUCTURE:\n- Slide 0 (cover): title (implies historical arc), subtitle, heading\n- Slides 1-4 (content): heading (era name), year (REQUIRED), " + style + ", sources (brief citation)\n- Slide 5 (stat): heading, stat, statLabel, year, body, sources\n- Last slide: hashtags string" + citations + "\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Timeline\",\"slides\":[{...}]}";
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": Choose the BEST stat format for this topic:\n  FORMAT A (Comparison): statFormat \"comparison\", before, beforeLabel, after, afterLabel, shift (one sentence explaining what changed)\n  FORMAT B (Killer Number): statFormat \"killer\", stat (one massive number), caption (two-line caption that makes the reader stop)\n  FORMAT C (Data Story): statFormat \"story\", stats (array of 3 objects: [{num, label}]), narrative (one sentence connecting all three)\n  FORMAT D (Versus): statFormat \"versus\", left, leftLabel, leftStat, right, rightLabel, rightStat, verdict (one bold sentence)\n  FORMAT E (Timeline Number): statFormat \"timeline\", year, stat, statLabel, context (one sentence anchoring the number to the moment)\n  Pick whichever format makes the data most impactful. Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -1349,22 +1410,25 @@ export default function LoathrMediaGenerator() {
     var edition = getEditionId(topic, category);
     setEditionData(edition);
     try {
+      if (controller.signal.aborted) throw new Error("Generation cancelled");
+      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks);
+      var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }) });
+      var d = await r.json();
+      if (d.error) throw new Error(d.error.message || d.error);
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var cleaned = text.replace(/```json|```/g, "").trim();
+      cleaned = cleaned.replace(/,\s*([}\]])/g, "$1");
+      // Extract JSON if Claude adds preamble
+      var jsonStart = cleaned.indexOf("{");
+      var jsonEnd = cleaned.lastIndexOf("}");
+      if (jsonStart >= 0 && jsonEnd > jsonStart) cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
+      var parsed = JSON.parse(cleaned);
       var results = [];
-      var types = ["deep", "hot", "timeline"];
-      for (var t = 0; t < 3; t++) {
-        if (controller.signal.aborted) throw new Error("Generation cancelled");
-        var prompt = buildPrompt(catInfo.label, topic, types[t], edition.seed + t, editionPicks);
-        var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
-          signal: controller.signal,
-          body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
-        var d = await r.json();
-        if (d.error) throw new Error(d.error.message || d.error);
-        var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
-        var parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
-        if (parsed && parsed.slides) results.push(parsed);
-        else if (Array.isArray(parsed) && parsed[0]) results.push(parsed[0]);
-      }
-      if (results.length === 0) throw new Error("No valid options generated");
+      if (parsed && parsed.slides) results.push(parsed);
+      else if (Array.isArray(parsed) && parsed[0]) results.push(parsed[0]);
+      if (results.length === 0) throw new Error("No valid carousel generated");
       setOptions(results);
       var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
       var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
@@ -1681,7 +1745,7 @@ export default function LoathrMediaGenerator() {
       {error && <div style={{ padding: "14px 18px", background: "var(--color-background-danger)", border: "1px solid var(--color-border-danger)", color: "var(--color-text-danger)", fontSize: 12, marginBottom: 16 }}>{error}</div>}
       {imgStatus && options && <div style={{ textAlign: "center", marginBottom: 12, ...CP, fontSize: 10, color: imgStatus.indexOf("loaded") >= 0 ? "var(--color-text-success)" : "var(--color-text-warning)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>{imgStatus.indexOf("loaded") >= 0 ? <CheckCircle size={11} /> : <AlertTriangle size={11} />}{imgStatus}</div>}
 
-      {options && !isRecMode && <div style={{ marginBottom: 14, textAlign: "center" }}>
+      {false && options && !isRecMode && <div style={{ marginBottom: 14, textAlign: "center" }}>
         <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 10, textTransform: "uppercase" }}>Choose an angle</div>
         <div style={{ display: "flex", gap: 8 }}>
           {options.map(function(opt, i) { var info = OPTION_TYPES[i]; var InfoIcon = info ? info.icon : BookOpen; return (
