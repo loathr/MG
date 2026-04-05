@@ -483,7 +483,7 @@ function S1Cover({ slide, category, images }) {
               <div style={{ ...CP, fontSize: 9, color: "#ffffffcc", letterSpacing: "0.1em", fontWeight: 700 }}>{CAT_LABELS[category]}</div>
               <div style={{ width: 8, height: 8, background: p.accent2 || p.accent }} />
             </div>
-            {slide.subtitle && <div style={{ ...HD, fontSize: 10.5, marginTop: 8, background: "linear-gradient(to right, " + p.accent + ", " + (p.accent2 || p.accent) + ")", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{slide.subtitle}</div>}
+            {slide.subtitle && <div style={{ ...HD, fontSize: 10.5, marginTop: 8, background: "linear-gradient(to right, " + p.accent + " 0%, " + p.accent + "cc 25%, " + (p.accent2 || p.accent) + "88 50%, " + (p.accent2 || p.accent) + "cc 75%, " + (p.accent2 || p.accent) + " 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{slide.subtitle}</div>}
           </div>
         </div>
       </ImgBg>
