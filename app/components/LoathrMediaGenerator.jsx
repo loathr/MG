@@ -447,16 +447,13 @@ function S3RayGun({ slide, index, category, images }) {
         </ImgBg>
       );
     }
+    // Fallback — also uses full image
     return (
-      <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
-        <div style={{ width: "40%", background: "#000000", borderRight: "2px solid " + p.accent2, padding: (M_TOP + 6) + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          {flippedText}
+      <ImgBg url={url} pal={p} category={category}>
+        <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: "50%", zIndex: 3 }}>
+          <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</FormalFrame>
         </div>
-        <div style={{ flex: 1, position: "relative" }}>
-          {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
-          {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
-        </div>
-      </div>
+      </ImgBg>
     );
   }
 
@@ -479,16 +476,13 @@ function S3RayGun({ slide, index, category, images }) {
       </ImgBg>
     );
   }
+  // Fallback — also uses full image
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "62%", borderBottom: "2px solid " + p.accent }}>
-        {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
-        {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
+    <ImgBg url={url} pal={p} category={category}>
+      <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+        <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</FormalFrame>
       </div>
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "38%", background: "#000000", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden", zIndex: 3 }}>
-        {normalText}
-      </div>
-    </div>
+    </ImgBg>
   );
 }
 
@@ -549,8 +543,10 @@ function S4Emigre({ slide, index, category, images }) {
           <div style={{ ...HD, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.stat2Label || "Secondary"}</div>
         </div>
       </div>}
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", zIndex: 3 }}>
-        <div style={{ ...HD, fontSize: 9.5, color: "#ffffffcc", lineHeight: 1.5, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+      <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+        <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 3}>
+          <div style={{ ...HD, fontSize: 9.5, color: "#ffffffcc", lineHeight: 1.5, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+        </FormalFrame>
       </div>
       <div style={{ position: "absolute", bottom: M_PAGE, right: M_SIDE, zIndex: 4 }}>
         <div style={{ ...CP, fontSize: 7, color: "#ffffff66" }}>{String(index).padStart(2, "0")}</div>
@@ -592,13 +588,11 @@ function S5Face({ slide, index, category, images }) {
           </div>
         </div>
       ) : (
-        <div style={{ position: "absolute", top: M_TOP + 5, left: 0, right: 0, bottom: 0, display: "flex" }}>
-          <div style={{ width: "62%", position: "relative", borderRight: "2px solid " + p.accent }}>
-            {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
-            {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
-          </div>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: (M_TOP + 4) + "px " + (M_SIDE - 2) + "px " + M_BOT + "px", background: "#000000", overflow: "hidden" }}>
-            {s5Text}
+        <div style={{ position: "absolute", top: M_TOP + 5, left: 0, right: 0, bottom: 0 }}>
+          {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+          {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
+          <div style={{ position: "absolute", bottom: M_BOT, right: M_SIDE, left: "50%", zIndex: 3 }}>
+            <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</FormalFrame>
           </div>
         </div>
       )}
@@ -615,13 +609,13 @@ function S6Purple({ slide, index, category, images }) {
   var url = getImg(images, index);
   var quoteText = slide.quote || slide.highlight || slide.body || "";
   return (
-    <ImgBg url={url} pal={p} category={category} darken="linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.9))">
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", zIndex: 3 }}>
-        <div>
+    <ImgBg url={url} pal={p} category={category}>
+      <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+        <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 4}>
           <div style={{ ...HD, fontSize: 11.5, fontStyle: "italic", color: "#ffffffdd", lineHeight: 1.5, textAlign: "left" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
           <div style={{ width: 12, height: 1, background: p.accent + "66", margin: "8px 0 8px auto" }} />
           {slide.source && <div style={{ ...WS, fontSize: 5, color: p.accent + "99", letterSpacing: "0.08em", textAlign: "right" }}>{"— " + slide.source}</div>}
-        </div>
+        </FormalFrame>
       </div>
     </ImgBg>
   );
