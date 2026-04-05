@@ -149,7 +149,7 @@ function S1Cover({ slide, category, images }) {
         </div>
         <div style={{ position: "absolute", bottom: PAD_BOT, left: PAD, right: PAD, zIndex: 3 }}>
           <div style={{ textAlign: "center" }}>
-            <div style={{ ...HD, fontSize: slide.title && slide.title.length > 35 ? 24 : 30, color: p.text, lineHeight: 1.1, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }}>
+            <div style={{ ...FN, fontSize: slide.title && slide.title.length > 35 ? 24 : 30, color: p.text, lineHeight: 1.1, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }}>
               {formatCoverTitle(slide.title, p.accent, p.text)}
             </div>
             <div style={{ height: 3, background: "linear-gradient(to right, transparent, " + p.accent + ", transparent)", margin: "12px auto", width: "60%" }} />
