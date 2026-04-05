@@ -245,24 +245,62 @@ function S3RayGun({ slide, index, category, images }) {
   );
 }
 
+// Randomized stat display formats
+function formatStat(value) {
+  if (!value) return value;
+  var str = String(value).trim();
+  // If already has %, fraction, ratio etc — keep as is
+  if (/[%/:×x]/.test(str)) return str;
+  // Try to parse as number for formatting options
+  var num = parseFloat(str.replace(/[^0-9.-]/g, ""));
+  if (isNaN(num)) return str;
+  var seed = Math.abs(num * 7 + str.length) % 5;
+  if (seed === 0 && num > 1 && num < 100) return num + "%";
+  if (seed === 1 && num > 1 && num === Math.floor(num)) return num + ":1";
+  if (seed === 2 && num > 1000) return (num / 1000).toFixed(1) + "K";
+  if (seed === 3 && num > 0 && num < 1) return Math.round(num * 100) + "%";
+  if (seed === 4 && num > 1 && num < 20) return num + "/" + (num + Math.floor(num / 2));
+  return str;
+}
+
+// Randomized stat placement layouts
+var STAT_LAYOUTS = [
+  // 0: stat top-left, stat2 bottom-right
+  { s1: { top: "20%", left: M_SIDE, textAlign: "left" }, s2: { top: "50%", right: M_SIDE, textAlign: "right" } },
+  // 1: stat top-right, stat2 center-left
+  { s1: { top: "18%", right: M_SIDE, textAlign: "right" }, s2: { top: "48%", left: M_SIDE, textAlign: "left" } },
+  // 2: stat center, stat2 top-right
+  { s1: { top: "35%", left: "50%", transform: "translateX(-50%)", textAlign: "center" }, s2: { top: "15%", right: M_SIDE, textAlign: "right" } },
+  // 3: stat bottom-left (above body), stat2 top-right
+  { s1: { top: "42%", left: M_SIDE, textAlign: "left" }, s2: { top: "18%", right: M_SIDE, textAlign: "right" } },
+  // 4: stat top-center, stat2 below it
+  { s1: { top: "18%", left: "50%", transform: "translateX(-50%)", textAlign: "center" }, s2: { top: "42%", left: "50%", transform: "translateX(-50%)", textAlign: "center" } },
+];
+
 // --- S4 STAT (Emigre scale clash) ---
 function S4Emigre({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
+  var layoutIdx = (index + (slide.stat ? slide.stat.length : 0)) % STAT_LAYOUTS.length;
+  var layout = STAT_LAYOUTS[layoutIdx];
+  var displayStat = formatStat(slide.stat);
+  var displayStat2 = slide.stat2 ? formatStat(slide.stat2) : null;
   return (
     <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.6)">
       <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
         <div style={{ ...FN, fontSize: 12, color: "#ffffffcc", letterSpacing: "0.05em", textTransform: "uppercase", textAlign: "left" }}>By the Numbers</div>
       </div>
-      <div style={{ position: "absolute", top: "24%", left: M_SIDE, zIndex: 3 }}>
-        <div style={{ textAlign: "left" }}>
-          <div style={{ ...FN, fontSize: slide.stat2 ? 48 : 64, color: p.accent, lineHeight: 0.85, letterSpacing: -1 }}>{slide.stat}</div>
+      <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, layout.s1)}>
+        <div>
+          <div style={{ ...FN, fontSize: displayStat2 ? 48 : 64, color: p.accent, lineHeight: 0.85, letterSpacing: -1 }}>{displayStat}</div>
           <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.statLabel || "Key Metric"}</div>
         </div>
       </div>
-      {slide.stat2 && <div style={{ position: "absolute", top: "52%", right: M_SIDE, textAlign: "right", zIndex: 3 }}>
-        <div style={{ ...FN, fontSize: 38, color: p.accent2 || p.text, lineHeight: 0.85 }}>{slide.stat2}</div>
-        <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.stat2Label || "Secondary"}</div>
+      {displayStat2 && <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, layout.s2)}>
+        <div>
+          <div style={{ ...FN, fontSize: 38, color: p.accent2 || p.text, lineHeight: 0.85 }}>{displayStat2}</div>
+          <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.stat2Label || "Secondary"}</div>
+        </div>
       </div>}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", zIndex: 3 }}>
         <div style={{ ...HD, fontSize: 9.5, color: "#ffffffcc", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
