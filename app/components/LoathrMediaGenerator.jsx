@@ -3,7 +3,9 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive } from "lucide-react";
 
 var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=DM+Serif+Display&display=swap";
-var PAD = 18;
+var PAD = 20;
+var PAD_TOP = 25;
+var PAD_BOT = 38;
 var HD = { fontFamily: "'Maheni','DM Serif Display',Georgia,serif", fontStyle: "normal", textTransform: "uppercase" };
 var FN = { fontFamily: "'Foun','DM Serif Display',Georgia,serif" };
 var WS = { fontFamily: "'Wenssep','Georgia',serif" };
@@ -107,12 +109,12 @@ function S1Cover({ slide, category, images }) {
   var url = getImg(images, 0);
   return (
     <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.88))">
-      <div style={{ position: "absolute", top: 8, left: 0, right: 0, textAlign: "center", zIndex: 2 }}>
-        <div style={{ ...CP, fontSize: 22, letterSpacing: "0.5em", color: p.accent + "14", fontWeight: 700 }}>LOATHR</div>
+      <div style={{ position: "absolute", top: PAD_TOP, left: PAD, right: PAD, textAlign: "center", zIndex: 2 }}>
+        <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "14", fontWeight: 700 }}>LOATHR</div>
       </div>
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: PAD, zIndex: 3 }}>
+      <div style={{ position: "absolute", bottom: PAD_BOT, left: PAD, right: PAD, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
-          <div style={{ ...HD, fontSize: slide.title && slide.title.length > 35 ? 26 : 32, color: p.text, lineHeight: 1.0, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }}>
+          <div style={{ ...HD, fontSize: slide.title && slide.title.length > 35 ? 24 : 30, color: p.text, lineHeight: 1.05, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }}>
             {formatTitle(slide.title, p.accent)}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
@@ -137,7 +139,7 @@ function S2Arena({ slide, index, category, images }) {
         {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
         {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
       </div>
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "28%", background: "#000000", padding: PAD, zIndex: 3 }}>
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "30%", background: "#000000", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
           <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.05em" }}>{(slide.heading || "PART " + index).toUpperCase()}</div>
           <div style={{ ...WS, fontSize: 10, color: "#ffffffe6", lineHeight: 1.8 }}>{slide.body}</div>
@@ -160,7 +162,7 @@ function S3RayGun({ slide, index, category, images }) {
         <div style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 3, background: p.accent }} />
         <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 3, background: p.accent }} />
       </div>
-      <div style={{ position: "absolute", bottom: PAD, left: PAD, right: PAD, zIndex: 3 }}>
+      <div style={{ position: "absolute", bottom: PAD_BOT, left: PAD, right: PAD, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
           <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{(slide.heading || "PART " + index).toUpperCase()}</div>
           <div style={{ ...WS, fontSize: 10, color: "#ffffffe6", lineHeight: 1.9, textShadow: "0 1px 8px rgba(0,0,0,0.9)" }}>{slide.body}</div>
@@ -177,20 +179,20 @@ function S4Emigre({ slide, index, category, images }) {
   var url = getImg(images, index);
   return (
     <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.45)">
-      <div style={{ position: "absolute", top: PAD, left: PAD, zIndex: 3 }}>
+      <div style={{ position: "absolute", top: PAD_TOP, left: PAD, zIndex: 3 }}>
         <div style={{ ...CP, fontSize: 6, color: p.accent + "55", letterSpacing: "0.15em" }}>{String(index).padStart(2, "0")} \u2014 BY THE NUMBERS</div>
       </div>
-      <div style={{ position: "absolute", top: "22%", left: PAD, zIndex: 3 }}>
+      <div style={{ position: "absolute", top: "24%", left: PAD, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
           <div style={{ ...HD, fontSize: slide.stat2 ? 48 : 64, color: p.accent, lineHeight: 0.85, letterSpacing: -1 }}>{slide.stat}</div>
           <div style={{ ...CP, fontSize: 6, color: p.text + "44", letterSpacing: "0.12em", marginTop: 3 }}>{(slide.statLabel || "KEY METRIC").toUpperCase()}</div>
         </div>
       </div>
-      {slide.stat2 && <div style={{ position: "absolute", top: "55%", right: PAD, textAlign: "right", zIndex: 3 }}>
+      {slide.stat2 && <div style={{ position: "absolute", top: "52%", right: PAD, textAlign: "right", zIndex: 3 }}>
         <div style={{ ...HD, fontSize: 38, color: p.accent2 || p.text, lineHeight: 0.85 }}>{slide.stat2}</div>
         <div style={{ ...CP, fontSize: 6, color: p.text + "33", letterSpacing: "0.1em", marginTop: 3 }}>{(slide.stat2Label || "SECONDARY").toUpperCase()}</div>
       </div>}
-      <div style={{ position: "absolute", bottom: PAD, left: PAD, right: PAD, zIndex: 3 }}>
+      <div style={{ position: "absolute", bottom: PAD_BOT, left: PAD, right: PAD, zIndex: 3 }}>
         <div style={{ ...WS, fontSize: 10, color: "#ffffffcc", lineHeight: 1.8, textAlign: "left", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>{slide.body}</div>
       </div>
     </ImgBg>
@@ -203,12 +205,12 @@ function S5Face({ slide, index, category, images }) {
   var url = getImg(images, index);
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 22, background: p.accent, display: "flex", alignItems: "center", padding: "0 " + PAD + "px", zIndex: 4 }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: PAD_TOP, background: p.accent, display: "flex", alignItems: "center", padding: "0 " + PAD + "px", zIndex: 4 }}>
         <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700, letterSpacing: "0.1em" }}>{String(index).padStart(2, "0")} \u2014 {(slide.heading || "SECTION").toUpperCase()}</span>
         <span style={{ flex: 1 }} />
         {slide.year && <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700 }}>{slide.year}</span>}
       </div>
-      <div style={{ position: "absolute", top: 22, left: 0, right: 0, bottom: 0, display: "flex" }}>
+      <div style={{ position: "absolute", top: PAD_TOP, left: 0, right: 0, bottom: 0, display: "flex" }}>
         <div style={{ width: "62%", position: "relative", borderRight: "2px solid " + p.accent }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
@@ -232,7 +234,7 @@ function S6Purple({ slide, index, category, images }) {
   var quoteText = slide.quote || slide.highlight || slide.body || "";
   return (
     <ImgBg url={url} pal={p} darken="radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.1), rgba(0,0,0,0.5))">
-      <div style={{ position: "absolute", top: "55%", left: 0, right: 0, padding: PAD, zIndex: 3 }}>
+      <div style={{ position: "absolute", top: "50%", left: PAD, right: PAD, bottom: PAD_BOT, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
           <div style={{ ...WS, fontSize: 13, fontStyle: "italic", color: "#ffffffdd", lineHeight: 1.7, textShadow: "0 2px 12px rgba(0,0,0,0.8)" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
           <div style={{ width: 12, height: 1, background: p.accent + "44", margin: "8px 0" }} />
@@ -250,8 +252,8 @@ function S7Blitz({ category, hashtags, images }) {
   return (
     <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.75)">
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 3 }}>
-        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.25em", color: p.accent + "99" }}>{CLOSER_TAGS[category]}</div>
-        <div style={{ ...CP, fontSize: 22, letterSpacing: "0.35em", color: "#ffffffbb", marginTop: 12, fontWeight: 700 }}>LOATHR</div>
+        <div style={{ ...CP, fontSize: 7, letterSpacing: "0.25em", color: p.accent + "99" }}>{CLOSER_TAGS[category]}</div>
+        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.35em", color: "#ffffffbb", marginTop: 10, fontWeight: 700 }}>LOATHR</div>
       </div>
     </ImgBg>
   );
