@@ -175,7 +175,7 @@ function S2Arena({ slide, index, category, images }) {
   var url = getImg(images, index);
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "70%", border: "2px solid " + p.accent }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "70%", borderBottom: "2px solid " + p.accent }}>
         {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
         {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
       </div>
@@ -208,7 +208,7 @@ function S3RayGun({ slide, index, category, images }) {
           <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
           {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent2 + "cc", marginTop: 4 }}>{slide.highlight}</div>}
         </div>
-        <div style={{ flex: 1, position: "relative", border: "2px solid " + p.accent }}>
+        <div style={{ flex: 1, position: "relative" }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
         </div>
@@ -219,7 +219,7 @@ function S3RayGun({ slide, index, category, images }) {
   // Image top, text bottom (carousel position 2)
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "65%", border: "2px solid " + p.accent2 }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "65%", borderBottom: "2px solid " + p.accent }}>
         {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
         {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
       </div>
@@ -273,11 +273,11 @@ function S5Face({ slide, index, category, images }) {
         {slide.year && <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700 }}>{slide.year}</span>}
       </div>
       <div style={{ position: "absolute", top: PAD_TOP, left: 0, right: 0, bottom: 0, display: "flex" }}>
-        <div style={{ width: "62%", position: "relative", border: "2px solid " + p.accent2 }}>
+        <div style={{ width: "62%", position: "relative", borderRight: "2px solid " + p.accent }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
         </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: 12, background: "#000000", borderTop: "2px solid " + p.accent, borderRight: "2px solid " + p.accent, borderBottom: "2px solid " + p.accent }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: 12, background: "#000000" }}>
           <div style={{ textAlign: "left" }}>
             <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
             <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "8px 0" }} />
@@ -330,15 +330,26 @@ function S7Blitz({ category, hashtags, images }) {
 
 // --- SLIDE RENDERER ---
 function SlideRenderer({ category, slideData, slideIndex, totalSlides, images }) {
+  var p = PALETTES[category];
   var lastIdx = totalSlides - 1;
-  if (slideIndex === lastIdx) return <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} />;
-  if (slideIndex === 0) return <S1Cover slide={slideData} category={category} images={images} />;
-  if (slideData.stat) return <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
-  if (slideData.quote) return <S6Purple slide={slideData} index={slideIndex} category={category} images={images} />;
-  var layouts = [S2Arena, S3RayGun, S5Face];
-  var pick = slideIndex % layouts.length;
-  var Component = layouts[pick];
-  return <Component slide={slideData} index={slideIndex} category={category} images={images} />;
+  // Alternate border color per slide
+  var borderColor = slideIndex % 2 === 0 ? p.accent : p.accent2;
+  var slide;
+  if (slideIndex === lastIdx) slide = <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} />;
+  else if (slideIndex === 0) slide = <S1Cover slide={slideData} category={category} images={images} />;
+  else if (slideData.stat) slide = <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
+  else if (slideData.quote) slide = <S6Purple slide={slideData} index={slideIndex} category={category} images={images} />;
+  else {
+    var layouts = [S2Arena, S3RayGun, S5Face];
+    var pick = slideIndex % layouts.length;
+    var Component = layouts[pick];
+    slide = <Component slide={slideData} index={slideIndex} category={category} images={images} />;
+  }
+  return (
+    <div style={{ width: "100%", height: "100%", border: "2px solid " + borderColor, overflow: "hidden" }}>
+      {slide}
+    </div>
+  );
 }
 
 // --- IMAGE SEARCH ---
