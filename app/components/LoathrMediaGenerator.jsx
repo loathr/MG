@@ -185,6 +185,52 @@ function AutoFit({ children, style, maxShrink }) {
   return <div ref={ref} style={Object.assign({}, style || {}, { fontSize: scale < 1 ? "calc(" + (style && style.fontSize ? style.fontSize : "inherit") + " * " + scale + ")" : undefined, overflow: "hidden" })}>{children}</div>;
 }
 
+// Comic bubble categories
+var BUBBLE_CATS = { trivia: true, art: true, food: true };
+
+// 3 bubble styles: speech (sharp tail), thought (dot trail), caption (rotated box)
+function BubbleBox({ children, style, accent, accent2, seed }) {
+  var variant = seed % 3;
+  var tailSide = seed % 2 === 0 ? "left" : "right";
+  var rotation = (seed % 5 - 2) * 0.5; // -1 to 1 deg
+
+  if (variant === 0) {
+    // Speech bubble — rounded with triangle tail
+    return (
+      <div style={Object.assign({}, { position: "relative", background: "rgba(0,0,0,0.85)", border: "1.5px solid " + accent, borderRadius: 10, padding: "10px 12px", transform: "rotate(" + rotation + "deg)" }, style || {})}>
+        {children}
+        <div style={{ position: "absolute", bottom: -8, width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "8px solid " + accent, ...(tailSide === "left" ? { left: 20 } : { right: 20 }) }} />
+        <div style={{ position: "absolute", bottom: -6, width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "6px solid rgba(0,0,0,0.85)", ...(tailSide === "left" ? { left: 21 } : { right: 21 }) }} />
+      </div>
+    );
+  }
+
+  if (variant === 1) {
+    // Thought bubble — rounded with dot trail
+    return (
+      <div style={{ position: "relative" }}>
+        <div style={Object.assign({}, { background: "rgba(0,0,0,0.85)", border: "1.5px solid " + accent2, borderRadius: 14, padding: "10px 12px", transform: "rotate(" + rotation + "deg)" }, style || {})}>
+          {children}
+        </div>
+        <div style={{ position: "absolute", bottom: -6, display: "flex", gap: 3, ...(tailSide === "left" ? { left: 16 } : { right: 16 }) }}>
+          <div style={{ width: 5, height: 5, borderRadius: "50%", background: accent2 }} />
+          <div style={{ width: 3, height: 3, borderRadius: "50%", background: accent2, marginTop: 3 }} />
+        </div>
+      </div>
+    );
+  }
+
+  // Caption box — slight rotation with accent side bar
+  var barSide = tailSide === "left" ? "borderLeft" : "borderRight";
+  var barStyle = {};
+  barStyle[barSide] = "3px solid " + accent;
+  return (
+    <div style={Object.assign({}, { background: "rgba(0,0,0,0.88)", borderRadius: 4, padding: "10px 12px", transform: "rotate(" + rotation + "deg)" }, barStyle, style || {})}>
+      {children}
+    </div>
+  );
+}
+
 function getImg(images, idx) {
   if (!images) return null;
   var keys = Object.keys(images);
@@ -227,12 +273,16 @@ function S1Cover({ slide, category, images }) {
 function S2Arena({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
+  var useBubble = BUBBLE_CATS[category];
+  var textContent = <div>
+    <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
+    <div style={{ ...HD, fontSize: 9.5, color: "#ffffffe6", lineHeight: 1.5, textAlign: "left" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    {slide.specs && <div style={{ marginTop: 8, border: "1px solid " + p.accent + "44", padding: "4px 6px", background: "rgba(255,255,255,0.03)" }}><div style={{ ...WS, fontSize: 5.3, color: "#ffffffaa", textAlign: "left" }}>{slide.specs}</div></div>}
+  </div>;
   return (
     <ImgBg url={url} pal={p} category={category} darken="rgba(0,0,0,0.25)">
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.25)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", zIndex: 3 }}>
-        <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
-        <div style={{ ...HD, fontSize: 9.5, color: "#ffffffe6", lineHeight: 1.5, textAlign: "left" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-        {slide.specs && <div style={{ marginTop: 8, border: "1px solid " + p.accent + "44", padding: "4px 6px", background: "rgba(255,255,255,0.03)" }}><div style={{ ...WS, fontSize: 5.3, color: "#ffffffaa", textAlign: "left" }}>{slide.specs}</div></div>}
+      <div style={{ position: "absolute", bottom: useBubble ? M_BOT + 10 : 0, left: M_SIDE, right: M_SIDE, zIndex: 3, ...(useBubble ? {} : { left: 0, right: 0, background: "rgba(0,0,0,0.25)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px" }) }}>
+        {useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</BubbleBox> : textContent}
       </div>
       <div style={{ position: "absolute", bottom: M_PAGE, right: M_SIDE, zIndex: 4 }}>
         <div style={{ ...CP, fontSize: 7, color: "#ffffff66" }}>{String(index).padStart(2, "0")}</div>
@@ -246,15 +296,19 @@ function S3RayGun({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
   var flipped = index % 2 === 0;
+  var useBubble = BUBBLE_CATS[category];
 
   if (flipped) {
     // Text left, image right (carousel position 5)
+    var flippedText = <div>
+      <div style={{ ...FN, fontSize: 12, color: "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }}>{slide.heading || "Part " + index}</div>
+      <div style={{ ...HD, fontSize: 8.5, color: "#ffffffe6", lineHeight: 1.45, textAlign: "right", overflow: "hidden" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
+      {slide.highlight && <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", color: p.accent2 + "cc", marginTop: 6, textAlign: "right", borderRight: "3px solid " + p.accent2, paddingRight: 6 }}>{slide.highlight}</div>}
+    </div>;
     return (
       <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
-        <div style={{ width: "40%", background: "#000000", borderRight: "2px solid " + p.accent2, padding: (M_TOP + 6) + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden" }}>
-          <div style={{ ...FN, fontSize: 12, color: "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }}>{slide.heading || "Part " + index}</div>
-          <div style={{ ...HD, fontSize: 8.5, color: "#ffffffe6", lineHeight: 1.45, textAlign: "right", overflow: "hidden" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
-          {slide.highlight && <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", color: p.accent2 + "cc", marginTop: 6, textAlign: "right", borderRight: "3px solid " + p.accent2, paddingRight: 6 }}>{slide.highlight}</div>}
+        <div style={{ width: "40%", background: "#000000", borderRight: useBubble ? "none" : "2px solid " + p.accent2, padding: (M_TOP + 6) + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          {useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</BubbleBox> : flippedText}
         </div>
         <div style={{ flex: 1, position: "relative" }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
@@ -265,16 +319,19 @@ function S3RayGun({ slide, index, category, images }) {
   }
 
   // Image top, text bottom (carousel position 2)
+  var normalText = <div>
+    <div style={{ ...FN, fontSize: 12, color: "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
+    <div style={{ ...HD, fontSize: 8.5, color: "#ffffffe6", lineHeight: 1.45, textAlign: "left", overflow: "hidden" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    {slide.highlight && <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", color: p.accent + "cc", marginTop: 6, borderLeft: "3px solid " + p.accent, paddingLeft: 6 }}>{slide.highlight}</div>}
+  </div>;
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "62%", borderBottom: "2px solid " + p.accent }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: useBubble ? "58%" : "62%", borderBottom: useBubble ? "none" : "2px solid " + p.accent }}>
         {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
         {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
       </div>
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "38%", background: "#000000", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden" }}>
-        <div style={{ ...FN, fontSize: 12, color: "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
-        <div style={{ ...HD, fontSize: 8.5, color: "#ffffffe6", lineHeight: 1.45, textAlign: "left", overflow: "hidden" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-        {slide.highlight && <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", color: p.accent + "cc", marginTop: 6, borderLeft: "3px solid " + p.accent, paddingLeft: 6 }}>{slide.highlight}</div>}
+      <div style={{ position: "absolute", bottom: useBubble ? M_BOT : 0, left: M_SIDE, right: M_SIDE, ...(useBubble ? {} : { left: 0, right: 0, height: "38%", background: "#000000", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px" }), overflow: "hidden", zIndex: 3 }}>
+        {useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</BubbleBox> : normalText}
       </div>
     </div>
   );
@@ -351,6 +408,12 @@ function S4Emigre({ slide, index, category, images }) {
 function S5Face({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
+  var useBubble = BUBBLE_CATS[category];
+  var s5Text = <div style={{ overflow: "hidden" }}>
+    <div style={{ ...HD, fontSize: 8.5, color: "#ffffffe6", lineHeight: 1.45, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    {!useBubble && <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />}
+    {slide.highlight && <div style={{ ...WS, fontSize: 5.3, color: p.accent2 + "cc", fontStyle: "italic", textAlign: "right", marginTop: 6, borderRight: "3px solid " + p.accent2, paddingRight: 6 }}>{slide.highlight}</div>}
+  </div>;
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: M_TOP + 5, background: p.accent, display: "flex", alignItems: "center", padding: "0 " + M_SIDE + "px", zIndex: 4 }}>
@@ -359,16 +422,12 @@ function S5Face({ slide, index, category, images }) {
         {slide.year && <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700 }}>{slide.year}</span>}
       </div>
       <div style={{ position: "absolute", top: M_TOP + 5, left: 0, right: 0, bottom: 0, display: "flex" }}>
-        <div style={{ width: "62%", position: "relative", borderRight: "2px solid " + p.accent }}>
+        <div style={{ width: "62%", position: "relative", borderRight: useBubble ? "none" : "2px solid " + p.accent }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: (M_TOP + 4) + "px " + (M_SIDE - 2) + "px " + M_BOT + "px", background: "#000000", overflow: "hidden" }}>
-          <div style={{ overflow: "hidden" }}>
-            <div style={{ ...HD, fontSize: 8.5, color: "#ffffffe6", lineHeight: 1.45, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-            <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />
-            {slide.highlight && <div style={{ ...WS, fontSize: 5.3, color: p.accent2 + "cc", fontStyle: "italic", textAlign: "right", marginTop: 6, borderRight: "3px solid " + p.accent2, paddingRight: 6 }}>{slide.highlight}</div>}
-          </div>
+          {useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</BubbleBox> : s5Text}
         </div>
       </div>
       <div style={{ position: "absolute", bottom: M_PAGE, right: M_SIDE, zIndex: 5 }}>
