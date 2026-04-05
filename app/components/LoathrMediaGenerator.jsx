@@ -1200,72 +1200,51 @@ export default function LoathrMediaGenerator() {
 
       {isGenerating && <div style={{ textAlign: "center", padding: "40px 0" }}>
         <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 16 }}>
-          {/* Hammering */}
-          <div>
-            <svg width="40" height="50" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.8 }}>
-              <circle cx="16" cy="6" r="4" stroke="#888888" strokeWidth="1.5" fill="none"/>
-              <line x1="16" y1="10" x2="16" y2="24" stroke="#888888" strokeWidth="1.5"/>
-              <line x1="16" y1="24" x2="10" y2="36" stroke="#888888" strokeWidth="1.5"/>
-              <line x1="16" y1="24" x2="22" y2="36" stroke="#888888" strokeWidth="1.5"/>
-              <line x1="16" y1="14" x2="8" y2="20" stroke="#888888" strokeWidth="1.5"/>
-              <g style={{ transformOrigin: "8px 20px", animation: "hammer 0.6s ease-in-out infinite" }}>
-                <line x1="8" y1="20" x2="4" y2="14" stroke="#888888" strokeWidth="1.5"/>
-                <rect x="1" y="11" width="6" height="4" rx="1" fill="#888888" opacity="0.4"/>
-              </g>
-            </svg>
-            <div style={{ ...CP, fontSize: 5, color: "#888888", opacity: 0.7, marginTop: 2 }}>building</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ width: 40, height: 50, position: "relative" }}>
+              <div style={{ position: "absolute", top: 2, left: 14, width: 12, height: 12, borderRadius: "50%", border: "2px solid #888" }} />
+              <div style={{ position: "absolute", top: 14, left: 19, width: 2, height: 16, background: "#888" }} />
+              <div style={{ position: "absolute", top: 30, left: 12, width: 2, height: 16, background: "#888", transform: "rotate(20deg)" }} />
+              <div style={{ position: "absolute", top: 30, left: 26, width: 2, height: 16, background: "#888", transform: "rotate(-20deg)" }} />
+              <div style={{ position: "absolute", top: 18, left: 8, width: 12, height: 2, background: "#888", transform: "rotate(30deg)" }} />
+              <div style={{ position: "absolute", top: 14, left: 2, width: 8, height: 5, background: "#888", borderRadius: 2, opacity: 0.5, animation: "hammer 0.6s ease-in-out infinite", transformOrigin: "right center" }} />
+            </div>
+            <div style={{ ...CP, fontSize: 6, color: "#888", marginTop: 2 }}>building</div>
           </div>
-          {/* Painting */}
-          <div>
-            <svg width="40" height="50" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.8 }}>
-              <circle cx="16" cy="6" r="4" stroke="#888888" strokeWidth="1.5" fill="none"/>
-              <line x1="16" y1="10" x2="16" y2="24" stroke="#888888" strokeWidth="1.5"/>
-              <line x1="16" y1="24" x2="11" y2="36" stroke="#888888" strokeWidth="1.5"/>
-              <line x1="16" y1="24" x2="21" y2="36" stroke="#888888" strokeWidth="1.5"/>
-              <line x1="16" y1="14" x2="10" y2="18" stroke="#888888" strokeWidth="1.5"/>
-              <g style={{ animation: "paint 0.8s ease-in-out infinite" }}>
-                <line x1="16" y1="14" x2="26" y2="10" stroke="#888888" strokeWidth="1.5"/>
-                <line x1="26" y1="10" x2="28" y2="6" stroke="#888888" strokeWidth="2" strokeLinecap="round"/>
-              </g>
-            </svg>
-            <div style={{ ...CP, fontSize: 5, color: "#888888", opacity: 0.7, marginTop: 2 }}>painting</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ width: 40, height: 50, position: "relative" }}>
+              <div style={{ position: "absolute", top: 2, left: 14, width: 12, height: 12, borderRadius: "50%", border: "2px solid #888" }} />
+              <div style={{ position: "absolute", top: 14, left: 19, width: 2, height: 16, background: "#888" }} />
+              <div style={{ position: "absolute", top: 30, left: 13, width: 2, height: 16, background: "#888", transform: "rotate(15deg)" }} />
+              <div style={{ position: "absolute", top: 30, left: 25, width: 2, height: 16, background: "#888", transform: "rotate(-15deg)" }} />
+              <div style={{ position: "absolute", top: 18, left: 8, width: 12, height: 2, background: "#888", transform: "rotate(20deg)" }} />
+              <div style={{ position: "absolute", top: 12, left: 24, width: 14, height: 2, background: "#888", animation: "paint 0.8s ease-in-out infinite", transformOrigin: "left center", transform: "rotate(-20deg)" }} />
+            </div>
+            <div style={{ ...CP, fontSize: 6, color: "#888", marginTop: 2 }}>painting</div>
           </div>
-          {/* Sweeping */}
-          <div>
-            <svg width="40" height="50" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.8 }}>
-              <circle cx="16" cy="6" r="4" stroke="#888888" strokeWidth="1.5" fill="none"/>
-              <line x1="16" y1="10" x2="16" y2="24" stroke="#888888" strokeWidth="1.5"/>
-              <line x1="16" y1="24" x2="12" y2="36" stroke="#888888" strokeWidth="1.5"/>
-              <line x1="16" y1="24" x2="20" y2="36" stroke="#888888" strokeWidth="1.5"/>
-              <line x1="16" y1="15" x2="10" y2="19" stroke="#888888" strokeWidth="1.5"/>
-              <g style={{ transformOrigin: "16px 15px", animation: "sweep 0.7s ease-in-out infinite" }}>
-                <line x1="16" y1="15" x2="24" y2="19" stroke="#888888" strokeWidth="1.5"/>
-                <line x1="24" y1="19" x2="24" y2="36" stroke="#888888" strokeWidth="1.5"/>
-                <line x1="21" y1="34" x2="27" y2="36" stroke="#888888" strokeWidth="2"/>
-              </g>
-            </svg>
-            <div style={{ ...CP, fontSize: 5, color: "#888888", opacity: 0.7, marginTop: 2 }}>tidying</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ width: 40, height: 50, position: "relative" }}>
+              <div style={{ position: "absolute", top: 2, left: 14, width: 12, height: 12, borderRadius: "50%", border: "2px solid #888" }} />
+              <div style={{ position: "absolute", top: 14, left: 19, width: 2, height: 16, background: "#888" }} />
+              <div style={{ position: "absolute", top: 30, left: 14, width: 2, height: 16, background: "#888", transform: "rotate(12deg)" }} />
+              <div style={{ position: "absolute", top: 30, left: 24, width: 2, height: 16, background: "#888", transform: "rotate(-12deg)" }} />
+              <div style={{ position: "absolute", top: 16, left: 22, width: 2, height: 28, background: "#888", animation: "sweep 0.7s ease-in-out infinite", transformOrigin: "top center" }} />
+              <div style={{ position: "absolute", bottom: 2, left: 20, width: 10, height: 3, background: "#888", borderRadius: 1, animation: "sweep 0.7s ease-in-out infinite", transformOrigin: "left center" }} />
+            </div>
+            <div style={{ ...CP, fontSize: 6, color: "#888", marginTop: 2 }}>tidying</div>
           </div>
-          {/* Carrying */}
-          <div>
-            <svg width="40" height="50" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.8 }}>
-              <circle cx="16" cy="6" r="4" stroke="#888888" strokeWidth="1.5" fill="none"/>
-              <line x1="16" y1="10" x2="16" y2="24" stroke="#888888" strokeWidth="1.5"/>
-              <g style={{ animation: "walk 0.5s ease-in-out infinite" }}>
-                <line x1="16" y1="24" x2="10" y2="36" stroke="#888888" strokeWidth="1.5"/>
-              </g>
-              <g style={{ animation: "walk 0.5s ease-in-out infinite 0.25s" }}>
-                <line x1="16" y1="24" x2="22" y2="36" stroke="#888888" strokeWidth="1.5"/>
-              </g>
-              <g style={{ animation: "carry 0.5s ease-in-out infinite" }}>
-                <line x1="8" y1="14" x2="24" y2="14" stroke="#888888" strokeWidth="1.5"/>
-                <rect x="8" y="8" width="16" height="6" rx="1" stroke="#888888" strokeWidth="1" fill="none" opacity="0.4"/>
-              </g>
-            </svg>
-            <div style={{ ...CP, fontSize: 5, color: "#888888", opacity: 0.7, marginTop: 2 }}>loading</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ width: 40, height: 50, position: "relative" }}>
+              <div style={{ position: "absolute", top: 2, left: 14, width: 12, height: 12, borderRadius: "50%", border: "2px solid #888" }} />
+              <div style={{ position: "absolute", top: 14, left: 19, width: 2, height: 16, background: "#888" }} />
+              <div style={{ position: "absolute", top: 30, left: 12, width: 2, height: 16, background: "#888", animation: "walk 0.5s ease-in-out infinite" }} />
+              <div style={{ position: "absolute", top: 30, left: 26, width: 2, height: 16, background: "#888", animation: "walk 0.5s ease-in-out infinite 0.25s" }} />
+              <div style={{ position: "absolute", top: 6, left: 8, width: 24, height: 8, border: "2px solid #888", borderRadius: 2, opacity: 0.6, animation: "carry 0.5s ease-in-out infinite" }} />
+            </div>
+            <div style={{ ...CP, fontSize: 6, color: "#888", marginTop: 2 }}>loading</div>
           </div>
         </div>
-        <div style={{ ...CP, fontSize: 8, color: "#888888", letterSpacing: "0.15em", opacity: 0.7, animation: "pulse 1.5s ease-in-out infinite" }}>WORKING ON YOUR CAROUSEL</div>
+        <div style={{ ...CP, fontSize: 8, color: "#888888", letterSpacing: "0.15em", opacity: 0.8, animation: "pulse 1.5s ease-in-out infinite" }}>WORKING ON YOUR CAROUSEL</div>
       </div>}
       {error && <div style={{ padding: "14px 18px", background: "var(--color-background-danger)", border: "1px solid var(--color-border-danger)", color: "var(--color-text-danger)", fontSize: 12, marginBottom: 16 }}>{error}</div>}
       {imgStatus && options && <div style={{ textAlign: "center", marginBottom: 12, ...CP, fontSize: 10, color: imgStatus.indexOf("loaded") >= 0 ? "var(--color-text-success)" : "var(--color-text-warning)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>{imgStatus.indexOf("loaded") >= 0 ? <CheckCircle size={11} /> : <AlertTriangle size={11} />}{imgStatus}</div>}
