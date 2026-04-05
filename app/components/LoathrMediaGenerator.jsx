@@ -253,13 +253,13 @@ function S7Blitz({ category, hashtags, images }) {
   var url = getImg(images, 0);
   return (
     <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.75)">
-      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 140, height: 140, border: "1px solid " + p.accent + "14", borderRadius: "50%", zIndex: 2 }} />
-      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 100, height: 100, border: "1px solid " + p.accent + "0a", borderRadius: "50%", zIndex: 2 }} />
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 140, height: 140, border: "1px solid " + p.accent + "33", borderRadius: "50%", zIndex: 2 }} />
+      <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 100, height: 100, border: "1px solid " + p.accent + "22", borderRadius: "50%", zIndex: 2 }} />
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 3 }}>
-        <div style={{ ...CP, fontSize: 7, letterSpacing: "0.25em", color: p.accent + "44" }}>{CLOSER_TAGS[category]}</div>
-        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.45em", color: p.text + "18", marginTop: 12 }}>LOATHR</div>
-        <div style={{ width: 24, height: 1, background: p.accent + "22", margin: "8px auto" }} />
-        {hashtags && <div style={{ ...CP, fontSize: 7, color: p.text + "0d", marginTop: 4 }}>{hashtags}</div>}
+        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.25em", color: p.accent + "99" }}>{CLOSER_TAGS[category]}</div>
+        <div style={{ ...HD, fontSize: 22, letterSpacing: "0.35em", color: "#ffffffbb", marginTop: 12 }}>LOATHR</div>
+        <div style={{ width: 30, height: 1, background: p.accent + "55", margin: "10px auto" }} />
+        {hashtags && <div style={{ ...CP, fontSize: 8, color: "#ffffff88", marginTop: 6, maxWidth: 200 }}>{hashtags}</div>}
       </div>
     </ImgBg>
   );
