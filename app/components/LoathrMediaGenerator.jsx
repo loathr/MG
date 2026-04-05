@@ -1074,6 +1074,11 @@ export default function LoathrMediaGenerator() {
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
       if (!text.trim()) throw new Error("No text in response");
       var cleaned = text.replace(/```json|```/g, "").trim();
+      // Extract JSON object from text — Claude may add preamble/postamble with web search
+      var jsonStart = cleaned.indexOf("{");
+      var jsonEnd = cleaned.lastIndexOf("}");
+      if (jsonStart === -1 || jsonEnd === -1) throw new Error("No JSON found in response");
+      cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
       cleaned = cleaned.replace(/,\s*([}\]])/g, "$1");
       var parsed = JSON.parse(cleaned);
       // Convert rec JSON into slides array format
