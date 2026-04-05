@@ -178,7 +178,7 @@ function S2Arena({ slide, index, category, images }) {
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "30%", background: "#000000", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
           <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 5, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
-          <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.8, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
+          <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
           {slide.specs && <div style={{ ...WS, fontSize: 7, color: "#ffffffaa", marginTop: 4, textAlign: "justify" }}>{slide.specs}</div>}
         </div>
       </div>
@@ -204,7 +204,7 @@ function S3RayGun({ slide, index, category, images }) {
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.9)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
           <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 4, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
-          <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.9, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
+          <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
           {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent + "cc", marginTop: 4 }}>{slide.highlight}</div>}
         </div>
       </div>
@@ -235,7 +235,7 @@ function S4Emigre({ slide, index, category, images }) {
         <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.stat2Label || "Secondary"}</div>
       </div>}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
-        <div style={{ ...WS, fontSize: 9, color: "#ffffffcc", lineHeight: 1.8, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
+        <div style={{ ...WS, fontSize: 9, color: "#ffffffcc", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
       </div>
       <div style={{ position: "absolute", bottom: 8, left: PAD, zIndex: 4 }}>
         <div style={{ ...CP, fontSize: 6, color: "#ffffff33" }}>{String(index).padStart(2, "0")}</div>
@@ -262,7 +262,7 @@ function S5Face({ slide, index, category, images }) {
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: 12, background: "#000000" }}>
           <div style={{ textAlign: "left" }}>
-            <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 2.0, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
+            <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
             <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "8px 0" }} />
             {slide.highlight && <div style={{ ...WS, fontSize: 8, color: p.accent + "cc", fontStyle: "italic" }}>{slide.highlight}</div>}
           </div>
@@ -284,7 +284,7 @@ function S6Purple({ slide, index, category, images }) {
     <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.9))">
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
-          <div style={{ ...WS, fontSize: 11, fontStyle: "italic", color: "#ffffffdd", lineHeight: 1.7, textAlign: "justify" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
+          <div style={{ ...WS, fontSize: 11, fontStyle: "italic", color: "#ffffffdd", lineHeight: 1.5, textAlign: "justify" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
           <div style={{ width: 12, height: 1, background: p.accent + "66", margin: "8px 0" }} />
           {slide.source && <div style={{ ...CP, fontSize: 7, color: p.accent + "99", letterSpacing: "0.08em" }}>{slide.source}</div>}
         </div>
