@@ -122,7 +122,7 @@ function S1Cover({ slide, category, images }) {
   return (
     <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.55) 70%, rgba(0,0,0,0.88))">
       <div style={{ position: "absolute", top: PAD_TOP, left: PAD, right: PAD, textAlign: "center", zIndex: 2 }}>
-        <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "14", fontWeight: 700 }}>LOATHR</div>
+        <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "21", fontWeight: 700 }}>LOATHR</div>
       </div>
       <div style={{ position: "absolute", bottom: PAD_BOT, left: PAD, right: PAD, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
@@ -639,7 +639,7 @@ export default function LoathrMediaGenerator() {
           </button>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
+          <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", border: "1.5px solid #ffffff", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
             <SlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} />
           </div>
         </div>
