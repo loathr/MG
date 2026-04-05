@@ -192,23 +192,22 @@ var FORMAL_CATS = { film: true, photo: true, sports: true, nightlife: true };
 
 // Formal frame styles for editorial categories
 function FormalFrame({ children, style, accent, accent2, seed }) {
-  var variant = seed % 3;
+  var variant = seed % 5;
   var bg = "rgba(0,0,0,0.8)";
-  var lineW = 1.5;
 
   if (variant === 0) {
     // L-bracket frame — corner brackets only
-    var sz = 10;
+    var sz = 10, lw = 1.5;
     return (
       <div style={Object.assign({}, { position: "relative", background: bg, padding: "10px 12px" }, style || {})}>
-        <div style={{ position: "absolute", top: -1, left: -1, width: sz, height: lineW, background: accent }} />
-        <div style={{ position: "absolute", top: -1, left: -1, width: lineW, height: sz, background: accent }} />
-        <div style={{ position: "absolute", top: -1, right: -1, width: sz, height: lineW, background: accent }} />
-        <div style={{ position: "absolute", top: -1, right: -1, width: lineW, height: sz, background: accent }} />
-        <div style={{ position: "absolute", bottom: -1, left: -1, width: sz, height: lineW, background: accent2 || accent }} />
-        <div style={{ position: "absolute", bottom: -1, left: -1, width: lineW, height: sz, background: accent2 || accent }} />
-        <div style={{ position: "absolute", bottom: -1, right: -1, width: sz, height: lineW, background: accent2 || accent }} />
-        <div style={{ position: "absolute", bottom: -1, right: -1, width: lineW, height: sz, background: accent2 || accent }} />
+        <div style={{ position: "absolute", top: -1, left: -1, width: sz, height: lw, background: accent }} />
+        <div style={{ position: "absolute", top: -1, left: -1, width: lw, height: sz, background: accent }} />
+        <div style={{ position: "absolute", top: -1, right: -1, width: sz, height: lw, background: accent }} />
+        <div style={{ position: "absolute", top: -1, right: -1, width: lw, height: sz, background: accent }} />
+        <div style={{ position: "absolute", bottom: -1, left: -1, width: sz, height: lw, background: accent2 || accent }} />
+        <div style={{ position: "absolute", bottom: -1, left: -1, width: lw, height: sz, background: accent2 || accent }} />
+        <div style={{ position: "absolute", bottom: -1, right: -1, width: sz, height: lw, background: accent2 || accent }} />
+        <div style={{ position: "absolute", bottom: -1, right: -1, width: lw, height: sz, background: accent2 || accent }} />
         {children}
       </div>
     );
@@ -227,16 +226,51 @@ function FormalFrame({ children, style, accent, accent2, seed }) {
     );
   }
 
-  // Side rail — vertical accent bar on alternating side
-  var side = seed % 2 === 0 ? "left" : "right";
-  var railStyle = {};
-  railStyle["border" + (side === "left" ? "Left" : "Right")] = "3px solid " + accent;
-  railStyle["padding" + (side === "left" ? "Left" : "Right")] = "10px";
+  if (variant === 2) {
+    // Side rail — vertical accent bar
+    var side = seed % 2 === 0 ? "left" : "right";
+    var railStyle = {};
+    railStyle["border" + (side === "left" ? "Left" : "Right")] = "3px solid " + accent;
+    railStyle["padding" + (side === "left" ? "Left" : "Right")] = "10px";
+    return (
+      <div style={Object.assign({}, { position: "relative", background: bg, padding: "10px 12px" }, railStyle, style || {})}>
+        {children}
+      </div>
+    );
+  }
+
+  if (variant === 3) {
+    // Double rule — accent line above + accent2 line below
+    return (
+      <div style={Object.assign({}, { position: "relative", background: bg, padding: "10px 12px" }, style || {})}>
+        <div style={{ position: "absolute", top: -2, left: 0, right: 0, height: 2, background: accent }} />
+        <div style={{ position: "absolute", bottom: -2, left: 0, right: 0, height: 2, background: accent2 || accent }} />
+        {children}
+      </div>
+    );
+  }
+
+  // Inset mat — outer border + inner gap
   return (
-    <div style={Object.assign({}, { position: "relative", background: bg, padding: "10px 12px" }, railStyle, style || {})}>
-      {children}
+    <div style={Object.assign({}, { position: "relative", border: "1px solid " + accent + "33", padding: 3 }, style || {})}>
+      <div style={{ background: bg, padding: "8px 10px", border: "1px solid " + (accent2 || accent) + "22" }}>
+        {children}
+      </div>
     </div>
   );
+}
+
+// Randomized frame position based on topic + slideIndex
+function getFramePosition(seed, slideIndex) {
+  var positions = [
+    { bottom: M_BOT, left: M_SIDE, right: M_SIDE },          // bottom full
+    { bottom: M_BOT, left: M_SIDE, right: "50%" },            // bottom-left
+    { bottom: M_BOT, left: "40%", right: M_SIDE },            // bottom-right
+    { top: "45%", left: M_SIDE, right: "45%" },               // center-left
+    { top: "45%", left: "45%", right: M_SIDE },               // center-right
+  ];
+  var pick = (seed + slideIndex * 7) % positions.length;
+  return positions[pick];
 }
 
 // 3 bubble styles: speech (sharp tail), thought (dot trail), caption (rotated box)
@@ -381,7 +415,7 @@ function S1Cover({ slide, category, images }) {
               <div style={{ ...CP, fontSize: 9, color: "#ffffffcc", letterSpacing: "0.1em", fontWeight: 700 }}>{CAT_LABELS[category]}</div>
               <div style={{ width: 8, height: 8, background: p.accent2 || p.accent }} />
             </div>
-            {slide.subtitle && <div style={{ ...HD, fontSize: 10.5, color: "#ffffffaa", marginTop: 8 }}>{slide.subtitle}</div>}
+            {slide.subtitle && <div style={{ ...HD, fontSize: 10.5, marginTop: 8, background: "linear-gradient(to right, " + p.accent + ", " + (p.accent2 || p.accent) + ")", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{slide.subtitle}</div>}
           </div>
         </div>
       </ImgBg>
@@ -405,9 +439,11 @@ function S2Arena({ slide, index, category, images }) {
     : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</StickyNote>
     : useFormal ? <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</FormalFrame>
     : textContent;
+  var contentSeed = (slide.body || "").length + (slide.heading || "").length;
+  var fpos = getFramePosition(contentSeed, index);
   return (
-    <ImgBg url={url} pal={p} category={category} darken={styled ? null : "rgba(0,0,0,0.25)"}>
-      <div style={{ position: "absolute", bottom: styled ? M_BOT : 0, left: M_SIDE, right: M_SIDE, zIndex: 3, ...(styled ? {} : { left: 0, right: 0, background: "rgba(0,0,0,0.25)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px" }) }}>
+    <ImgBg url={url} pal={p} category={category}>
+      <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fpos)}>
         {wrappedText}
       </div>
       <div style={{ position: "absolute", bottom: M_PAGE, right: M_SIDE, zIndex: 4 }}>
@@ -438,20 +474,11 @@ function S3RayGun({ slide, index, category, images }) {
       : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</StickyNote>
       : useFormal ? <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</FormalFrame>
       : flippedText;
-    if (styled) {
-      return (
-        <ImgBg url={url} pal={p} category={category}>
-          <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: "50%", zIndex: 3 }}>
-            {flippedWrapped}
-          </div>
-        </ImgBg>
-      );
-    }
-    // Fallback — also uses full image
+    var fposFlip = getFramePosition((slide.body || "").length, index);
     return (
       <ImgBg url={url} pal={p} category={category}>
-        <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: "50%", zIndex: 3 }}>
-          <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</FormalFrame>
+        <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fposFlip)}>
+          {flippedWrapped}
         </div>
       </ImgBg>
     );
@@ -467,10 +494,11 @@ function S3RayGun({ slide, index, category, images }) {
     : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</StickyNote>
     : useFormal ? <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</FormalFrame>
     : normalText;
+  var fposNorm = getFramePosition((slide.heading || "").length, index);
   if (styled) {
     return (
       <ImgBg url={url} pal={p} category={category}>
-        <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+        <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fposNorm)}>
           {normalWrapped}
         </div>
       </ImgBg>
@@ -479,7 +507,7 @@ function S3RayGun({ slide, index, category, images }) {
   // Fallback — also uses full image
   return (
     <ImgBg url={url} pal={p} category={category}>
-      <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+      <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fposNorm)}>
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</FormalFrame>
       </div>
     </ImgBg>
@@ -543,7 +571,7 @@ function S4Emigre({ slide, index, category, images }) {
           <div style={{ ...HD, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.stat2Label || "Secondary"}</div>
         </div>
       </div>}
-      <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+      <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, getFramePosition((slide.stat || "").length + (slide.body || "").length, index))}>
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 3}>
           <div style={{ ...HD, fontSize: 9.5, color: "#ffffffcc", lineHeight: 1.5, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
         </FormalFrame>
@@ -610,7 +638,7 @@ function S6Purple({ slide, index, category, images }) {
   var quoteText = slide.quote || slide.highlight || slide.body || "";
   return (
     <ImgBg url={url} pal={p} category={category}>
-      <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+      <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, getFramePosition(quoteText.length, index))}>
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 4}>
           <div style={{ ...HD, fontSize: 11.5, fontStyle: "italic", color: "#ffffffdd", lineHeight: 1.5, textAlign: "left" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
           <div style={{ width: 12, height: 1, background: p.accent + "66", margin: "8px 0 8px auto" }} />
