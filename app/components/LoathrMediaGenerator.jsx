@@ -1166,10 +1166,10 @@ export default function LoathrMediaGenerator() {
       )}
 
       {isGenerating && <div style={{ textAlign: "center", padding: "40px 0" }}>
-        <div style={{ display: "flex", justifyContent: "center", gap: 24, marginBottom: 16 }}>
-          {/* Hammering stick figure */}
-          <div style={{ animation: "figfade 8s ease infinite", animationDelay: "0s" }}>
-            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.4 }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 16 }}>
+          {/* Hammering */}
+          <div>
+            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.5 }}>
               <circle cx="16" cy="6" r="4" stroke="var(--color-text-tertiary)" strokeWidth="1.5" fill="none"/>
               <line x1="16" y1="10" x2="16" y2="24" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
               <line x1="16" y1="24" x2="10" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
@@ -1177,14 +1177,14 @@ export default function LoathrMediaGenerator() {
               <line x1="16" y1="14" x2="8" y2="20" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
               <g style={{ transformOrigin: "8px 20px", animation: "hammer 0.6s ease-in-out infinite" }}>
                 <line x1="8" y1="20" x2="4" y2="14" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-                <rect x="1" y="11" width="6" height="4" rx="1" fill="var(--color-text-tertiary)" opacity="0.3"/>
+                <rect x="1" y="11" width="6" height="4" rx="1" fill="var(--color-text-tertiary)" opacity="0.4"/>
               </g>
             </svg>
-            <div style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 2 }}>building</div>
+            <div style={{ ...CP, fontSize: 5, color: "var(--color-text-tertiary)", opacity: 0.4, marginTop: 2 }}>building</div>
           </div>
-          {/* Painting stick figure */}
-          <div style={{ animation: "figfade 8s ease infinite", animationDelay: "2s", opacity: 0 }}>
-            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.4 }}>
+          {/* Painting */}
+          <div>
+            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.5 }}>
               <circle cx="16" cy="6" r="4" stroke="var(--color-text-tertiary)" strokeWidth="1.5" fill="none"/>
               <line x1="16" y1="10" x2="16" y2="24" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
               <line x1="16" y1="24" x2="11" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
@@ -1195,11 +1195,11 @@ export default function LoathrMediaGenerator() {
                 <line x1="26" y1="10" x2="28" y2="6" stroke="var(--color-text-tertiary)" strokeWidth="2" strokeLinecap="round"/>
               </g>
             </svg>
-            <div style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 2 }}>painting</div>
+            <div style={{ ...CP, fontSize: 5, color: "var(--color-text-tertiary)", opacity: 0.4, marginTop: 2 }}>painting</div>
           </div>
-          {/* Sweeping stick figure */}
-          <div style={{ animation: "figfade 8s ease infinite", animationDelay: "4s", opacity: 0 }}>
-            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.4 }}>
+          {/* Sweeping */}
+          <div>
+            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.5 }}>
               <circle cx="16" cy="6" r="4" stroke="var(--color-text-tertiary)" strokeWidth="1.5" fill="none"/>
               <line x1="16" y1="10" x2="16" y2="24" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
               <line x1="16" y1="24" x2="12" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
@@ -1211,11 +1211,11 @@ export default function LoathrMediaGenerator() {
                 <line x1="21" y1="34" x2="27" y2="36" stroke="var(--color-text-tertiary)" strokeWidth="2"/>
               </g>
             </svg>
-            <div style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 2 }}>tidying</div>
+            <div style={{ ...CP, fontSize: 5, color: "var(--color-text-tertiary)", opacity: 0.4, marginTop: 2 }}>tidying</div>
           </div>
-          {/* Carrying stick figure */}
-          <div style={{ animation: "figfade 8s ease infinite", animationDelay: "6s", opacity: 0 }}>
-            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.4 }}>
+          {/* Carrying */}
+          <div>
+            <svg width="32" height="40" viewBox="0 0 32 40" fill="none" style={{ opacity: 0.5 }}>
               <circle cx="16" cy="6" r="4" stroke="var(--color-text-tertiary)" strokeWidth="1.5" fill="none"/>
               <line x1="16" y1="10" x2="16" y2="24" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
               <g style={{ animation: "walk 0.5s ease-in-out infinite" }}>
@@ -1226,13 +1226,13 @@ export default function LoathrMediaGenerator() {
               </g>
               <g style={{ animation: "carry 0.5s ease-in-out infinite" }}>
                 <line x1="8" y1="14" x2="24" y2="14" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
-                <rect x="8" y="8" width="16" height="6" rx="1" stroke="var(--color-text-tertiary)" strokeWidth="1" fill="none" opacity="0.3"/>
+                <rect x="8" y="8" width="16" height="6" rx="1" stroke="var(--color-text-tertiary)" strokeWidth="1" fill="none" opacity="0.4"/>
               </g>
             </svg>
-            <div style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 2 }}>loading</div>
+            <div style={{ ...CP, fontSize: 5, color: "var(--color-text-tertiary)", opacity: 0.4, marginTop: 2 }}>loading</div>
           </div>
         </div>
-        <div style={{ ...CP, fontSize: 8, color: "var(--color-text-tertiary)", letterSpacing: "0.15em", opacity: 0.4 }}>WORKING ON IT</div>
+        <div style={{ ...CP, fontSize: 8, color: "var(--color-text-tertiary)", letterSpacing: "0.15em", opacity: 0.5, animation: "pulse 1.5s ease-in-out infinite" }}>WORKING ON YOUR CAROUSEL</div>
       </div>}
       {error && <div style={{ padding: "14px 18px", background: "var(--color-background-danger)", border: "1px solid var(--color-border-danger)", color: "var(--color-text-danger)", fontSize: 12, marginBottom: 16 }}>{error}</div>}
       {imgStatus && options && <div style={{ textAlign: "center", marginBottom: 12, ...CP, fontSize: 10, color: imgStatus.indexOf("loaded") >= 0 ? "var(--color-text-success)" : "var(--color-text-warning)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>{imgStatus.indexOf("loaded") >= 0 ? <CheckCircle size={11} /> : <AlertTriangle size={11} />}{imgStatus}</div>}
