@@ -292,18 +292,18 @@ function S4Emigre({ slide, index, category, images }) {
       </div>
       <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, layout.s1)}>
         <div>
-          <div style={{ ...FN, fontSize: displayStat2 ? 48 : 64, color: p.accent, lineHeight: 0.85, letterSpacing: -1 }}>{displayStat}</div>
-          <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.statLabel || "Key Metric"}</div>
+          <div style={{ ...WS, fontSize: displayStat2 ? 48 : 64, color: p.accent, lineHeight: 0.85, letterSpacing: -1 }}>{displayStat}</div>
+          <div style={{ ...WS, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.statLabel || "Key Metric"}</div>
         </div>
       </div>
       {displayStat2 && <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, layout.s2)}>
         <div>
-          <div style={{ ...FN, fontSize: 38, color: p.accent2 || p.text, lineHeight: 0.85 }}>{displayStat2}</div>
-          <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.stat2Label || "Secondary"}</div>
+          <div style={{ ...WS, fontSize: 38, color: p.accent2 || p.text, lineHeight: 0.85 }}>{displayStat2}</div>
+          <div style={{ ...WS, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.stat2Label || "Secondary"}</div>
         </div>
       </div>}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", zIndex: 3 }}>
-        <div style={{ ...HD, fontSize: 9.5, color: "#ffffffcc", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+        <div style={{ ...HD, fontSize: 9.5, color: "#ffffffcc", lineHeight: 1.5, textAlign: "left" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
       </div>
       <div style={{ position: "absolute", bottom: M_PAGE, right: M_SIDE, zIndex: 4 }}>
         <div style={{ ...CP, fontSize: 7, color: "#ffffff66" }}>{String(index).padStart(2, "0")}</div>
@@ -369,7 +369,7 @@ function S7Blitz({ category, hashtags, images }) {
     <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.75)">
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 3 }}>
         <div style={{ ...CP, fontSize: 7, letterSpacing: "0.25em", color: p.accent + "99" }}>{CLOSER_TAGS[category]}</div>
-        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.35em", color: "#ffffffbb", marginTop: 10, fontWeight: 700 }}>LOATHR</div>
+        <div style={{ ...CP, fontSize: 11, letterSpacing: "0.35em", color: "#ffffffbb", marginTop: 10, fontWeight: 700 }}>LOATHR</div>
         <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 8 }}>
           <div style={{ width: 6, height: 6, background: p.accent }} />
           <div style={{ width: 6, height: 6, background: p.accent2 }} />
