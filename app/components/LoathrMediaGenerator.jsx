@@ -167,8 +167,8 @@ function S1Cover({ slide, category, images }) {
   var url = getImg(images, 0);
   return (
     <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
-        <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: M_SIDE, textAlign: "center", zIndex: 2 }}>
-          <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "38", fontWeight: 700 }}>LOATHR</div>
+        <div style={{ position: "absolute", top: M_TOP, left: 0, right: 0, textAlign: "center", zIndex: 2 }}>
+          <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "6B", fontWeight: 700, textDecoration: "line-through", textDecorationColor: p.accent + "6B", textDecorationThickness: 1 }}>LOATHR</div>
         </div>
         <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
           <div style={{ textAlign: "center" }}>
