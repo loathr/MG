@@ -328,14 +328,20 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images })
   var lastIdx = totalSlides - 1;
   // Alternate border color per slide
   var borderColor = slideIndex % 2 === 0 ? p.accent : p.accent2;
+  // Fixed position-based layout assignment for consistency
+  // Pos 1=Cover, 2=S3, 3=S5, 4=S2, 5=S3flip, 6=S4stat/S6quote, last=Closer
   var slide;
   if (slideIndex === lastIdx) slide = <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} />;
   else if (slideIndex === 0) slide = <S1Cover slide={slideData} category={category} images={images} />;
-  else if (slideData.stat) slide = <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
-  else if (slideData.quote) slide = <S6Purple slide={slideData} index={slideIndex} category={category} images={images} />;
-  else {
-    var layouts = [S2Arena, S3RayGun, S5Face];
-    var pick = slideIndex % layouts.length;
+  else if (slideIndex === lastIdx - 1 && (slideData.stat || slideData.quote)) {
+    // Second-to-last: stat or quote
+    slide = slideData.stat
+      ? <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />
+      : <S6Purple slide={slideData} index={slideIndex} category={category} images={images} />;
+  } else {
+    // Fixed rotation: S3, S5, S2, S3, S5, S2...
+    var layouts = [S3RayGun, S5Face, S2Arena];
+    var pick = (slideIndex - 1) % layouts.length;
     var Component = layouts[pick];
     slide = <Component slide={slideData} index={slideIndex} category={category} images={images} />;
   }
