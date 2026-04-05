@@ -188,7 +188,7 @@ function S2Arena({ slide, index, category, images }) {
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.25)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
         <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
         <div style={{ ...HD, fontSize: 9.5, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-        {slide.specs && <div style={{ ...HD, fontSize: 7.5, color: "#ffffffaa", marginTop: 4, textAlign: "justify" }}>{slide.specs}</div>}
+        {slide.specs && <div><div style={{ width: "30%", height: 1, background: p.accent + "33", margin: "10px 0" }} /><div style={{ ...HD, fontSize: 7.5, color: "#ffffffaa", textAlign: "justify" }}>{slide.specs}</div></div>}
       </div>
       <div style={{ position: "absolute", bottom: 8, left: PAD, zIndex: 4 }}>
         <div style={{ ...CP, fontSize: 6, color: "#ffffff33" }}>{String(index).padStart(2, "0")}</div>
