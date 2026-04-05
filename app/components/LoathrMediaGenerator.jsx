@@ -1,6 +1,6 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive } from "lucide-react";
+import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors } from "lucide-react";
 
 var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap";
 var PAD = 20;
@@ -19,10 +19,11 @@ var PALETTES = {
   sports: { bg: "#111111", accent: "#e63946", accent2: "#f2e307", text: "#ffffff" },
   trivia: { bg: "#1a3a35", accent: "#7ECFC0", accent2: "#B8A4D0", text: "#ffffff" },
   art:    { bg: "#1a0a3e", accent: "#e83e8c", accent2: "#4dc9f6", text: "#f8f0ff" },
+  fashion: { bg: "#1c1c1c", accent: "#d4af37", accent2: "#c9b8a0", text: "#f5f5f0" },
 };
 
-var CAT_LABELS = { film: "FILM & TV", photo: "PHOTOGRAPHY", sports: "SPORTS \u00d7 CULTURE", trivia: "DID YOU KNOW?", art: "ART & MUSIC" };
-var CLOSER_TAGS = { film: "FOLLOW FOR MORE", photo: "FOLLOW FOR MORE", sports: "GAME. CULTURE. REPEAT.", trivia: "NOW YOU KNOW", art: "SEE. HEAR. FEEL." };
+var CAT_LABELS = { film: "FILM & TV", photo: "PHOTOGRAPHY", sports: "SPORTS \u00d7 CULTURE", trivia: "DID YOU KNOW?", art: "ART & MUSIC", fashion: "FASHION" };
+var CLOSER_TAGS = { film: "FOLLOW FOR MORE", photo: "FOLLOW FOR MORE", sports: "GAME. CULTURE. REPEAT.", trivia: "NOW YOU KNOW", art: "SEE. HEAR. FEEL.", fashion: "DRESS. EXPRESS. REPEAT." };
 
 var CATEGORIES = [
   { id: "film", label: "Film & TV", icon: Clapperboard },
@@ -30,6 +31,7 @@ var CATEGORIES = [
   { id: "sports", label: "Sports \u00d7 Culture", icon: Trophy },
   { id: "trivia", label: "Did You Know?", icon: Lightbulb },
   { id: "art", label: "Art & Music", icon: Palette },
+  { id: "fashion", label: "Fashion", icon: Scissors },
 ];
 
 var OPTION_TYPES = [
@@ -70,6 +72,14 @@ var SUBCATEGORIES = {
     "Visual": ["Street art vs gallery art", "NFT art after the crash", "The new surrealism movement", "Typography as art form", "Collage making a comeback"],
     "People": ["Artists who changed music production", "Designers who shaped album art", "Curators reshaping galleries", "Self-taught artists who went global", "The producer-as-artist evolution"],
     "History": ["The Bauhaus effect on everything", "Punk aesthetics in modern design", "How hip-hop created visual culture", "Art movements born from protest", "The album art golden age"],
+  },
+  fashion: {
+    "Luxury": ["The rise of quiet luxury", "How Bottega Veneta killed the logo", "Old money vs new money aesthetics", "The death of fast fashion logos", "Why vintage luxury is outperforming new"],
+    "Streetwear": ["Streetwear's luxury takeover", "The Supreme resale economy", "How skate culture shaped high fashion", "Gorpcore and the outdoor aesthetic", "The sneaker bubble burst"],
+    "Designers": ["Virgil Abloh's lasting impact", "The Demna effect at Balenciaga", "Phoebe Philo's quiet revolution", "Rick Owens and anti-fashion", "How Pharrell changed Louis Vuitton"],
+    "Culture": ["Fashion week is dead debate", "The influencer vs editor power shift", "Sustainability as marketing tool", "Gender-fluid fashion going mainstream", "The return of maximalism"],
+    "History": ["How Coco Chanel freed women", "The punk fashion revolution", "Hip-hop's impact on luxury brands", "The supermodel era vs now", "How the little black dress became iconic"],
+    "Trends": ["Dopamine dressing explained", "The coastal grandmother aesthetic", "Mob wife fashion decoded", "Corporate sleaze and office siren", "The archive fashion obsession"],
   },
 };
 
@@ -551,7 +561,7 @@ export default function LoathrMediaGenerator() {
   var fetchTrending = _cb(async function() {
     if (!category) return;
     setIsFetchingTrending(true); setTrending([]);
-    var catContext = { film: "film, TV, cinema, streaming, directing", photo: "photography, cameras, visual storytelling", sports: "sports with music, fashion, art, culture", trivia: "surprising facts, science discoveries, cultural oddities", art: "music, visual arts, album releases, art history" };
+    var catContext = { film: "film, TV, cinema, streaming, directing", photo: "photography, cameras, visual storytelling", sports: "sports with music, fashion, art, culture", trivia: "surprising facts, science discoveries, cultural oddities", art: "music, visual arts, album releases, art history", fashion: "fashion, luxury brands, streetwear, designers, runway, style trends" };
     try {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000,
