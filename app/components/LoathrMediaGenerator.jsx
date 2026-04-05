@@ -181,7 +181,7 @@ function S2Arena({ slide, index, category, images }) {
       </div>
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "30%", background: "#000000", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
-          <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 5, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
+          <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
           <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
           {slide.specs && <div style={{ ...WS, fontSize: 7, color: "#ffffffaa", marginTop: 4, textAlign: "justify" }}>{slide.specs}</div>}
         </div>
@@ -204,7 +204,7 @@ function S3RayGun({ slide, index, category, images }) {
     return (
       <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
         <div style={{ width: "38%", background: "#000000", borderRight: "2px solid " + p.accent2, padding: "10px " + PAD + "px " + INNER_BOT + "px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 4, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
+          <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }}>{slide.heading || "Part " + index}</div>
           <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
           {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent2 + "cc", marginTop: 4 }}>{slide.highlight}</div>}
         </div>
@@ -224,7 +224,7 @@ function S3RayGun({ slide, index, category, images }) {
         {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
       </div>
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "35%", background: "#000000", padding: "10px " + PAD + "px " + INNER_BOT + "px" }}>
-        <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 4, letterSpacing: "0.03em" }}>{slide.heading || "Part " + index}</div>
+        <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
         <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
         {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent + "cc", marginTop: 4 }}>{slide.highlight}</div>}
       </div>
@@ -238,8 +238,8 @@ function S4Emigre({ slide, index, category, images }) {
   var url = getImg(images, index);
   return (
     <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.6)">
-      <div style={{ position: "absolute", top: PAD_TOP, left: PAD, zIndex: 3 }}>
-        <div style={{ ...FN, fontSize: 12, color: "#ffffffcc", letterSpacing: "0.05em" }}>By the Numbers</div>
+      <div style={{ position: "absolute", top: PAD_TOP, left: PAD, right: PAD, zIndex: 3 }}>
+        <div style={{ ...FN, fontSize: 12, color: "#ffffffcc", letterSpacing: "0.05em", textTransform: "uppercase", textAlign: "left" }}>By the Numbers</div>
       </div>
       <div style={{ position: "absolute", top: "24%", left: PAD, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
@@ -268,7 +268,7 @@ function S5Face({ slide, index, category, images }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: PAD_TOP, background: p.accent, display: "flex", alignItems: "center", padding: "0 " + PAD + "px", zIndex: 4 }}>
-        <span style={{ ...FN, fontSize: 8, color: "#000000", fontWeight: 700, letterSpacing: "0.05em" }}>{slide.heading || "Section"}</span>
+        <span style={{ ...FN, fontSize: 8, color: "#000000", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>{slide.heading || "Section"}</span>
         <span style={{ flex: 1 }} />
         {slide.year && <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700 }}>{slide.year}</span>}
       </div>
@@ -277,8 +277,8 @@ function S5Face({ slide, index, category, images }) {
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", background: p.bg }} />}
         </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: 12, background: "#000000" }}>
-          <div style={{ textAlign: "left" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "16px 12px 12px", background: "#000000" }}>
+          <div>
             <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
             <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "8px 0" }} />
             {slide.highlight && <div style={{ ...WS, fontSize: 8, color: p.accent2 + "cc", fontStyle: "italic" }}>{slide.highlight}</div>}
