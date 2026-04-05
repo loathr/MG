@@ -86,6 +86,18 @@ function formatTitle(title, color) {
   return <>{words.slice(0, cut).join(" ")} <Accent color={color}>{words.slice(cut).join(" ")}</Accent></>;
 }
 
+// Cover-only: highlight last key word/phrase in accent color, no underline, keep on one line
+function formatCoverTitle(title, accentColor, textColor) {
+  if (!title) return "";
+  var words = title.split(" ");
+  if (words.length <= 2) return <span style={{ color: accentColor }}>{title}</span>;
+  // Highlight just the last 1-2 words in accent color
+  var highlightCount = words.length > 5 ? 2 : 1;
+  var mainWords = words.slice(0, words.length - highlightCount).join(" ");
+  var accentWords = words.slice(words.length - highlightCount).join(" ");
+  return <>{mainWords} <span style={{ color: accentColor, whiteSpace: "nowrap" }}>{accentWords}</span></>;
+}
+
 function ImgBg({ url, pal, children, darken }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
@@ -139,15 +151,15 @@ function S1Cover({ slide, category, images }) {
         <div style={{ position: "absolute", top: "50%", left: PAD, right: PAD, transform: "translateY(-50%)", zIndex: 3 }}>
           <div style={{ textAlign: "center" }}>
             <div style={{ ...HD, fontSize: slide.title && slide.title.length > 35 ? 24 : 30, color: p.text, lineHeight: 1.1, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }}>
-              {formatTitle(slide.title, p.accent)}
+              {formatCoverTitle(slide.title, p.accent, p.text)}
             </div>
-            <div style={{ height: 3, background: "linear-gradient(to right, transparent, " + p.accent + ", transparent)", margin: "10px auto", width: "60%" }} />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 6 }}>
+            <div style={{ height: 3, background: "linear-gradient(to right, transparent, " + p.accent + ", transparent)", margin: "12px auto", width: "60%" }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8 }}>
               <div style={{ width: 8, height: 8, background: p.accent }} />
-              {p.accent2 && <div style={{ width: 5, height: 5, background: p.accent2 }} />}
-              <div style={{ ...CP, fontSize: 7, color: p.text + "55", letterSpacing: "0.08em" }}>{CAT_LABELS[category]}</div>
+              <div style={{ ...CP, fontSize: 9, color: "#ffffffcc", letterSpacing: "0.1em", fontWeight: 700 }}>{CAT_LABELS[category]}</div>
+              <div style={{ width: 8, height: 8, background: p.accent2 || p.accent }} />
             </div>
-            {slide.subtitle && <div style={{ ...CP, fontSize: 8, color: p.text + "44", marginTop: 6, fontStyle: "italic" }}>{slide.subtitle}</div>}
+            {slide.subtitle && <div style={{ ...WS, fontSize: 10, color: "#ffffffaa", marginTop: 8 }}>{slide.subtitle}</div>}
           </div>
         </div>
       </ImgBg>
