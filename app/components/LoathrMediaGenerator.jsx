@@ -182,6 +182,9 @@ function S2Arena({ slide, index, category, images }) {
           {slide.specs && <div style={{ ...WS, fontSize: 7, color: "#ffffffaa", marginTop: 4, textAlign: "justify" }}>{slide.specs}</div>}
         </div>
       </div>
+      <div style={{ position: "absolute", bottom: 8, left: PAD, zIndex: 4 }}>
+        <div style={{ ...CP, fontSize: 6, color: "#ffffff33" }}>{String(index).padStart(2, "0")}</div>
+      </div>
     </div>
   );
 }
@@ -205,6 +208,9 @@ function S3RayGun({ slide, index, category, images }) {
           {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent + "cc", marginTop: 4 }}>{slide.highlight}</div>}
         </div>
       </div>
+      <div style={{ position: "absolute", bottom: 8, left: PAD, zIndex: 4 }}>
+        <div style={{ ...CP, fontSize: 6, color: "#ffffff33" }}>{String(index).padStart(2, "0")}</div>
+      </div>
     </div>
   );
 }
@@ -216,20 +222,23 @@ function S4Emigre({ slide, index, category, images }) {
   return (
     <ImgBg url={url} pal={p} darken="rgba(0,0,0,0.6)">
       <div style={{ position: "absolute", top: PAD_TOP, left: PAD, zIndex: 3 }}>
-        <div style={{ ...CP, fontSize: 6, color: p.accent + "55", letterSpacing: "0.15em" }}>{String(index).padStart(2, "0")} \u2014 By the Numbers</div>
+        <div style={{ ...FN, fontSize: 12, color: "#ffffffcc", letterSpacing: "0.05em" }}>By the Numbers</div>
       </div>
       <div style={{ position: "absolute", top: "24%", left: PAD, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
           <div style={{ ...FN, fontSize: slide.stat2 ? 48 : 64, color: p.accent, lineHeight: 0.85, letterSpacing: -1 }}>{slide.stat}</div>
-          <div style={{ ...CP, fontSize: 6, color: p.text + "44", letterSpacing: "0.12em", marginTop: 3 }}>{slide.statLabel || "Key Metric"}</div>
+          <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.statLabel || "Key Metric"}</div>
         </div>
       </div>
       {slide.stat2 && <div style={{ position: "absolute", top: "52%", right: PAD, textAlign: "right", zIndex: 3 }}>
         <div style={{ ...FN, fontSize: 38, color: p.accent2 || p.text, lineHeight: 0.85 }}>{slide.stat2}</div>
-        <div style={{ ...CP, fontSize: 6, color: p.text + "33", letterSpacing: "0.1em", marginTop: 3 }}>{slide.stat2Label || "Secondary"}</div>
+        <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.stat2Label || "Secondary"}</div>
       </div>}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
         <div style={{ ...WS, fontSize: 9, color: "#ffffffcc", lineHeight: 1.8, textAlign: "justify" }}>{styleBody(slide.body, p.accent)}</div>
+      </div>
+      <div style={{ position: "absolute", bottom: 8, left: PAD, zIndex: 4 }}>
+        <div style={{ ...CP, fontSize: 6, color: "#ffffff33" }}>{String(index).padStart(2, "0")}</div>
       </div>
     </ImgBg>
   );
@@ -242,7 +251,7 @@ function S5Face({ slide, index, category, images }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: PAD_TOP, background: p.accent, display: "flex", alignItems: "center", padding: "0 " + PAD + "px", zIndex: 4 }}>
-        <span style={{ ...FN, fontSize: 8, color: "#000000", fontWeight: 700, letterSpacing: "0.05em" }}>{String(index).padStart(2, "0")} \u2014 {slide.heading || "Section"}</span>
+        <span style={{ ...FN, fontSize: 8, color: "#000000", fontWeight: 700, letterSpacing: "0.05em" }}>{slide.heading || "Section"}</span>
         <span style={{ flex: 1 }} />
         {slide.year && <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700 }}>{slide.year}</span>}
       </div>
@@ -258,6 +267,9 @@ function S5Face({ slide, index, category, images }) {
             {slide.highlight && <div style={{ ...WS, fontSize: 8, color: p.accent + "cc", fontStyle: "italic" }}>{slide.highlight}</div>}
           </div>
         </div>
+      </div>
+      <div style={{ position: "absolute", bottom: 8, left: PAD, zIndex: 5 }}>
+        <div style={{ ...CP, fontSize: 6, color: "#ffffff33" }}>{String(index).padStart(2, "0")}</div>
       </div>
     </div>
   );
@@ -690,7 +702,7 @@ export default function LoathrMediaGenerator() {
       </div>}
 
       <div style={{ textAlign: "center", padding: "18px 0 12px", borderTop: "0.5px solid var(--color-border-tertiary)", marginTop: 16 }}>
-        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.3em", color: "var(--color-text-tertiary)", opacity: 0.4 }}>L O A T H R \u2014 MEDIA GENERATOR</div>
+        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.3em", color: "var(--color-text-tertiary)", opacity: 0.4 }}>L O A T H R  MEDIA GENERATOR</div>
       </div>
     </div>
   );
