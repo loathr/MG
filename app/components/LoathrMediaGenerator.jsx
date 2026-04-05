@@ -162,7 +162,7 @@ function S1Cover({ slide, category, images }) {
               <div style={{ ...CP, fontSize: 9, color: "#ffffffcc", letterSpacing: "0.1em", fontWeight: 700 }}>{CAT_LABELS[category]}</div>
               <div style={{ width: 8, height: 8, background: p.accent2 || p.accent }} />
             </div>
-            {slide.subtitle && <div style={{ ...WS, fontSize: 10, color: "#ffffffaa", marginTop: 8 }}>{slide.subtitle}</div>}
+            {slide.subtitle && <div style={{ ...HD, fontSize: 8, color: "#ffffffaa", marginTop: 8 }}>{slide.subtitle}</div>}
           </div>
         </div>
       </ImgBg>
@@ -199,8 +199,8 @@ function S3RayGun({ slide, index, category, images }) {
       <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
         <div style={{ width: "38%", background: "#000000", borderRight: "2px solid " + p.accent2, padding: "10px " + PAD + "px " + INNER_BOT + "px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }}>{slide.heading || "Part " + index}</div>
-          <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
-          {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent2 + "cc", marginTop: 4 }}>{slide.highlight}</div>}
+          <div style={{ ...HD, fontSize: 7, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
+          {slide.highlight && <div style={{ ...HD, fontSize: 6, fontStyle: "italic", color: p.accent2 + "cc", marginTop: 4 }}>{slide.highlight}</div>}
         </div>
         <div style={{ flex: 1, position: "relative" }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
@@ -219,8 +219,8 @@ function S3RayGun({ slide, index, category, images }) {
       </div>
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "35%", background: "#000000", padding: "10px " + PAD + "px " + INNER_BOT + "px" }}>
         <div style={{ ...FN, fontSize: 13, color: "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
-        <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-        {slide.highlight && <div style={{ ...WS, fontSize: 8, fontStyle: "italic", color: p.accent + "cc", marginTop: 4 }}>{slide.highlight}</div>}
+        <div style={{ ...HD, fontSize: 7, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+        {slide.highlight && <div style={{ ...HD, fontSize: 6, fontStyle: "italic", color: p.accent + "cc", marginTop: 4 }}>{slide.highlight}</div>}
       </div>
     </div>
   );
@@ -246,7 +246,7 @@ function S4Emigre({ slide, index, category, images }) {
         <div style={{ ...CP, fontSize: 7, color: "#ffffffaa", letterSpacing: "0.1em", marginTop: 4 }}>{slide.stat2Label || "Secondary"}</div>
       </div>}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
-        <div style={{ ...WS, fontSize: 9, color: "#ffffffcc", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+        <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
       </div>
       <div style={{ position: "absolute", bottom: 8, left: PAD, zIndex: 4 }}>
         <div style={{ ...CP, fontSize: 6, color: "#ffffff33" }}>{String(index).padStart(2, "0")}</div>
@@ -273,9 +273,9 @@ function S5Face({ slide, index, category, images }) {
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "16px 12px 12px", background: "#000000" }}>
           <div>
-            <div style={{ ...WS, fontSize: 9, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+            <div style={{ ...HD, fontSize: 7, color: "#ffffffe6", lineHeight: 1.5, textAlign: "justify" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
             <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "8px 0" }} />
-            {slide.highlight && <div style={{ ...WS, fontSize: 8, color: p.accent2 + "cc", fontStyle: "italic" }}>{slide.highlight}</div>}
+            {slide.highlight && <div style={{ ...HD, fontSize: 6, color: p.accent2 + "cc", fontStyle: "italic" }}>{slide.highlight}</div>}
           </div>
         </div>
       </div>
@@ -295,7 +295,7 @@ function S6Purple({ slide, index, category, images }) {
     <ImgBg url={url} pal={p} darken="linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.9))">
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
-          <div style={{ ...WS, fontSize: 11, fontStyle: "italic", color: "#ffffffdd", lineHeight: 1.5, textAlign: "justify" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
+          <div style={{ ...HD, fontSize: 9, fontStyle: "italic", color: "#ffffffdd", lineHeight: 1.5, textAlign: "justify" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
           <div style={{ width: 12, height: 1, background: p.accent + "66", margin: "8px 0" }} />
           {slide.source && <div style={{ ...CP, fontSize: 7, color: p.accent + "99", letterSpacing: "0.08em" }}>{slide.source}</div>}
         </div>
@@ -503,6 +503,7 @@ export default function LoathrMediaGenerator() {
   var irs = _s(false), isRefining = irs[0], setIsRefining = irs[1];
   var exs = _s(null), exportStatus = exs[0], setExportStatus = exs[1];
   var slideRef = _ref(null);
+  var abortRef = _ref(null);
 
   _ef(function() { var l = document.createElement("link"); l.href = FONT_URL; l.rel = "stylesheet"; document.head.appendChild(l); }, []);
 
@@ -570,8 +571,16 @@ export default function LoathrMediaGenerator() {
     setApiStatus(function(p) { var n = {}; for (var k in p) n[k] = p[k]; n[service] = result; return n; });
   }, [apiKeys]);
 
+  var cancelGenerate = _cb(function() {
+    if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
+    setIsGenerating(false); setError("Generation cancelled");
+  }, []);
+
   var generate = _cb(async function() {
     if (!topic.trim() || !category) return;
+    if (abortRef.current) abortRef.current.abort();
+    var controller = new AbortController();
+    abortRef.current = controller;
     setIsGenerating(true); setError(null); setOptions(null); setImages({});
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
     var catInfo = CATEGORIES.find(function(c) { return c.id === category; });
@@ -579,8 +588,10 @@ export default function LoathrMediaGenerator() {
       var results = [];
       var types = ["deep", "hot", "timeline"];
       for (var t = 0; t < 3; t++) {
+        if (controller.signal.aborted) throw new Error("Generation cancelled");
         var prompt = buildPrompt(catInfo.label, topic, types[t]);
         var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
           body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }) });
         var d = await r.json();
         if (d.error) throw new Error(d.error.message || d.error);
@@ -639,10 +650,17 @@ export default function LoathrMediaGenerator() {
             <input value={topic} onChange={function(e) { setTopic(e.target.value); setRefinedAngles([]); }}
               placeholder={"Topic for " + cat.label + "..."}
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 12, ...CP }} />
-            <button onClick={generate} disabled={!topic.trim() || isGenerating}
-              style={{ padding: "10px 18px", background: pal.accent, color: "#ffffff", border: "none", cursor: topic.trim() && !isGenerating ? "pointer" : "default", ...CP, fontSize: 10, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() && !isGenerating ? 1 : 0.4 }}>
-              {isGenerating ? <Loader size={14} style={{ animation: "spin 1s linear infinite" }} /> : "GENERATE"}
-            </button>
+            {!isGenerating ? (
+              <button onClick={generate} disabled={!topic.trim()}
+                style={{ padding: "10px 18px", background: pal.accent, color: "#ffffff", border: "none", cursor: topic.trim() ? "pointer" : "default", ...CP, fontSize: 10, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() ? 1 : 0.4 }}>
+                GENERATE
+              </button>
+            ) : (
+              <button onClick={cancelGenerate}
+                style={{ padding: "10px 18px", background: "#e63946", color: "#ffffff", border: "none", cursor: "pointer", ...CP, fontSize: 10, letterSpacing: "0.1em", fontWeight: 700 }}>
+                CANCEL
+              </button>
+            )}
           </div>
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
             <button onClick={fetchTrending} disabled={isFetchingTrending} style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Flame size={11} />{isFetchingTrending ? "..." : "Trending"}</button>
