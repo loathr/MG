@@ -196,12 +196,12 @@ function S4Emigre({ slide, index, category, images }) {
       </div>
       <div style={{ position: "absolute", top: "24%", left: PAD, zIndex: 3 }}>
         <div style={{ textAlign: "left" }}>
-          <div style={{ ...HD, fontSize: slide.stat2 ? 48 : 64, color: p.accent, lineHeight: 0.85, letterSpacing: -1 }}>{slide.stat}</div>
+          <div style={{ ...FN, fontSize: slide.stat2 ? 48 : 64, color: p.accent, lineHeight: 0.85, letterSpacing: -1 }}>{slide.stat}</div>
           <div style={{ ...CP, fontSize: 6, color: p.text + "44", letterSpacing: "0.12em", marginTop: 3 }}>{(slide.statLabel || "KEY METRIC").toUpperCase()}</div>
         </div>
       </div>
       {slide.stat2 && <div style={{ position: "absolute", top: "52%", right: PAD, textAlign: "right", zIndex: 3 }}>
-        <div style={{ ...HD, fontSize: 38, color: p.accent2 || p.text, lineHeight: 0.85 }}>{slide.stat2}</div>
+        <div style={{ ...FN, fontSize: 38, color: p.accent2 || p.text, lineHeight: 0.85 }}>{slide.stat2}</div>
         <div style={{ ...CP, fontSize: 6, color: p.text + "33", letterSpacing: "0.1em", marginTop: 3 }}>{(slide.stat2Label || "SECONDARY").toUpperCase()}</div>
       </div>}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.85)", padding: PAD + "px " + PAD + "px " + PAD_BOT + "px", zIndex: 3 }}>
@@ -218,7 +218,7 @@ function S5Face({ slide, index, category, images }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: PAD_TOP, background: p.accent, display: "flex", alignItems: "center", padding: "0 " + PAD + "px", zIndex: 4 }}>
-        <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700, letterSpacing: "0.1em" }}>{String(index).padStart(2, "0")} \u2014 {(slide.heading || "SECTION").toUpperCase()}</span>
+        <span style={{ ...FN, fontSize: 8, color: "#000000", fontWeight: 700, letterSpacing: "0.1em" }}>{String(index).padStart(2, "0")} \u2014 {(slide.heading || "SECTION").toUpperCase()}</span>
         <span style={{ flex: 1 }} />
         {slide.year && <span style={{ ...CP, fontSize: 7, color: "#000000", fontWeight: 700 }}>{slide.year}</span>}
       </div>
@@ -639,7 +639,7 @@ export default function LoathrMediaGenerator() {
           </button>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", border: "1.5px solid #ffffff", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
+          <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
             <SlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} />
           </div>
         </div>
