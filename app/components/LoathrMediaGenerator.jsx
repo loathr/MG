@@ -1903,8 +1903,14 @@ export default function LoathrMediaGenerator() {
         localStorage.setItem("loathr_recent", JSON.stringify(recent));
         setRecentTopics(recent);
         var hist = JSON.parse(localStorage.getItem("loathr_history") || "[]");
-        var alreadyInHist = hist.some(function(h) { return typeof h === "string" ? h === topic : h.topic === topic; });
-        if (!alreadyInHist) { hist.unshift({ topic: topic, category: category, date: new Date().toLocaleDateString() }); localStorage.setItem("loathr_history", JSON.stringify(hist.slice(0, 50))); setTopicHistory(hist); }
+        var alreadyInHist = hist.some(function(h) { return typeof h === "string" ? h === topic : h.topic === topic && h.category === category; });
+        var entry = { topic: topic, category: category, date: new Date().toLocaleDateString(), slides: results[0] ? results[0].slides : [], picks: Object.assign({}, editionPicks) };
+        if (!alreadyInHist) { hist.unshift(entry); } else {
+          // Update existing entry with new generation
+          hist = hist.map(function(h) { return (typeof h !== "string" && h.topic === topic && h.category === category) ? entry : h; });
+        }
+        try { localStorage.setItem("loathr_history", JSON.stringify(hist.slice(0, 30))); } catch (e) { /* storage full — trim more */ try { localStorage.setItem("loathr_history", JSON.stringify(hist.slice(0, 15))); } catch (e2) {} }
+        setTopicHistory(hist);
       } catch (e) {}
       // Generate related topics
       if (results[0] && results[0].slides) {
@@ -2180,14 +2186,19 @@ export default function LoathrMediaGenerator() {
                 var t = typeof h === "string" ? h : h.topic;
                 var c = typeof h === "string" ? null : h.category;
                 var d = typeof h === "string" ? null : h.date;
+                var hasSaved = typeof h !== "string" && h.slides && h.slides.length > 0;
                 var catLabel = c ? (CATEGORIES.find(function(x) { return x.id === c; }) || {}).label : null;
-                return <div key={i} onClick={function() { setTopic(t); if (c) setCategory(c); setShowPastGen(false); }}
-                  style={{ padding: "5px 0", cursor: "pointer", borderBottom: i < topicHistory.length - 1 ? "0.5px solid var(--color-border-tertiary)" : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
+                return <div key={i} style={{ padding: "5px 0", borderBottom: i < topicHistory.length - 1 ? "0.5px solid var(--color-border-tertiary)" : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div onClick={function() { setTopic(t); if (c) setCategory(c); setShowPastGen(false); }} style={{ cursor: "pointer", flex: 1 }}>
                     <div style={{ ...CP, fontSize: 9, color: "var(--color-text-primary)" }}>{t}</div>
-                    {catLabel && <div style={{ ...CP, fontSize: 6, color: uiAccent + "88" }}>{catLabel}{d ? " · " + d : ""}</div>}
+                    {catLabel && <div style={{ ...CP, fontSize: 6, color: uiAccent + "88" }}>{catLabel}{d ? " · " + d : ""}{hasSaved ? " · " + h.slides.length + " slides saved" : ""}</div>}
                   </div>
-                  <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", flexShrink: 0 }}>{"\u203A"}</div>
+                  <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                    {hasSaved && <button onClick={function(e) { e.stopPropagation(); if (c) setCategory(c); setTopic(t); setOptions([{ angle: "Saved", slides: h.slides }]); setCurrentSlide(0); setSelectedOption(0); setIsRecMode(false); setShowPastGen(false); }}
+                      style={{ padding: "2px 6px", border: "0.5px solid " + uiAccent, background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent }}>View</button>}
+                    <button onClick={function(e) { e.stopPropagation(); setTopic(t); if (c) setCategory(c); setShowPastGen(false); }}
+                      style={{ padding: "2px 6px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Redo</button>
+                  </div>
                 </div>;
               })}
               <button onClick={function() { localStorage.removeItem("loathr_history"); setTopicHistory([]); setShowPastGen(false); }}
