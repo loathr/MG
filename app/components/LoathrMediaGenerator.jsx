@@ -1559,12 +1559,23 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
   for (var i = 0; i < slides.length; i++) {
     setExportStatus("Rendering slide " + (i + 1) + " of " + slides.length + "...");
     setCurrentSlide(i);
-    await new Promise(function(r) { setTimeout(r, 350); });
+    // Wait for React re-render + image loading
+    await new Promise(function(r) { setTimeout(r, 600); });
     var el = slideRef.current;
     if (!el) continue;
+    // Find the inner content div (skip white border + black wrapper)
+    var inner = el.querySelector ? el.querySelector("[style*='border: 2px solid']") || el.firstChild || el : el;
     try {
-      var canvas = await window.html2canvas(el, { width: 340, height: 425, scale: 1080 / 340, useCORS: true, allowTaint: true, backgroundColor: null, logging: false });
-      var blob = await new Promise(function(r) { canvas.toBlob(r, "image/png"); });
+      var canvas = await window.html2canvas(inner, {
+        width: inner.offsetWidth || 340,
+        height: inner.offsetHeight || 425,
+        scale: 1080 / (inner.offsetWidth || 340),
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#000000",
+        logging: false,
+      });
+      var blob = await new Promise(function(r) { canvas.toBlob(r, "image/png", 1.0); });
       if (blob) imgFolder.file("slide-" + String(i + 1).padStart(2, "0") + ".png", blob);
     } catch (err) { console.error("Failed slide " + (i + 1), err); }
   }
