@@ -2013,22 +2013,42 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
     setExportStatus("Rendering slide " + (i + 1) + " of " + slides.length + "...");
     setCurrentSlide(i);
     // Wait for React re-render + image loading
-    await new Promise(function(r) { setTimeout(r, 600); });
+    await new Promise(function(r) { setTimeout(r, 800); });
     var el = slideRef.current;
     if (!el) continue;
-    // Find the 340x425 content div (exact 4:5 ratio = 1080x1350 for Instagram)
-    // Structure: slideRef (outer black) > div (white border, 340x425) > div (inner black) > SlideRenderer
-    var innerContent = el.firstChild || el; // firstChild = the 340x425 white-bordered div
+    // Navigate to the SlideRenderer content: slideRef > whiteBorderDiv > innerBlackDiv > SlideRenderer(accent border)
+    // We want the accent-bordered div which is the actual 4:5 slide content
+    var whiteBorder = el.firstChild;
+    var innerBlack = whiteBorder ? whiteBorder.firstChild : null;
+    var slideContent = innerBlack ? innerBlack.firstChild : null;
+    var exportTarget = slideContent || innerBlack || whiteBorder || el;
     try {
       // Export at exactly 1080x1350 — Instagram's recommended 4:5 portrait
-      var canvas = await window.html2canvas(innerContent, {
-        width: 340,
-        height: 425,
-        scale: 1080 / 340,
+      // Use the element's actual dimensions to avoid stretch
+      var ew = exportTarget.offsetWidth || 340;
+      var eh = exportTarget.offsetHeight || 425;
+      var canvas = await window.html2canvas(exportTarget, {
+        width: ew,
+        height: eh,
+        scale: 1080 / ew,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#000000",
         logging: false,
+        onclone: function(clonedDoc, clonedEl) {
+          // Fix objectFit:cover — html2canvas doesn't support it natively
+          // Convert cover images to background-image on the parent div
+          var imgs = clonedEl.querySelectorAll("img[style*='object-fit']");
+          imgs.forEach(function(img) {
+            var parent = img.parentElement;
+            if (parent && img.src && img.style.objectFit === "cover") {
+              parent.style.backgroundImage = "url(" + img.src + ")";
+              parent.style.backgroundSize = "cover";
+              parent.style.backgroundPosition = "center";
+              img.style.opacity = "0";
+            }
+          });
+        },
       });
       var blob = await new Promise(function(r) { canvas.toBlob(r, "image/png", 1.0); });
       if (blob) imgFolder.file("slide-" + String(i + 1).padStart(2, "0") + ".png", blob);
