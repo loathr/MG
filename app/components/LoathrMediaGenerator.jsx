@@ -51,6 +51,95 @@ var IMG_FILTERS = [
 
 var COVER_STYLES = ["classic", "split", "typeOnly", "fullBleed"];
 
+// --- TOPIC INTELLIGENCE ---
+var MODIFIERS = [
+  { id: "controversial", label: "Controversial", instr: "Make every claim bold and debatable. Challenge assumptions." },
+  { id: "historical", label: "Historical", instr: "Root everything in specific historical moments and dates." },
+  { id: "personal", label: "Personal", instr: "Frame through individual human stories and first-person perspectives." },
+  { id: "data", label: "Data-driven", instr: "Lead with surprising statistics and measurable evidence on every slide." },
+  { id: "prediction", label: "Prediction", instr: "Focus on what comes next. Every slide should point toward the future." },
+];
+
+var SEASONAL_TOPICS = {
+  0: ["Awards season predictions", "New year industry forecasts", "Best of last year"],
+  1: ["Fashion week highlights", "Grammy winners decoded", "Valentine's culture critique"],
+  2: ["SXSW discoveries", "March Madness culture", "Spring trends emerging"],
+  3: ["Festival season preview", "Earth Day impact stories", "Awards aftermath"],
+  4: ["Met Gala analysis", "Summer blockbuster previews", "Cannes predictions"],
+  5: ["Pride culture evolution", "Summer festival guide", "Midyear trend check"],
+  6: ["Independence and identity", "Summer reading culture", "Travel food guides"],
+  7: ["Back to school culture", "Late summer releases", "Festival season recap"],
+  8: ["Fall fashion forecast", "Emmy predictions", "New season launches"],
+  9: ["Halloween culture deep dive", "October surprise releases", "Horror genre analysis"],
+  10: ["Holiday gift culture", "Thanksgiving food politics", "Year-end lists begin"],
+  11: ["Year in review", "Holiday music culture", "New year predictions"],
+};
+
+function scoreTopic(topic) {
+  if (!topic || topic.length < 3) return 0;
+  var score = 0;
+  if (topic.length < 40) score++; // concise
+  if (topic.length < 25) score++; // very concise
+  if (/[A-Z]/.test(topic.charAt(0))) score++; // starts with capital
+  if (/\b(why|how|what|who|the)\b/i.test(topic)) score++; // has hook word
+  if (topic.split(" ").length >= 3 && topic.split(" ").length <= 8) score++; // good length
+  return Math.min(score, 5);
+}
+
+function searchAllCategories(query, currentCat) {
+  if (!query || query.length < 2) return [];
+  var results = [];
+  var q = query.toLowerCase();
+  Object.keys(SUBCATEGORIES).forEach(function(catId) {
+    if (catId === currentCat) return;
+    var subs = SUBCATEGORIES[catId];
+    Object.values(subs).forEach(function(topics) {
+      topics.forEach(function(t) {
+        if (t.toLowerCase().indexOf(q) !== -1) {
+          results.push({ topic: t, category: catId });
+        }
+      });
+    });
+  });
+  return results.slice(0, 3);
+}
+
+function filterSuggestions(query, category) {
+  if (!query || query.length < 2 || !category) return [];
+  var q = query.toLowerCase();
+  var subs = SUBCATEGORIES[category];
+  if (!subs) return [];
+  var matches = [];
+  Object.values(subs).forEach(function(topics) {
+    topics.forEach(function(t) {
+      if (t.toLowerCase().indexOf(q) !== -1) matches.push(t);
+    });
+  });
+  return matches.slice(0, 5);
+}
+
+function getRelatedTopics(slides, category) {
+  if (!slides || !category) return [];
+  var subs = SUBCATEGORIES[category];
+  if (!subs) return [];
+  var allTopics = Object.values(subs).flat();
+  var headings = slides.slice(1, 5).map(function(s) { return (s.heading || "").toLowerCase(); }).filter(Boolean);
+  var related = [];
+  allTopics.forEach(function(t) {
+    var tl = t.toLowerCase();
+    headings.forEach(function(h) {
+      if (h.length > 3 && tl.indexOf(h.split(" ")[0]) !== -1 && related.indexOf(t) === -1) related.push(t);
+    });
+  });
+  if (related.length < 3) {
+    var shuffled = allTopics.slice().sort(function() { return Math.random() - 0.5; });
+    for (var i = 0; i < shuffled.length && related.length < 3; i++) {
+      if (related.indexOf(shuffled[i]) === -1) related.push(shuffled[i]);
+    }
+  }
+  return related.slice(0, 3);
+}
+
 // --- EDITION UTILITIES ---
 function pickPersona(seed) { return PERSONAS[Math.abs(seed) % PERSONAS.length]; }
 function pickFreshness(seed) { return FRESHNESS_SEEDS[Math.abs(seed) % FRESHNESS_SEEDS.length]; }
@@ -1338,7 +1427,7 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
 };
 
 // --- DIFFERENTIATED PROMPTS ---
-function buildPrompt(catLabel, topic, editionSeed, picks) {
+function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers) {
   var p = picks || { persona: -1, angle: -1, style: -1, emphasis: "balanced" };
   var persona = p.persona >= 0 ? PERSONAS[p.persona] : pickPersona(editionSeed || 0);
   var freshness = p.angle >= 0 ? FRESHNESS_SEEDS[p.angle] : pickFreshness(editionSeed || 0);
@@ -1351,6 +1440,13 @@ function buildPrompt(catLabel, topic, editionSeed, picks) {
   else if (emph === "narrative") emphasisInstr = "\nEMPHASIS: Lean heavily into storytelling. Every slide should read like a chapter. Use scene-setting, character, conflict, and resolution across the carousel.";
   else if (emph === "data") emphasisInstr = "\nEMPHASIS: Lean heavily into data and evidence. Include specific numbers, percentages, or statistics on every slide possible. Let the data drive the narrative.";
 
+  // Apply modifier instructions
+  var modInstr = "";
+  if (activeModifiers && activeModifiers.length > 0) {
+    var modTexts = activeModifiers.map(function(mid) { var m = MODIFIERS.find(function(x) { return x.id === mid; }); return m ? m.instr : ""; }).filter(Boolean);
+    if (modTexts.length > 0) modInstr = "\nMODIFIERS: " + modTexts.join(" ");
+  }
+
   // Force a specific stat format per edition to guarantee variety
   var statFormats = [
     "You MUST use FORMAT A (Comparison): statFormat \"comparison\", before (the old number), beforeLabel, after (the new number), afterLabel, shift (one sentence explaining what changed). Show a clear before/after transformation.",
@@ -1361,7 +1457,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks) {
   ];
   var forcedStat = statFormats[(editionSeed || 0) % statFormats.length];
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), titleHighlight (the single most impactful word or short phrase from the title to visually emphasize — must be an exact substring of the title), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": " + forcedStat + " Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), titleHighlight (the single most impactful word or short phrase from the title to visually emphasize — must be an exact substring of the title), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": " + forcedStat + " Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -1429,6 +1525,12 @@ export default function LoathrMediaGenerator() {
   var eds = _s(null), editionData = eds[0], setEditionData = eds[1];
   var eps = _s({ persona: -1, angle: -1, style: -1, emphasis: "balanced" }), editionPicks = eps[0], setEditionPicks = eps[1];
   var ess = _s(false), showEditionSettings = ess[0], setShowEditionSettings = ess[1];
+  var sug = _s([]), suggestions = sug[0], setSuggestions = sug[1];
+  var rtp = _s([]), relatedTopics = rtp[0], setRelatedTopics = rtp[1];
+  var mds = _s([]), modifiers = mds[0], setModifiers = mds[1];
+  var xcs = _s([]), crossCatSuggestions = xcs[0], setCrossCatSuggestions = xcs[1];
+  var rcs = _s([]), recentTopics = rcs[0], setRecentTopics = rcs[1];
+  var ths = _s([]), topicHistory = ths[0], setTopicHistory = ths[1];
   var slideRef = _ref(null);
   var abortRef = _ref(null);
 
@@ -1439,6 +1541,16 @@ export default function LoathrMediaGenerator() {
     fonts.forEach(function(f) {
       var p = document.createElement("link"); p.rel = "preload"; p.href = f; p.as = "font"; p.type = "font/ttf"; p.crossOrigin = "anonymous"; document.head.appendChild(p);
     });
+  }, []);
+
+  // Load recent topics and history from localStorage
+  _ef(function() {
+    try {
+      var r = JSON.parse(localStorage.getItem("loathr_recent") || "[]");
+      setRecentTopics(r.slice(0, 10));
+      var h = JSON.parse(localStorage.getItem("loathr_history") || "[]");
+      setTopicHistory(h);
+    } catch (e) {}
   }, []);
 
   var cat = CATEGORIES.find(function(c) { return c.id === category; });
@@ -1524,7 +1636,7 @@ export default function LoathrMediaGenerator() {
     setEditionData(edition);
     try {
       if (controller.signal.aborted) throw new Error("Generation cancelled");
-      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks);
+      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers);
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 6000, messages: [{ role: "user", content: prompt }] }) });
@@ -1558,6 +1670,18 @@ export default function LoathrMediaGenerator() {
       else if (Array.isArray(parsed) && parsed[0]) results.push(parsed[0]);
       if (results.length === 0) throw new Error("No valid carousel generated");
       setOptions(results);
+      // Save to recent and history
+      try {
+        var recent = JSON.parse(localStorage.getItem("loathr_recent") || "[]");
+        recent = [{ topic: topic, category: category }].concat(recent.filter(function(r) { return r.topic !== topic; })).slice(0, 10);
+        localStorage.setItem("loathr_recent", JSON.stringify(recent));
+        setRecentTopics(recent);
+        var hist = JSON.parse(localStorage.getItem("loathr_history") || "[]");
+        if (hist.indexOf(topic) === -1) { hist.push(topic); localStorage.setItem("loathr_history", JSON.stringify(hist)); setTopicHistory(hist); }
+      } catch (e) {}
+      // Generate related topics
+      if (results[0] && results[0].slides) setRelatedTopics(getRelatedTopics(results[0].slides, category));
+      setSuggestions([]);
       var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
       var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
       var imgKey = unsplashKey || pexelsKey;
@@ -1619,7 +1743,7 @@ export default function LoathrMediaGenerator() {
       }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
-  }, [topic, category, apiKeys, editionPicks]);
+  }, [topic, category, apiKeys, editionPicks, modifiers]);
 
   var generateRec = _cb(async function() {
     if (!topic.trim() || !category) return;
@@ -1723,7 +1847,7 @@ export default function LoathrMediaGenerator() {
       {category && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-            <input value={topic} onChange={function(e) { setTopic(e.target.value); setRefinedAngles([]); }}
+            <input value={topic} onChange={function(e) { var v = e.target.value; setTopic(v); setRefinedAngles([]); setSuggestions(filterSuggestions(v, category)); setCrossCatSuggestions(searchAllCategories(v, category)); }}
               placeholder={"Topic for " + cat.label + "..."}
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 12, ...CP }} />
             {!isGenerating ? (
@@ -1740,6 +1864,57 @@ export default function LoathrMediaGenerator() {
               </button>
             )}
           </div>
+          {/* Type-ahead suggestions */}
+          {suggestions.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)", padding: 4 }}>
+            {suggestions.map(function(s, i) { return (
+              <div key={i} onClick={function() { setTopic(s); setSuggestions([]); setCrossCatSuggestions([]); }}
+                style={{ padding: "4px 8px", cursor: "pointer", ...CP, fontSize: 9, color: "var(--color-text-secondary)", borderBottom: i < suggestions.length - 1 ? "0.5px solid var(--color-border-tertiary)" : "none" }}>{s}</div>
+            ); })}
+          </div>}
+
+          {/* Cross-category suggestions */}
+          {crossCatSuggestions.length > 0 && <div style={{ marginBottom: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
+            <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Also in:</span>
+            {crossCatSuggestions.map(function(x, i) { return (
+              <button key={i} onClick={function() { setCategory(x.category); setTopic(x.topic); setSuggestions([]); setCrossCatSuggestions([]); }}
+                style={{ padding: "2px 6px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>{x.topic} <span style={{ color: uiAccent, fontSize: 6 }}>({x.category})</span></button>
+            ); })}
+          </div>}
+
+          {/* Modifiers */}
+          <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginBottom: 6, justifyContent: "center" }}>
+            {MODIFIERS.map(function(m) {
+              var active = modifiers.indexOf(m.id) !== -1;
+              return <button key={m.id} onClick={function() { setModifiers(function(prev) { return active ? prev.filter(function(x) { return x !== m.id; }) : prev.concat([m.id]); }); }}
+                style={{ padding: "3px 8px", border: "0.5px solid " + (active ? uiAccent : "var(--color-border-tertiary)"), background: active ? uiAccent + "22" : "transparent", color: active ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>{m.label}</button>;
+            })}
+          </div>
+
+          {/* Topic score */}
+          {topic.trim() && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 6 }}>
+            <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Shareability:</span>
+            {[1,2,3,4,5].map(function(n) { return <div key={n} style={{ width: 5, height: 5, borderRadius: "50%", background: n <= scoreTopic(topic) ? uiAccent : "var(--color-border-tertiary)" }} />; })}
+            {topicHistory.indexOf(topic) !== -1 && <span style={{ ...CP, fontSize: 6, color: uiAccent, marginLeft: 4 }}>previously generated</span>}
+          </div>}
+
+          {/* Recent topics */}
+          {recentTopics.length > 0 && !topic.trim() && <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginBottom: 6, justifyContent: "center" }}>
+            <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Recent:</span>
+            {recentTopics.filter(function(r) { return !category || r.category === category; }).slice(0, 5).map(function(r, i) { return (
+              <button key={i} onClick={function() { setTopic(r.topic); if (r.category) setCategory(r.category); }}
+                style={{ padding: "2px 6px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>{r.topic}</button>
+            ); })}
+          </div>}
+
+          {/* Seasonal topics */}
+          {!topic.trim() && <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginBottom: 6, justifyContent: "center" }}>
+            <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Timely:</span>
+            {(SEASONAL_TOPICS[new Date().getMonth()] || []).map(function(t, i) { return (
+              <button key={i} onClick={function() { setTopic(t); }}
+                style={{ padding: "2px 6px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent + "88" }}>{t}</button>
+            ); })}
+          </div>}
+
           {/* Edition Settings */}
           <div style={{ marginBottom: 6, textAlign: "center" }}>
             <button onClick={function() { setShowEditionSettings(!showEditionSettings); }}
@@ -1926,6 +2101,15 @@ export default function LoathrMediaGenerator() {
               </div>); })}
           </div>
         </div>
+      </div>}
+
+      {/* Related topics after generation */}
+      {relatedTopics.length > 0 && options && <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center", marginTop: 12, marginBottom: 8 }}>
+        <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Related:</span>
+        {relatedTopics.map(function(t, i) { return (
+          <button key={i} onClick={function() { setTopic(t); setRelatedTopics([]); setOptions(null); }}
+            style={{ padding: "3px 8px", border: "0.5px solid " + uiAccent + "44", background: uiAccent + "08", cursor: "pointer", ...CP, fontSize: 8, color: uiAccent }}>{t}</button>
+        ); })}
       </div>}
 
       <div style={{ textAlign: "center", padding: "18px 0 12px", borderTop: "0.5px solid var(--color-border-tertiary)", marginTop: 16 }}>
