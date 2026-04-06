@@ -734,8 +734,8 @@ function S1Cover({ slide, category, images, edition, index }) {
           <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "6B", fontWeight: 700, textDecoration: "line-through", textDecorationColor: p.accent + "6B", textDecorationThickness: 1 }}>LOATHR</div>
           {edLabel && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffffcc", marginTop: 3 }}>{edLabel}</div>}
         </div>
-        <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
-          <div style={{ textAlign: "center" }}>
+        <div style={{ position: "absolute", bottom: M_BOT, left: 0, right: 0, zIndex: 3 }}>
+          <div style={{ textAlign: "center", padding: "0 " + M_SIDE + "px" }}>
             <div style={{ ...FN, fontSize: slide.title && slide.title.length > 35 ? 24 : 30, color: p.text, lineHeight: 1.1, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }}>
               {formatCoverTitle(slide.title, p.accent, slide.titleHighlight)}
             </div>
