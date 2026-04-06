@@ -2040,7 +2040,7 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
 };
 
 // --- DIFFERENTIATED PROMPTS ---
-function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPersonImage, wdStats, wdTimeline) {
+function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPersonImage, wdStats, wdTimeline, secondaryCatLabel, tertiaryCatLabel) {
   var p = picks || { persona: -1, angle: -1, style: -1, emphasis: "balanced" };
   var persona = p.persona >= 0 ? PERSONAS[p.persona] : pickPersona(editionSeed || 0);
   var freshness = p.angle >= 0 ? FRESHNESS_SEEDS[p.angle] : pickFreshness(editionSeed || 0);
@@ -2090,7 +2090,16 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPe
     slideCountInstr = "DYNAMIC SLIDE COUNT: Decide the optimal number of slides (4-12) based on topic depth.\n- A narrow topic (one event, one person, one moment) \u2192 4-6 slides\n- A standard topic \u2192 7-9 slides\n- A broad topic (history of an era, cultural movement, complex system) \u2192 10-12 slides";
   }
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + wdInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
+  // Cross-category lens instructions
+  var crossCatInstr = "";
+  if (secondaryCatLabel) {
+    crossCatInstr += "\n\nCROSS-CATEGORY LENS — SECONDARY: \"" + secondaryCatLabel + "\"\nAssign 2-3 slides to explore this topic through the lens of " + secondaryCatLabel + ". On these slides, add a field \"categoryLens\": \"" + secondaryCatLabel + "\" so the system can style them differently. Pick slide roles that naturally fit this lens (e.g. THE RIPPLE EFFECT, THE EVIDENCE, or THE HOT TAKE work well as cross-category perspectives).";
+  }
+  if (tertiaryCatLabel) {
+    crossCatInstr += "\n\nCROSS-CATEGORY LENS — TERTIARY: \"" + tertiaryCatLabel + "\"\nAssign 1-2 slides to explore this topic through the lens of " + tertiaryCatLabel + ". On these slides, add a field \"categoryLens\": \"" + tertiaryCatLabel + "\". Choose roles like THE DEEP CUT or THE COUNTER — the unexpected angle from a completely different world.";
+  }
+
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + "\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + wdInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -2136,6 +2145,8 @@ function Settings({ apiKeys, setApiKeys, show, setShow, apiStatus, onTest }) {
 export default function LoathrMediaGenerator() {
   var _s = useState, _cb = useCallback, _ef = useEffect, _ref = useRef;
   var cs = _s(null), category = cs[0], setCategory = cs[1];
+  var sc2 = _s(null), secondaryCategory = sc2[0], setSecondaryCategory = sc2[1];
+  var sc3 = _s(null), tertiaryCategory = sc3[0], setTertiaryCategory = sc3[1];
   var ts = _s(""), topic = ts[0], setTopic = ts[1];
   var os = _s(null), options = os[0], setOptions = os[1];
   var ss = _s(0), selectedOption = ss[0], setSelectedOption = ss[1];
@@ -2579,7 +2590,9 @@ export default function LoathrMediaGenerator() {
     _activeImageStyle = editionPicks.imageStyle || "mixed";
     try {
       if (controller.signal.aborted) throw new Error("Generation cancelled");
-      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers, Object.keys(lockedRef.current || {}).length > 0, wikidataStats, wikidataTimeline);
+      var secInfo = secondaryCategory ? CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) : null;
+      var terInfo = tertiaryCategory ? CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) : null;
+      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers, Object.keys(lockedRef.current || {}).length > 0, wikidataStats, wikidataTimeline, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null);
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] }) });
@@ -2732,7 +2745,14 @@ export default function LoathrMediaGenerator() {
           for (var ps = 1; ps < Math.min(slides.length - 1, 12); ps++) {
             if (imgMap[ps]) continue;
             var slideData = slides[ps] || {};
-            var sq = getSlideImageQuery(slideData, catInfo.label, topic);
+            // Use the slide's cross-category lens for search if present
+            var slideCatLabel = catInfo.label;
+            var slideCatId = category;
+            if (slideData.categoryLens) {
+              var lensMatch = CATEGORIES.find(function(c) { return c.label.toLowerCase() === slideData.categoryLens.toLowerCase() || c.id === slideData.categoryLens.toLowerCase(); });
+              if (lensMatch) { slideCatLabel = lensMatch.label; slideCatId = lensMatch.id; }
+            }
+            var sq = getSlideImageQuery(slideData, slideCatLabel, topic);
             try {
               // Person field — search Wikipedia REST for portraits (skip if person already placed)
               if (slideData.person) {
@@ -2743,9 +2763,9 @@ export default function LoathrMediaGenerator() {
                   if (wPick) { imgMap[ps] = wPick; continue; }
                 }
               }
-              // Vintage slots use vintage APIs
+              // Vintage slots use vintage APIs (respecting cross-category lens)
               if (vintageSlots.indexOf(ps) !== -1) {
-                var vApis = VINTAGE_APIS[category] || [searchMetMuseum];
+                var vApis = VINTAGE_APIS[slideCatId] || VINTAGE_APIS[category] || [searchMetMuseum];
                 var vr = await vApis[ps % vApis.length](sq.split(" ").slice(0, 2).join(" "));
                 var vPick = pickUnique(vr);
                 if (vPick) { imgMap[ps] = vPick; continue; }
@@ -2815,7 +2835,7 @@ export default function LoathrMediaGenerator() {
       }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
-  }, [topic, category, apiKeys, editionPicks, modifiers, lockedPersonImages, genCount, previewLocked, lockedLocationImages]);
+  }, [topic, category, secondaryCategory, tertiaryCategory, apiKeys, editionPicks, modifiers, lockedPersonImages, genCount, previewLocked, lockedLocationImages]);
 
   var generateRec = _cb(async function() {
     if (!topic.trim() || !category) return;
@@ -2909,12 +2929,36 @@ export default function LoathrMediaGenerator() {
         {CATEGORIES.map(function(c) {
           var p = PALETTES[c.id]; var sel = category === c.id; var Icon = c.icon;
           return (
-            <button key={c.id} onClick={function() { setCategory(c.id); setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({}); lockedRef.current = {}; setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({}); setDroppedImage(null); setReverseTopics([]); }}
+            <button key={c.id} onClick={function() { setCategory(c.id); setSecondaryCategory(null); setTertiaryCategory(null); setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({}); lockedRef.current = {}; setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({}); setDroppedImage(null); setReverseTopics([]); }}
               style={{ padding: "8px 12px", cursor: "pointer", border: sel ? "2px solid " + (c.id === "photo" ? "#888888" : p.accent) : "1px solid var(--color-border-tertiary)", background: sel ? (c.id === "photo" ? "#88888822" : p.accent + "12") : "transparent", display: "flex", alignItems: "center", gap: 5, fontSize: 10, ...CP, color: sel ? (c.id === "photo" ? "#888888" : p.accent) : "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
               <Icon size={12} />{c.label}
             </button>);
         })}
       </div>
+
+      {/* Cross-category lens pickers */}
+      {category && <div style={{ display: "flex", gap: 8, marginBottom: 12, justifyContent: "center", flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.05em" }}>+LENS</div>
+          {CATEGORIES.filter(function(c) { return c.id !== category && c.id !== tertiaryCategory; }).map(function(c) {
+            var p = PALETTES[c.id]; var sel = secondaryCategory === c.id;
+            return <button key={c.id} onClick={function() { setSecondaryCategory(sel ? null : c.id); }}
+              style={{ padding: "2px 6px", cursor: "pointer", border: sel ? "1.5px solid " + p.accent : "0.5px solid #ddd", background: sel ? p.accent + "15" : "transparent", ...CP, fontSize: 6, color: sel ? p.accent : "#999", borderRadius: 2 }}>{c.label}</button>;
+          })}
+        </div>
+        {secondaryCategory && <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.05em" }}>+3RD</div>
+          {CATEGORIES.filter(function(c) { return c.id !== category && c.id !== secondaryCategory; }).map(function(c) {
+            var p = PALETTES[c.id]; var sel = tertiaryCategory === c.id;
+            return <button key={c.id} onClick={function() { setTertiaryCategory(sel ? null : c.id); }}
+              style={{ padding: "2px 6px", cursor: "pointer", border: sel ? "1.5px solid " + p.accent : "0.5px solid #ddd", background: sel ? p.accent + "15" : "transparent", ...CP, fontSize: 6, color: sel ? p.accent : "#999", borderRadius: 2 }}>{c.label}</button>;
+          })}
+        </div>}
+        {(secondaryCategory || tertiaryCategory) && <div style={{ ...CP, fontSize: 5, color: "#999" }}>
+          {secondaryCategory && !tertiaryCategory ? "2-3 slides from " + (CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) || {}).label : ""}
+          {secondaryCategory && tertiaryCategory ? "Mixed: " + (CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) || {}).label + " + " + (CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) || {}).label : ""}
+        </div>}
+      </div>}
 
       {category && (
         <div style={{ marginBottom: 16 }}>
@@ -3491,7 +3535,7 @@ export default function LoathrMediaGenerator() {
       {cur && <div style={{ marginBottom: 18, textAlign: "center" }}>
         {editionData && <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
           <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.08em" }}>ISSUE {editionData.num} {"\u00b7"} {editionData.label}</div>
-          <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.08em" }}>{editionData.voice} {"\u00b7"} {editionData.angle} {"\u00b7"} {editionData.style}</div>
+          <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.08em" }}>{editionData.voice} {"\u00b7"} {editionData.angle} {"\u00b7"} {editionData.style}{secondaryCategory ? " \u00b7 +" + (CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) || {}).label : ""}{tertiaryCategory ? " \u00b7 +" + (CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) || {}).label : ""}</div>
         </div>}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", textTransform: "uppercase" }}>Slide {currentSlide + 1} / {total}</div>
