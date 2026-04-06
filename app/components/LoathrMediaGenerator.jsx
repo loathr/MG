@@ -65,7 +65,7 @@ function getEditionId(topic, category) {
   var issueNum = Math.abs(hash % 900) + 100;
   var months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
   var d = new Date();
-  return { num: issueNum, label: "ISSUE " + issueNum + " \u2014 " + months[d.getMonth()] + " " + d.getFullYear(), seed: Math.abs(hash) };
+  return { num: issueNum, label: months[d.getMonth()] + " " + d.getFullYear(), seed: Math.abs(hash) };
 }
 
 function getSlideImageQuery(slide, categoryLabel, topic) {
@@ -554,7 +554,7 @@ function S1Cover({ slide, category, images, edition }) {
     <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
         <div style={{ position: "absolute", top: M_TOP, left: 0, right: 0, textAlign: "center", zIndex: 2 }}>
           <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "6B", fontWeight: 700, textDecoration: "line-through", textDecorationColor: p.accent + "6B", textDecorationThickness: 1 }}>LOATHR</div>
-          {edLabel && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: p.accent + "44", marginTop: 3 }}>{edLabel}</div>}
+          {edLabel && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffffcc", marginTop: 3 }}>{edLabel}</div>}
         </div>
         <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
           <div style={{ textAlign: "center" }}>
@@ -567,7 +567,7 @@ function S1Cover({ slide, category, images, edition }) {
               <div style={{ ...CP, fontSize: 9, color: "#ffffffcc", letterSpacing: "0.1em", fontWeight: 700 }}>{CAT_LABELS[category]}</div>
               <div style={{ width: 8, height: 8, background: p.accent2 || p.accent }} />
             </div>
-            {slide.subtitle && <div style={{ ...HD, fontSize: 10.5, marginTop: 8, background: "linear-gradient(to right, " + p.accent + " 0%, " + p.accent + "cc 25%, " + (p.accent2 || p.accent) + "88 50%, " + (p.accent2 || p.accent) + "cc 75%, " + (p.accent2 || p.accent) + " 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{slide.subtitle}</div>}
+            {slide.subtitle && <div style={{ ...WS, fontSize: 10.5, marginTop: 8, background: "linear-gradient(to right, " + p.accent + " 0%, " + p.accent + "cc 25%, " + (p.accent2 || p.accent) + "88 50%, " + (p.accent2 || p.accent) + "cc 75%, " + (p.accent2 || p.accent) + " 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{slide.subtitle}</div>}
           </div>
         </div>
       </ImgBg>
