@@ -2165,6 +2165,12 @@ export default function LoathrMediaGenerator() {
   var siq = _s(""), swapQuery = siq[0], setSwapQuery = siq[1]; // custom search query for swap
   // Image style hover preview
   var hov = _s(null), hoverStyle = hov[0], setHoverStyle = hov[1];
+  // --- Custom Story mode ---
+  var csm = _s(false), customStoryMode = csm[0], setCustomStoryMode = csm[1];
+  var csn = _s(""), customSubject = csn[0], setCustomSubject = csn[1];
+  var csh = _s(""), customHook = csh[0], setCustomHook = csh[1];
+  var csc = _s(""), customContext = csc[0], setCustomContext = csc[1];
+  var csi = _s([]), customImages = csi[0], setCustomImages = csi[1]; // [{ preview, base64, mimeType, role }]
   var searchTimer = _ref(null);
   var webTimer = _ref(null);
   var previewTimer = _ref(null);
@@ -2763,6 +2769,97 @@ export default function LoathrMediaGenerator() {
     finally { setIsGenerating(false); }
   }, [topic, category, secondaryCategory, tertiaryCategory, apiKeys, editionPicks, modifiers, lockedPersonImages, genCount, previewLocked, lockedLocationImages]);
 
+  // --- Custom Story generator ---
+  var generateCustomStory = _cb(async function() {
+    if (!customSubject.trim() || !customContext.trim() || !category) return;
+    if (customImages.length === 0) { setError("Upload at least 1 image for the cover"); return; }
+    if (abortRef.current) abortRef.current.abort();
+    var controller = new AbortController();
+    abortRef.current = controller;
+    setIsGenerating(true); setError(null); setOptions(null); setImages({});
+    setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
+    var thisGen = genCount + 1;
+    setGenCount(thisGen);
+    var catInfo = CATEGORIES.find(function(c) { return c.id === category; });
+    var edition = getEditionId(customSubject, category, thisGen, editionPicks);
+    setEditionData(edition);
+    _activeImageStyle = editionPicks.imageStyle || "mixed";
+    try {
+      if (controller.signal.aborted) throw new Error("Generation cancelled");
+      var sc = editionPicks.slideCount || 0;
+      var slideCountInstr = sc >= 4 && sc <= 12 ? "Generate EXACTLY " + sc + " slides." : "Generate 7-10 slides based on content depth.";
+      var imgRoles = customImages.map(function(ci, i) { return "Image " + (i + 1) + ": assigned to \"" + ci.role + "\""; }).join("\n");
+      var customPrompt = "You are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catInfo.label + "\"\n\nCUSTOM STORY MODE — this is an ORIGINAL story not yet on the internet.\n\nSubject: \"" + customSubject + "\"\n" + (customHook ? "Hook: \"" + customHook + "\"\n" : "") + "\nRAW CONTEXT (from the user — this is your ONLY source material, do not fabricate additional facts):\n" + customContext + "\n\n" + slideCountInstr + "\n\nThe user has uploaded " + customImages.length + " image(s):\n" + imgRoles + "\n\nIMPORTANT RULES:\n- Write ONLY from the context provided. Do not add facts, dates, or claims not in the raw context.\n- Editorialize the raw material — find the narrative arc, the tension, the hook.\n- You may reframe, highlight, and dramatize what's there, but never fabricate.\n- If the context is thin, use fewer slides and make each one count.\n- Keep body text to 2-3 sentences MAX per slide.\n\nSLIDE ROLES (adapt to fit the story):\n- COVER — title, titleHighlight, subtitle\n- Content slides — heading, body, highlight, textPosition\n- THE EVIDENCE — stat/number slide if any numbers exist in the context. Use statFormat \"killer\" with stat and caption.\n- THE VOICE — quote slide if any quotes exist. quote, source fields.\n- CLOSER — hashtags string\n\nFor design: choose textPosition per slide from: bottom-left, bottom-right, top-left, top-right, split-corners, side-left, side-right, l-shape\n\nRespond ONLY with valid JSON:\n{\"angle\":\"Custom Story\",\"slides\":[{...slides...}]}";
+
+      var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: customPrompt }] }) });
+      var d = await r.json();
+      if (d.error) throw new Error(d.error.message || d.error);
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var cleaned = text.replace(/```json|```/g, "").trim();
+      cleaned = cleaned.replace(/,\s*([}\]])/g, "$1");
+      var jsonStart = cleaned.indexOf("{"); var jsonEnd = cleaned.lastIndexOf("}");
+      if (jsonStart >= 0 && jsonEnd > jsonStart) cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
+      var parsed;
+      try { parsed = JSON.parse(cleaned); } catch (je) {
+        try { cleaned = cleaned.replace(/,\s*$/, ""); if (!cleaned.endsWith("]}")) cleaned += "]}"; parsed = JSON.parse(cleaned); }
+        catch (je2) { throw new Error("Failed to parse custom story JSON. Try again."); }
+      }
+      var results = [];
+      if (parsed && parsed.slides) results.push(parsed);
+      if (results.length === 0) throw new Error("No valid carousel generated");
+      setOptions(results);
+      setTopic(customSubject); // set topic for image search context
+
+      // Place uploaded images by role
+      var imgMap = {};
+      var slides = results[0].slides || [];
+      var ROLE_SLOTS = { cover: 0, closer: slides.length - 1, portrait: 1, context: 2, action: 3, detail: 4, background: 5 };
+      customImages.forEach(function(ci) {
+        var slot = ROLE_SLOTS[ci.role] !== undefined ? ROLE_SLOTS[ci.role] : null;
+        if (slot !== null && !imgMap[slot]) {
+          imgMap[slot] = { url: ci.preview, thumb: ci.preview, alt: customSubject, credit: "User", source: "Upload" };
+        }
+      });
+
+      // Fill remaining slots with stock/vintage image search
+      var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
+      var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
+      if (unsplashKey || pexelsKey) {
+        setImgStatus("Finding supporting images...");
+        var searchFn = unsplashKey ? searchUnsplash : searchPexels;
+        var searchKey = unsplashKey || pexelsKey;
+        var keywords = extractKeywords(customSubject + " " + customHook, 3);
+        var catLabel = catInfo.label;
+        try {
+          var stockImgs = await searchFn(catLabel + " " + keywords, searchKey);
+          var usedUrls = {};
+          Object.values(imgMap).forEach(function(img) { if (img && img.url) usedUrls[img.url] = true; });
+          for (var fi = 0; fi < slides.length; fi++) {
+            if (imgMap[fi]) continue;
+            for (var si = 0; si < stockImgs.length; si++) {
+              if (stockImgs[si] && stockImgs[si].url && !usedUrls[stockImgs[si].url]) {
+                imgMap[fi] = stockImgs[si]; usedUrls[stockImgs[si].url] = true; break;
+              }
+            }
+          }
+        } catch (e) {}
+        // Vintage for remaining gaps
+        try {
+          var vintImgs = await searchVintage(category, keywords);
+          for (var vi = 0; vi < slides.length; vi++) {
+            if (imgMap[vi]) continue;
+            if (vintImgs.length > 0) { imgMap[vi] = vintImgs.shift(); }
+          }
+        } catch (e) {}
+      }
+      if (Object.keys(imgMap).length > 0) { setImages(imgMap); setImgStatus(Object.keys(imgMap).length + " images placed"); }
+      else { setImgStatus("No supporting images found"); }
+    } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
+    finally { setIsGenerating(false); }
+  }, [customSubject, customHook, customContext, customImages, category, apiKeys, editionPicks, genCount]);
+
   var generateRec = _cb(async function() {
     if (!topic.trim() || !category) return;
     if (abortRef.current) abortRef.current.abort();
@@ -2886,7 +2983,77 @@ export default function LoathrMediaGenerator() {
         </div>}
       </div>}
 
-      {category && (
+      {/* Custom Story toggle */}
+      {category && <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+        <button onClick={function() { setCustomStoryMode(!customStoryMode); }}
+          style={{ padding: "5px 12px", border: "0.5px solid " + (customStoryMode ? uiAccent : "#ccc"), background: customStoryMode ? uiAccent + "15" : "transparent", cursor: "pointer", ...CP, fontSize: 8, color: customStoryMode ? uiAccent : "#999", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 5 }}>
+          <Users size={11} />{customStoryMode ? "BACK TO SEARCH" : "CREATE ORIGINAL STORY"}
+        </button>
+      </div>}
+
+      {/* Custom Story panel */}
+      {category && customStoryMode && <div style={{ marginBottom: 16, border: "0.5px solid " + uiAccent, background: "#f8f8f8", padding: 12 }}>
+        <div style={{ ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.1em", marginBottom: 8 }}>ORIGINAL STORY</div>
+        <input value={customSubject} onChange={function(e) { setCustomSubject(e.target.value); }}
+          placeholder="Subject name (person, brand, event...)"
+          style={{ width: "100%", padding: "8px 10px", border: "0.5px solid #ccc", marginBottom: 6, ...CP, fontSize: 10, color: "#333", background: "#fff" }} />
+        <input value={customHook} onChange={function(e) { setCustomHook(e.target.value); }}
+          placeholder="One-line hook (optional — what makes this story worth telling?)"
+          style={{ width: "100%", padding: "8px 10px", border: "0.5px solid #ccc", marginBottom: 6, ...CP, fontSize: 10, color: "#333", background: "#fff" }} />
+        <textarea value={customContext} onChange={function(e) { setCustomContext(e.target.value); }}
+          placeholder="Paste the full story context here — everything Claude needs to know. Dates, facts, quotes, details. Claude will ONLY use what you write here, nothing from the internet."
+          rows={5}
+          style={{ width: "100%", padding: "8px 10px", border: "0.5px solid #ccc", marginBottom: 8, ...CP, fontSize: 9, color: "#333", lineHeight: 1.5, resize: "vertical", background: "#fff" }} />
+
+        {/* Image uploads */}
+        <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>IMAGES ({customImages.length} uploaded{customImages.length === 0 ? " — at least 1 required for cover" : ""})</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+          {customImages.map(function(ci, i) { return (
+            <div key={i} style={{ textAlign: "center", position: "relative" }}>
+              <img src={ci.preview} alt="" style={{ width: 60, height: 75, objectFit: "cover", borderRadius: 3, border: "1.5px solid " + uiAccent }} />
+              <select value={ci.role} onChange={function(e) { setCustomImages(function(prev) { var n = prev.slice(); n[i] = Object.assign({}, n[i], { role: e.target.value }); return n; }); }}
+                style={{ display: "block", width: 60, ...CP, fontSize: 5, color: "#666", border: "0.5px solid #ccc", marginTop: 2, background: "#fff" }}>
+                <option value="cover">Cover</option>
+                <option value="portrait">Portrait</option>
+                <option value="context">Context</option>
+                <option value="action">Action</option>
+                <option value="detail">Detail</option>
+                <option value="background">Background</option>
+              </select>
+              <button onClick={function() { setCustomImages(function(prev) { return prev.filter(function(_, j) { return j !== i; }); }); }}
+                style={{ position: "absolute", top: -4, right: -4, width: 14, height: 14, borderRadius: "50%", background: "#e63946", color: "#fff", border: "none", cursor: "pointer", ...CP, fontSize: 8, lineHeight: "14px", textAlign: "center" }}>{"\u2715"}</button>
+            </div>
+          ); })}
+          <label style={{ width: 60, height: 75, border: "1.5px dashed #ccc", borderRadius: 3, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 2 }}>
+            <Camera size={16} style={{ color: "#ccc" }} />
+            <div style={{ ...CP, fontSize: 5, color: "#999" }}>Add</div>
+            <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={function(e) {
+              var files = e.target.files;
+              if (!files) return;
+              Array.from(files).forEach(function(file) {
+                var reader = new FileReader();
+                reader.onload = function(ev) {
+                  var base64 = ev.target.result.split(",")[1];
+                  setCustomImages(function(prev) { return prev.concat([{ preview: ev.target.result, base64: base64, mimeType: file.type, role: prev.length === 0 ? "cover" : "context" }]); });
+                };
+                reader.readAsDataURL(file);
+              });
+            }} />
+          </label>
+        </div>
+
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={generateCustomStory} disabled={isGenerating || !customSubject.trim() || !customContext.trim() || customImages.length === 0}
+            style={{ flex: 1, padding: "10px 14px", background: !customSubject.trim() || !customContext.trim() || customImages.length === 0 ? "#ccc" : uiAccent, color: "#ffffff", border: "none", cursor: !customSubject.trim() || !customContext.trim() || customImages.length === 0 ? "default" : "pointer", ...CP, fontSize: 10, letterSpacing: "0.1em", fontWeight: 700 }}>
+            {isGenerating ? "GENERATING..." : "CREATE CAROUSEL"}
+          </button>
+          {isGenerating && <button onClick={cancelGenerate}
+            style={{ padding: "10px 14px", background: "#e63946", color: "#ffffff", border: "none", cursor: "pointer", ...CP, fontSize: 10, letterSpacing: "0.1em", fontWeight: 700 }}>CANCEL</button>}
+        </div>
+        {customContext.length > 0 && <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 4 }}>{customContext.split(/\s+/).length} words {"\u00b7"} Claude will editorialize this into a {editionPicks.slideCount || "7-10"} slide carousel</div>}
+      </div>}
+
+      {category && !customStoryMode && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 6 }}
             onDragOver={function(e) { e.preventDefault(); e.stopPropagation(); }}
