@@ -702,7 +702,20 @@ function S4Emigre({ slide, index, category, images }) {
   if (!slide) return <div style={{ width: "100%", height: "100%", background: "#0a0a0a" }} />;
   var p = PALETTES[category];
   var url = getImg(images, index);
-  var fmt = slide.statFormat || (slide.before ? "comparison" : slide.stats ? "story" : slide.left ? "versus" : slide.year && slide.context ? "timeline" : slide.stat2 ? "comparison" : "killer");
+  // Normalize Claude's varied field names to expected fields
+  var s = Object.assign({}, slide);
+  if (!s.stat && s.content) { var parts = String(s.content).match(/[\d,.%$]+/); if (parts) s.stat = parts[0]; }
+  if (!s.body && s.content) s.body = s.content;
+  if (!s.body && s.subhead) s.body = s.subhead;
+  if (!s.caption && s.body) s.caption = s.body;
+  if (!s.shift && s.body) s.shift = s.body;
+  if (!s.verdict && s.body) s.verdict = s.body;
+  if (!s.context && s.body) s.context = s.body;
+  if (!s.narrative && s.body) s.narrative = s.body;
+  if (!s.left && s.headline) s.left = s.headline;
+  if (!s.statLabel && s.subhead) s.statLabel = s.subhead;
+  var fmt = s.statFormat || (s.before ? "comparison" : s.stats ? "story" : s.left ? "versus" : s.year && !s.heading ? "timeline" : s.stat2 ? "comparison" : "killer");
+  slide = s;
 
   // Format A: Comparison (before → after)
   if (fmt === "comparison") {
