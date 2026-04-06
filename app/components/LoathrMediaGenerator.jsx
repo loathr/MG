@@ -15,30 +15,59 @@ var CP = { fontFamily: "'Courier Prime',monospace" };
 
 // --- MAGAZINE EDITION SYSTEM ---
 var PERSONAS = [
-  { id: "historian", voice: "You are The Historian. Uncover forgotten details and lost context. Use phrases like 'what is rarely discussed', 'the record shows', 'buried in the archives'. Tone: revelatory, authoritative, like uncovering a secret." },
-  { id: "critic", voice: "You are The Critic. Give sharp cultural commentary with strong opinions. Use phrases like 'the uncomfortable truth is', 'what nobody admits', 'the real story'. Tone: provocative, confident, contrarian." },
-  { id: "insider", voice: "You are The Insider with behind-the-scenes access. Use phrases like 'what most people miss', 'behind closed doors', 'the industry secret'. Tone: conspiratorial, intimate, exclusive." },
-  { id: "storyteller", voice: "You are The Storyteller. Open with a vivid scene or moment. Use phrases like 'picture this', 'it started when', 'the turning point came'. Tone: cinematic, immersive, narrative." },
-  { id: "researcher", voice: "You are The Researcher. Lead with surprising data and evidence. Use phrases like 'the data reveals', 'studies show', 'the numbers tell a different story'. Tone: precise, eye-opening, analytical." },
+  // Original 5
+  { id: "historian", label: "Historian", desc: "\"Buried in the archives...\"", voice: "You are The Historian. Uncover forgotten details and lost context. Use phrases like 'what is rarely discussed', 'the record shows', 'buried in the archives'. Tone: revelatory, authoritative, like uncovering a secret." },
+  { id: "critic", label: "Critic", desc: "\"The uncomfortable truth is...\"", voice: "You are The Critic. Give sharp cultural commentary with strong opinions. Use phrases like 'the uncomfortable truth is', 'what nobody admits', 'the real story'. Tone: provocative, confident, contrarian." },
+  { id: "insider", label: "Insider", desc: "\"Behind closed doors...\"", voice: "You are The Insider with behind-the-scenes access. Use phrases like 'what most people miss', 'behind closed doors', 'the industry secret'. Tone: conspiratorial, intimate, exclusive." },
+  { id: "storyteller", label: "Storyteller", desc: "\"Picture this...\"", voice: "You are The Storyteller. Open with a vivid scene or moment. Use phrases like 'picture this', 'it started when', 'the turning point came'. Tone: cinematic, immersive, narrative." },
+  { id: "researcher", label: "Researcher", desc: "\"The data reveals...\"", voice: "You are The Researcher. Lead with surprising data and evidence. Use phrases like 'the data reveals', 'studies show', 'the numbers tell a different story'. Tone: precise, eye-opening, analytical." },
+  // Cultural voices
+  { id: "gossipgirl", label: "Gossip Girl", desc: "\"Spotted...\"", voice: "You are Gossip Girl. Narrate like you're exposing the elite. Use phrases like 'spotted', 'word on the street', 'you know you love me', 'XOXO'. Tone: knowing, playful, dripping with innuendo. Address the reader as part of the inner circle. Every slide is a scandalous revelation disguised as casual gossip." },
+  { id: "streetculture", label: "Street", desc: "\"Real talk...\"", voice: "You are The Street Culture Voice. Write like a respected hip-hop journalist or culture commentator. Use phrases like 'real talk', 'the culture spoke', 'they weren't ready'. Tone: authentic, direct, zero pretension, deeply connected to Black and urban culture. Reference the block, the studio, the come-up." },
+  { id: "fashioneditor", label: "Fashion Ed", desc: "\"Darling, this changes everything...\"", voice: "You are The Fashion Editor. Write like Anna Wintour meets street style. Use phrases like 'the moment that shifted everything', 'what the front row missed', 'this is the new uniform'. Tone: sharp, opinionated, effortlessly superior. Every observation is a verdict." },
+  { id: "sportscomm", label: "Commentator", desc: "\"And the crowd goes...\"", voice: "You are The Sports Commentator. Write with the energy of a live broadcast. Use phrases like 'and the crowd goes silent', 'nobody saw this coming', 'a once-in-a-generation moment'. Tone: electric, dramatic, building tension then releasing it. Every slide should feel like a highlight reel." },
+  { id: "techvisionary", label: "Tech Oracle", desc: "\"The future is already here...\"", voice: "You are The Tech Visionary. Write like a keynote speaker who sees around corners. Use phrases like 'the future is already here', 'this changes the entire game', 'while everyone was watching X, the real disruption was Y'. Tone: confident, forward-looking, connecting dots nobody else sees." },
 ];
 
 var FRESHNESS_SEEDS = [
-  "Approach through economics and money: who profits, who pays, what is the hidden financial story.",
-  "Frame around human psychology: why do people behave this way, what emotional need does it serve.",
-  "Focus on technology disruption: what innovation changed everything, what is being displaced.",
-  "Explore cultural clash: whose traditions collide, what identity tensions exist.",
-  "Tell the untold backstory: the person, moment, or decision that started it all but nobody discusses.",
-  "Make a bold prediction: where is this heading in 5 years, what is the inevitable conclusion.",
-  "Frame as a failure story: what went wrong, who miscalculated, what lesson was learned.",
-  "Find a surprising parallel: connect this to something completely unrelated in another field.",
+  { id: "money", label: "Follow the Money", desc: "Who profits? Who pays?", prompt: "Approach through economics and money: who profits, who pays, what is the hidden financial story." },
+  { id: "psych", label: "Why We Care", desc: "The psychology behind it", prompt: "Frame around human psychology: why do people behave this way, what emotional need does it serve." },
+  { id: "tech", label: "Tech Disruption", desc: "What innovation changed everything", prompt: "Focus on technology disruption: what innovation changed everything, what is being displaced." },
+  { id: "clash", label: "Culture Clash", desc: "Whose traditions collide", prompt: "Explore cultural clash: whose traditions collide, what identity tensions exist." },
+  { id: "origin", label: "Untold Origin", desc: "The backstory nobody knows", prompt: "Tell the untold backstory: the person, moment, or decision that started it all but nobody discusses." },
+  { id: "future", label: "Bold Prediction", desc: "Where is this heading?", prompt: "Make a bold prediction: where is this heading in 5 years, what is the inevitable conclusion." },
+  { id: "failure", label: "What Went Wrong", desc: "The miscalculation that changed everything", prompt: "Frame as a failure story: what went wrong, who miscalculated, what lesson was learned." },
+  { id: "parallel", label: "Unlikely Parallel", desc: "Connect to something unrelated", prompt: "Find a surprising parallel: connect this to something completely unrelated in another field." },
 ];
 
 var WRITING_STYLES = [
-  "heading, body (3-4 sentences with KEY TERMS IN CAPS), highlight (key insight)",
-  "heading (posed as a question), body (conversational answer style, KEY TERMS IN CAPS), highlight (quotable one-liner)",
-  "heading (bold declaration), body (supporting evidence, KEY TERMS IN CAPS), highlight (challenge to the reader)",
-  "heading (scene-setting), body (first-person observation style, KEY TERMS IN CAPS), highlight (the lesson)",
-  "heading (then vs now framing), body (compare two eras or perspectives, KEY TERMS IN CAPS), highlight (what shifted)",
+  { id: "classic", label: "Classic", desc: "Heading + body + key insight", prompt: "heading, body (3-4 sentences with KEY TERMS IN CAPS), highlight (key insight)" },
+  { id: "interview", label: "Interview", desc: "Question → answer → quotable", prompt: "heading (posed as a question), body (conversational answer style, KEY TERMS IN CAPS), highlight (quotable one-liner)" },
+  { id: "manifesto", label: "Manifesto", desc: "Declaration + evidence + challenge", prompt: "heading (bold declaration), body (supporting evidence, KEY TERMS IN CAPS), highlight (challenge to the reader)" },
+  { id: "observation", label: "Observation", desc: "Scene-setting + first-person", prompt: "heading (scene-setting), body (first-person observation style, KEY TERMS IN CAPS), highlight (the lesson)" },
+  { id: "contrast", label: "Contrast", desc: "Then vs now comparison", prompt: "heading (then vs now framing), body (compare two eras or perspectives, KEY TERMS IN CAPS), highlight (what shifted)" },
+];
+
+// Tone presets — controls energy level
+var TONES = [
+  { id: "editorial", label: "Editorial", desc: "Magazine-quality serious", prompt: "Write in a measured, editorial tone. Authoritative but accessible." },
+  { id: "casual", label: "Casual", desc: "Instagram-native relaxed", prompt: "Write casually, like talking to a friend who's interested. Use contractions, short sentences, occasional slang. Still smart, just not stiff." },
+  { id: "hype", label: "Hype", desc: "High energy, shareable", prompt: "Write with maximum energy. Every line should make someone want to share. Use exclamation-worthy phrasing, dramatic pauses, and bold claims." },
+  { id: "dark", label: "Dark/Moody", desc: "Atmospheric, brooding", prompt: "Write with a dark, atmospheric tone. Moody, reflective, slightly ominous. Let tension build. Shadows and undertones." },
+  { id: "academic", label: "Academic", desc: "Thesis-grade depth", prompt: "Write with academic rigor but magazine readability. Cite frameworks, reference scholarship, but never bore. Think: New Yorker meets peer review." },
+  { id: "playful", label: "Playful", desc: "Witty, irreverent", prompt: "Write with wit and irreverence. Pop culture references, wordplay, unexpected analogies. Smart humor that rewards attention." },
+];
+
+// Curated presets — auto-set voice + angle + style + tone
+var EDITION_PRESETS = [
+  { id: "viral", label: "Viral Thread", desc: "Insider + Bold Prediction + Hype", settings: { persona: 2, angle: 5, style: 2, tone: "hype" } },
+  { id: "deepfeature", label: "Deep Feature", desc: "Historian + Untold Origin + Editorial", settings: { persona: 0, angle: 4, style: 0, tone: "editorial" } },
+  { id: "culturewars", label: "Culture Wars", desc: "Critic + Culture Clash + Manifesto", settings: { persona: 1, angle: 3, style: 2, tone: "dark" } },
+  { id: "tea", label: "Spill the Tea", desc: "Gossip Girl + Follow the Money + Playful", settings: { persona: 5, angle: 0, style: 1, tone: "playful" } },
+  { id: "breakdown", label: "Data Breakdown", desc: "Researcher + Tech Disruption + Classic", settings: { persona: 4, angle: 2, style: 0, tone: "academic" } },
+  { id: "streetstory", label: "Street Story", desc: "Street + Untold Origin + Observation", settings: { persona: 6, angle: 4, style: 3, tone: "casual" } },
+  { id: "frontrow", label: "Front Row", desc: "Fashion Editor + Follow the Money + Contrast", settings: { persona: 7, angle: 0, style: 4, tone: "editorial" } },
+  { id: "gameday", label: "Game Day", desc: "Commentator + What Went Wrong + Interview", settings: { persona: 8, angle: 6, style: 1, tone: "hype" } },
 ];
 
 var IMG_FILTERS = [
@@ -190,14 +219,10 @@ function getEditionId(topic, category, genNum, picks) {
   var months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
   var d = new Date();
   var seed = Math.abs(varied);
-  // Resolve editorial choices for display
   var p = picks || { persona: -1, angle: -1, style: -1 };
-  var voiceLabels = ["Historian", "Critic", "Insider", "Storyteller", "Researcher"];
-  var angleLabels = ["Economics", "Psychology", "Technology", "Cultural", "Backstory", "Prediction", "Failure", "Parallel"];
-  var styleLabels = ["Classic", "Interview", "Manifesto", "Observation", "Contrast"];
-  var resolvedVoice = p.persona >= 0 ? voiceLabels[p.persona] : voiceLabels[seed % voiceLabels.length];
-  var resolvedAngle = p.angle >= 0 ? angleLabels[p.angle] : angleLabels[seed % angleLabels.length];
-  var resolvedStyle = p.style >= 0 ? styleLabels[p.style] : styleLabels[seed % styleLabels.length];
+  var resolvedVoice = p.persona >= 0 && PERSONAS[p.persona] ? PERSONAS[p.persona].label : PERSONAS[seed % PERSONAS.length].label;
+  var resolvedAngle = p.angle >= 0 && FRESHNESS_SEEDS[p.angle] ? FRESHNESS_SEEDS[p.angle].label : FRESHNESS_SEEDS[seed % FRESHNESS_SEEDS.length].label;
+  var resolvedStyle = p.style >= 0 && WRITING_STYLES[p.style] ? WRITING_STYLES[p.style].label : WRITING_STYLES[seed % WRITING_STYLES.length].label;
   return { num: issueNum, label: months[d.getMonth()] + " " + d.getFullYear(), seed: seed, voice: resolvedVoice, angle: resolvedAngle, style: resolvedStyle };
 }
 
@@ -1993,17 +2018,18 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
 
 // --- DIFFERENTIATED PROMPTS ---
 function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPersonImage, secondaryCatLabel, tertiaryCatLabel) {
-  var p = picks || { persona: -1, angle: -1, style: -1, emphasis: "balanced" };
-  var persona = p.persona >= 0 ? PERSONAS[p.persona] : pickPersona(editionSeed || 0);
-  var freshness = p.angle >= 0 ? FRESHNESS_SEEDS[p.angle] : pickFreshness(editionSeed || 0);
-  var style = p.style >= 0 ? WRITING_STYLES[p.style] : pickWritingStyle(editionSeed || 0);
-  var emph = p.emphasis || "balanced";
-  var emphasisInstr = "";
-  if (emph === "deep") emphasisInstr = "\nEMPHASIS: Lean heavily into educational depth. More research, more detail, more context on every slide. The Origin and Human Story slides should be especially thorough.";
-  else if (emph === "hot") emphasisInstr = "\nEMPHASIS: Lean heavily into provocative, shareable opinions. Every slide should have an edge. The Hot Take and The Now slides should be especially bold and confrontational.";
-  else if (emph === "timeline") emphasisInstr = "\nEMPHASIS: Lean heavily into chronological narrative. Include specific years on as many slides as possible. Frame each slide as a distinct era or moment in time.";
-  else if (emph === "narrative") emphasisInstr = "\nEMPHASIS: Lean heavily into storytelling. Every slide should read like a chapter. Use scene-setting, character, conflict, and resolution across the carousel.";
-  else if (emph === "data") emphasisInstr = "\nEMPHASIS: Lean heavily into data and evidence. Include specific numbers, percentages, or statistics on every slide possible. Let the data drive the narrative.";
+  var p = picks || { persona: -1, angle: -1, style: -1, tone: "editorial" };
+  var persona = p.persona >= 0 && PERSONAS[p.persona] ? PERSONAS[p.persona] : pickPersona(editionSeed || 0);
+  var freshSeed = p.angle >= 0 && FRESHNESS_SEEDS[p.angle] ? FRESHNESS_SEEDS[p.angle] : pickFreshness(editionSeed || 0);
+  var freshness = typeof freshSeed === "string" ? freshSeed : freshSeed.prompt;
+  var styleSeed = p.style >= 0 && WRITING_STYLES[p.style] ? WRITING_STYLES[p.style] : pickWritingStyle(editionSeed || 0);
+  var style = typeof styleSeed === "string" ? styleSeed : styleSeed.prompt;
+  // Tone instruction
+  var toneId = p.tone || "editorial";
+  var toneObj = TONES.find(function(t) { return t.id === toneId; });
+  var toneInstr = toneObj ? "\nTONE: " + toneObj.prompt : "";
+  // Custom voice override
+  var customVoiceInstr = p.customVoice ? "\nCUSTOM VOICE INSTRUCTION: " + p.customVoice : "";
 
   // Apply modifier instructions
   var modInstr = "";
@@ -2054,7 +2080,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPe
     crossCatInstr += "\n\nCROSS-CATEGORY LENS — TERTIARY: \"" + tertiaryCatLabel + "\" (1-2 slides)\n" + terDir + "\nOn these slides, add \"categoryLens\": \"" + tertiaryCatLabel + "\". Best roles: THE DEEP CUT (niche insider knowledge from " + tertiaryCatLabel + ") or THE COUNTER (the " + tertiaryCatLabel + " world's opposing view). Must be SPECIFIC and surprising — the reader should think \"I never connected these two worlds.\"";
   }
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + "\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + "\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + toneInstr + customVoiceInstr + modInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -2123,7 +2149,7 @@ export default function LoathrMediaGenerator() {
   var exs = _s(null), exportStatus = exs[0], setExportStatus = exs[1];
   var rms = _s(false), isRecMode = rms[0], setIsRecMode = rms[1];
   var eds = _s(null), editionData = eds[0], setEditionData = eds[1];
-  var eps = _s({ persona: -1, angle: -1, style: -1, emphasis: "balanced", imageStyle: "mixed", slideCount: 0 }), editionPicks = eps[0], setEditionPicks = eps[1]; // slideCount: 0=auto, 4-12=fixed
+  var eps = _s({ persona: -1, angle: -1, style: -1, tone: "editorial", imageStyle: "mixed", slideCount: 0, customVoice: "" }), editionPicks = eps[0], setEditionPicks = eps[1];
   var ess = _s(false), showEditionSettings = ess[0], setShowEditionSettings = ess[1];
   var sug = _s([]), suggestions = sug[0], setSuggestions = sug[1];
   var rtp = _s([]), relatedTopics = rtp[0], setRelatedTopics = rtp[1];
@@ -3398,69 +3424,104 @@ export default function LoathrMediaGenerator() {
               {showEditionSettings ? "\u25B2 HIDE EDITION SETTINGS" : "\u25BC EDITION SETTINGS"}
             </button>
           </div>
-          {showEditionSettings && <div style={{ marginBottom: 10, padding: 10, border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)" }}>
+          {showEditionSettings && <div style={{ marginBottom: 10, padding: 10, border: "0.5px solid var(--color-border-tertiary)", background: "#fafafa" }}>
+            {/* Presets — one-click curated combos */}
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>PRESETS</div>
+              <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                {EDITION_PRESETS.map(function(preset) { return (
+                  <button key={preset.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, preset.settings, { imageStyle: p.imageStyle, slideCount: p.slideCount, customVoice: p.customVoice }); }); }}
+                    style={{ padding: "3px 8px", border: "0.5px solid " + uiAccent + "44", background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
+                    <span style={{ color: uiAccent, fontWeight: 700 }}>{preset.label}</span>
+                    <span style={{ display: "block", fontSize: 4, color: "#999", marginTop: 1 }}>{preset.desc}</span>
+                  </button>
+                ); })}
+              </div>
+            </div>
+            <div style={{ height: 1, background: "#eee", margin: "8px 0" }} />
+            {/* Voice */}
             <div style={{ marginBottom: 8 }}>
-              <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", marginBottom: 4 }}>VOICE</div>
+              <div style={{ ...CP, fontSize: 7, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>VOICE</div>
               <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                 <button onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { persona: -1 }); }); }}
-                  style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.persona === -1 ? uiAccent + "22" : "transparent", color: editionPicks.persona === -1 ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>Random</button>
+                  style={{ padding: "3px 8px", border: "0.5px solid #ddd", background: editionPicks.persona === -1 ? uiAccent + "22" : "transparent", color: editionPicks.persona === -1 ? uiAccent : "#999", cursor: "pointer", ...CP, fontSize: 6 }}>Random</button>
                 {PERSONAS.map(function(per, i) { return (
                   <button key={per.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { persona: i }); }); }}
-                    style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.persona === i ? uiAccent + "22" : "transparent", color: editionPicks.persona === i ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7, textTransform: "capitalize" }}>{per.id}</button>
+                    title={per.desc}
+                    style={{ padding: "3px 8px", border: "0.5px solid #ddd", background: editionPicks.persona === i ? uiAccent + "22" : "transparent", color: editionPicks.persona === i ? uiAccent : "#999", cursor: "pointer", ...CP, fontSize: 6 }}>{per.label}</button>
                 ); })}
               </div>
+              {editionPicks.persona >= 0 && PERSONAS[editionPicks.persona] && <div style={{ ...CP, fontSize: 5, color: uiAccent + "88", marginTop: 2, fontStyle: "italic" }}>{PERSONAS[editionPicks.persona].desc}</div>}
             </div>
+            {/* Angle */}
             <div style={{ marginBottom: 8 }}>
-              <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", marginBottom: 4 }}>ANGLE</div>
+              <div style={{ ...CP, fontSize: 7, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>ANGLE</div>
               <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                 <button onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { angle: -1 }); }); }}
-                  style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.angle === -1 ? uiAccent + "22" : "transparent", color: editionPicks.angle === -1 ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>Random</button>
-                {["Economics", "Psychology", "Technology", "Cultural", "Backstory", "Prediction", "Failure", "Parallel"].map(function(label, i) { return (
-                  <button key={label} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { angle: i }); }); }}
-                    style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.angle === i ? uiAccent + "22" : "transparent", color: editionPicks.angle === i ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>{label}</button>
+                  style={{ padding: "3px 8px", border: "0.5px solid #ddd", background: editionPicks.angle === -1 ? uiAccent + "22" : "transparent", color: editionPicks.angle === -1 ? uiAccent : "#999", cursor: "pointer", ...CP, fontSize: 6 }}>Random</button>
+                {FRESHNESS_SEEDS.map(function(seed, i) { return (
+                  <button key={seed.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { angle: i }); }); }}
+                    title={seed.desc}
+                    style={{ padding: "3px 8px", border: "0.5px solid #ddd", background: editionPicks.angle === i ? uiAccent + "22" : "transparent", color: editionPicks.angle === i ? uiAccent : "#999", cursor: "pointer", ...CP, fontSize: 6 }}>{seed.label}</button>
                 ); })}
               </div>
+              {editionPicks.angle >= 0 && FRESHNESS_SEEDS[editionPicks.angle] && <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 2 }}>{FRESHNESS_SEEDS[editionPicks.angle].desc}</div>}
             </div>
-            <div>
-              <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", marginBottom: 4 }}>STYLE</div>
+            {/* Style */}
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ ...CP, fontSize: 7, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>STYLE</div>
               <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                 <button onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { style: -1 }); }); }}
-                  style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.style === -1 ? uiAccent + "22" : "transparent", color: editionPicks.style === -1 ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>Random</button>
-                {["Classic", "Interview", "Manifesto", "Observation", "Contrast"].map(function(label, i) { return (
-                  <button key={label} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { style: i }); }); }}
-                    style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.style === i ? uiAccent + "22" : "transparent", color: editionPicks.style === i ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>{label}</button>
+                  style={{ padding: "3px 8px", border: "0.5px solid #ddd", background: editionPicks.style === -1 ? uiAccent + "22" : "transparent", color: editionPicks.style === -1 ? uiAccent : "#999", cursor: "pointer", ...CP, fontSize: 6 }}>Random</button>
+                {WRITING_STYLES.map(function(ws, i) { return (
+                  <button key={ws.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { style: i }); }); }}
+                    title={ws.desc}
+                    style={{ padding: "3px 8px", border: "0.5px solid #ddd", background: editionPicks.style === i ? uiAccent + "22" : "transparent", color: editionPicks.style === i ? uiAccent : "#999", cursor: "pointer", ...CP, fontSize: 6 }}>{ws.label}</button>
                 ); })}
               </div>
+              {editionPicks.style >= 0 && WRITING_STYLES[editionPicks.style] && <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 2 }}>{WRITING_STYLES[editionPicks.style].desc}</div>}
             </div>
-            <div style={{ marginTop: 8 }}>
-              <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", marginBottom: 4 }}>EMPHASIS</div>
+            {/* Tone */}
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ ...CP, fontSize: 7, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>TONE</div>
               <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-                {[{ id: "balanced", label: "Balanced" }, { id: "deep", label: "Deep Dive" }, { id: "hot", label: "Hot Take" }, { id: "timeline", label: "Timeline" }, { id: "narrative", label: "Narrative" }, { id: "data", label: "Data-Driven" }].map(function(item) { return (
-                  <button key={item.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { emphasis: item.id }); }); }}
-                    style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.emphasis === item.id ? uiAccent + "22" : "transparent", color: editionPicks.emphasis === item.id ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>{item.label}</button>
+                {TONES.map(function(t) { return (
+                  <button key={t.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { tone: t.id }); }); }}
+                    style={{ padding: "3px 8px", border: "0.5px solid #ddd", background: editionPicks.tone === t.id ? uiAccent + "22" : "transparent", color: editionPicks.tone === t.id ? uiAccent : "#999", cursor: "pointer", ...CP, fontSize: 6 }}>{t.label}</button>
                 ); })}
               </div>
+              {editionPicks.tone && TONES.find(function(t) { return t.id === editionPicks.tone; }) && <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 2 }}>{TONES.find(function(t) { return t.id === editionPicks.tone; }).desc}</div>}
             </div>
-            <div style={{ marginTop: 8 }}>
-              <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", marginBottom: 4 }}>IMAGE STYLE</div>
+            {/* Custom Voice */}
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ ...CP, fontSize: 7, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>CUSTOM VOICE <span style={{ fontSize: 5, color: "#bbb" }}>(optional — overrides voice preset)</span></div>
+              <input value={editionPicks.customVoice || ""} onChange={function(e) { setEditionPicks(function(p) { return Object.assign({}, p, { customVoice: e.target.value }); }); }}
+                placeholder='e.g. "Write like a Lagos music blogger" or "Sound like a Brooklyn barber telling stories"'
+                style={{ width: "100%", padding: "4px 8px", border: "0.5px solid #ddd", ...CP, fontSize: 7, color: "#333", background: "#fff" }} />
+            </div>
+            <div style={{ height: 1, background: "#eee", margin: "8px 0" }} />
+            {/* Image Style */}
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ ...CP, fontSize: 7, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>IMAGE STYLE</div>
               <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                 {Object.keys(IMAGE_STYLE_PRESETS).map(function(key) { var preset = IMAGE_STYLE_PRESETS[key]; return (
                   <button key={key}
                     onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { imageStyle: key }); }); setHoverStyle(null); }}
                     onMouseEnter={function() { setHoverStyle(key); }}
                     onMouseLeave={function() { setHoverStyle(null); }}
-                    style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.imageStyle === key ? uiAccent + "22" : "transparent", color: editionPicks.imageStyle === key ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>{preset.label}</button>
+                    style={{ padding: "3px 8px", border: "0.5px solid #ddd", background: editionPicks.imageStyle === key ? uiAccent + "22" : "transparent", color: editionPicks.imageStyle === key ? uiAccent : "#999", cursor: "pointer", ...CP, fontSize: 6 }}>{preset.label}</button>
                 ); })}
               </div>
             </div>
-            <div style={{ marginTop: 8 }}>
-              <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", marginBottom: 4 }}>SLIDES</div>
+            {/* Slides */}
+            <div>
+              <div style={{ ...CP, fontSize: 7, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>SLIDES</div>
               <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                 <button onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: 0 }); }); }}
-                  style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: !editionPicks.slideCount ? uiAccent + "22" : "transparent", color: !editionPicks.slideCount ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>Auto</button>
+                  style={{ padding: "3px 8px", border: "0.5px solid #ddd", background: !editionPicks.slideCount ? uiAccent + "22" : "transparent", color: !editionPicks.slideCount ? uiAccent : "#999", cursor: "pointer", ...CP, fontSize: 6 }}>Auto</button>
                 {[4,5,6,7,8,9,10,11,12].map(function(n) { return (
                   <button key={n} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: n }); }); }}
-                    style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.slideCount === n ? uiAccent + "22" : "transparent", color: editionPicks.slideCount === n ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7, minWidth: 24, textAlign: "center" }}>{n}</button>
+                    style={{ padding: "3px 8px", border: "0.5px solid #ddd", background: editionPicks.slideCount === n ? uiAccent + "22" : "transparent", color: editionPicks.slideCount === n ? uiAccent : "#999", cursor: "pointer", ...CP, fontSize: 6, minWidth: 22, textAlign: "center" }}>{n}</button>
                 ); })}
               </div>
               <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 2 }}>
