@@ -377,6 +377,8 @@ function ImgBg({ url, pal, children, darken, category, imgFilter, slideIndex }) 
       {!url && <EditorialFill pal={pal} category={category} />}
       {darken && <div style={{ position: "absolute", inset: 0, background: darken }} />}
       {children}
+      {/* LOATHR watermark — bottom left, minimal */}
+      <div style={{ position: "absolute", bottom: 6, left: 8, zIndex: 10, ...CP, fontSize: 4, letterSpacing: "0.15em", color: "#ffffff33", fontWeight: 700 }}>LOATHR</div>
     </div>
   );
 }
@@ -1646,14 +1648,40 @@ var extractWikidataStats = async function(entity) {
   if (!entity || !entity.claims) return {};
   var stats = {};
   var claims = entity.claims;
-  // 1. Numbers — format large values
+  // 1. Numbers — format large values with units
+  var unitQids = [];
+  var unitMap = {}; // prop → unit QID
   Object.keys(WD_NUMBERS).forEach(function(prop) {
     if (!claims[prop]) return;
     var claim = claims[prop][0];
     if (!claim || !claim.mainsnak || !claim.mainsnak.datavalue || claim.mainsnak.datavalue.type !== "quantity") return;
     var raw = claim.mainsnak.datavalue.value.amount.replace("+", "");
+    var unit = claim.mainsnak.datavalue.value.unit || "";
+    var unitQid = unit.match(/Q\d+/);
     stats[WD_NUMBERS[prop]] = formatBigNum(raw);
+    if (unitQid) { unitQids.push(unitQid[0]); unitMap[prop] = unitQid[0]; }
   });
+  // Resolve unit QIDs to symbols
+  var UNIT_SHORTCUTS = { Q4917: "$", Q11573: "m", Q828224: "km", Q712226: "km²", Q25343: "mi²", Q199: "1", Q174728: "cm", Q11579: "°C", Q199462: "min", Q3311194: "people" };
+  if (unitQids.length > 0) {
+    var resolvedUnits = {};
+    // Use shortcuts first, resolve remainder via API
+    var needResolve = [];
+    unitQids.forEach(function(qid) { if (UNIT_SHORTCUTS[qid]) resolvedUnits[qid] = UNIT_SHORTCUTS[qid]; else needResolve.push(qid); });
+    if (needResolve.length > 0) {
+      var unitLabels = await resolveQids(needResolve);
+      Object.keys(unitLabels).forEach(function(qid) { resolvedUnits[qid] = unitLabels[qid]; });
+    }
+    // Append units to stat values
+    Object.keys(unitMap).forEach(function(prop) {
+      var label = WD_NUMBERS[prop];
+      var unitStr = resolvedUnits[unitMap[prop]];
+      if (unitStr && stats[label]) {
+        if (unitStr === "$") stats[label] = "$" + stats[label];
+        else if (unitStr.length <= 4) stats[label] = stats[label] + " " + unitStr;
+      }
+    });
+  }
   // 2. Dates — extract full date not just year
   var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   Object.keys(WD_DATES).forEach(function(prop) {
@@ -2006,7 +2034,16 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPe
   ];
   var forcedStat = statFormats[(editionSeed || 0) % statFormats.length];
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + wdInstr + "\n\nDYNAMIC SLIDE COUNT: Decide the optimal number of slides (7-12) based on topic depth.\n- A narrow topic (one event, one person, one moment) → 7-8 slides\n- A standard topic → 9-10 slides\n- A broad topic (history of an era, cultural movement, complex system) → 11-12 slides\nYou MUST include at minimum: Cover, 2 content slides, 1 stat, 1 quote, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
+  // Slide count instruction
+  var sc = p.slideCount || 0;
+  var slideCountInstr;
+  if (sc >= 4 && sc <= 12) {
+    slideCountInstr = "SLIDE COUNT: Generate EXACTLY " + sc + " slides (including Cover and Closer)." + (sc <= 5 ? "\nWith " + sc + " slides, include only: Cover, 2 essential content slides, " + (sc >= 5 ? "1 stat OR 1 quote, " : "") + "Closer. Every slide must be high-impact — no filler." : sc <= 8 ? "\nWith " + sc + " slides, include: Cover, 3-4 content slides, 1 stat, 1 quote, Closer. Prioritize the strongest angles." : "\nWith " + sc + " slides, use the full editorial structure. Include all optional roles.");
+  } else {
+    slideCountInstr = "DYNAMIC SLIDE COUNT: Decide the optimal number of slides (4-12) based on topic depth.\n- A narrow topic (one event, one person, one moment) \u2192 4-6 slides\n- A standard topic \u2192 7-9 slides\n- A broad topic (history of an era, cultural movement, complex system) \u2192 10-12 slides";
+  }
+
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + wdInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -2073,7 +2110,7 @@ export default function LoathrMediaGenerator() {
   var exs = _s(null), exportStatus = exs[0], setExportStatus = exs[1];
   var rms = _s(false), isRecMode = rms[0], setIsRecMode = rms[1];
   var eds = _s(null), editionData = eds[0], setEditionData = eds[1];
-  var eps = _s({ persona: -1, angle: -1, style: -1, emphasis: "balanced", imageStyle: "mixed" }), editionPicks = eps[0], setEditionPicks = eps[1];
+  var eps = _s({ persona: -1, angle: -1, style: -1, emphasis: "balanced", imageStyle: "mixed", slideCount: 0 }), editionPicks = eps[0], setEditionPicks = eps[1]; // slideCount: 0=auto, 4-12=fixed
   var ess = _s(false), showEditionSettings = ess[0], setShowEditionSettings = ess[1];
   var sug = _s([]), suggestions = sug[0], setSuggestions = sug[1];
   var rtp = _s([]), relatedTopics = rtp[0], setRelatedTopics = rtp[1];
@@ -3267,6 +3304,20 @@ export default function LoathrMediaGenerator() {
                 ); })}
               </div>
             </div>
+            <div style={{ marginTop: 8 }}>
+              <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", marginBottom: 4 }}>SLIDES</div>
+              <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                <button onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: 0 }); }); }}
+                  style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: !editionPicks.slideCount ? uiAccent + "22" : "transparent", color: !editionPicks.slideCount ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>Auto</button>
+                {[4,5,6,7,8,9,10,11,12].map(function(n) { return (
+                  <button key={n} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: n }); }); }}
+                    style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.slideCount === n ? uiAccent + "22" : "transparent", color: editionPicks.slideCount === n ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7, minWidth: 24, textAlign: "center" }}>{n}</button>
+                ); })}
+              </div>
+              <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 2 }}>
+                {!editionPicks.slideCount ? "Claude decides based on topic depth" : editionPicks.slideCount <= 5 ? "Quick — cover + key points + closer" : editionPicks.slideCount <= 8 ? "Standard — full editorial structure" : "Deep — all optional roles included"}
+              </div>
+            </div>
           </div>}
 
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
@@ -3436,8 +3487,23 @@ export default function LoathrMediaGenerator() {
               </div>
             ); })}
           </div>}
-          {swapImages.length > 0 && <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 3 }}>Click an image to replace slide {swapSlide + 1}</div>}
-          {!swapLoading && swapImages.length === 0 && swapQuery && <div style={{ ...CP, fontSize: 7, color: "#999", textAlign: "center", padding: 8 }}>No results. Try a different search.</div>}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+            {swapImages.length > 0 && <div style={{ ...CP, fontSize: 5, color: "#999" }}>Click an image to replace slide {swapSlide + 1}</div>}
+            <label style={{ padding: "3px 8px", border: "0.5px solid " + uiAccent, cursor: "pointer", ...CP, fontSize: 7, color: uiAccent, display: "inline-flex", alignItems: "center", gap: 3 }}>
+              <Camera size={9} />Upload
+              <input type="file" accept="image/*" style={{ display: "none" }} onChange={function(e) {
+                var file = e.target.files && e.target.files[0];
+                if (file) {
+                  var reader = new FileReader();
+                  reader.onload = function(ev) {
+                    applySwap(swapSlide, { url: ev.target.result, thumb: ev.target.result, alt: "Uploaded", credit: "User", source: "Upload" });
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }} />
+            </label>
+          </div>
+          {!swapLoading && swapImages.length === 0 && swapQuery && <div style={{ ...CP, fontSize: 7, color: "#999", textAlign: "center", padding: 8 }}>No results. Try a different search or upload.</div>}
         </div>}
 
         <div style={{ marginTop: 18 }}>
