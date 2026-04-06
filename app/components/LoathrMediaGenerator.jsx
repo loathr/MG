@@ -1607,7 +1607,13 @@ var fetchWikidataEntity = async function(topic) {
     var ed = await er.json();
     var entity = ed.entities && ed.entities[qid] ? ed.entities[qid] : null;
     if (!entity) return null;
-    return { qid: qid, label: label, description: description, claims: entity.claims || {} };
+    // Also fetch Wikipedia extract for richer context
+    var extract = "";
+    try {
+      var wr = await fetchWithTimeout("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(label.replace(/ /g, "_")), 4000);
+      if (wr.ok) { var wd = await wr.json(); extract = wd.extract || ""; }
+    } catch (e) {}
+    return { qid: qid, label: label, description: description, extract: extract, claims: entity.claims || {} };
   } catch (e) { console.error("Wikidata fetch error:", e); return null; }
 };
 
@@ -1639,10 +1645,37 @@ var formatBigNum = function(numStr) {
 };
 
 // Properties to extract from Wikidata — grouped by type
-var WD_NUMBERS = { P1082: "Population", P2046: "Area (km²)", P2139: "Revenue", P1128: "Employees", P2196: "Students", P2295: "Net worth", P2142: "Box office", P2218: "Net income", P1114: "Quantity", P1087: "Rating" };
-var WD_DATES = { P569: "Born", P570: "Died", P571: "Founded", P576: "Dissolved" };
-var WD_ENTITIES = { P106: "Occupation", P27: "Citizenship", P17: "Country", P19: "Birthplace", P20: "Death place", P69: "Educated at", P108: "Employer", P264: "Record label", P449: "Network", P136: "Genre", P101: "Field", P39: "Position", P102: "Political party" };
-var WD_COUNTS = { P166: "Awards", P1411: "Nominations", P800: "Notable works", P1346: "Winners" };
+var WD_NUMBERS = {
+  // Financial
+  P2139: "Revenue", P2218: "Net income", P2295: "Net worth", P2142: "Box office",
+  // People/org size
+  P1082: "Population", P1128: "Employees", P2196: "Students",
+  // Measurements
+  P2046: "Area", P2044: "Elevation", P2048: "Height", P2067: "Weight",
+  // Media stats
+  P2403: "Plays", P2397: "Followers", P1114: "Quantity", P1087: "Rating",
+  // Sports
+  P1350: "Games played", P1351: "Goals scored", P6509: "Total wins",
+  P1352: "Matches", P555: "Team members",
+  // Music/film
+  P2635: "Copies sold", P3402: "Total episodes", P1113: "Seasons",
+};
+var WD_DATES = { P569: "Born", P570: "Died", P571: "Founded", P576: "Dissolved", P577: "Published", P1191: "First performance", P6949: "Announcement" };
+var WD_ENTITIES = {
+  // Identity
+  P106: "Occupation", P27: "Citizenship", P17: "Country", P19: "Birthplace",
+  // Career
+  P108: "Employer", P264: "Record label", P449: "Network", P39: "Position", P102: "Political party",
+  P69: "Educated at", P101: "Field",
+  // Creative
+  P136: "Genre", P135: "Movement", P170: "Creator", P175: "Performer",
+  P57: "Director", P86: "Composer", P162: "Producer", P58: "Screenwriter",
+  // Sports
+  P54: "Team", P413: "Position played", P118: "League",
+  // Relationships
+  P26: "Spouse", P22: "Father", P25: "Mother",
+};
+var WD_COUNTS = { P166: "Awards", P1411: "Nominations", P800: "Notable works", P1346: "Winners", P161: "Cast members", P527: "Parts" };
 
 var extractWikidataStats = async function(entity) {
   if (!entity || !entity.claims) return {};
@@ -2009,7 +2042,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPe
   // Inject Wikidata structured data when available
   var wdInstr = "";
   if (wdStats && Object.keys(wdStats).length > 0) {
-    var statPairs = Object.keys(wdStats).filter(function(k) { return !k.endsWith("_qid"); }).map(function(k) { return k + ": " + wdStats[k]; }).join(", ");
+    var statPairs = Object.keys(wdStats).filter(function(k) { return k.charAt(0) !== "_"; }).map(function(k) { return k + ": " + wdStats[k]; }).join(", ");
     wdInstr += "\nVERIFIED DATA (from Wikidata — use these REAL numbers instead of approximations): " + statPairs;
   }
   if (wdTimeline && wdTimeline.length > 0) {
@@ -2291,6 +2324,9 @@ export default function LoathrMediaGenerator() {
         fetchWikidataEntity(names[0]).then(async function(entity) {
           if (entity) {
             var stats = await extractWikidataStats(entity);
+            if (entity.description) stats._description = entity.description;
+            if (entity.extract) stats._extract = entity.extract;
+            if (entity.label) stats._label = entity.label;
             setWikidataStats(stats);
             var tl = await extractWikidataTimeline(entity);
             setWikidataTimeline(tl);
@@ -2313,6 +2349,9 @@ export default function LoathrMediaGenerator() {
         fetchWikidataEntity(query).then(async function(entity) {
           if (entity) {
             var stats = await extractWikidataStats(entity);
+            if (entity.description) stats._description = entity.description;
+            if (entity.extract) stats._extract = entity.extract;
+            if (entity.label) stats._label = entity.label;
             setWikidataStats(stats);
             var tl = await extractWikidataTimeline(entity);
             setWikidataTimeline(tl);
@@ -3034,11 +3073,17 @@ export default function LoathrMediaGenerator() {
           </div>}
 
           {/* Wikidata verified data */}
-          {wikidataStats && Object.keys(wikidataStats).length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "33", background: "#f8f8f8", padding: 8 }}>
+          {wikidataStats && Object.keys(wikidataStats).filter(function(k) { return k.charAt(0) !== "_"; }).length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "33", background: "#f8f8f8", padding: 8 }}>
             <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 2 }}>VERIFIED DATA</div>
+            {/* Bio line from Wikidata description + Wikipedia extract */}
+            {wikidataStats._label && <div style={{ marginBottom: 6 }}>
+              <div style={{ ...FN, fontSize: 11, color: "#333", lineHeight: 1.2 }}>{wikidataStats._label}</div>
+              {wikidataStats._description && <div style={{ ...CP, fontSize: 7, color: uiAccent, marginTop: 1 }}>{wikidataStats._description}</div>}
+              {wikidataStats._extract && <div style={{ ...HD, fontSize: 7, color: "#555", marginTop: 3, lineHeight: 1.4, maxHeight: 42, overflow: "hidden" }}>{wikidataStats._extract.split(". ").slice(0, 2).join(". ")}.</div>}
+            </div>}
             {/* Numbers row — big stats */}
             {(function() {
-              var numKeys = Object.keys(wikidataStats).filter(function(k) { return /^\d|^[$€£]/.test(wikidataStats[k]) || /Population|Revenue|Net worth|Box office|Employees|Students|Awards|Nominations|Notable works|Area|Rating/.test(k); });
+              var numKeys = Object.keys(wikidataStats).filter(function(k) { return k.charAt(0) !== "_" && (/^\d|^[$€£]/.test(wikidataStats[k]) || /Population|Revenue|Net worth|Box office|Employees|Students|Awards|Nominations|Notable works|Area|Rating|Plays|Followers|Games|Goals|Wins|Copies|Episodes|Seasons|Members|Parts|Cast|Weight|Height|Elevation/.test(k)); });
               if (numKeys.length === 0) return null;
               return <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 6, paddingBottom: 6, borderBottom: "0.5px solid #eee" }}>
                 {numKeys.map(function(key) { return (
@@ -3051,12 +3096,12 @@ export default function LoathrMediaGenerator() {
             })()}
             {/* Info rows — text data */}
             {(function() {
-              var textKeys = Object.keys(wikidataStats).filter(function(k) { return !/^\d|^[$€£]/.test(wikidataStats[k]) && !/Population|Revenue|Net worth|Box office|Employees|Students|Awards|Nominations|Notable works|Area|Rating/.test(k); });
+              var textKeys = Object.keys(wikidataStats).filter(function(k) { return k.charAt(0) !== "_" && !/^\d|^[$€£]/.test(wikidataStats[k]) && !/Population|Revenue|Net worth|Box office|Employees|Students|Awards|Nominations|Notable works|Area|Rating|Plays|Followers|Games|Goals|Wins|Copies|Episodes|Seasons|Members|Parts|Cast|Weight|Height|Elevation/.test(k); });
               if (textKeys.length === 0) return null;
-              return <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              return <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: wikidataTimeline.length > 0 ? 0 : 0 }}>
                 {textKeys.map(function(key) { return (
                   <div key={key} style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
-                    <div style={{ ...CP, fontSize: 6, color: "#999", minWidth: 55, textAlign: "right", flexShrink: 0 }}>{key}</div>
+                    <div style={{ ...CP, fontSize: 6, color: "#999", minWidth: 65, textAlign: "right", flexShrink: 0 }}>{key}</div>
                     <div style={{ ...CP, fontSize: 7, color: "#333" }}>{wikidataStats[key]}</div>
                   </div>
                 ); })}
@@ -3065,17 +3110,17 @@ export default function LoathrMediaGenerator() {
             {/* Timeline */}
             {wikidataTimeline.length > 0 && <div style={{ marginTop: 6, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
               <div style={{ ...CP, fontSize: 5, color: uiAccent, letterSpacing: "0.1em", marginBottom: 3 }}>TIMELINE</div>
-              {wikidataTimeline.map(function(t, i) { return (
+              {wikidataTimeline.slice(0, 10).map(function(t, i) { return (
                 <div key={i} style={{ display: "flex", gap: 6, alignItems: "baseline", marginBottom: 2 }}>
-                  <div style={{ ...CP, fontSize: 8, color: uiAccent, fontWeight: 700, minWidth: 36, textAlign: "right", flexShrink: 0 }}>{t.date || t.year}</div>
+                  <div style={{ ...CP, fontSize: 8, color: uiAccent, fontWeight: 700, minWidth: 50, textAlign: "right", flexShrink: 0 }}>{t.date || t.year}</div>
                   <div style={{ ...CP, fontSize: 7, color: "#333" }}>{t.event}{t.detail ? " — " + t.detail : ""}</div>
                 </div>
               ); })}
             </div>}
           </div>}
 
-          {/* Topic preview images — button-triggered mood board */}
-          {topic.trim() && <div style={{ marginBottom: 6, textAlign: "center" }}>
+          {/* Topic preview images — only show after Smart Angles has context */}
+          {topic.trim() && (smartAngles.length > 0 || personsDetected.length > 0 || locationsDetected.length > 0) && <div style={{ marginBottom: 6, textAlign: "center" }}>
             <button onClick={function() { if (previewImages.length > 0) { setPreviewImages([]); } else { fetchPreviewImages(topic); } }}
               disabled={previewLoading}
               style={{ padding: "4px 10px", border: "0.5px solid " + uiAccent + "44", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.05em" }}>
