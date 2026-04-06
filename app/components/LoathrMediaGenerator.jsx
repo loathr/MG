@@ -1617,25 +1617,57 @@ var searchWikimedia = async function(personName) {
   } catch (e) { return []; }
 };
 
+// TMDb (The Movie Database) — great for actors, directors, TV personalities
+var searchTMDb = async function(personName) {
+  try {
+    var r = await fetchWithTimeout("https://api.themoviedb.org/3/search/person?query=" + encodeURIComponent(personName) + "&include_adult=false&language=en-US&page=1&api_key=eyJhbGciOiJIUzI1NiJ9", 5000);
+    if (!r.ok) return [];
+    var d = await r.json();
+    return (d.results || []).slice(0, 2).filter(function(p) { return p.profile_path; }).map(function(p) {
+      return { url: "https://image.tmdb.org/t/p/w780" + p.profile_path, thumb: "https://image.tmdb.org/t/p/w185" + p.profile_path, alt: p.name || personName, credit: "TMDb", source: "TMDb" };
+    });
+  } catch (e) { return []; }
+};
+
+// iTunes/Apple Music — for musicians, returns album/artist art
+var searchITunes = async function(personName) {
+  try {
+    var r = await fetchWithTimeout("https://itunes.apple.com/search?term=" + encodeURIComponent(personName) + "&entity=musicArtist&limit=3", 5000);
+    if (!r.ok) return [];
+    var d = await r.json();
+    return (d.results || []).filter(function(a) { return a.artworkUrl100; }).slice(0, 2).map(function(a) {
+      var hiRes = a.artworkUrl100.replace("100x100", "600x600");
+      return { url: hiRes, thumb: a.artworkUrl100, alt: a.artistName || personName, credit: "Apple Music", source: "iTunes" };
+    });
+  } catch (e) { return []; }
+};
+
 // Search multiple sources for a person — returns best options
 var searchPersonImages = async function(personName) {
   if (!personName || personName.length < 2) return [];
   var results = [];
   // 1. Wikipedia REST API — best quality, handles nicknames via opensearch
-  try { var wr = await searchWikiRest(personName); results = results.concat(wr); } catch (e) { console.error("Wiki REST failed:", e); }
-  // 2. Wikipedia pageimages search — returns multiple results for picker variety
-  try { var wp = await searchWikimedia(personName); results = results.concat(wp); } catch (e) { console.error("Wiki pageimages failed:", e); }
-  // 3. Unsplash fallback for generic portrait if wiki found nothing
+  try { var wr = await searchWikiRest(personName); results = results.concat(wr); } catch (e) {}
+  // 2. Wikipedia pageimages search — multiple results for variety
+  try { var wp = await searchWikimedia(personName); results = results.concat(wp); } catch (e) {}
+  // 3. TMDb — actors, directors, TV personalities
+  if (results.length < 3) { try { var tm = await searchTMDb(personName); results = results.concat(tm); } catch (e) {} }
+  // 4. iTunes — musicians, artists
+  if (results.length < 3) { try { var it = await searchITunes(personName); results = results.concat(it); } catch (e) {} }
+  // 5. Pexels — editorial portraits
+  if (results.length < 2) {
+    var pexelsKey = typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_PEXELS_KEY : "";
+    if (pexelsKey) { try { var px = await searchPexels(personName + " portrait", pexelsKey); results = results.concat(px.slice(0, 2)); } catch (e) {} }
+  }
+  // 6. Unsplash — last resort
   if (results.length < 2) {
     var unsplashKey = typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_UNSPLASH_KEY : "";
-    if (unsplashKey) {
-      try { var us = await searchUnsplash(personName + " portrait", unsplashKey); results = results.concat(us.slice(0, 2)); } catch (e) {}
-    }
+    if (unsplashKey) { try { var us = await searchUnsplash(personName + " portrait", unsplashKey); results = results.concat(us.slice(0, 2)); } catch (e) {} }
   }
   // Deduplicate by URL
   var seen = {};
   results = results.filter(function(r) { if (!r.url || seen[r.url]) return false; seen[r.url] = true; return true; });
-  return results.slice(0, 4);
+  return results.slice(0, 6);
 };
 
 // --- WIKIDATA ENRICHMENT ---
@@ -1984,15 +2016,15 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
     await new Promise(function(r) { setTimeout(r, 600); });
     var el = slideRef.current;
     if (!el) continue;
-    // Export the full framed slide (white border + black outline + content)
+    // Find the 340x425 content div (exact 4:5 ratio = 1080x1350 for Instagram)
+    // Structure: slideRef (outer black) > div (white border, 340x425) > div (inner black) > SlideRenderer
+    var innerContent = el.firstChild || el; // firstChild = the 340x425 white-bordered div
     try {
-      // Total dimensions: 340 content + 4px white border each side + 1.5px outline each side = ~351 x ~436
-      var exportW = el.offsetWidth;
-      var exportH = el.offsetHeight;
-      var canvas = await window.html2canvas(el, {
-        width: exportW,
-        height: exportH,
-        scale: 1080 / exportW,
+      // Export at exactly 1080x1350 — Instagram's recommended 4:5 portrait
+      var canvas = await window.html2canvas(innerContent, {
+        width: 340,
+        height: 425,
+        scale: 1080 / 340,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#000000",
