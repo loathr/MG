@@ -717,28 +717,41 @@ function S4Emigre({ slide, index, category, images }) {
   var fmt = s.statFormat || (s.before ? "comparison" : s.stats ? "story" : s.left ? "versus" : s.year && !s.heading ? "timeline" : s.stat2 ? "comparison" : "killer");
   slide = s;
 
-  // Format A: Comparison (before → after)
+  // Format A: Comparison (before → after) — 2 layout variations
   if (fmt === "comparison") {
     var beforeVal = slide.before || slide.stat || "";
     var afterVal = slide.after || slide.stat2 || "";
     var beforeLbl = slide.beforeLabel || slide.statLabel || "";
     var afterLbl = slide.afterLabel || slide.stat2Label || "";
-    // Dynamic font size based on longest number string
     var maxLen = Math.max(String(beforeVal).length, String(afterVal).length);
     var numSize = maxLen > 7 ? 28 : maxLen > 5 ? 34 : 42;
+    var compLayout = index % 2; // 0=horizontal, 1=vertical stacked
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="rgba(0,0,0,0.65)">
-        <div style={{ position: "absolute", top: "28%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", justifyContent: "center", alignItems: "center", gap: 12 }}>
-          <div style={{ textAlign: "center", flex: 1 }}>
-            <div style={{ ...WS, fontSize: numSize, color: p.accent2 || "#ffffff88", lineHeight: 0.85 }}>{beforeVal}</div>
-            <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 6, letterSpacing: "0.08em" }}>{beforeLbl}</div>
+        {compLayout === 0 ? (
+          <div style={{ position: "absolute", top: "28%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", justifyContent: "center", alignItems: "center", gap: 12 }}>
+            <div style={{ textAlign: "center", flex: 1 }}>
+              <div style={{ ...WS, fontSize: numSize, color: p.accent2 || "#ffffff88", lineHeight: 0.85 }}>{beforeVal}</div>
+              <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 6, letterSpacing: "0.08em" }}>{beforeLbl}</div>
+            </div>
+            <div style={{ ...FN, fontSize: 28, color: p.accent, flexShrink: 0 }}>→</div>
+            <div style={{ textAlign: "center", flex: 1 }}>
+              <div style={{ ...WS, fontSize: numSize, color: p.accent, lineHeight: 0.85 }}>{afterVal}</div>
+              <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 6, letterSpacing: "0.08em" }}>{afterLbl}</div>
+            </div>
           </div>
-          <div style={{ ...FN, fontSize: 28, color: p.accent, flexShrink: 0 }}>→</div>
-          <div style={{ textAlign: "center", flex: 1 }}>
-            <div style={{ ...WS, fontSize: numSize, color: p.accent, lineHeight: 0.85 }}>{afterVal}</div>
-            <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 6, letterSpacing: "0.08em" }}>{afterLbl}</div>
+        ) : (
+          <div style={{ position: "absolute", top: "20%", left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+            <div style={{ textAlign: "left", marginBottom: 12 }}>
+              <div style={{ ...WS, fontSize: numSize + 8, color: p.accent2 || "#ffffff88", lineHeight: 0.85, textDecoration: "line-through", textDecorationColor: p.accent + "66" }}>{beforeVal}</div>
+              <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 4 }}>{beforeLbl}</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ ...WS, fontSize: numSize + 12, color: p.accent, lineHeight: 0.85 }}>{afterVal}</div>
+              <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 4 }}>{afterLbl}</div>
+            </div>
           </div>
-        </div>
+        )}
         <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3, textAlign: "center" }}>
           <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 5}>
             <div style={{ ...HD, fontSize: 8, color: "#ffffffcc", fontStyle: "italic" }}>{slide.shift || slide.body}</div>
@@ -1320,7 +1333,17 @@ function buildPrompt(catLabel, topic, editionSeed, picks) {
   else if (emph === "narrative") emphasisInstr = "\nEMPHASIS: Lean heavily into storytelling. Every slide should read like a chapter. Use scene-setting, character, conflict, and resolution across the carousel.";
   else if (emph === "data") emphasisInstr = "\nEMPHASIS: Lean heavily into data and evidence. Include specific numbers, percentages, or statistics on every slide possible. Let the data drive the narrative.";
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": Choose the BEST stat format for this topic:\n  FORMAT A (Comparison): statFormat \"comparison\", before, beforeLabel, after, afterLabel, shift (one sentence explaining what changed)\n  FORMAT B (Killer Number): statFormat \"killer\", stat (one massive number), caption (two-line caption that makes the reader stop)\n  FORMAT C (Data Story): statFormat \"story\", stats (array of 3 objects: [{num, label}]), narrative (one sentence connecting all three)\n  FORMAT D (Versus): statFormat \"versus\", left, leftLabel, leftStat, right, rightLabel, rightStat, verdict (one bold sentence)\n  FORMAT E (Timeline Number): statFormat \"timeline\", year, stat, statLabel, context (one sentence anchoring the number to the moment)\n  Pick whichever format makes the data most impactful. Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
+  // Force a specific stat format per edition to guarantee variety
+  var statFormats = [
+    "You MUST use FORMAT A (Comparison): statFormat \"comparison\", before (the old number), beforeLabel, after (the new number), afterLabel, shift (one sentence explaining what changed). Show a clear before/after transformation.",
+    "You MUST use FORMAT B (Killer Number): statFormat \"killer\", stat (one massive shocking number), caption (a two-line caption that makes the reader stop scrolling). ONE number only, make it enormous and impactful.",
+    "You MUST use FORMAT C (Data Story): statFormat \"story\", stats (array of exactly 3 objects: [{\"num\":\"value\",\"label\":\"description\"}]), narrative (one sentence connecting all three numbers into a story).",
+    "You MUST use FORMAT D (Versus): statFormat \"versus\", left (first thing name), leftStat (its number), leftLabel (description), right (second thing name), rightStat (its number), rightLabel (description), verdict (one bold sentence declaring a winner).",
+    "You MUST use FORMAT E (Timeline Number): statFormat \"timeline\", year (a specific year), stat (the number from that year), statLabel (what it measures), context (one sentence anchoring the number to that moment in history).",
+  ];
+  var forcedStat = statFormats[(editionSeed || 0) % statFormats.length];
+
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": " + forcedStat + " Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -1528,25 +1551,27 @@ export default function LoathrMediaGenerator() {
           // Shorter, cleaner search query
           var shortTopic = topic.split(" ").slice(0, 3).join(" ");
           var stockImgs = await searchFn(catInfo.label + " " + shortTopic, key);
-          // Vintage images in parallel
+          // Vintage for archival slides only (Origin, Turning Point, Ripple)
           var vintageImgs = [];
           try { vintageImgs = await searchVintage(category, shortTopic); } catch (ve) {}
-          if (vintageImgs.length > 0) setImgStatus("Adding vintage media...");
-          // INTERLEAVE stock and vintage for visual variety
-          var imgs = [];
+          // Category-aware placement: stock for most slides, vintage for historical ones
+          // Slide roles: 0=Cover, 1=Origin, 2=TurningPoint, 3=HotTake, 4=Human, 5=Evidence, 6=Voice, 7=Ripple, 8=Now, 9=Closer
+          var vintageSlots = [1, 2, 7]; // Origin, Turning Point, Ripple — archival fits
+          var imgMap = {};
           var si = 0, vi = 0;
-          for (var mix = 0; mix < 15; mix++) {
-            if (mix % 3 === 2 && vi < vintageImgs.length) { imgs.push(vintageImgs[vi++]); }
-            else if (si < stockImgs.length) { imgs.push(stockImgs[si++]); }
-            else if (vi < vintageImgs.length) { imgs.push(vintageImgs[vi++]); }
+          for (var slot = 0; slot < 10; slot++) {
+            if (vintageSlots.indexOf(slot) !== -1 && vi < vintageImgs.length) {
+              imgMap[slot] = vintageImgs[vi++];
+            } else if (si < stockImgs.length) {
+              imgMap[slot] = stockImgs[si++];
+            } else if (vi < vintageImgs.length) {
+              imgMap[slot] = vintageImgs[vi++];
+            }
           }
-          if (imgs.length > 0) {
-            var imgMap = {};
-            imgs.forEach(function(img, i) { imgMap[i] = img; });
+          var totalLoaded = Object.keys(imgMap).length;
+          if (totalLoaded > 0) {
             setImages(imgMap);
-            var stockCount = Math.min(si, stockImgs.length);
-            var vintCount = Math.min(vi, vintageImgs.length);
-            setImgStatus(stockCount + " stock + " + vintCount + " vintage loaded");
+            setImgStatus(si + " stock + " + vi + " vintage loaded");
           } else { setImgStatus("No images found"); }
         } catch (e) { setImgStatus("Image search failed: " + e.message); }
       } else {
