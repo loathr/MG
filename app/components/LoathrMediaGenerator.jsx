@@ -1243,12 +1243,19 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
 
 // --- DIFFERENTIATED PROMPTS ---
 function buildPrompt(catLabel, topic, editionSeed, picks) {
-  var p = picks || { persona: -1, angle: -1, style: -1 };
+  var p = picks || { persona: -1, angle: -1, style: -1, emphasis: "balanced" };
   var persona = p.persona >= 0 ? PERSONAS[p.persona] : pickPersona(editionSeed || 0);
   var freshness = p.angle >= 0 ? FRESHNESS_SEEDS[p.angle] : pickFreshness(editionSeed || 0);
   var style = p.style >= 0 ? WRITING_STYLES[p.style] : pickWritingStyle(editionSeed || 0);
+  var emph = p.emphasis || "balanced";
+  var emphasisInstr = "";
+  if (emph === "deep") emphasisInstr = "\nEMPHASIS: Lean heavily into educational depth. More research, more detail, more context on every slide. The Origin and Human Story slides should be especially thorough.";
+  else if (emph === "hot") emphasisInstr = "\nEMPHASIS: Lean heavily into provocative, shareable opinions. Every slide should have an edge. The Hot Take and The Now slides should be especially bold and confrontational.";
+  else if (emph === "timeline") emphasisInstr = "\nEMPHASIS: Lean heavily into chronological narrative. Include specific years on as many slides as possible. Frame each slide as a distinct era or moment in time.";
+  else if (emph === "narrative") emphasisInstr = "\nEMPHASIS: Lean heavily into storytelling. Every slide should read like a chapter. Use scene-setting, character, conflict, and resolution across the carousel.";
+  else if (emph === "data") emphasisInstr = "\nEMPHASIS: Lean heavily into data and evidence. Include specific numbers, percentages, or statistics on every slide possible. Let the data drive the narrative.";
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": Choose the BEST stat format for this topic:\n  FORMAT A (Comparison): statFormat \"comparison\", before, beforeLabel, after, afterLabel, shift (one sentence explaining what changed)\n  FORMAT B (Killer Number): statFormat \"killer\", stat (one massive number), caption (two-line caption that makes the reader stop)\n  FORMAT C (Data Story): statFormat \"story\", stats (array of 3 objects: [{num, label}]), narrative (one sentence connecting all three)\n  FORMAT D (Versus): statFormat \"versus\", left, leftLabel, leftStat, right, rightLabel, rightStat, verdict (one bold sentence)\n  FORMAT E (Timeline Number): statFormat \"timeline\", year, stat, statLabel, context (one sentence anchoring the number to the moment)\n  Pick whichever format makes the data most impactful. Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": Choose the BEST stat format for this topic:\n  FORMAT A (Comparison): statFormat \"comparison\", before, beforeLabel, after, afterLabel, shift (one sentence explaining what changed)\n  FORMAT B (Killer Number): statFormat \"killer\", stat (one massive number), caption (two-line caption that makes the reader stop)\n  FORMAT C (Data Story): statFormat \"story\", stats (array of 3 objects: [{num, label}]), narrative (one sentence connecting all three)\n  FORMAT D (Versus): statFormat \"versus\", left, leftLabel, leftStat, right, rightLabel, rightStat, verdict (one bold sentence)\n  FORMAT E (Timeline Number): statFormat \"timeline\", year, stat, statLabel, context (one sentence anchoring the number to the moment)\n  Pick whichever format makes the data most impactful. Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -1314,7 +1321,7 @@ export default function LoathrMediaGenerator() {
   var exs = _s(null), exportStatus = exs[0], setExportStatus = exs[1];
   var rms = _s(false), isRecMode = rms[0], setIsRecMode = rms[1];
   var eds = _s(null), editionData = eds[0], setEditionData = eds[1];
-  var eps = _s({ persona: -1, angle: -1, style: -1 }), editionPicks = eps[0], setEditionPicks = eps[1];
+  var eps = _s({ persona: -1, angle: -1, style: -1, emphasis: "balanced" }), editionPicks = eps[0], setEditionPicks = eps[1];
   var ess = _s(false), showEditionSettings = ess[0], setShowEditionSettings = ess[1];
   var slideRef = _ref(null);
   var abortRef = _ref(null);
@@ -1655,6 +1662,15 @@ export default function LoathrMediaGenerator() {
                 ); })}
               </div>
             </div>
+            <div style={{ marginTop: 8 }}>
+              <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", marginBottom: 4 }}>EMPHASIS</div>
+              <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                {[{ id: "balanced", label: "Balanced" }, { id: "deep", label: "Deep Dive" }, { id: "hot", label: "Hot Take" }, { id: "timeline", label: "Timeline" }, { id: "narrative", label: "Narrative" }, { id: "data", label: "Data-Driven" }].map(function(item) { return (
+                  <button key={item.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { emphasis: item.id }); }); }}
+                    style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.emphasis === item.id ? uiAccent + "22" : "transparent", color: editionPicks.emphasis === item.id ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>{item.label}</button>
+                ); })}
+              </div>
+            </div>
           </div>}
 
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
@@ -1782,7 +1798,7 @@ export default function LoathrMediaGenerator() {
         </div>
         <div style={{ marginTop: 18 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 8, textTransform: "uppercase" }}>All Slides</div>
-          <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 8, justifyContent: "center" }}>
+          <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 8, paddingLeft: 2, paddingRight: 2 }}>
             {cur.slides.map(function(slide, i) { return (
               <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? uiAccent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
                 <div style={{ width: 340, height: 425, transform: "scale(0.2)", transformOrigin: "top left", pointerEvents: "none" }}>
