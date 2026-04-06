@@ -724,12 +724,12 @@ function getImg(images, idx) {
 }
 
 // --- S1 COVER (Vibe / The Source) ---
-function S1Cover({ slide, category, images, edition }) {
+function S1Cover({ slide, category, images, edition, index }) {
   var p = PALETTES[category];
   var url = getImg(images, 0);
   var edLabel = edition ? edition.label : "";
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
         <div style={{ position: "absolute", top: M_TOP, left: 0, right: 0, textAlign: "center", zIndex: 2 }}>
           <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "6B", fontWeight: 700, textDecoration: "line-through", textDecorationColor: p.accent + "6B", textDecorationThickness: 1 }}>LOATHR</div>
           {edLabel && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffffcc", marginTop: 3 }}>{edLabel}</div>}
@@ -773,7 +773,7 @@ function S2Arena({ slide, index, category, images }) {
   var hasSplitPos = slide.textPosition && ["split-corners", "side-left", "side-right", "top-left", "top-right", "l-shape"].indexOf(slide.textPosition) !== -1;
   if (hasSplitPos) {
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0}>
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
         <SplitTextBox slide={slide} position={slide.textPosition} accent={p.accent} accent2={p.accent2} category={category} seed={index} styleBody={styleBody} />
       </ImgBg>
     );
@@ -781,7 +781,7 @@ function S2Arena({ slide, index, category, images }) {
   var contentSeed = (slide.body || "").length + (slide.heading || "").length;
   var fpos = getFramePosition(contentSeed, index);
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0}>
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
       <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fpos)}>
         {wrappedText}
       </div>
@@ -820,14 +820,14 @@ function S3RayGun({ slide, index, category, images }) {
     var hasSplitFlip = slide.textPosition && ["split-corners", "side-left", "side-right", "top-left", "top-right", "l-shape"].indexOf(slide.textPosition) !== -1;
     if (hasSplitFlip) {
       return (
-        <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0}>
+        <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
           <SplitTextBox slide={slide} position={slide.textPosition} accent={p.accent} accent2={p.accent2} category={category} seed={index + 1} styleBody={styleBody} />
         </ImgBg>
       );
     }
     var fposFlip = getFramePosition((slide.body || "").length, index);
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0}>
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
         <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fposFlip)}>
           {flippedWrapped}
         </div>
@@ -852,7 +852,7 @@ function S3RayGun({ slide, index, category, images }) {
   var hasSplitNorm = slide.textPosition && ["split-corners", "side-left", "side-right", "top-left", "top-right", "l-shape"].indexOf(slide.textPosition) !== -1;
   if (hasSplitNorm) {
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0}>
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
         <SplitTextBox slide={slide} position={slide.textPosition} accent={p.accent} accent2={p.accent2} category={category} seed={index} styleBody={styleBody} />
       </ImgBg>
     );
@@ -860,7 +860,7 @@ function S3RayGun({ slide, index, category, images }) {
   var fposNorm = getFramePosition((slide.heading || "").length, index);
   if (styled) {
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0}>
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
         <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fposNorm)}>
           {normalWrapped}
         </div>
@@ -869,7 +869,7 @@ function S3RayGun({ slide, index, category, images }) {
   }
   // Fallback — also uses full image
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0}>
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
       <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fposNorm)}>
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</FormalFrame>
       </div>
@@ -939,7 +939,7 @@ function S4Emigre({ slide, index, category, images }) {
     var numSize = maxLen > 7 ? 28 : maxLen > 5 ? 34 : 42;
     var compLayout = index % 2;
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="rgba(0,0,0,0.65)">
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.65)">
         {compLayout === 0 ? (
           <div style={{ position: "absolute", top: "25%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", alignItems: "center" }}>
             <div style={{ flex: 1, textAlign: "center" }}>
@@ -981,7 +981,7 @@ function S4Emigre({ slide, index, category, images }) {
     var killerSize = killerVal.length > 8 ? 36 : killerVal.length > 5 ? 48 : 64;
     var killerLayout = index % 2;
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="rgba(0,0,0,0.6)">
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.6)">
         {killerLayout === 0 ? (
           <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 3, textAlign: "center", width: "85%" }}>
             <div style={{ ...WS, fontSize: killerSize, color: p.accent, lineHeight: 0.85, letterSpacing: -2 }}>{slide.stat}</div>
@@ -1006,7 +1006,7 @@ function S4Emigre({ slide, index, category, images }) {
     var stats = slide.stats || [{ num: slide.stat, label: slide.statLabel }, { num: slide.stat2, label: slide.stat2Label }, { num: "—", label: "—" }];
     var storyLayout = index % 2;
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="rgba(0,0,0,0.7)">
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.7)">
         {storyLayout === 0 ? (
           <div style={{ position: "absolute", top: "18%", left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
             {stats.slice(0, 3).map(function(s, i) {
@@ -1048,7 +1048,7 @@ function S4Emigre({ slide, index, category, images }) {
     var vsMaxLen = Math.max(String(lStat).length, String(rStat).length);
     var vsSize = vsMaxLen > 7 ? 24 : vsMaxLen > 5 ? 30 : 36;
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="rgba(0,0,0,0.65)">
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.65)">
         <div style={{ position: "absolute", top: "20%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", alignItems: "center" }}>
           <div style={{ flex: 1, textAlign: "center" }}>
             <div style={{ ...FN, fontSize: 10, color: "#ffffffcc", textTransform: "uppercase", marginBottom: 6 }}>{slide.left || "A"}</div>
@@ -1072,7 +1072,7 @@ function S4Emigre({ slide, index, category, images }) {
 
   // Format E: Timeline Number — brighter year with accent markers
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="rgba(0,0,0,0.6)">
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.6)">
       <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", zIndex: 3, textAlign: "center", display: "flex", alignItems: "center", gap: 8 }}>
         <div style={{ width: 6, height: 6, background: p.accent }} />
         <div style={{ ...CP, fontSize: 12, color: "#ffffffcc", letterSpacing: "0.3em" }}>{slide.year || ""}</div>
@@ -1149,7 +1149,7 @@ function S6Purple({ slide, index, category, images }) {
   var url = getImg(images, index);
   var quoteText = slide.quote || slide.highlight || slide.body || "";
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0}>
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
       <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, getFramePosition(quoteText.length, index))}>
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 4}>
           <div style={{ ...HD, fontSize: 11.5, fontStyle: "italic", color: "#ffffff", lineHeight: 1.8, textAlign: "left" }}><span style={{ background: p.accent + "cc", padding: "2px 5px", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</span></div>
@@ -1162,12 +1162,12 @@ function S6Purple({ slide, index, category, images }) {
 }
 
 // --- S7 CLOSER (Blitz geometric fade) ---
-function S7Blitz({ category, hashtags, images }) {
+function S7Blitz({ category, hashtags, images, index }) {
   var p = PALETTES[category];
   var keys = images ? Object.keys(images) : [];
   var url = getImg(images, keys.length > 1 ? keys.length - 1 : 0);
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="rgba(0,0,0,0.75)">
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.75)">
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 3 }}>
         <div style={{ ...CP, fontSize: 7, letterSpacing: "0.25em", color: p.accent + "99" }}>{CLOSER_TAGS[category]}</div>
         <div style={{ position: "relative", display: "inline-block", marginTop: 10 }}>
@@ -1183,11 +1183,11 @@ function S7Blitz({ category, hashtags, images }) {
 // --- REC SLIDES (LOATHR Recommends) ---
 
 // Rec Slide 1: Destination Card
-function RecDestination({ slide, category, images }) {
+function RecDestination({ slide, category, images, index }) {
   var p = PALETTES[category];
   var url = getImg(images, 0);
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.9))">
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.9))">
       <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, zIndex: 3 }}>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: p.accent + "99" }}>LOATHR RECOMMENDS</div>
       </div>
@@ -1228,11 +1228,11 @@ function RecHiddenGem({ slide, category, images }) {
 }
 
 // Rec Slide 3: New Opening
-function RecNewOpening({ slide, category, images }) {
+function RecNewOpening({ slide, category, images, index }) {
   var p = PALETTES[category];
   var url = getImg(images, 2);
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.92))">
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.92))">
       <div style={{ position: "absolute", top: M_TOP, right: M_SIDE, zIndex: 3 }}>
         <div style={{ ...CP, fontSize: 6, color: "#000", background: p.accent2, padding: "2px 6px", display: "inline-block" }}>JUST OPENED</div>
       </div>
@@ -1274,12 +1274,12 @@ function RecCulture({ slide, category, images }) {
 }
 
 // Rec Slide 5: The Shortlist + Closer
-function RecShortlist({ slide, category, images }) {
+function RecShortlist({ slide, category, images, index }) {
   var p = PALETTES[category];
   var url = getImg(images, 4);
   var items = slide.shortlist || [];
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="rgba(0,0,0,0.82)">
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.82)">
       <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
         <div style={{ ...FN, fontSize: 14, color: "#ffffff", textTransform: "uppercase", letterSpacing: "0.05em" }}>The Shortlist</div>
         <div style={{ width: "20%", height: 2, background: p.accent, marginTop: 6 }} />
@@ -1317,11 +1317,11 @@ function RecSlideRenderer({ category, slideData, slideIndex, totalSlides, images
   var p = PALETTES[category];
   var borderColor = slideIndex % 2 === 0 ? p.accent : p.accent2;
   var slide;
-  if (slideIndex === 0) slide = <RecDestination slide={slideData} category={category} images={images} />;
+  if (slideIndex === 0) slide = <RecDestination slide={slideData} category={category} images={images} index={slideIndex} />;
   else if (slideIndex === 1) slide = <RecHiddenGem slide={slideData} category={category} images={images} />;
-  else if (slideIndex === 2) slide = <RecNewOpening slide={slideData} category={category} images={images} />;
+  else if (slideIndex === 2) slide = <RecNewOpening slide={slideData} category={category} images={images} index={slideIndex} />;
   else if (slideIndex === 3) slide = <RecCulture slide={slideData} category={category} images={images} />;
-  else slide = <RecShortlist slide={slideData} category={category} images={images} />;
+  else slide = <RecShortlist slide={slideData} category={category} images={images} index={slideIndex} />;
   return (
     <div style={{ width: "100%", height: "100%", border: "2px solid " + borderColor, overflow: "hidden" }}>
       {slide}
@@ -1338,8 +1338,8 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
   var borderColor = slideIndex % 2 === 0 ? p.accent : p.accent2;
   // 10-slide layout: Cover, Origin, Turning Point, Hot Take, Human, Evidence, Voice, Ripple, Now, Closer
   var slide;
-  if (slideIndex === lastIdx) slide = <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} />;
-  else if (slideIndex === 0) slide = <S1Cover slide={slideData} category={category} images={images} edition={edition} />;
+  if (slideIndex === lastIdx) slide = <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} index={slideIndex} />;
+  else if (slideIndex === 0) slide = <S1Cover slide={slideData} category={category} images={images} edition={edition} index={slideIndex} />;
   else if (slideData.statFormat || slideData.stat || slideData.stats || slideData.before || slideData.leftStat) slide = <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
   else if (slideData.quote) slide = <S6Purple slide={slideData} index={slideIndex} category={category} images={images} />;
   else {
