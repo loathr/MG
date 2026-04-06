@@ -258,12 +258,13 @@ var FORMAL_CATS = { film: true, photo: true, sports: true, nightlife: true };
 function FormalFrame({ children, style, accent, accent2, seed }) {
   var variant = seed % 5;
   var bg = "rgba(0,0,0,0.8)";
+  var maxH = { maxHeight: 200, overflow: "hidden" };
 
   if (variant === 0) {
     // L-bracket frame — corner brackets only
     var sz = 10, lw = 1.5;
     return (
-      <div style={Object.assign({}, { position: "relative", background: bg, padding: "10px 12px" }, style || {})}>
+      <div style={Object.assign({}, { position: "relative", background: bg, padding: "10px 12px" }, maxH, style || {})}>
         <div style={{ position: "absolute", top: -1, left: -1, width: sz, height: lw, background: accent }} />
         <div style={{ position: "absolute", top: -1, left: -1, width: lw, height: sz, background: accent }} />
         <div style={{ position: "absolute", top: -1, right: -1, width: sz, height: lw, background: accent }} />
@@ -342,11 +343,12 @@ function BubbleBox({ children, style, accent, accent2, seed }) {
   var variant = seed % 7;
   var tailSide = seed % 2 === 0 ? "left" : "right";
   var rotation = (seed % 5 - 2) * 0.5;
+  var maxH = { maxHeight: 200, overflow: "hidden" };
 
   if (variant === 0) {
     // Speech bubble — rounded with triangle tail
     return (
-      <div style={Object.assign({}, { position: "relative", background: "rgba(0,0,0,0.85)", border: "1.5px solid " + accent, borderRadius: 10, padding: "10px 12px", transform: "rotate(" + rotation + "deg)" }, style || {})}>
+      <div style={Object.assign({}, { position: "relative", background: "rgba(0,0,0,0.85)", border: "1.5px solid " + accent, borderRadius: 10, padding: "10px 12px", transform: "rotate(" + rotation + "deg)" }, maxH, style || {})}>
         {children}
         <div style={{ position: "absolute", bottom: -8, width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderTop: "8px solid " + accent, ...(tailSide === "left" ? { left: 20 } : { right: 20 }) }} />
         <div style={{ position: "absolute", bottom: -6, width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "6px solid rgba(0,0,0,0.85)", ...(tailSide === "left" ? { left: 21 } : { right: 21 }) }} />
@@ -517,9 +519,9 @@ function StickyNote({ children, style, accent, accent2, seed }) {
 }
 
 // Micro-citation for sources
-function MicroCite({ sources }) {
+function MicroCite({ sources, accent }) {
   if (!sources) return null;
-  return <div style={{ ...CP, fontSize: 6, color: "#ffffff55", marginTop: 4, textAlign: "right" }}>{sources}</div>;
+  return <div style={{ ...CP, fontSize: 7, color: accent ? accent + "88" : "#ffffff77", marginTop: 6, textAlign: "right", fontStyle: "italic" }}>{sources}</div>;
 }
 
 function getImg(images, idx) {
@@ -1178,15 +1180,36 @@ var VINTAGE_APIS = {
 };
 
 // Search vintage APIs for a category
+// Broader search terms for vintage APIs (specific topics fail on archival databases)
+var VINTAGE_TERMS = {
+  film: ["cinema", "movie poster", "film noir", "theater"],
+  photo: ["photography", "camera", "portrait", "landscape"],
+  sports: ["athletics", "stadium", "competition", "sports"],
+  trivia: ["science", "discovery", "map", "invention"],
+  art: ["painting", "sculpture", "music", "art"],
+  fashion: ["fashion", "costume", "textile", "dress"],
+  food: ["food", "kitchen", "restaurant", "dining"],
+  nightlife: ["dance", "jazz", "nightclub", "poster"],
+};
+
 var searchVintage = async function(category, query) {
   var apis = VINTAGE_APIS[category] || [searchMetMuseum, searchLibCongress];
+  var terms = VINTAGE_TERMS[category] || ["art"];
   var results = [];
   for (var i = 0; i < apis.length; i++) {
     if (results.length >= 6) break;
+    // Use broad category terms instead of specific topic
+    var searchTerm = terms[i % terms.length] + " " + query.split(" ").slice(0, 2).join(" ");
     try {
-      var imgs = await apis[i](query);
+      var imgs = await apis[i](searchTerm);
       results = results.concat(imgs);
-    } catch (e) { /* continue */ }
+    } catch (e) {
+      // Fallback: try with just the category term
+      try {
+        var fallback = await apis[i](terms[i % terms.length]);
+        results = results.concat(fallback);
+      } catch (e2) { /* continue */ }
+    }
   }
   return results.slice(0, 8);
 };
