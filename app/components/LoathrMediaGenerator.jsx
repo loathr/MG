@@ -1130,7 +1130,7 @@ function S6Purple({ slide, index, category, images }) {
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 4}>
           <div style={{ ...HD, fontSize: 11.5, fontStyle: "italic", color: "#ffffff", lineHeight: 1.8, textAlign: "left" }}><span style={{ background: p.accent + "cc", padding: "2px 5px", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</span></div>
           <div style={{ width: 12, height: 1, background: p.accent + "66", margin: "8px 0 8px auto" }} />
-          {slide.source && <div style={{ ...WS, fontSize: 5, color: p.accent + "99", letterSpacing: "0.08em", textAlign: "right" }}>{"— " + slide.source}</div>}
+          {slide.source && <div style={{ textAlign: "right", marginTop: 4 }}><span style={{ ...WS, fontSize: 7, color: "#1a1a1a", background: "#ffffff", padding: "2px 6px", letterSpacing: "0.08em" }}>{"— " + slide.source}</span></div>}
         </FormalFrame>
       </div>
     </ImgBg>
