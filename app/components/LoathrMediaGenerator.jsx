@@ -10,7 +10,7 @@ var M_SIDE = 16;
 var M_PAGE = 12; // page number offset from accent frame
 var HD = { fontFamily: "'Maheni',Georgia,serif", fontStyle: "normal" };
 var FN = { fontFamily: "'Foun',Georgia,serif" };
-var WS = { fontFamily: "'Wenssep',Georgia,serif" };
+var WS = { fontFamily: "'Wenssep',Georgia,serif", textTransform: "uppercase" };
 var CP = { fontFamily: "'Courier Prime',monospace" };
 
 // --- MAGAZINE EDITION SYSTEM ---
@@ -626,7 +626,7 @@ function StickyNote({ children, style, accent, accent2, seed }) {
 // Micro-citation for sources
 function MicroCite({ sources, accent }) {
   if (!sources) return null;
-  return <div style={{ ...CP, fontSize: 7, color: accent ? accent + "88" : "#ffffff77", marginTop: 6, textAlign: "right", fontStyle: "italic" }}>{sources}</div>;
+  return <div style={{ ...CP, fontSize: 5, color: accent ? accent + "88" : "#ffffff77", marginTop: 6, textAlign: "right", fontStyle: "italic" }}>{sources}</div>;
 }
 
 // Split text into positioned boxes that avoid the image focal point
@@ -1128,7 +1128,7 @@ function S6Purple({ slide, index, category, images }) {
     <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0}>
       <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, getFramePosition(quoteText.length, index))}>
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 4}>
-          <div style={{ ...HD, fontSize: 11.5, fontStyle: "italic", color: "#ffffffdd", lineHeight: 1.5, textAlign: "left" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</div>
+          <div style={{ ...HD, fontSize: 11.5, fontStyle: "italic", color: "#ffffff", lineHeight: 1.8, textAlign: "left" }}><span style={{ background: p.accent + "cc", padding: "2px 5px", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</span></div>
           <div style={{ width: 12, height: 1, background: p.accent + "66", margin: "8px 0 8px auto" }} />
           {slide.source && <div style={{ ...WS, fontSize: 5, color: p.accent + "99", letterSpacing: "0.08em", textAlign: "right" }}>{"— " + slide.source}</div>}
         </FormalFrame>
@@ -1299,7 +1299,7 @@ function RecSlideRenderer({ category, slideData, slideIndex, totalSlides, images
   else if (slideIndex === 3) slide = <RecCulture slide={slideData} category={category} images={images} />;
   else slide = <RecShortlist slide={slideData} category={category} images={images} />;
   return (
-    <div style={{ width: "100%", height: "100%", border: "2px solid " + borderColor, outline: "1px solid #000000", overflow: "hidden" }}>
+    <div style={{ width: "100%", height: "100%", border: "2px solid " + borderColor, overflow: "hidden" }}>
       {slide}
     </div>
   );
@@ -1326,7 +1326,7 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
     slide = <Component slide={slideData} index={slideIndex} category={category} images={images} />;
   }
   return (
-    <div style={{ width: "100%", height: "100%", border: "2px solid " + borderColor, outline: "1px solid #000000", overflow: "hidden" }}>
+    <div style={{ width: "100%", height: "100%", border: "2px solid " + borderColor, overflow: "hidden" }}>
       {slide}
     </div>
   );
@@ -2184,7 +2184,7 @@ export default function LoathrMediaGenerator() {
           </button>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff", outline: "1.5px solid #000000", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
+          <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff", outline: "1.5px solid #000000", boxShadow: "inset 0 0 0 1px #000000, 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
             {isRecMode ? <RecSlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
           </div>
         </div>
