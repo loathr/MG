@@ -929,7 +929,7 @@ function S4Emigre({ slide, index, category, images }) {
   var fmt = s.statFormat || (s.before ? "comparison" : s.stats ? "story" : s.left ? "versus" : s.year && !s.heading ? "timeline" : s.stat2 ? "comparison" : "killer");
   slide = s;
 
-  // Format A: Comparison (before → after) — 2 layout variations
+  // Format A: Comparison — vertical divider (layout 0) or horizontal rule (layout 1)
   if (fmt === "comparison") {
     var beforeVal = slide.before || slide.stat || "";
     var afterVal = slide.after || slide.stat2 || "";
@@ -937,29 +937,30 @@ function S4Emigre({ slide, index, category, images }) {
     var afterLbl = slide.afterLabel || slide.stat2Label || "";
     var maxLen = Math.max(String(beforeVal).length, String(afterVal).length);
     var numSize = maxLen > 7 ? 28 : maxLen > 5 ? 34 : 42;
-    var compLayout = index % 2; // 0=horizontal, 1=vertical stacked
+    var compLayout = index % 2;
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="rgba(0,0,0,0.65)">
         {compLayout === 0 ? (
-          <div style={{ position: "absolute", top: "28%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", justifyContent: "center", alignItems: "center", gap: 12 }}>
-            <div style={{ textAlign: "center", flex: 1 }}>
+          <div style={{ position: "absolute", top: "25%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", alignItems: "center" }}>
+            <div style={{ flex: 1, textAlign: "center" }}>
               <div style={{ ...WS, fontSize: numSize, color: p.accent2 || "#ffffff88", lineHeight: 0.85 }}>{beforeVal}</div>
-              <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 6, letterSpacing: "0.08em" }}>{beforeLbl}</div>
+              <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 6 }}>{beforeLbl}</div>
             </div>
-            <div style={{ ...FN, fontSize: 28, color: p.accent, flexShrink: 0 }}>→</div>
-            <div style={{ textAlign: "center", flex: 1 }}>
+            <div style={{ width: 2, height: 60, background: p.accent, flexShrink: 0, margin: "0 8px" }} />
+            <div style={{ flex: 1, textAlign: "center" }}>
               <div style={{ ...WS, fontSize: numSize, color: p.accent, lineHeight: 0.85 }}>{afterVal}</div>
-              <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 6, letterSpacing: "0.08em" }}>{afterLbl}</div>
+              <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 6 }}>{afterLbl}</div>
             </div>
           </div>
         ) : (
-          <div style={{ position: "absolute", top: "20%", left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
-            <div style={{ textAlign: "left", marginBottom: 12 }}>
-              <div style={{ ...WS, fontSize: numSize + 8, color: p.accent2 || "#ffffff88", lineHeight: 0.85, textDecoration: "line-through", textDecorationColor: p.accent + "66" }}>{beforeVal}</div>
+          <div style={{ position: "absolute", top: "20%", left: M_SIDE, right: M_SIDE, zIndex: 3, textAlign: "center" }}>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ ...WS, fontSize: numSize, color: p.accent2 || "#ffffff88", lineHeight: 0.85 }}>{beforeVal}</div>
               <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 4 }}>{beforeLbl}</div>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ ...WS, fontSize: numSize + 12, color: p.accent, lineHeight: 0.85 }}>{afterVal}</div>
+            <div style={{ width: "40%", height: 2, background: "linear-gradient(to right, " + (p.accent2 || p.accent) + ", " + p.accent + ")", margin: "6px auto" }} />
+            <div>
+              <div style={{ ...WS, fontSize: numSize + 10, color: p.accent, lineHeight: 0.85 }}>{afterVal}</div>
               <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 4 }}>{afterLbl}</div>
             </div>
           </div>
@@ -974,16 +975,25 @@ function S4Emigre({ slide, index, category, images }) {
     );
   }
 
-  // Format B: Killer Number (one massive stat)
+  // Format B: Killer Number — centered or left-anchored variation
   if (fmt === "killer") {
     var killerVal = String(slide.stat || "");
     var killerSize = killerVal.length > 8 ? 36 : killerVal.length > 5 ? 48 : 64;
+    var killerLayout = index % 2;
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="rgba(0,0,0,0.6)">
-        <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 3, textAlign: "center", width: "85%" }}>
-          <div style={{ ...WS, fontSize: killerSize, color: p.accent, lineHeight: 0.85, letterSpacing: -2 }}>{slide.stat}</div>
-          <div style={{ ...HD, fontSize: 9, color: "#ffffffcc", marginTop: 12, lineHeight: 1.5 }}>{slide.caption || slide.statLabel || slide.body}</div>
-        </div>
+        {killerLayout === 0 ? (
+          <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 3, textAlign: "center", width: "85%" }}>
+            <div style={{ ...WS, fontSize: killerSize, color: p.accent, lineHeight: 0.85, letterSpacing: -2 }}>{slide.stat}</div>
+            <div style={{ ...HD, fontSize: 9, color: "#ffffffcc", marginTop: 12, lineHeight: 1.5 }}>{slide.caption || slide.statLabel || slide.body}</div>
+          </div>
+        ) : (
+          <div style={{ position: "absolute", top: "30%", left: M_SIDE, zIndex: 3, width: "70%" }}>
+            <div style={{ ...WS, fontSize: killerSize, color: p.accent, lineHeight: 0.85, letterSpacing: -2 }}>{slide.stat}</div>
+            <div style={{ width: "30%", height: 2, background: p.accent, margin: "10px 0" }} />
+            <div style={{ ...HD, fontSize: 9, color: "#ffffffcc", lineHeight: 1.5 }}>{slide.caption || slide.statLabel || slide.body}</div>
+          </div>
+        )}
         <div style={{ position: "absolute", bottom: M_BOT, right: M_SIDE, zIndex: 3 }}>
           <MicroCite sources={slide.sources} />
         </div>
@@ -991,23 +1001,36 @@ function S4Emigre({ slide, index, category, images }) {
     );
   }
 
-  // Format C: Data Story (3 connected numbers)
+  // Format C: Data Story — vertical list or horizontal row
   if (fmt === "story") {
     var stats = slide.stats || [{ num: slide.stat, label: slide.statLabel }, { num: slide.stat2, label: slide.stat2Label }, { num: "—", label: "—" }];
+    var storyLayout = index % 2;
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="rgba(0,0,0,0.7)">
-        <div style={{ position: "absolute", top: "18%", left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
-          {stats.slice(0, 3).map(function(s, i) {
-            var c = i % 2 === 0 ? p.accent : p.accent2;
-            return <div key={i} style={{ marginBottom: 14, display: "flex", alignItems: "baseline", gap: 8 }}>
-              <div style={{ ...CP, fontSize: 7, color: "#ffffff44" }}>{String(i + 1).padStart(2, "0")}</div>
-              <div>
-                <div style={{ ...WS, fontSize: 28, color: c, lineHeight: 0.9 }}>{s.num}</div>
-                <div style={{ ...HD, fontSize: 6, color: "#ffffffaa", marginTop: 2, letterSpacing: "0.08em" }}>{s.label}</div>
-              </div>
-            </div>;
-          })}
-        </div>
+        {storyLayout === 0 ? (
+          <div style={{ position: "absolute", top: "18%", left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+            {stats.slice(0, 3).map(function(s, i) {
+              var c = i % 2 === 0 ? p.accent : p.accent2;
+              return <div key={i} style={{ marginBottom: 14, display: "flex", alignItems: "baseline", gap: 8 }}>
+                <div style={{ ...CP, fontSize: 7, color: "#ffffff55" }}>{String(i + 1).padStart(2, "0")}</div>
+                <div>
+                  <div style={{ ...WS, fontSize: 28, color: c, lineHeight: 0.9 }}>{s.num}</div>
+                  <div style={{ ...HD, fontSize: 6, color: "#ffffffcc", marginTop: 2 }}>{s.label}</div>
+                </div>
+              </div>;
+            })}
+          </div>
+        ) : (
+          <div style={{ position: "absolute", top: "22%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", gap: 4 }}>
+            {stats.slice(0, 3).map(function(s, i) {
+              var c = i % 2 === 0 ? p.accent : p.accent2;
+              return <div key={i} style={{ flex: 1, textAlign: "center", borderRight: i < 2 ? "1px solid " + p.accent + "33" : "none", paddingRight: i < 2 ? 4 : 0 }}>
+                <div style={{ ...WS, fontSize: 22, color: c, lineHeight: 0.9 }}>{s.num}</div>
+                <div style={{ ...HD, fontSize: 5, color: "#ffffffcc", marginTop: 3 }}>{s.label}</div>
+              </div>;
+            })}
+          </div>
+        )}
         <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
           <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>
             <div style={{ ...HD, fontSize: 8, color: "#ffffffcc", fontStyle: "italic" }}>{slide.narrative || slide.body}</div>
@@ -1018,7 +1041,7 @@ function S4Emigre({ slide, index, category, images }) {
     );
   }
 
-  // Format D: Versus (side by side comparison)
+  // Format D: Versus — thick divider + accent verdict strip
   if (fmt === "versus") {
     var lStat = slide.leftStat || slide.stat || "";
     var rStat = slide.rightStat || slide.stat2 || "";
@@ -1026,37 +1049,38 @@ function S4Emigre({ slide, index, category, images }) {
     var vsSize = vsMaxLen > 7 ? 24 : vsMaxLen > 5 ? 30 : 36;
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="rgba(0,0,0,0.65)">
-        <div style={{ position: "absolute", top: "20%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex" }}>
-          <div style={{ flex: 1, textAlign: "center", borderRight: "1px solid " + p.accent + "44", paddingRight: 8 }}>
+        <div style={{ position: "absolute", top: "20%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", alignItems: "center" }}>
+          <div style={{ flex: 1, textAlign: "center" }}>
             <div style={{ ...FN, fontSize: 10, color: "#ffffffcc", textTransform: "uppercase", marginBottom: 6 }}>{slide.left || "A"}</div>
             <div style={{ ...WS, fontSize: vsSize, color: p.accent, lineHeight: 0.85 }}>{lStat}</div>
             <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 6 }}>{slide.leftLabel || slide.statLabel}</div>
           </div>
-          <div style={{ flex: 1, textAlign: "center", paddingLeft: 8 }}>
+          <div style={{ width: 2, height: 70, background: p.accent, flexShrink: 0, margin: "0 6px" }} />
+          <div style={{ flex: 1, textAlign: "center" }}>
             <div style={{ ...FN, fontSize: 10, color: "#ffffffcc", textTransform: "uppercase", marginBottom: 6 }}>{slide.right || "B"}</div>
             <div style={{ ...WS, fontSize: vsSize, color: p.accent2 || p.accent, lineHeight: 0.85 }}>{rStat}</div>
             <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 6 }}>{slide.rightLabel || slide.stat2Label}</div>
           </div>
         </div>
         <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3, textAlign: "center" }}>
-          <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 6}>
-            <div style={{ ...HD, fontSize: 9, color: p.accent, fontWeight: 700 }}>{slide.verdict || slide.body}</div>
-          </FormalFrame>
+          <div style={{ display: "inline-block" }}><span style={{ ...HD, fontSize: 9, color: "#ffffff", fontWeight: 700, background: p.accent + "cc", padding: "3px 8px" }}>{slide.verdict || slide.body}</span></div>
           <MicroCite sources={slide.sources} />
         </div>
       </ImgBg>
     );
   }
 
-  // Format E: Timeline Number (year-anchored stat)
+  // Format E: Timeline Number — brighter year with accent markers
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0} darken="rgba(0,0,0,0.6)">
-      <div style={{ position: "absolute", top: "22%", left: "50%", transform: "translateX(-50%)", zIndex: 3, textAlign: "center" }}>
-        <div style={{ ...CP, fontSize: 10, color: "#ffffff44", letterSpacing: "0.3em" }}>{slide.year || ""}</div>
+      <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", zIndex: 3, textAlign: "center", display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ width: 6, height: 6, background: p.accent }} />
+        <div style={{ ...CP, fontSize: 12, color: "#ffffffcc", letterSpacing: "0.3em" }}>{slide.year || ""}</div>
+        <div style={{ width: 6, height: 6, background: p.accent2 || p.accent }} />
       </div>
-      <div style={{ position: "absolute", top: "38%", left: "50%", transform: "translateX(-50%)", zIndex: 3, textAlign: "center", width: "80%" }}>
+      <div style={{ position: "absolute", top: "36%", left: "50%", transform: "translateX(-50%)", zIndex: 3, textAlign: "center", width: "80%" }}>
         <div style={{ ...WS, fontSize: 52, color: p.accent, lineHeight: 0.85 }}>{slide.stat}</div>
-        <div style={{ ...HD, fontSize: 7, color: "#ffffffaa", marginTop: 6, letterSpacing: "0.1em" }}>{slide.statLabel}</div>
+        <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 6, letterSpacing: "0.1em" }}>{slide.statLabel}</div>
       </div>
       <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 3}>
