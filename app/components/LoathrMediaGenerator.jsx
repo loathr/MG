@@ -1,6 +1,6 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine } from "lucide-react";
+import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle } from "lucide-react";
 
 var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap";
 // Margins from inside the accent border frame
@@ -85,10 +85,11 @@ var PALETTES = {
   fashion: { bg: "#141420", accent: "#00d2d3", accent2: "#ff9ff3", text: "#f5f5f0" },
   food: { bg: "#1a0f0a", accent: "#e67e22", accent2: "#27ae60", text: "#fff5eb" },
   nightlife: { bg: "#0a0a1a", accent: "#9b59b6", accent2: "#f1c40f", text: "#f0e6ff" },
+  gossip: { bg: "#1a0a14", accent: "#ff4081", accent2: "#ffab40", text: "#fff0f5" },
 };
 
-var CAT_LABELS = { film: "FILM & TV", photo: "PHOTOGRAPHY", sports: "SPORTS \u00d7 CULTURE", trivia: "DID YOU KNOW?", art: "ART & MUSIC", fashion: "FASHION", food: "FOOD & DRINK", nightlife: "NIGHTLIFE" };
-var CLOSER_TAGS = { film: "FOLLOW FOR MORE", photo: "FOLLOW FOR MORE", sports: "GAME. CULTURE. REPEAT.", trivia: "NOW YOU KNOW", art: "SEE. HEAR. FEEL.", fashion: "DRESS. EXPRESS. REPEAT.", food: "TASTE. SAVOR. SHARE.", nightlife: "AFTER DARK." };
+var CAT_LABELS = { film: "FILM & TV", photo: "PHOTOGRAPHY", sports: "SPORTS \u00d7 CULTURE", trivia: "DID YOU KNOW?", art: "ART & MUSIC", fashion: "FASHION", food: "FOOD & DRINK", nightlife: "NIGHTLIFE", gossip: "THE TEA" };
+var CLOSER_TAGS = { film: "FOLLOW FOR MORE", photo: "FOLLOW FOR MORE", sports: "GAME. CULTURE. REPEAT.", trivia: "NOW YOU KNOW", art: "SEE. HEAR. FEEL.", fashion: "DRESS. EXPRESS. REPEAT.", food: "TASTE. SAVOR. SHARE.", nightlife: "AFTER DARK.", gossip: "SPILL. SIP. SCROLL." };
 
 var CATEGORIES = [
   { id: "film", label: "Film & TV", icon: Clapperboard },
@@ -99,6 +100,7 @@ var CATEGORIES = [
   { id: "fashion", label: "Fashion", icon: Scissors },
   { id: "food", label: "Food & Drink", icon: UtensilsCrossed },
   { id: "nightlife", label: "Nightlife", icon: Wine },
+  { id: "gossip", label: "Gossip", icon: MessageCircle },
 ];
 
 var OPTION_TYPES = [
@@ -163,6 +165,14 @@ var SUBCATEGORIES = {
     "Bars": ["The speakeasy revival", "Dive bars as cultural landmarks", "Hotel bars and lobby culture", "The death of the sports bar", "Wine bars replacing cocktail lounges"],
     "Cities": ["Tokyo's golden gai mystique", "Lagos nightlife explosion", "New York vs London after dark", "The rise of Mexico City nightlife", "How cities are zoning out nightlife"],
     "Trends": ["Daylight parties replacing clubs", "Immersive nightlife experiences", "The membership model takeover", "AI DJs and algorithmic dancefloors", "Wellness meets nightlife"],
+  },
+  gossip: {
+    "Celebrity": ["Hollywood's worst-kept secrets", "Celebrity couples nobody saw coming", "The PR relationship industrial complex", "Stars who disappeared from the spotlight", "Celebrity feuds that shaped pop culture"],
+    "Industry": ["Record labels silencing artists", "The real cost of fame contracts", "Ghostwriters behind hit songs", "Award show politics exposed", "Studio executives who changed careers overnight"],
+    "Scandal": ["Cover-ups that eventually broke", "The publicist's playbook for damage control", "Scandals that were actually distractions", "When brands dropped celebrities too late", "The apology video formula decoded"],
+    "Social Media": ["Influencer drama that broke the internet", "Fake followers and bought engagement", "Cancel culture's biggest reversals", "The finsta phenomenon", "Parasocial relationships gone wrong"],
+    "Money": ["Celebrity net worth myths debunked", "The divorce settlement that shocked everyone", "Hidden business empires of celebrities", "How fame is monetized behind the scenes", "The real economics of celebrity endorsements"],
+    "Rumors": ["Conspiracy theories that turned out true", "The rumor mill's greatest hits", "Blind items that were eventually confirmed", "Industry whispers that changed everything", "The gossip columnist's lost art"],
   },
 };
 
@@ -250,7 +260,7 @@ function AutoFit({ children, style, maxShrink }) {
 }
 
 // Comic bubble categories
-var BUBBLE_CATS = { trivia: true, art: true, food: true };
+var BUBBLE_CATS = { trivia: true, art: true, food: true, gossip: true };
 var STICKY_CATS = { fashion: true };
 var FORMAL_CATS = { film: true, photo: true, sports: true, nightlife: true };
 
@@ -1104,7 +1114,7 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
   var slide;
   if (slideIndex === lastIdx) slide = <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} />;
   else if (slideIndex === 0) slide = <S1Cover slide={slideData} category={category} images={images} edition={edition} />;
-  else if (slideData.statFormat || slideData.stat) slide = <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
+  else if (slideData.statFormat || slideData.stat || slideData.stats || slideData.before || slideData.leftStat) slide = <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
   else if (slideData.quote) slide = <S6Purple slide={slideData} index={slideIndex} category={category} images={images} />;
   else {
     // Rotate visual layouts across content slides
@@ -1232,6 +1242,7 @@ var VINTAGE_APIS = {
   fashion: [searchMetMuseum, searchEuropeana],
   food: [searchEuropeana, searchLibCongress],
   nightlife: [searchLibCongress, searchEuropeana],
+  gossip: [searchLibCongress, searchMetMuseum],
 };
 
 // Search vintage APIs for a category
@@ -1245,6 +1256,7 @@ var VINTAGE_TERMS = {
   fashion: ["fashion", "costume", "textile", "dress"],
   food: ["food", "kitchen", "restaurant", "dining"],
   nightlife: ["dance", "jazz", "nightclub", "poster"],
+  gossip: ["celebrity", "scandal", "newspaper", "tabloid"],
 };
 
 var searchVintage = async function(category, query) {
@@ -1469,7 +1481,7 @@ export default function LoathrMediaGenerator() {
   var fetchTrending = _cb(async function() {
     if (!category) return;
     setIsFetchingTrending(true); setTrending([]);
-    var catContext = { film: "film, TV, cinema, streaming, directing", photo: "photography, cameras, visual storytelling", sports: "sports with music, fashion, art, culture", trivia: "surprising facts, science discoveries, cultural oddities", art: "music, visual arts, album releases, art history", fashion: "fashion, luxury brands, streetwear, designers, runway, style trends", food: "food, restaurants, chefs, cocktails, dining culture, culinary trends", nightlife: "nightlife, clubs, DJs, bars, parties, after-dark culture" };
+    var catContext = { film: "film, TV, cinema, streaming, directing", photo: "photography, cameras, visual storytelling", sports: "sports with music, fashion, art, culture", trivia: "surprising facts, science discoveries, cultural oddities", art: "music, visual arts, album releases, art history", fashion: "fashion, luxury brands, streetwear, designers, runway, style trends", food: "food, restaurants, chefs, cocktails, dining culture, culinary trends", nightlife: "nightlife, clubs, DJs, bars, parties, after-dark culture", gossip: "celebrity gossip, entertainment news, scandals, Hollywood drama, influencer culture" };
     try {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000,
