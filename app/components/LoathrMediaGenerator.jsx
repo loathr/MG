@@ -89,13 +89,6 @@ var IMAGE_STYLE_PRESETS = {
 };
 
 // --- TOPIC INTELLIGENCE ---
-var MODIFIERS = [
-  { id: "controversial", label: "Controversial", instr: "Make every claim bold and debatable. Challenge assumptions." },
-  { id: "historical", label: "Historical", instr: "Root everything in specific historical moments and dates." },
-  { id: "personal", label: "Personal", instr: "Frame through individual human stories and first-person perspectives." },
-  { id: "data", label: "Data-driven", instr: "Lead with surprising statistics and measurable evidence on every slide." },
-  { id: "prediction", label: "Prediction", instr: "Focus on what comes next. Every slide should point toward the future." },
-];
 
 var SEASONAL_TOPICS = {
   film: { 0: "Awards season snubs", 1: "Oscar winner predictions", 2: "SXSW film discoveries", 3: "Spring indie releases", 4: "Cannes lineup preview", 5: "Summer blockbuster predictions", 6: "Midyear box office report", 7: "Late summer sleeper hits", 8: "Fall festival circuit", 9: "Horror season deep dive", 10: "Holiday film releases", 11: "Year in film review" },
@@ -2069,7 +2062,7 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
 };
 
 // --- DIFFERENTIATED PROMPTS ---
-function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPersonImage, secondaryCatLabel, tertiaryCatLabel, secCount, terCount) {
+function buildPrompt(catLabel, topic, editionSeed, picks, hasPersonImage, secondaryCatLabel, tertiaryCatLabel, secCount, terCount) {
   var p = picks || { persona: -1, angle: -1, style: -1, tone: "editorial" };
   var persona = p.persona >= 0 && PERSONAS[p.persona] ? PERSONAS[p.persona] : pickPersona(editionSeed || 0);
   var freshSeed = p.angle >= 0 && FRESHNESS_SEEDS[p.angle] ? FRESHNESS_SEEDS[p.angle] : pickFreshness(editionSeed || 0);
@@ -2083,12 +2076,6 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPe
   // Custom voice override
   var customVoiceInstr = p.customVoice ? "\nCUSTOM VOICE INSTRUCTION: " + p.customVoice : "";
 
-  // Apply modifier instructions
-  var modInstr = "";
-  if (activeModifiers && activeModifiers.length > 0) {
-    var modTexts = activeModifiers.map(function(mid) { var m = MODIFIERS.find(function(x) { return x.id === mid; }); return m ? m.instr : ""; }).filter(Boolean);
-    if (modTexts.length > 0) modInstr = "\nMODIFIERS: " + modTexts.join(" ");
-  }
 
   // Force a specific stat format per edition to guarantee variety
   var statFormats = [
@@ -2134,7 +2121,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPe
     crossCatInstr += "\n\nCROSS-CATEGORY LENS — TERTIARY: \"" + tertiaryCatLabel + "\" (EXACTLY " + terN + " slide" + (terN > 1 ? "s" : "") + ")\n" + terDir + "\nOn these slides, add \"categoryLens\": \"" + tertiaryCatLabel + "\". Best roles: THE DEEP CUT or THE COUNTER. Must be SPECIFIC and surprising.";
   }
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + "\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + toneInstr + customVoiceInstr + modInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + "\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -2209,7 +2196,6 @@ export default function LoathrMediaGenerator() {
   var ess = _s(false), showEditionSettings = ess[0], setShowEditionSettings = ess[1];
   var sug = _s([]), suggestions = sug[0], setSuggestions = sug[1];
   var rtp = _s([]), relatedTopics = rtp[0], setRelatedTopics = rtp[1];
-  var mds = _s([]), modifiers = mds[0], setModifiers = mds[1];
   var xcs = _s([]), crossCatSuggestions = xcs[0], setCrossCatSuggestions = xcs[1];
   var rcs = _s([]), recentTopics = rcs[0], setRecentTopics = rcs[1];
   var ths = _s([]), topicHistory = ths[0], setTopicHistory = ths[1];
@@ -2606,7 +2592,7 @@ export default function LoathrMediaGenerator() {
       if (controller.signal.aborted) throw new Error("Generation cancelled");
       var secInfo = secondaryCategory ? CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) : null;
       var terInfo = tertiaryCategory ? CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) : null;
-      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers, Object.keys(lockedRef.current || {}).length > 0, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null, secondaryCount, tertiaryCount);
+      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, Object.keys(lockedRef.current || {}).length > 0, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null, secondaryCount, tertiaryCount);
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] }) });
@@ -2849,7 +2835,7 @@ export default function LoathrMediaGenerator() {
       }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
-  }, [topic, category, secondaryCategory, secondaryCount, tertiaryCategory, tertiaryCount, apiKeys, editionPicks, modifiers, lockedPersonImages, genCount, previewLocked, lockedLocationImages]);
+  }, [topic, category, secondaryCategory, secondaryCount, tertiaryCategory, tertiaryCount, apiKeys, editionPicks, lockedPersonImages, genCount, previewLocked, lockedLocationImages]);
 
   // --- Custom Story generator ---
   var generateCustomStory = _cb(async function() {
@@ -3423,14 +3409,6 @@ export default function LoathrMediaGenerator() {
             ); })}
           </div>}
 
-          {/* Modifiers */}
-          <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginBottom: 6, justifyContent: "center" }}>
-            {MODIFIERS.map(function(m) {
-              var active = modifiers.indexOf(m.id) !== -1;
-              return <button key={m.id} onClick={function() { setModifiers(function(prev) { return active ? prev.filter(function(x) { return x !== m.id; }) : prev.concat([m.id]); }); }}
-                style={{ padding: "3px 8px", border: "0.5px solid " + (active ? uiAccent : "var(--color-border-tertiary)"), background: active ? uiAccent + "22" : "transparent", color: active ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>{m.label}</button>;
-            })}
-          </div>
 
           {/* Topic score */}
           {topic.trim() && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 6 }}>
