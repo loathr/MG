@@ -2235,6 +2235,10 @@ export default function LoathrMediaGenerator() {
     if (webTimer.current) clearTimeout(webTimer.current);
     if (previewTimer.current) clearTimeout(previewTimer.current);
     setSmartAngles([]); setWebResults([]); setPreviewImages([]); setWikidataStats(null); setWikidataTimeline([]); setPersonNetwork({});
+    // Clear all locked images from previous topic so they don't carry over
+    setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({});
+    lockedRef.current = {};
+    setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({});
     if (!query || query.length < 2) return;
     // Smart angles + person/location detection after 800ms
     searchTimer.current = setTimeout(function() { fetchSmartAngles(query); }, 800);
@@ -2646,7 +2650,7 @@ export default function LoathrMediaGenerator() {
         {CATEGORIES.map(function(c) {
           var p = PALETTES[c.id]; var sel = category === c.id; var Icon = c.icon;
           return (
-            <button key={c.id} onClick={function() { setCategory(c.id); setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); }}
+            <button key={c.id} onClick={function() { setCategory(c.id); setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({}); lockedRef.current = {}; setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({}); setDroppedImage(null); setReverseTopics([]); }}
               style={{ padding: "8px 12px", cursor: "pointer", border: sel ? "2px solid " + (c.id === "photo" ? "#888888" : p.accent) : "1px solid var(--color-border-tertiary)", background: sel ? (c.id === "photo" ? "#88888822" : p.accent + "12") : "transparent", display: "flex", alignItems: "center", gap: 5, fontSize: 10, ...CP, color: sel ? (c.id === "photo" ? "#888888" : p.accent) : "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
               <Icon size={12} />{c.label}
             </button>);
