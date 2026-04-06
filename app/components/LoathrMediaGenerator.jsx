@@ -1924,32 +1924,54 @@ export default function LoathrMediaGenerator() {
       if (imgKey) {
         setImgStatus("Searching for images...");
         try {
-          var searchFn = unsplashKey ? searchUnsplash : searchPexels;
-          var key = unsplashKey || pexelsKey;
-          // Shorter, cleaner search query
+          var primaryFn = unsplashKey ? searchUnsplash : searchPexels;
+          var primaryKey = unsplashKey || pexelsKey;
+          var secondaryFn = unsplashKey && pexelsKey ? searchPexels : null;
+          var secondaryKey = pexelsKey || "";
           var shortTopic = topic.split(" ").slice(0, 3).join(" ");
-          var stockImgs = await searchFn(catInfo.label + " " + shortTopic, key);
-          // Vintage for archival slides only (Origin, Turning Point, Ripple)
-          var vintageImgs = [];
-          try { vintageImgs = await searchVintage(category, shortTopic); } catch (ve) {}
-          // Category-aware placement: stock for most slides, vintage for historical ones
-          // Slide roles: 0=Cover, 1=Origin, 2=TurningPoint, 3=HotTake, 4=Human, 5=Evidence, 6=Voice, 7=Ripple, 8=Now, 9=Closer
-          var vintageSlots = [1, 2, 7]; // Origin, Turning Point, Ripple — archival fits
           var imgMap = {};
-          var si = 0, vi = 0;
-          for (var slot = 0; slot < 10; slot++) {
-            if (vintageSlots.indexOf(slot) !== -1 && vi < vintageImgs.length) {
-              imgMap[slot] = vintageImgs[vi++];
-            } else if (si < stockImgs.length) {
-              imgMap[slot] = stockImgs[si++];
-            } else if (vi < vintageImgs.length) {
-              imgMap[slot] = vintageImgs[vi++];
+          var slides = results[0] && results[0].slides ? results[0].slides : [];
+          var vintageSlots = [1, 2, 7];
+
+          // 1. Main topic search for cover + closer
+          var mainImgs = await primaryFn(catInfo.label + " " + shortTopic, primaryKey);
+          if (mainImgs.length > 0) imgMap[0] = mainImgs[0]; // cover
+          if (mainImgs.length > 1) imgMap[9] = mainImgs[1]; // closer
+
+          // 2. Per-slide contextual search for content slides
+          setImgStatus("Matching images to slides...");
+          for (var ps = 1; ps < Math.min(slides.length - 1, 9); ps++) {
+            if (imgMap[ps]) continue;
+            var sq = getSlideImageQuery(slides[ps] || {}, catInfo.label, topic);
+            try {
+              // Vintage slots use vintage APIs
+              if (vintageSlots.indexOf(ps) !== -1) {
+                var vApis = VINTAGE_APIS[category] || [searchMetMuseum];
+                var vr = await vApis[ps % vApis.length](sq.split(" ").slice(0, 2).join(" "));
+                if (vr.length > 0) { imgMap[ps] = vr[0]; continue; }
+              }
+              // Alternate between primary and secondary stock API
+              var useSec = secondaryFn && ps % 2 === 0;
+              var fn = useSec ? secondaryFn : primaryFn;
+              var k = useSec ? secondaryKey : primaryKey;
+              var sr = await fn(sq, k);
+              if (sr.length > 0) imgMap[ps] = sr[Math.min(ps, sr.length - 1)];
+              else if (mainImgs.length > ps) imgMap[ps] = mainImgs[ps]; // fallback to main
+            } catch (pe) {
+              // Fallback: use main results
+              if (mainImgs.length > ps) imgMap[ps] = mainImgs[ps];
             }
           }
+
+          // 3. Fill any remaining gaps from main results
+          for (var fill = 0; fill < 10; fill++) {
+            if (!imgMap[fill] && mainImgs.length > 0) imgMap[fill] = mainImgs[fill % mainImgs.length];
+          }
+
           var totalLoaded = Object.keys(imgMap).length;
           if (totalLoaded > 0) {
             setImages(imgMap);
-            setImgStatus(si + " stock + " + vi + " vintage loaded");
+            setImgStatus(totalLoaded + " contextual images loaded");
           } else { setImgStatus("No images found"); }
         } catch (e) { setImgStatus("Image search failed: " + e.message); }
       } else {
