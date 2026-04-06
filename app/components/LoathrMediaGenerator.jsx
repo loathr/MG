@@ -1959,13 +1959,15 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
     await new Promise(function(r) { setTimeout(r, 600); });
     var el = slideRef.current;
     if (!el) continue;
-    // Find the inner content div (skip white border + black wrapper)
-    var inner = el.querySelector ? el.querySelector("[style*='border: 2px solid']") || el.firstChild || el : el;
+    // Export the full framed slide (white border + black outline + content)
     try {
-      var canvas = await window.html2canvas(inner, {
-        width: inner.offsetWidth || 340,
-        height: inner.offsetHeight || 425,
-        scale: 1080 / (inner.offsetWidth || 340),
+      // Total dimensions: 340 content + 4px white border each side + 1.5px outline each side = ~351 x ~436
+      var exportW = el.offsetWidth;
+      var exportH = el.offsetHeight;
+      var canvas = await window.html2canvas(el, {
+        width: exportW,
+        height: exportH,
+        scale: 1080 / exportW,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#000000",
@@ -3422,9 +3424,11 @@ export default function LoathrMediaGenerator() {
           </button>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff", outline: "1.5px solid #000000", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
-            <div style={{ width: "100%", height: "100%", border: "1px solid #000000", overflow: "hidden" }}>
+          <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
+            <div style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff" }}>
+              <div style={{ width: "100%", height: "100%", border: "1px solid #000000", overflow: "hidden" }}>
             {isRecMode ? <RecSlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
+            </div>
           </div>
           </div>
         </div>
