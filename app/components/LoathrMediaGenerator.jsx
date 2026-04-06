@@ -2184,8 +2184,10 @@ export default function LoathrMediaGenerator() {
           </button>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff", outline: "1.5px solid #000000", boxShadow: "inset 0 0 0 1px #000000, 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
+          <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff", outline: "1.5px solid #000000", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
+            <div style={{ width: "100%", height: "100%", border: "1px solid #000000", overflow: "hidden" }}>
             {isRecMode ? <RecSlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
+          </div>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 14 }}>
@@ -2211,12 +2213,21 @@ export default function LoathrMediaGenerator() {
       </div>}
 
       {/* Related topics after generation */}
-      {relatedTopics.length > 0 && options && <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center", marginTop: 12, marginBottom: 8 }}>
-        <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Related:</span>
-        {relatedTopics.map(function(t, i) { return (
-          <button key={i} onClick={function() { setTopic(t); setRelatedTopics([]); setOptions(null); }}
-            style={{ padding: "3px 8px", border: "0.5px solid " + uiAccent + "44", background: uiAccent + "08", cursor: "pointer", ...CP, fontSize: 8, color: uiAccent }}>{t}</button>
-        ); })}
+      {relatedTopics.length > 0 && options && <div style={{ marginTop: 12, marginBottom: 4 }}>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center", marginBottom: 6 }}>
+          <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Related:</span>
+          {relatedTopics.map(function(t, i) { return (
+            <button key={i} onClick={function() { setTopic(t); setRelatedTopics([]); setOptions(null); }}
+              style={{ padding: "3px 8px", border: "0.5px solid " + uiAccent + "44", background: uiAccent + "08", cursor: "pointer", ...CP, fontSize: 8, color: uiAccent }}>{t}</button>
+          ); })}
+        </div>
+        {searchAllCategories(topic, category).length > 0 && <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
+          <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Explore in:</span>
+          {searchAllCategories(topic, category).map(function(x, i) { return (
+            <button key={i} onClick={function() { setCategory(x.category); setTopic(x.topic); setRelatedTopics([]); setOptions(null); }}
+              style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-secondary)" }}>{x.topic} <span style={{ fontSize: 6, color: uiAccent }}>({x.category})</span></button>
+          ); })}
+        </div>}
       </div>}
 
       <div style={{ textAlign: "center", padding: "18px 0 12px", borderTop: "0.5px solid var(--color-border-tertiary)", marginTop: 16 }}>
