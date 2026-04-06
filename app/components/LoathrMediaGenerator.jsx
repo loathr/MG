@@ -1593,88 +1593,201 @@ var searchPersonImages = async function(personName) {
 // Shared Wikidata entity fetcher
 var fetchWikidataEntity = async function(topic) {
   try {
-    // 1. Search for the entity
     var sr = await fetchWithTimeout("https://www.wikidata.org/w/api.php?action=wbsearchentities&search=" + encodeURIComponent(topic) + "&language=en&limit=1&format=json&origin=*", 5000);
     if (!sr.ok) return null;
     var sd = await sr.json();
     if (!sd.search || sd.search.length === 0) return null;
     var qid = sd.search[0].id;
     var label = sd.search[0].label;
-    // 2. Get entity data
-    var er = await fetchWithTimeout("https://www.wikidata.org/w/api.php?action=wbgetentities&ids=" + qid + "&props=claims|labels&languages=en&format=json&origin=*", 8000);
+    var description = sd.search[0].description || "";
+    var er = await fetchWithTimeout("https://www.wikidata.org/w/api.php?action=wbgetentities&ids=" + qid + "&props=claims|labels|descriptions&languages=en&format=json&origin=*", 8000);
     if (!er.ok) return null;
     var ed = await er.json();
     var entity = ed.entities && ed.entities[qid] ? ed.entities[qid] : null;
     if (!entity) return null;
-    return { qid: qid, label: label, claims: entity.claims || {} };
+    return { qid: qid, label: label, description: description, claims: entity.claims || {} };
   } catch (e) { console.error("Wikidata fetch error:", e); return null; }
 };
 
-// Extract structured stats from Wikidata claims
-var WIKIDATA_PROPS = {
-  P1082: "Population", P2046: "Area", P2139: "Revenue", P1128: "Employees",
-  P2196: "Students", P1114: "Quantity", P2295: "Net worth",
-  P1087: "Rating", P2142: "Box office", P2218: "Net income",
-  P3373: "Sibling", P569: "Born", P570: "Died", P571: "Founded",
-  P576: "Dissolved", P580: "Start", P582: "End",
-  P17: "Country", P27: "Citizenship", P106: "Occupation",
-  P166: "Awards", P1411: "Nominations",
+// Resolve Wikidata QIDs to human-readable labels (batch)
+var resolveQids = async function(qids) {
+  if (!qids || qids.length === 0) return {};
+  try {
+    var r = await fetchWithTimeout("https://www.wikidata.org/w/api.php?action=wbgetentities&ids=" + qids.join("|") + "&props=labels&languages=en&format=json&origin=*", 5000);
+    if (!r.ok) return {};
+    var d = await r.json();
+    var labels = {};
+    if (d.entities) Object.keys(d.entities).forEach(function(qid) {
+      var e = d.entities[qid];
+      labels[qid] = e.labels && e.labels.en ? e.labels.en.value : qid;
+    });
+    return labels;
+  } catch (e) { return {}; }
 };
 
-var extractWikidataStats = function(entity) {
+// Format large numbers readably
+var formatBigNum = function(numStr) {
+  var n = parseFloat(numStr);
+  if (isNaN(n)) return numStr;
+  if (Math.abs(n) >= 1e12) return (n / 1e12).toFixed(1) + "T";
+  if (Math.abs(n) >= 1e9) return (n / 1e9).toFixed(1) + "B";
+  if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(1) + "M";
+  if (Math.abs(n) >= 1e3) return (n / 1e3).toFixed(1) + "K";
+  return numStr;
+};
+
+// Properties to extract from Wikidata — grouped by type
+var WD_NUMBERS = { P1082: "Population", P2046: "Area (km²)", P2139: "Revenue", P1128: "Employees", P2196: "Students", P2295: "Net worth", P2142: "Box office", P2218: "Net income", P1114: "Quantity", P1087: "Rating" };
+var WD_DATES = { P569: "Born", P570: "Died", P571: "Founded", P576: "Dissolved" };
+var WD_ENTITIES = { P106: "Occupation", P27: "Citizenship", P17: "Country", P19: "Birthplace", P20: "Death place", P69: "Educated at", P108: "Employer", P264: "Record label", P449: "Network", P136: "Genre", P101: "Field", P39: "Position", P102: "Political party" };
+var WD_COUNTS = { P166: "Awards", P1411: "Nominations", P800: "Notable works", P1346: "Winners" };
+
+var extractWikidataStats = async function(entity) {
   if (!entity || !entity.claims) return {};
   var stats = {};
   var claims = entity.claims;
-  Object.keys(WIKIDATA_PROPS).forEach(function(prop) {
+  // 1. Numbers — format large values
+  Object.keys(WD_NUMBERS).forEach(function(prop) {
     if (!claims[prop]) return;
     var claim = claims[prop][0];
-    if (!claim || !claim.mainsnak || !claim.mainsnak.datavalue) return;
-    var val = claim.mainsnak.datavalue;
-    var label = WIKIDATA_PROPS[prop];
-    if (val.type === "quantity") {
-      stats[label] = val.value.amount.replace("+", "");
-    } else if (val.type === "time") {
-      var yr = val.value.time.match(/\+?(\d{4})/);
-      stats[label] = yr ? yr[1] : val.value.time;
-    } else if (val.type === "wikibase-entityid") {
-      stats[label + "_qid"] = val.value.id;
-    } else if (val.type === "string") {
-      stats[label] = val.value;
+    if (!claim || !claim.mainsnak || !claim.mainsnak.datavalue || claim.mainsnak.datavalue.type !== "quantity") return;
+    var raw = claim.mainsnak.datavalue.value.amount.replace("+", "");
+    stats[WD_NUMBERS[prop]] = formatBigNum(raw);
+  });
+  // 2. Dates — extract full date not just year
+  var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  Object.keys(WD_DATES).forEach(function(prop) {
+    if (!claims[prop]) return;
+    var claim = claims[prop][0];
+    if (!claim || !claim.mainsnak || !claim.mainsnak.datavalue || claim.mainsnak.datavalue.type !== "time") return;
+    var t = claim.mainsnak.datavalue.value.time;
+    var match = t.match(/\+?(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      var yr = match[1]; var mo = parseInt(match[2]); var dy = parseInt(match[3]);
+      stats[WD_DATES[prop]] = (mo > 0 && mo <= 12 ? months[mo - 1] + " " : "") + (dy > 0 ? dy + ", " : "") + yr;
     }
   });
-  // Count awards/nominations
-  if (claims.P166) stats["Awards"] = claims.P166.length.toString();
-  if (claims.P1411) stats["Nominations"] = claims.P1411.length.toString();
+  // 3. Entity references — collect QIDs to resolve in batch
+  var qidsToResolve = [];
+  var qidMap = {}; // prop → [qids]
+  Object.keys(WD_ENTITIES).forEach(function(prop) {
+    if (!claims[prop]) return;
+    qidMap[prop] = [];
+    claims[prop].slice(0, 3).forEach(function(claim) {
+      if (claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.type === "wikibase-entityid") {
+        var qid = claim.mainsnak.datavalue.value.id;
+        qidsToResolve.push(qid);
+        qidMap[prop].push(qid);
+      }
+    });
+  });
+  // Batch resolve all entity references to readable labels
+  if (qidsToResolve.length > 0) {
+    var labels = await resolveQids(qidsToResolve.slice(0, 20));
+    Object.keys(qidMap).forEach(function(prop) {
+      var resolved = qidMap[prop].map(function(qid) { return labels[qid] || null; }).filter(Boolean);
+      if (resolved.length > 0) stats[WD_ENTITIES[prop]] = resolved.join(", ");
+    });
+  }
+  // 4. Counts — how many awards, nominations, notable works
+  Object.keys(WD_COUNTS).forEach(function(prop) {
+    if (claims[prop] && claims[prop].length > 0) stats[WD_COUNTS[prop]] = claims[prop].length.toString();
+  });
+  // 5. Active years (P2031/P2032)
+  if (claims.P2031) {
+    var startClaim = claims.P2031[0];
+    if (startClaim && startClaim.mainsnak && startClaim.mainsnak.datavalue && startClaim.mainsnak.datavalue.type === "time") {
+      var syr = startClaim.mainsnak.datavalue.value.time.match(/\+?(\d{4})/);
+      if (syr) {
+        var endYr = "present";
+        if (claims.P2032 && claims.P2032[0] && claims.P2032[0].mainsnak && claims.P2032[0].mainsnak.datavalue) {
+          var eyr = claims.P2032[0].mainsnak.datavalue.value.time.match(/\+?(\d{4})/);
+          if (eyr) endYr = eyr[1];
+        }
+        stats["Active"] = syr[1] + "–" + endYr;
+      }
+    }
+  }
   return stats;
 };
 
-// Extract timeline events from Wikidata claims
-var extractWikidataTimeline = function(entity) {
+// Extract rich timeline events from Wikidata claims
+var extractWikidataTimeline = async function(entity) {
   if (!entity || !entity.claims) return [];
   var events = [];
   var claims = entity.claims;
-  var timeProps = { P569: "Born", P570: "Died", P571: "Founded", P576: "Dissolved", P580: "Started", P582: "Ended", P585: "Event" };
+  var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  // Core life/org events
+  var timeProps = { P569: "Born", P570: "Died", P571: "Founded", P576: "Dissolved", P580: "Started", P582: "Ended" };
   Object.keys(timeProps).forEach(function(prop) {
     if (!claims[prop]) return;
     claims[prop].forEach(function(claim) {
       if (!claim.mainsnak || !claim.mainsnak.datavalue || claim.mainsnak.datavalue.type !== "time") return;
-      var yr = claim.mainsnak.datavalue.value.time.match(/\+?(\d{4})/);
-      if (yr) events.push({ year: yr[1], event: timeProps[prop], property: prop });
+      var t = claim.mainsnak.datavalue.value.time;
+      var match = t.match(/\+?(\d{4})-(\d{2})/);
+      if (match) {
+        var yr = match[1]; var mo = parseInt(match[2]);
+        var dateStr = (mo > 0 && mo <= 12 ? months[mo - 1] + " " : "") + yr;
+        events.push({ year: yr, date: dateStr, event: timeProps[prop], detail: "" });
+      }
     });
   });
-  // Also extract qualifiers with dates from major claims (P166=awards with dates)
+  // Awards with dates and names
+  var awardQids = [];
   if (claims.P166) {
-    claims.P166.slice(0, 5).forEach(function(claim) {
+    claims.P166.slice(0, 8).forEach(function(claim) {
+      var yr = null; var awardQid = null;
+      if (claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.type === "wikibase-entityid") {
+        awardQid = claim.mainsnak.datavalue.value.id;
+        awardQids.push(awardQid);
+      }
       if (claim.qualifiers && claim.qualifiers.P585) {
         var q = claim.qualifiers.P585[0];
         if (q.datavalue && q.datavalue.type === "time") {
-          var yr = q.datavalue.value.time.match(/\+?(\d{4})/);
-          if (yr) events.push({ year: yr[1], event: "Award", property: "P166" });
+          var m = q.datavalue.value.time.match(/\+?(\d{4})/);
+          if (m) yr = m[1];
         }
       }
+      if (yr) events.push({ year: yr, date: yr, event: "Award", detail: "", _awardQid: awardQid });
     });
   }
+  // Resolve award names
+  if (awardQids.length > 0) {
+    var awardLabels = await resolveQids(awardQids.slice(0, 10));
+    events.forEach(function(ev) {
+      if (ev._awardQid && awardLabels[ev._awardQid]) ev.detail = awardLabels[ev._awardQid];
+      delete ev._awardQid;
+    });
+  }
+  // Significant events (P793)
+  if (claims.P793) {
+    var sigQids = [];
+    claims.P793.slice(0, 5).forEach(function(claim) {
+      if (claim.mainsnak && claim.mainsnak.datavalue && claim.mainsnak.datavalue.type === "wikibase-entityid") {
+        sigQids.push(claim.mainsnak.datavalue.value.id);
+      }
+      var yr = null;
+      if (claim.qualifiers && claim.qualifiers.P585) {
+        var q = claim.qualifiers.P585[0];
+        if (q.datavalue && q.datavalue.type === "time") {
+          var m = q.datavalue.value.time.match(/\+?(\d{4})/);
+          if (m) yr = m[1];
+        }
+      }
+      if (yr) events.push({ year: yr, date: yr, event: "Event", detail: "", _sigQid: claim.mainsnak.datavalue.value.id });
+    });
+    if (sigQids.length > 0) {
+      var sigLabels = await resolveQids(sigQids);
+      events.forEach(function(ev) {
+        if (ev._sigQid && sigLabels[ev._sigQid]) { ev.event = sigLabels[ev._sigQid]; }
+        delete ev._sigQid;
+      });
+    }
+  }
   events.sort(function(a, b) { return parseInt(a.year) - parseInt(b.year); });
+  // Deduplicate by year+event
+  var seen = {};
+  events = events.filter(function(e) { var key = e.year + e.event; if (seen[key]) return false; seen[key] = true; return true; });
   return events;
 };
 
@@ -2138,10 +2251,12 @@ export default function LoathrMediaGenerator() {
           }).catch(function() {});
         });
         // Fetch Wikidata stats for the first detected person (or the topic)
-        fetchWikidataEntity(names[0]).then(function(entity) {
+        fetchWikidataEntity(names[0]).then(async function(entity) {
           if (entity) {
-            setWikidataStats(extractWikidataStats(entity));
-            setWikidataTimeline(extractWikidataTimeline(entity));
+            var stats = await extractWikidataStats(entity);
+            setWikidataStats(stats);
+            var tl = await extractWikidataTimeline(entity);
+            setWikidataTimeline(tl);
           }
         }).catch(function() {});
       } else { setPersonsDetected([]); setPersonImages({}); setPersonNetwork({}); }
@@ -2158,10 +2273,12 @@ export default function LoathrMediaGenerator() {
       } else { setLocationsDetected([]); setLocationImages({}); }
       // Fetch Wikidata for the topic itself if no persons detected
       if (!parsed.persons || parsed.persons.length === 0) {
-        fetchWikidataEntity(query).then(function(entity) {
+        fetchWikidataEntity(query).then(async function(entity) {
           if (entity) {
-            setWikidataStats(extractWikidataStats(entity));
-            setWikidataTimeline(extractWikidataTimeline(entity));
+            var stats = await extractWikidataStats(entity);
+            setWikidataStats(stats);
+            var tl = await extractWikidataTimeline(entity);
+            setWikidataTimeline(tl);
           }
         }).catch(function() {});
       }
@@ -2250,9 +2367,14 @@ export default function LoathrMediaGenerator() {
     if (previewTimer.current) clearTimeout(previewTimer.current);
     setSmartAngles([]); setWebResults([]); setPreviewImages([]); setWikidataStats(null); setWikidataTimeline([]); setPersonNetwork({});
     previewPage.current = 1; // reset page counter for new topic
-    // Clear all locked images from previous topic so they don't carry over
-    setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({});
+    // Clear person/location locks from previous topic
+    setLockedPersonImages({}); setLockedLocationImages({});
     lockedRef.current = {};
+    // Clear mood board locks but preserve uploaded image cover lock
+    setPreviewLocked(function(prev) {
+      if (prev.cover && prev.cover.source === "Upload") return { cover: prev.cover };
+      return {};
+    });
     setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({});
     if (!query || query.length < 2) return;
     // Smart angles + person/location detection after 800ms
@@ -2477,11 +2599,11 @@ export default function LoathrMediaGenerator() {
             else { var locSlot = 2 + li; if (!imgMap[locSlot]) imgMap[locSlot] = locImg.img; }
           });
 
-          // 0c. Place preview-locked images (user picked from topic preview)
+          // 0c. Place preview-locked images (user picked from topic preview — highest priority)
           Object.keys(previewLocked).forEach(function(role) {
             var pvImg = previewLocked[role];
             if (!pvImg) return;
-            if (role === "cover" && !imgMap[0]) imgMap[0] = pvImg;
+            if (role === "cover") imgMap[0] = pvImg; // always override — user explicitly chose this
             else if (role === "closer") { var cIdx = slides.length ? slides.length - 1 : 9; if (!imgMap[cIdx]) imgMap[cIdx] = pvImg; }
             else if (role === "evidence") { var eIdx = slides.findIndex(function(s) { return s && (s.statFormat || s.stat); }); if (eIdx > 0 && !imgMap[eIdx]) imgMap[eIdx] = pvImg; }
             else if (role === "origin" && !imgMap[1]) imgMap[1] = pvImg;
@@ -2603,7 +2725,7 @@ export default function LoathrMediaGenerator() {
       }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
-  }, [topic, category, apiKeys, editionPicks, modifiers, lockedPersonImages, genCount]);
+  }, [topic, category, apiKeys, editionPicks, modifiers, lockedPersonImages, genCount, previewLocked, lockedLocationImages]);
 
   var generateRec = _cb(async function() {
     if (!topic.trim() || !category) return;
@@ -2874,24 +2996,44 @@ export default function LoathrMediaGenerator() {
             })}
           </div>}
 
-          {/* Wikidata stats */}
-          {wikidataStats && Object.keys(wikidataStats).filter(function(k) { return !k.endsWith("_qid"); }).length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "33", background: "#f8f8f8", padding: 6 }}>
-            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 3 }}>VERIFIED DATA</div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {Object.keys(wikidataStats).filter(function(k) { return !k.endsWith("_qid"); }).map(function(key) { return (
-                <div key={key} style={{ textAlign: "center" }}>
-                  <div style={{ ...CP, fontSize: 10, color: uiAccent, fontWeight: 700 }}>{wikidataStats[key]}</div>
-                  <div style={{ ...CP, fontSize: 5, color: "#999" }}>{key}</div>
+          {/* Wikidata verified data */}
+          {wikidataStats && Object.keys(wikidataStats).length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "33", background: "#f8f8f8", padding: 8 }}>
+            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 2 }}>VERIFIED DATA</div>
+            {/* Numbers row — big stats */}
+            {(function() {
+              var numKeys = Object.keys(wikidataStats).filter(function(k) { return /^\d|^[$€£]/.test(wikidataStats[k]) || /Population|Revenue|Net worth|Box office|Employees|Students|Awards|Nominations|Notable works|Area|Rating/.test(k); });
+              if (numKeys.length === 0) return null;
+              return <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 6, paddingBottom: 6, borderBottom: "0.5px solid #eee" }}>
+                {numKeys.map(function(key) { return (
+                  <div key={key} style={{ textAlign: "center", minWidth: 40 }}>
+                    <div style={{ ...FN, fontSize: 14, color: uiAccent, fontWeight: 700, lineHeight: 1.1 }}>{wikidataStats[key]}</div>
+                    <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 1, textTransform: "uppercase", letterSpacing: "0.05em" }}>{key}</div>
+                  </div>
+                ); })}
+              </div>;
+            })()}
+            {/* Info rows — text data */}
+            {(function() {
+              var textKeys = Object.keys(wikidataStats).filter(function(k) { return !/^\d|^[$€£]/.test(wikidataStats[k]) && !/Population|Revenue|Net worth|Box office|Employees|Students|Awards|Nominations|Notable works|Area|Rating/.test(k); });
+              if (textKeys.length === 0) return null;
+              return <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {textKeys.map(function(key) { return (
+                  <div key={key} style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
+                    <div style={{ ...CP, fontSize: 6, color: "#999", minWidth: 55, textAlign: "right", flexShrink: 0 }}>{key}</div>
+                    <div style={{ ...CP, fontSize: 7, color: "#333" }}>{wikidataStats[key]}</div>
+                  </div>
+                ); })}
+              </div>;
+            })()}
+            {/* Timeline */}
+            {wikidataTimeline.length > 0 && <div style={{ marginTop: 6, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
+              <div style={{ ...CP, fontSize: 5, color: uiAccent, letterSpacing: "0.1em", marginBottom: 3 }}>TIMELINE</div>
+              {wikidataTimeline.map(function(t, i) { return (
+                <div key={i} style={{ display: "flex", gap: 6, alignItems: "baseline", marginBottom: 2 }}>
+                  <div style={{ ...CP, fontSize: 8, color: uiAccent, fontWeight: 700, minWidth: 36, textAlign: "right", flexShrink: 0 }}>{t.date || t.year}</div>
+                  <div style={{ ...CP, fontSize: 7, color: "#333" }}>{t.event}{t.detail ? " — " + t.detail : ""}</div>
                 </div>
               ); })}
-            </div>
-            {wikidataTimeline.length > 0 && <div style={{ marginTop: 4, borderTop: "0.5px solid #ddd", paddingTop: 3 }}>
-              <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>TIMELINE</div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {wikidataTimeline.map(function(t, i) { return (
-                  <div key={i} style={{ ...CP, fontSize: 6, color: "#666" }}><span style={{ color: uiAccent, fontWeight: 700 }}>{t.year}</span> {t.event}</div>
-                ); })}
-              </div>
             </div>}
           </div>}
 
