@@ -573,7 +573,7 @@ function S1Cover({ slide, category, images, edition }) {
               <div style={{ ...CP, fontSize: 9, color: "#ffffffcc", letterSpacing: "0.1em", fontWeight: 700 }}>{CAT_LABELS[category]}</div>
               <div style={{ width: 8, height: 8, background: p.accent2 || p.accent }} />
             </div>
-            {slide.subtitle && <div style={{ ...HD, fontSize: 10.5, marginTop: 8, color: "#ffffffcc", textTransform: "uppercase", letterSpacing: "0.05em" }}>{slide.subtitle}</div>}
+            {slide.subtitle && <div style={{ ...HD, fontSize: 8.5, marginTop: 8, color: "#ffffffcc", textTransform: "uppercase", letterSpacing: "0.05em" }}>{slide.subtitle}</div>}
           </div>
         </div>
       </ImgBg>
