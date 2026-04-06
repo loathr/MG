@@ -2999,9 +2999,9 @@ export default function LoathrMediaGenerator() {
       <style>{"@font-face{font-family:'Foun';src:url('/Fonts/Foun/OpenType-PS/Foun.otf') format('opentype'),url('/Fonts/Foun/OpenType-TT/Foun.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Wenssep';src:url('/Fonts/Wenssep/Wenssep.otf') format('opentype'),url('/Fonts/Wenssep/Wenssep.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Regular.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}@keyframes walk{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}@keyframes hammer{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-45deg)}}@keyframes sweep{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}@keyframes paint{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}@keyframes carry{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-3px) rotate(-2deg)}75%{transform:translateY(-3px) rotate(2deg)}}@keyframes figfade{0%{opacity:1}45%{opacity:1}50%{opacity:0}95%{opacity:0}100%{opacity:1}}"}</style>
 
       <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.4em", color: "var(--color-text-primary)", fontWeight: 700 }}>L O A T H R</div>
-        <div style={{ width: 40, height: 1, background: "var(--color-border-tertiary)", margin: "8px auto" }} />
-        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", color: "var(--color-text-tertiary)", textTransform: "uppercase" }}>Media Maker</div>
+        <div style={{ ...CP, fontSize: 14, letterSpacing: "0.4em", color: "var(--color-text-primary)", fontWeight: 700, lineHeight: 1.1 }}>L O A T H R</div>
+        <div style={{ width: 40, height: 1, background: "var(--color-border-tertiary)", margin: "9px auto" }} />
+        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", color: "var(--color-text-tertiary)", textTransform: "uppercase", marginTop: 2 }}>Media Maker</div>
       </div>
 
       <Settings apiKeys={apiKeys} setApiKeys={setApiKeys} show={showSettings} setShow={setShowSettings} apiStatus={apiStatus} onTest={handleTest} />
@@ -3832,7 +3832,8 @@ export default function LoathrMediaGenerator() {
       </div>}
 
       <div style={{ textAlign: "center", padding: "18px 0 12px", borderTop: "0.5px solid var(--color-border-tertiary)", marginTop: 16 }}>
-        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.3em", color: "var(--color-text-tertiary)", opacity: 0.4 }}>L O A T H R  MEDIA MAKER</div>
+        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.3em", color: "var(--color-text-tertiary)", opacity: 0.4 }}>L O A T H R</div>
+        <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 2 }}>MEDIA MAKER</div>
       </div>
     </div>
   );
