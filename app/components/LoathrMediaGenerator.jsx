@@ -1483,6 +1483,24 @@ var searchEuropeana = async function(query) {
   } catch (e) { return []; }
 };
 
+// Wikimedia Commons — for famous people portraits
+var searchWikimedia = async function(personName) {
+  if (!personName || personName.length < 3) return [];
+  try {
+    var r = await fetchWithTimeout("https://en.wikipedia.org/w/api.php?action=query&titles=" + encodeURIComponent(personName) + "&prop=pageimages&format=json&pithumbsize=800&origin=*", 5000);
+    if (!r.ok) return [];
+    var d = await r.json();
+    var pages = d.query && d.query.pages ? d.query.pages : {};
+    var results = [];
+    Object.values(pages).forEach(function(page) {
+      if (page.thumbnail && page.thumbnail.source) {
+        results.push({ url: page.thumbnail.source, thumb: page.thumbnail.source, alt: personName, credit: "Wikipedia", source: "Wikimedia" });
+      }
+    });
+    return results;
+  } catch (e) { return []; }
+};
+
 // Category-to-vintage-API mapping
 var VINTAGE_APIS = {
   film: [searchLibCongress, searchMetMuseum],
@@ -1624,7 +1642,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers) {
   ];
   var forcedStat = statFormats[(editionSeed || 0) % statFormats.length];
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), titleHighlight (the single most impactful word or short phrase from the title to visually emphasize — must be an exact substring of the title), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": " + forcedStat + " Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field suggesting where the text box should go to avoid covering the image focal point. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. Consider: if the topic involves a person, the face is likely centered so use split-corners or side positions. If landscape, bottom positions work. If object, use corner positions. Vary the positions across slides for visual diversity.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + "\n\nDYNAMIC SLIDE COUNT: Decide the optimal number of slides (7-12) based on topic depth.\n- A narrow topic (one event, one person, one moment) → 7-8 slides\n- A standard topic → 9-10 slides\n- A broad topic (history of an era, cultural movement, complex system) → 11-12 slides\nYou MUST include at minimum: Cover, 2 content slides, 1 stat, 1 quote, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...slides...}]}";
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -1940,10 +1958,16 @@ export default function LoathrMediaGenerator() {
 
           // 2. Per-slide contextual search for content slides
           setImgStatus("Matching images to slides...");
-          for (var ps = 1; ps < Math.min(slides.length - 1, 9); ps++) {
+          for (var ps = 1; ps < Math.min(slides.length - 1, 12); ps++) {
             if (imgMap[ps]) continue;
-            var sq = getSlideImageQuery(slides[ps] || {}, catInfo.label, topic);
+            var slideData = slides[ps] || {};
+            var sq = getSlideImageQuery(slideData, catInfo.label, topic);
             try {
+              // Person field — search Wikimedia first for portraits
+              if (slideData.person) {
+                var wikiImgs = await searchWikimedia(slideData.person);
+                if (wikiImgs.length > 0) { imgMap[ps] = wikiImgs[0]; continue; }
+              }
               // Vintage slots use vintage APIs
               if (vintageSlots.indexOf(ps) !== -1) {
                 var vApis = VINTAGE_APIS[category] || [searchMetMuseum];
@@ -1956,7 +1980,7 @@ export default function LoathrMediaGenerator() {
               var k = useSec ? secondaryKey : primaryKey;
               var sr = await fn(sq, k);
               if (sr.length > 0) imgMap[ps] = sr[Math.min(ps, sr.length - 1)];
-              else if (mainImgs.length > ps) imgMap[ps] = mainImgs[ps]; // fallback to main
+              else if (mainImgs.length > ps) imgMap[ps] = mainImgs[ps];
             } catch (pe) {
               // Fallback: use main results
               if (mainImgs.length > ps) imgMap[ps] = mainImgs[ps];
@@ -1964,7 +1988,8 @@ export default function LoathrMediaGenerator() {
           }
 
           // 3. Fill any remaining gaps from main results
-          for (var fill = 0; fill < 10; fill++) {
+          var slideTotal = slides.length || 10;
+          for (var fill = 0; fill < slideTotal; fill++) {
             if (!imgMap[fill] && mainImgs.length > 0) imgMap[fill] = mainImgs[fill % mainImgs.length];
           }
 
