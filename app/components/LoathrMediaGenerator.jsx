@@ -1502,6 +1502,33 @@ var searchWikimedia = async function(personName) {
   } catch (e) { return []; }
 };
 
+// Open Verse — 700M+ CC-licensed images, great for famous people
+var searchOpenVerse = async function(query) {
+  if (!query || query.length < 3) return [];
+  try {
+    var r = await fetchWithTimeout("https://api.openverse.org/v1/images/?q=" + encodeURIComponent(query) + "&page_size=4&license_type=commercial", 5000);
+    if (!r.ok) return [];
+    var d = await r.json();
+    return (d.results || []).slice(0, 3).map(function(img) {
+      return { url: img.url || img.thumbnail, thumb: img.thumbnail || img.url, alt: img.title || query, credit: img.creator || "Open Verse", source: "OpenVerse" };
+    });
+  } catch (e) { return []; }
+};
+
+// Search multiple sources for a person — returns best options
+var searchPersonImages = async function(personName) {
+  if (!personName || personName.length < 2) return [];
+  var results = [];
+  // Wikipedia first
+  try { var w = await searchWikimedia(personName); results = results.concat(w); } catch (e) {}
+  // Open Verse
+  try { var ov = await searchOpenVerse(personName + " portrait"); results = results.concat(ov); } catch (e) {}
+  // Deduplicate by URL
+  var seen = {};
+  results = results.filter(function(r) { if (!r.url || seen[r.url]) return false; seen[r.url] = true; return true; });
+  return results.slice(0, 4);
+};
+
 // Category-to-vintage-API mapping
 var VINTAGE_APIS = {
   film: [searchLibCongress, searchMetMuseum],
@@ -1720,9 +1747,9 @@ export default function LoathrMediaGenerator() {
   var sas = _s([]), smartAngles = sas[0], setSmartAngles = sas[1];
   var ccr = _s([]), crossCatRelated = ccr[0], setCrossCatRelated = ccr[1];
   var shp = _s(false), showPastGen = shp[0], setShowPastGen = shp[1];
-  var pim = _s([]), personImages = pim[0], setPersonImages = pim[1];
-  var lpi = _s(null), lockedPersonImage = lpi[0], setLockedPersonImage = lpi[1];
-  var pdn = _s(null), personDetected = pdn[0], setPersonDetected = pdn[1];
+  var pim = _s({}), personImages = pim[0], setPersonImages = pim[1]; // { "Name": [imgs] }
+  var lpi = _s({}), lockedPersonImages = lpi[0], setLockedPersonImages = lpi[1]; // { "Name": img }
+  var pdn = _s([]), personsDetected = pdn[0], setPersonsDetected = pdn[1]; // ["Name1", "Name2"]
   var clr = _s([]), claudeRelated = clr[0], setClaudeRelated = clr[1];
   var fvs = _s([]), favorites = fvs[0], setFavorites = fvs[1];
   var tch = _s([]), topicChain = tch[0], setTopicChain = tch[1];
@@ -1834,16 +1861,27 @@ export default function LoathrMediaGenerator() {
     setIsSearching(true);
     try {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 400, messages: [{ role: "user",
-          content: "Suggest 3 sharp, specific Instagram carousel angles for \"" + query + "\" in " + (cat ? cat.label : category) + ". Make them provocative, surprising, or niche. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why this angle works\"}]" }] }) });
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 500, messages: [{ role: "user",
+          content: "For the topic \"" + query + "\" in " + (cat ? cat.label : category) + ":\n1. Suggest 3 sharp carousel angles\n2. If any famous people are central to this topic, list their full names\n\nRespond ONLY with JSON:\n{\"angles\":[{\"topic\":\"title\",\"hook\":\"why\"}],\"persons\":[\"Full Name 1\",\"Full Name 2\"] or empty array if no famous people}" }] }) });
       var d = await r.json();
       if (d.error) return;
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
       var cleaned = text.replace(/```json|```/g, "").trim();
-      var js = cleaned.indexOf("["); var je = cleaned.lastIndexOf("]");
+      var js = cleaned.indexOf("{"); var je = cleaned.lastIndexOf("}");
       if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
       var parsed = JSON.parse(cleaned);
-      if (Array.isArray(parsed)) setSmartAngles(parsed.slice(0, 3));
+      if (parsed.angles && Array.isArray(parsed.angles)) setSmartAngles(parsed.angles.slice(0, 3));
+      // Person detection via Claude
+      if (parsed.persons && Array.isArray(parsed.persons) && parsed.persons.length > 0) {
+        setPersonsDetected(parsed.persons.slice(0, 3));
+        // Fetch images for each person in parallel
+        var imgPromises = {};
+        parsed.persons.slice(0, 3).forEach(function(name) {
+          searchPersonImages(name).then(function(imgs) {
+            setPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = imgs; return n; });
+          });
+        });
+      } else { setPersonsDetected([]); setPersonImages({}); }
     } catch (e) { /* silent */ }
     finally { setIsSearching(false); }
   }, [category, cat]);
@@ -1878,39 +1916,11 @@ export default function LoathrMediaGenerator() {
     searchTimer.current = setTimeout(function() { fetchSmartAngles(query); }, 800);
     // Web search after 1500ms
     webTimer.current = setTimeout(function() { fetchWebContext(query); }, 1500);
-    // Person detection after 600ms
-    setTimeout(function() { detectPerson(query); }, 600);
+    // Person detection now handled by Claude in fetchSmartAngles
   }, [fetchSmartAngles, fetchWebContext]);
 
   // Person name detection + image fetch
-  var detectPerson = _cb(async function(query) {
-    if (!query || query.length < 4) { setPersonDetected(null); setPersonImages([]); return; }
-    // Check if input looks like a person name: 2-3 capitalized words
-    var words = query.trim().split(" ");
-    if (words.length < 2 || words.length > 4) { setPersonDetected(null); setPersonImages([]); return; }
-    var allCapped = words.every(function(w) { return w.length > 1 && /^[A-Z]/.test(w); });
-    if (!allCapped) { setPersonDetected(null); setPersonImages([]); return; }
-    setPersonDetected(query.trim());
-    // Fetch 3 images: 1 Wikipedia + 2 stock
-    var imgs = [];
-    try {
-      var wikiImgs = await searchWikimedia(query.trim());
-      if (wikiImgs.length > 0) imgs.push(wikiImgs[0]);
-    } catch (e) {}
-    try {
-      var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
-      var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
-      if (unsplashKey) {
-        var uImgs = await searchUnsplash(query.trim() + " portrait", unsplashKey);
-        if (uImgs.length > 0) imgs.push(uImgs[0]);
-      }
-      if (pexelsKey && imgs.length < 3) {
-        var pImgs = await searchPexels(query.trim() + " portrait", pexelsKey);
-        if (pImgs.length > 0) imgs.push(pImgs[0]);
-      }
-    } catch (e) {}
-    setPersonImages(imgs.slice(0, 3));
-  }, [apiKeys]);
+  // detectPerson now handled by Claude in fetchSmartAngles
 
   // 1. Claude-generated related topics after generation
   var fetchClaudeRelated = _cb(async function(genTopic, genCategory, slides) {
@@ -1978,7 +1988,7 @@ export default function LoathrMediaGenerator() {
     setEditionData(edition);
     try {
       if (controller.signal.aborted) throw new Error("Generation cancelled");
-      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers, !!lockedPersonImage);
+      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers, Object.keys(lockedPersonImages).length > 0);
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] }) });
@@ -2051,15 +2061,29 @@ export default function LoathrMediaGenerator() {
           var slides = results[0] && results[0].slides ? results[0].slides : [];
           var vintageSlots = [1, 2, 7];
 
-          // 0. Place locked person image on Claude's chosen slide
-          if (lockedPersonImage && results[0]) {
+          // 0. Place locked person images — multi-person support
+          var lockedNames = Object.keys(lockedPersonImages);
+          if (lockedNames.length > 0 && results[0]) {
             var piSlide = results[0].personImageSlide;
-            if (typeof piSlide === "number" && piSlide >= 0 && piSlide < 12) {
-              imgMap[piSlide] = lockedPersonImage;
-            } else {
-              // Fallback: place on slide 4 (Human Story)
-              imgMap[4] = lockedPersonImage;
-            }
+            lockedNames.forEach(function(name, ni) {
+              var locked = lockedPersonImages[name];
+              if (!locked || !locked.img) return;
+              if (locked.placement === "cover") {
+                imgMap[0] = locked.img;
+              } else {
+                // Claude picks — find slide with matching person field, or use personImageSlide
+                var matched = false;
+                (results[0].slides || []).forEach(function(s, si) {
+                  if (s && s.person && s.person.toLowerCase().indexOf(name.split(" ")[0].toLowerCase()) !== -1 && !matched) {
+                    imgMap[si] = locked.img; matched = true;
+                  }
+                });
+                if (!matched) {
+                  var fallbackSlot = typeof piSlide === "number" ? piSlide + ni : 4 + ni;
+                  imgMap[Math.min(fallbackSlot, 8)] = locked.img;
+                }
+              }
+            });
           }
 
           // 1. Main topic search for cover + closer
@@ -2291,28 +2315,38 @@ export default function LoathrMediaGenerator() {
             ); })}
           </div>}
 
-          {/* Person image picker */}
-          {personDetected && personImages.length > 0 && !lockedPersonImage && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent, background: "var(--color-background-secondary)", padding: 8 }}>
-            <div style={{ ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.1em", marginBottom: 6 }}>{"\uD83D\uDC64"} {personDetected.toUpperCase()} — CHOOSE AN IMAGE:</div>
-            <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6 }}>
-              {personImages.map(function(img, i) { return (
-                <div key={i} onClick={function() { setLockedPersonImage(img); }}
-                  style={{ width: 70, height: 70, overflow: "hidden", cursor: "pointer", border: "2px solid transparent", borderRadius: 4 }}>
-                  <img src={img.thumb || img.url} alt={img.alt || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={function(e) { e.target.style.display = "none"; }} />
-                  <div style={{ ...CP, fontSize: 5, color: "var(--color-text-tertiary)", textAlign: "center", marginTop: 2 }}>{img.source}</div>
-                </div>
-              ); })}
-            </div>
-            <button onClick={function() { setPersonDetected(null); setPersonImages([]); }}
-              style={{ width: "100%", background: "none", border: "0.5px solid var(--color-border-tertiary)", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)", padding: "3px 0" }}>Skip — use auto images</button>
-          </div>}
-
-          {/* Locked person image indicator */}
-          {lockedPersonImage && <div style={{ marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-            <img src={lockedPersonImage.thumb || lockedPersonImage.url} alt="" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} />
-            <span style={{ ...CP, fontSize: 7, color: uiAccent }}>Portrait locked — Claude will place it</span>
-            <button onClick={function() { setLockedPersonImage(null); }}
-              style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>{"\u2715"}</button>
+          {/* Multi-person image picker */}
+          {personsDetected.length > 0 && Object.keys(personImages).length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent, background: "var(--color-background-secondary)", padding: 8 }}>
+            {personsDetected.map(function(name) {
+              var imgs = personImages[name] || [];
+              var locked = lockedPersonImages[name];
+              if (imgs.length === 0 && !locked) return null;
+              return <div key={name} style={{ marginBottom: 6 }}>
+                <div style={{ ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>{"\uD83D\uDC64"} {name.toUpperCase()}{locked ? " \u2713" : ""}</div>
+                {!locked && <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+                  {imgs.map(function(img, i) { return (
+                    <div key={i} style={{ textAlign: "center" }}>
+                      <div onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = { img: img, placement: "claude" }; return n; }); }}
+                        style={{ width: 56, height: 56, overflow: "hidden", cursor: "pointer", border: "2px solid transparent", borderRadius: 4 }}>
+                        <img src={img.thumb || img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={function(e) { e.target.style.display = "none"; }} />
+                      </div>
+                      <div style={{ ...CP, fontSize: 4, color: "var(--color-text-tertiary)" }}>{img.source}</div>
+                    </div>
+                  ); })}
+                </div>}
+                {locked && <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <img src={locked.img.thumb || locked.img.url} alt="" style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover" }} />
+                  <button onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = { img: locked.img, placement: "cover" }; return n; }); }}
+                    style={{ padding: "2px 5px", border: "0.5px solid var(--color-border-tertiary)", background: locked.placement === "cover" ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: locked.placement === "cover" ? uiAccent : "var(--color-text-tertiary)" }}>Cover</button>
+                  <button onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = { img: locked.img, placement: "claude" }; return n; }); }}
+                    style={{ padding: "2px 5px", border: "0.5px solid var(--color-border-tertiary)", background: locked.placement === "claude" ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: locked.placement === "claude" ? uiAccent : "var(--color-text-tertiary)" }}>Claude picks</button>
+                  <button onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); delete n[name]; return n; }); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>{"\u2715"}</button>
+                </div>}
+              </div>;
+            })}
+            <button onClick={function() { setPersonsDetected([]); setPersonImages({}); setLockedPersonImages({}); }}
+              style={{ width: "100%", background: "none", border: "0.5px solid var(--color-border-tertiary)", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)", padding: "3px 0" }}>Skip all</button>
           </div>}
 
           {/* Smart angles from Claude */}
