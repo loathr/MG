@@ -2194,12 +2194,20 @@ export default function LoathrMediaGenerator() {
                 <div style={{ fontSize: 9, color: "var(--color-text-tertiary)", marginTop: 2 }}>{r.hook}</div></div>
               </button>); })}
           </div>}
-          {trending.length > 0 && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", marginBottom: 10 }}>
-            {trending.map(function(t, i) { return (
-              <button key={i} onClick={function() { setTopic(t.topic); setRefinedAngles([]); }}
-                style={{ padding: "6px 12px", border: "1px solid " + uiAccent + "44", background: uiAccent + "08", cursor: "pointer", ...CP, fontSize: 10, color: uiAccent }} title={t.hook}>
-                <Flame size={9} style={{ display: "inline", marginRight: 4, verticalAlign: "middle" }} />{t.topic}
-              </button>); })}
+          {trending.length > 0 && <div style={{ marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
+              <button onClick={function() { setTrending([]); }}
+                style={{ padding: "4px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 8, color: "var(--color-text-tertiary)" }}>
+                {"\u2190"} Back to topics
+              </button>
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+              {trending.map(function(t, i) { return (
+                <button key={i} onClick={function() { setTopic(t.topic); setRefinedAngles([]); }}
+                  style={{ padding: "6px 12px", border: "1px solid " + uiAccent + "44", background: uiAccent + "08", cursor: "pointer", ...CP, fontSize: 10, color: uiAccent }} title={t.hook}>
+                  <Flame size={9} style={{ display: "inline", marginRight: 4, verticalAlign: "middle" }} />{t.topic}
+                </button>); })}
+            </div>
           </div>}
           {trending.length === 0 && SUBCATEGORIES[category] && <div>
             <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center", marginBottom: 8 }}>
