@@ -140,6 +140,34 @@ function getRelatedTopics(slides, category) {
   return related.slice(0, 3);
 }
 
+function getCrossCategoryRelated(slides, currentCategory) {
+  if (!slides) return [];
+  // Extract keywords from slide headings and body
+  var keywords = [];
+  slides.slice(1, 6).forEach(function(s) {
+    if (!s) return;
+    var h = (s.heading || "").toLowerCase().split(" ");
+    h.forEach(function(w) { if (w.length > 4 && keywords.indexOf(w) === -1) keywords.push(w); });
+  });
+  // Search other categories with these keywords
+  var results = [];
+  var seen = {};
+  keywords.forEach(function(kw) {
+    Object.keys(SUBCATEGORIES).forEach(function(catId) {
+      if (catId === currentCategory) return;
+      Object.values(SUBCATEGORIES[catId]).forEach(function(topics) {
+        topics.forEach(function(t) {
+          if (t.toLowerCase().indexOf(kw) !== -1 && !seen[t]) {
+            seen[t] = true;
+            results.push({ topic: t, category: catId });
+          }
+        });
+      });
+    });
+  });
+  return results.slice(0, 4);
+}
+
 // --- EDITION UTILITIES ---
 function pickPersona(seed) { return PERSONAS[Math.abs(seed) % PERSONAS.length]; }
 function pickFreshness(seed) { return FRESHNESS_SEEDS[Math.abs(seed) % FRESHNESS_SEEDS.length]; }
@@ -1663,6 +1691,7 @@ export default function LoathrMediaGenerator() {
   var rcs = _s([]), recentTopics = rcs[0], setRecentTopics = rcs[1];
   var ths = _s([]), topicHistory = ths[0], setTopicHistory = ths[1];
   var sas = _s([]), smartAngles = sas[0], setSmartAngles = sas[1];
+  var ccr = _s([]), crossCatRelated = ccr[0], setCrossCatRelated = ccr[1];
   var wrs = _s([]), webResults = wrs[0], setWebResults = wrs[1];
   var sld = _s(false), isSearching = sld[0], setIsSearching = sld[1];
   var slideRef = _ref(null);
@@ -1868,7 +1897,10 @@ export default function LoathrMediaGenerator() {
         if (hist.indexOf(topic) === -1) { hist.push(topic); localStorage.setItem("loathr_history", JSON.stringify(hist)); setTopicHistory(hist); }
       } catch (e) {}
       // Generate related topics
-      if (results[0] && results[0].slides) setRelatedTopics(getRelatedTopics(results[0].slides, category));
+      if (results[0] && results[0].slides) {
+        setRelatedTopics(getRelatedTopics(results[0].slides, category));
+        setCrossCatRelated(getCrossCategoryRelated(results[0].slides, category));
+      }
       setSuggestions([]);
       var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
       var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
@@ -2334,10 +2366,10 @@ export default function LoathrMediaGenerator() {
               style={{ padding: "3px 8px", border: "0.5px solid " + uiAccent + "44", background: uiAccent + "08", cursor: "pointer", ...CP, fontSize: 8, color: uiAccent }}>{t}</button>
           ); })}
         </div>
-        {searchAllCategories(topic, category).length > 0 && <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
-          <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Explore in:</span>
-          {searchAllCategories(topic, category).map(function(x, i) { return (
-            <button key={i} onClick={function() { setCategory(x.category); setTopic(x.topic); setRelatedTopics([]); setOptions(null); }}
+        {crossCatRelated.length > 0 && <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
+          <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Related in:</span>
+          {crossCatRelated.map(function(x, i) { return (
+            <button key={i} onClick={function() { setCategory(x.category); setTopic(x.topic); setRelatedTopics([]); setCrossCatRelated([]); setOptions(null); }}
               style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-secondary)" }}>{x.topic} <span style={{ fontSize: 6, color: uiAccent }}>({x.category})</span></button>
           ); })}
         </div>}
