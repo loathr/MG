@@ -629,6 +629,89 @@ function MicroCite({ sources, accent }) {
   return <div style={{ ...CP, fontSize: 7, color: accent ? accent + "88" : "#ffffff77", marginTop: 6, textAlign: "right", fontStyle: "italic" }}>{sources}</div>;
 }
 
+// Split text into positioned boxes that avoid the image focal point
+function SplitTextBox({ slide, position, accent, accent2, category, seed, styleBody }) {
+  var pos = position || "bottom-left";
+  var useBubble = BUBBLE_CATS[category];
+  var useSticky = STICKY_CATS[category];
+  var useFormal = FORMAL_CATS[category];
+
+  function wrapFrame(content, s) {
+    if (useBubble) return <BubbleBox accent={accent} accent2={accent2} seed={s}>{content}</BubbleBox>;
+    if (useSticky) return <StickyNote accent={accent} accent2={accent2} seed={s}>{content}</StickyNote>;
+    if (useFormal) return <FormalFrame accent={accent} accent2={accent2} seed={s}>{content}</FormalFrame>;
+    return <FormalFrame accent={accent} accent2={accent2} seed={s}>{content}</FormalFrame>;
+  }
+
+  var headingEl = <div style={{ ...FN, fontSize: 12, color: useSticky ? "inherit" : "#ffffff", textTransform: "uppercase", letterSpacing: "0.03em" }}>{slide.heading || ""}</div>;
+  var bodyEl = <div style={{ ...HD, fontSize: 8.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45 }}>{styleBody ? styleBody(slide.body || "", accent, accent2) : (slide.body || "")}</div>;
+  var highlightEl = slide.highlight ? <div style={{ marginTop: 4 }}><span style={{ ...WS, fontSize: 5.3, fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "2px 6px" }}>{slide.highlight}</span></div> : null;
+  var citeEl = <MicroCite sources={slide.sources} accent={accent} />;
+
+  // Split-corners: heading top-left, body bottom-right
+  if (pos === "split-corners") {
+    return <>
+      <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: "50%", zIndex: 3 }}>
+        {wrapFrame(<div>{headingEl}{citeEl}</div>, seed)}
+      </div>
+      <div style={{ position: "absolute", bottom: M_BOT, left: "35%", right: M_SIDE, zIndex: 3 }}>
+        {wrapFrame(<div>{bodyEl}{highlightEl}</div>, seed + 1)}
+      </div>
+    </>;
+  }
+
+  // Side-left: heading and body stacked on left, right stays open
+  if (pos === "side-left") {
+    return <div style={{ position: "absolute", top: M_TOP + 10, bottom: M_BOT, left: M_SIDE, width: "42%", zIndex: 3, display: "flex", flexDirection: "column", gap: 6 }}>
+      {wrapFrame(<div>{headingEl}</div>, seed)}
+      {wrapFrame(<div>{bodyEl}{highlightEl}{citeEl}</div>, seed + 1)}
+    </div>;
+  }
+
+  // Side-right: heading and body stacked on right, left stays open
+  if (pos === "side-right") {
+    return <div style={{ position: "absolute", top: M_TOP + 10, bottom: M_BOT, right: M_SIDE, width: "42%", zIndex: 3, display: "flex", flexDirection: "column", gap: 6 }}>
+      {wrapFrame(<div>{headingEl}</div>, seed)}
+      {wrapFrame(<div>{bodyEl}{highlightEl}{citeEl}</div>, seed + 1)}
+    </div>;
+  }
+
+  // Top-left: everything anchored top-left
+  if (pos === "top-left") {
+    return <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: "45%", zIndex: 3 }}>
+      {wrapFrame(<div>{headingEl}<div style={{ marginTop: 6 }}>{bodyEl}</div>{highlightEl}{citeEl}</div>, seed)}
+    </div>;
+  }
+
+  // Top-right: everything anchored top-right
+  if (pos === "top-right") {
+    return <div style={{ position: "absolute", top: M_TOP, left: "45%", right: M_SIDE, zIndex: 3 }}>
+      {wrapFrame(<div>{headingEl}<div style={{ marginTop: 6 }}>{bodyEl}</div>{highlightEl}{citeEl}</div>, seed)}
+    </div>;
+  }
+
+  // L-shape: heading top, body bottom-left, highlight bottom-right
+  if (pos === "l-shape") {
+    return <>
+      <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: "50%", zIndex: 3 }}>
+        {wrapFrame(<div>{headingEl}</div>, seed)}
+      </div>
+      <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: "40%", zIndex: 3 }}>
+        {wrapFrame(<div>{bodyEl}{citeEl}</div>, seed + 1)}
+      </div>
+      {highlightEl && <div style={{ position: "absolute", bottom: M_BOT, right: M_SIDE, left: "65%", zIndex: 3 }}>
+        {wrapFrame(<div>{highlightEl}</div>, seed + 2)}
+      </div>}
+    </>;
+  }
+
+  // Default: bottom-left or bottom-right (single box, existing behavior)
+  var fpos = pos === "bottom-right" ? { bottom: M_BOT, left: "35%", right: M_SIDE } : { bottom: M_BOT, left: M_SIDE, right: "40%" };
+  return <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fpos)}>
+    {wrapFrame(<div>{headingEl}<div style={{ marginTop: 6 }}>{bodyEl}</div>{highlightEl}{citeEl}</div>, seed)}
+  </div>;
+}
+
 function getImg(images, idx) {
   if (!images) return null;
   var keys = Object.keys(images);
@@ -687,6 +770,14 @@ function S2Arena({ slide, index, category, images }) {
     : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</StickyNote>
     : useFormal ? <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</FormalFrame>
     : textContent;
+  var hasSplitPos = slide.textPosition && ["split-corners", "side-left", "side-right", "top-left", "top-right", "l-shape"].indexOf(slide.textPosition) !== -1;
+  if (hasSplitPos) {
+    return (
+      <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0}>
+        <SplitTextBox slide={slide} position={slide.textPosition} accent={p.accent} accent2={p.accent2} category={category} seed={index} styleBody={styleBody} />
+      </ImgBg>
+    );
+  }
   var contentSeed = (slide.body || "").length + (slide.heading || "").length;
   var fpos = getFramePosition(contentSeed, index);
   return (
@@ -726,6 +817,14 @@ function S3RayGun({ slide, index, category, images }) {
       : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</StickyNote>
       : useFormal ? <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</FormalFrame>
       : flippedText;
+    var hasSplitFlip = slide.textPosition && ["split-corners", "side-left", "side-right", "top-left", "top-right", "l-shape"].indexOf(slide.textPosition) !== -1;
+    if (hasSplitFlip) {
+      return (
+        <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0}>
+          <SplitTextBox slide={slide} position={slide.textPosition} accent={p.accent} accent2={p.accent2} category={category} seed={index + 1} styleBody={styleBody} />
+        </ImgBg>
+      );
+    }
     var fposFlip = getFramePosition((slide.body || "").length, index);
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0}>
@@ -750,6 +849,14 @@ function S3RayGun({ slide, index, category, images }) {
     : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</StickyNote>
     : useFormal ? <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</FormalFrame>
     : normalText;
+  var hasSplitNorm = slide.textPosition && ["split-corners", "side-left", "side-right", "top-left", "top-right", "l-shape"].indexOf(slide.textPosition) !== -1;
+  if (hasSplitNorm) {
+    return (
+      <ImgBg url={url} pal={p} category={category} slideIndex={typeof index !== "undefined" ? index : 0}>
+        <SplitTextBox slide={slide} position={slide.textPosition} accent={p.accent} accent2={p.accent2} category={category} seed={index} styleBody={styleBody} />
+      </ImgBg>
+    );
+  }
   var fposNorm = getFramePosition((slide.heading || "").length, index);
   if (styled) {
     return (
@@ -1457,7 +1564,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers) {
   ];
   var forcedStat = statFormats[(editionSeed || 0) % statFormats.length];
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), titleHighlight (the single most impactful word or short phrase from the title to visually emphasize — must be an exact substring of the title), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": " + forcedStat + " Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), titleHighlight (the single most impactful word or short phrase from the title to visually emphasize — must be an exact substring of the title), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": " + forcedStat + " Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field suggesting where the text box should go to avoid covering the image focal point. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. Consider: if the topic involves a person, the face is likely centered so use split-corners or side positions. If landscape, bottom positions work. If object, use corner positions. Vary the positions across slides for visual diversity.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
 }
 
 function buildRecPrompt(catLabel, topic) {
