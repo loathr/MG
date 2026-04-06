@@ -2049,7 +2049,7 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
 };
 
 // --- DIFFERENTIATED PROMPTS ---
-function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPersonImage, secondaryCatLabel, tertiaryCatLabel) {
+function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPersonImage, secondaryCatLabel, tertiaryCatLabel, secCount, terCount) {
   var p = picks || { persona: -1, angle: -1, style: -1, tone: "editorial" };
   var persona = p.persona >= 0 && PERSONAS[p.persona] ? PERSONAS[p.persona] : pickPersona(editionSeed || 0);
   var freshSeed = p.angle >= 0 && FRESHNESS_SEEDS[p.angle] ? FRESHNESS_SEEDS[p.angle] : pickFreshness(editionSeed || 0);
@@ -2103,13 +2103,15 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPe
   };
 
   var crossCatInstr = "";
+  var secN = secCount || 2;
+  var terN = terCount || 1;
   if (secondaryCatLabel) {
     var secDir = LENS_DIRECTIONS[secondaryCatLabel] || "Explore this topic from the perspective of " + secondaryCatLabel + ".";
-    crossCatInstr += "\n\nCROSS-CATEGORY LENS — SECONDARY: \"" + secondaryCatLabel + "\" (2-3 slides)\n" + secDir + "\nOn these slides, add \"categoryLens\": \"" + secondaryCatLabel + "\". Best roles for this lens: THE RIPPLE EFFECT (unexpected consequence in " + secondaryCatLabel + "), THE EVIDENCE (stats from the " + secondaryCatLabel + " world), or THE HOT TAKE (provocative " + secondaryCatLabel + " opinion). The content must be SPECIFIC — name real brands, real events, real numbers from the " + secondaryCatLabel + " world. Not vague connections.";
+    crossCatInstr += "\n\nCROSS-CATEGORY LENS — SECONDARY: \"" + secondaryCatLabel + "\" (EXACTLY " + secN + " slide" + (secN > 1 ? "s" : "") + ")\n" + secDir + "\nOn these slides, add \"categoryLens\": \"" + secondaryCatLabel + "\". Best roles for this lens: THE RIPPLE EFFECT, THE EVIDENCE, or THE HOT TAKE. The content must be SPECIFIC — name real brands, real events, real numbers from the " + secondaryCatLabel + " world.";
   }
   if (tertiaryCatLabel) {
     var terDir = LENS_DIRECTIONS[tertiaryCatLabel] || "Explore this topic from the perspective of " + tertiaryCatLabel + ".";
-    crossCatInstr += "\n\nCROSS-CATEGORY LENS — TERTIARY: \"" + tertiaryCatLabel + "\" (1-2 slides)\n" + terDir + "\nOn these slides, add \"categoryLens\": \"" + tertiaryCatLabel + "\". Best roles: THE DEEP CUT (niche insider knowledge from " + tertiaryCatLabel + ") or THE COUNTER (the " + tertiaryCatLabel + " world's opposing view). Must be SPECIFIC and surprising — the reader should think \"I never connected these two worlds.\"";
+    crossCatInstr += "\n\nCROSS-CATEGORY LENS — TERTIARY: \"" + tertiaryCatLabel + "\" (EXACTLY " + terN + " slide" + (terN > 1 ? "s" : "") + ")\n" + terDir + "\nOn these slides, add \"categoryLens\": \"" + tertiaryCatLabel + "\". Best roles: THE DEEP CUT or THE COUNTER. Must be SPECIFIC and surprising.";
   }
 
   return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + "\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + toneInstr + customVoiceInstr + modInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
@@ -2159,7 +2161,9 @@ export default function LoathrMediaGenerator() {
   var _s = useState, _cb = useCallback, _ef = useEffect, _ref = useRef;
   var cs = _s(null), category = cs[0], setCategory = cs[1];
   var sc2 = _s(null), secondaryCategory = sc2[0], setSecondaryCategory = sc2[1];
+  var scc = _s(2), secondaryCount = scc[0], setSecondaryCount = scc[1];
   var sc3 = _s(null), tertiaryCategory = sc3[0], setTertiaryCategory = sc3[1];
+  var tcc = _s(1), tertiaryCount = tcc[0], setTertiaryCount = tcc[1];
   var ts = _s(""), topic = ts[0], setTopic = ts[1];
   var os = _s(null), options = os[0], setOptions = os[1];
   var ss = _s(0), selectedOption = ss[0], setSelectedOption = ss[1];
@@ -2582,7 +2586,7 @@ export default function LoathrMediaGenerator() {
       if (controller.signal.aborted) throw new Error("Generation cancelled");
       var secInfo = secondaryCategory ? CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) : null;
       var terInfo = tertiaryCategory ? CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) : null;
-      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers, Object.keys(lockedRef.current || {}).length > 0, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null);
+      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers, Object.keys(lockedRef.current || {}).length > 0, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null, secondaryCount, tertiaryCount);
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] }) });
@@ -2825,7 +2829,7 @@ export default function LoathrMediaGenerator() {
       }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
-  }, [topic, category, secondaryCategory, tertiaryCategory, apiKeys, editionPicks, modifiers, lockedPersonImages, genCount, previewLocked, lockedLocationImages]);
+  }, [topic, category, secondaryCategory, secondaryCount, tertiaryCategory, tertiaryCount, apiKeys, editionPicks, modifiers, lockedPersonImages, genCount, previewLocked, lockedLocationImages]);
 
   // --- Custom Story generator ---
   var generateCustomStory = _cb(async function() {
@@ -3017,27 +3021,42 @@ export default function LoathrMediaGenerator() {
         })}
       </div>
 
-      {/* Cross-category lens pickers */}
-      {category && <div style={{ display: "flex", gap: 8, marginBottom: 12, justifyContent: "center", flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      {/* Cross-category lens pickers with slide count */}
+      {category && <div style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 4, justifyContent: "center", flexWrap: "wrap", alignItems: "center", marginBottom: secondaryCategory ? 6 : 0 }}>
           <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.05em" }}>+LENS</div>
           {CATEGORIES.filter(function(c) { return c.id !== category && c.id !== tertiaryCategory; }).map(function(c) {
             var p = PALETTES[c.id]; var sel = secondaryCategory === c.id;
-            return <button key={c.id} onClick={function() { setSecondaryCategory(sel ? null : c.id); }}
+            return <button key={c.id} onClick={function() { setSecondaryCategory(sel ? null : c.id); if (sel) { setTertiaryCategory(null); } }}
               style={{ padding: "2px 6px", cursor: "pointer", border: sel ? "1.5px solid " + p.accent : "0.5px solid #ddd", background: sel ? p.accent + "15" : "transparent", ...CP, fontSize: 6, color: sel ? p.accent : "#999", borderRadius: 2 }}>{c.label}</button>;
           })}
         </div>
-        {secondaryCategory && <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.05em" }}>+3RD</div>
-          {CATEGORIES.filter(function(c) { return c.id !== category && c.id !== secondaryCategory; }).map(function(c) {
-            var p = PALETTES[c.id]; var sel = tertiaryCategory === c.id;
-            return <button key={c.id} onClick={function() { setTertiaryCategory(sel ? null : c.id); }}
-              style={{ padding: "2px 6px", cursor: "pointer", border: sel ? "1.5px solid " + p.accent : "0.5px solid #ddd", background: sel ? p.accent + "15" : "transparent", ...CP, fontSize: 6, color: sel ? p.accent : "#999", borderRadius: 2 }}>{c.label}</button>;
-          })}
+        {secondaryCategory && <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap", alignItems: "center", marginBottom: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <div style={{ ...CP, fontSize: 5, color: PALETTES[secondaryCategory] ? PALETTES[secondaryCategory].accent : "#999" }}>{(CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) || {}).label} slides:</div>
+            {[1,2,3,4].map(function(n) { return (
+              <button key={n} onClick={function() { setSecondaryCount(n); }}
+                style={{ width: 18, height: 18, border: "0.5px solid " + (secondaryCount === n ? (PALETTES[secondaryCategory] ? PALETTES[secondaryCategory].accent : uiAccent) : "#ddd"), background: secondaryCount === n ? (PALETTES[secondaryCategory] ? PALETTES[secondaryCategory].accent + "22" : uiAccent + "22") : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: secondaryCount === n ? (PALETTES[secondaryCategory] ? PALETTES[secondaryCategory].accent : uiAccent) : "#999", borderRadius: 2, textAlign: "center", lineHeight: "18px" }}>{n}</button>
+            ); })}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.05em" }}>+3RD</div>
+            {CATEGORIES.filter(function(c) { return c.id !== category && c.id !== secondaryCategory; }).map(function(c) {
+              var p = PALETTES[c.id]; var sel = tertiaryCategory === c.id;
+              return <button key={c.id} onClick={function() { setTertiaryCategory(sel ? null : c.id); }}
+                style={{ padding: "2px 6px", cursor: "pointer", border: sel ? "1.5px solid " + p.accent : "0.5px solid #ddd", background: sel ? p.accent + "15" : "transparent", ...CP, fontSize: 6, color: sel ? p.accent : "#999", borderRadius: 2 }}>{c.label}</button>;
+            })}
+          </div>
         </div>}
-        {(secondaryCategory || tertiaryCategory) && <div style={{ ...CP, fontSize: 5, color: "#999" }}>
-          {secondaryCategory && !tertiaryCategory ? "2-3 slides from " + (CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) || {}).label : ""}
-          {secondaryCategory && tertiaryCategory ? "Mixed: " + (CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) || {}).label + " + " + (CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) || {}).label : ""}
+        {tertiaryCategory && <div style={{ display: "flex", gap: 3, justifyContent: "center", alignItems: "center", marginBottom: 4 }}>
+          <div style={{ ...CP, fontSize: 5, color: PALETTES[tertiaryCategory] ? PALETTES[tertiaryCategory].accent : "#999" }}>{(CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) || {}).label} slides:</div>
+          {[1,2].map(function(n) { return (
+            <button key={n} onClick={function() { setTertiaryCount(n); }}
+              style={{ width: 18, height: 18, border: "0.5px solid " + (tertiaryCount === n ? (PALETTES[tertiaryCategory] ? PALETTES[tertiaryCategory].accent : uiAccent) : "#ddd"), background: tertiaryCount === n ? (PALETTES[tertiaryCategory] ? PALETTES[tertiaryCategory].accent + "22" : uiAccent + "22") : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: tertiaryCount === n ? (PALETTES[tertiaryCategory] ? PALETTES[tertiaryCategory].accent : uiAccent) : "#999", borderRadius: 2, textAlign: "center", lineHeight: "18px" }}>{n}</button>
+          ); })}
+        </div>}
+        {secondaryCategory && <div style={{ ...CP, fontSize: 5, color: "#999", textAlign: "center" }}>
+          {secondaryCount} {(CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) || {}).label}{tertiaryCategory ? " + " + tertiaryCount + " " + (CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) || {}).label : ""} slide{(secondaryCount + (tertiaryCategory ? tertiaryCount : 0)) > 1 ? "s" : ""} from other lenses
         </div>}
       </div>}
 
@@ -3674,7 +3693,7 @@ export default function LoathrMediaGenerator() {
       {cur && <div style={{ marginBottom: 18, textAlign: "center" }}>
         {editionData && <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
           <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.08em" }}>ISSUE {editionData.num} {"\u00b7"} {editionData.label}</div>
-          <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.08em" }}>{editionData.voice} {"\u00b7"} {editionData.angle} {"\u00b7"} {editionData.style}{secondaryCategory ? " \u00b7 +" + (CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) || {}).label : ""}{tertiaryCategory ? " \u00b7 +" + (CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) || {}).label : ""}</div>
+          <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.08em" }}>{editionData.voice} {"\u00b7"} {editionData.angle} {"\u00b7"} {editionData.style}{secondaryCategory ? " \u00b7 +" + secondaryCount + " " + (CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) || {}).label : ""}{tertiaryCategory ? " \u00b7 +" + tertiaryCount + " " + (CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) || {}).label : ""}</div>
         </div>}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", textTransform: "uppercase" }}>Slide {currentSlide + 1} / {total}</div>
