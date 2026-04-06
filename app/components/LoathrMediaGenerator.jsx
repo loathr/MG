@@ -61,18 +61,15 @@ var MODIFIERS = [
 ];
 
 var SEASONAL_TOPICS = {
-  0: ["Awards season predictions", "New year industry forecasts", "Best of last year"],
-  1: ["Fashion week highlights", "Grammy winners decoded", "Valentine's culture critique"],
-  2: ["SXSW discoveries", "March Madness culture", "Spring trends emerging"],
-  3: ["Festival season preview", "Earth Day impact stories", "Awards aftermath"],
-  4: ["Met Gala analysis", "Summer blockbuster previews", "Cannes predictions"],
-  5: ["Pride culture evolution", "Summer festival guide", "Midyear trend check"],
-  6: ["Independence and identity", "Summer reading culture", "Travel food guides"],
-  7: ["Back to school culture", "Late summer releases", "Festival season recap"],
-  8: ["Fall fashion forecast", "Emmy predictions", "New season launches"],
-  9: ["Halloween culture deep dive", "October surprise releases", "Horror genre analysis"],
-  10: ["Holiday gift culture", "Thanksgiving food politics", "Year-end lists begin"],
-  11: ["Year in review", "Holiday music culture", "New year predictions"],
+  film: { 0: "Awards season snubs", 1: "Oscar winner predictions", 2: "SXSW film discoveries", 3: "Spring indie releases", 4: "Cannes lineup preview", 5: "Summer blockbuster predictions", 6: "Midyear box office report", 7: "Late summer sleeper hits", 8: "Fall festival circuit", 9: "Horror season deep dive", 10: "Holiday film releases", 11: "Year in film review" },
+  photo: { 0: "New year visual trends", 1: "Portrait photography trends", 2: "Street photography revival", 3: "Spring light techniques", 4: "Photo award winners", 5: "Summer photography projects", 6: "Travel photography guide", 7: "Back to analog movement", 8: "Fall color photography", 9: "Low light techniques", 10: "Holiday photo culture", 11: "Best photos of the year" },
+  sports: { 0: "Super Bowl culture impact", 1: "NBA All-Star weekend", 2: "March Madness narratives", 3: "Draft season drama", 4: "Playoff culture decoded", 5: "Summer Olympics preview", 6: "Free agency madness", 7: "Preseason predictions", 8: "New season storylines", 9: "Midseason surprises", 10: "Rivalry week culture", 11: "Year in sports moments" },
+  trivia: { 0: "New year discoveries", 1: "Valentine origin myths", 2: "Daylight saving history", 3: "April Fools greatest hoaxes", 4: "Space discoveries this year", 5: "Summer solstice facts", 6: "Independence day myths", 7: "Back to school inventions", 8: "Autumn equinox science", 9: "Halloween origin story", 10: "Thanksgiving myths debunked", 11: "End of year breakthroughs" },
+  art: { 0: "Grammy snubs analysis", 1: "New album releases", 2: "SXSW music discoveries", 3: "Spring gallery openings", 4: "Met Gala art analysis", 5: "Summer festival guide", 6: "Midyear album rankings", 7: "Late summer releases", 8: "Fall art exhibitions", 9: "Album art renaissance", 10: "Art Basel preview", 11: "Album of the year debate" },
+  fashion: { 0: "Resort collection reviews", 1: "Fashion week highlights", 2: "Spring trend forecast", 3: "Transitional dressing", 4: "Met Gala fashion decoded", 5: "Summer style evolution", 6: "Haute couture week", 7: "Back to school fashion", 8: "Fall fashion forecast", 9: "Fashion month preview", 10: "Holiday party style", 11: "Fashion year in review" },
+  food: { 0: "Dry January dining", 1: "Valentine dinner culture", 2: "Spring menu trends", 3: "Restaurant opening season", 4: "Food festival preview", 5: "Summer cocktail trends", 6: "Outdoor dining culture", 7: "Harvest season cooking", 8: "Fall comfort food return", 9: "Halloween food culture", 10: "Thanksgiving food politics", 11: "Holiday dining guide" },
+  nightlife: { 0: "New year party aftermath", 1: "Winter club season", 2: "Spring festival lineup", 3: "Rooftop season opens", 4: "Ibiza season preview", 5: "Summer festival guide", 6: "Day party culture", 7: "Late summer raves", 8: "Back to the club season", 9: "Halloween party culture", 10: "Holiday party circuit", 11: "New Year Eve decoded" },
+  gossip: { 0: "Awards show drama", 1: "Valentine couple watch", 2: "Spring breakup season", 3: "Festival sighting season", 4: "Met Gala drama decoded", 5: "Summer scandal season", 6: "Celebrity vacation watch", 7: "Back to drama season", 8: "Emmy night gossip", 9: "Halloween costume wars", 10: "Holiday party sightings", 11: "Year end revelations" },
 };
 
 function scoreTopic(topic) {
@@ -2152,13 +2149,13 @@ export default function LoathrMediaGenerator() {
             ); })}
           </div>}
 
-          {/* Seasonal topics */}
-          {!topic.trim() && <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginBottom: 6, justifyContent: "center" }}>
+          {/* Timely — category-aware */}
+          {!topic.trim() && category && SEASONAL_TOPICS[category] && <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6, justifyContent: "center", alignItems: "center" }}>
             <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Timely:</span>
-            {(SEASONAL_TOPICS[new Date().getMonth()] || []).map(function(t, i) { return (
-              <button key={i} onClick={function() { setTopic(t); }}
-                style={{ padding: "2px 6px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent + "88" }}>{t}</button>
-            ); })}
+            <button onClick={function() { setTopic(SEASONAL_TOPICS[category][new Date().getMonth()]); }}
+              style={{ padding: "3px 8px", border: "0.5px solid " + uiAccent + "44", background: uiAccent + "08", cursor: "pointer", ...CP, fontSize: 8, color: uiAccent }}>
+              <Flame size={8} style={{ display: "inline", marginRight: 3, verticalAlign: "middle" }} />{SEASONAL_TOPICS[category][new Date().getMonth()]}
+            </button>
           </div>}
 
           {/* Past Generations */}
