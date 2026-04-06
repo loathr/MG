@@ -1538,7 +1538,7 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
     var el = slideRef.current;
     if (!el) continue;
     try {
-      var canvas = await window.html2canvas(el, { width: el.offsetWidth, height: el.offsetHeight, scale: 1080 / el.offsetWidth, useCORS: true, allowTaint: true, backgroundColor: null, logging: false });
+      var canvas = await window.html2canvas(el, { width: 340, height: 425, scale: 1080 / 340, useCORS: true, allowTaint: true, backgroundColor: null, logging: false });
       var blob = await new Promise(function(r) { canvas.toBlob(r, "image/png"); });
       if (blob) imgFolder.file("slide-" + String(i + 1).padStart(2, "0") + ".png", blob);
     } catch (err) { console.error("Failed slide " + (i + 1), err); }
