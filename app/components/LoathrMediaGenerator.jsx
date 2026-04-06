@@ -1612,7 +1612,7 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
 };
 
 // --- DIFFERENTIATED PROMPTS ---
-function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers) {
+function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPersonImage) {
   var p = picks || { persona: -1, angle: -1, style: -1, emphasis: "balanced" };
   var persona = p.persona >= 0 ? PERSONAS[p.persona] : pickPersona(editionSeed || 0);
   var freshness = p.angle >= 0 ? FRESHNESS_SEEDS[p.angle] : pickFreshness(editionSeed || 0);
@@ -1642,7 +1642,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers) {
   ];
   var forcedStat = statFormats[(editionSeed || 0) % statFormats.length];
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + "\n\nDYNAMIC SLIDE COUNT: Decide the optimal number of slides (7-12) based on topic depth.\n- A narrow topic (one event, one person, one moment) → 7-8 slides\n- A standard topic → 9-10 slides\n- A broad topic (history of an era, cultural movement, complex system) → 11-12 slides\nYou MUST include at minimum: Cover, 2 content slides, 1 stat, 1 quote, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...slides...}]}";
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + "\n\nDYNAMIC SLIDE COUNT: Decide the optimal number of slides (7-12) based on topic depth.\n- A narrow topic (one event, one person, one moment) → 7-8 slides\n- A standard topic → 9-10 slides\n- A broad topic (history of an era, cultural movement, complex system) → 11-12 slides\nYou MUST include at minimum: Cover, 2 content slides, 1 stat, 1 quote, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -1719,6 +1719,9 @@ export default function LoathrMediaGenerator() {
   var sas = _s([]), smartAngles = sas[0], setSmartAngles = sas[1];
   var ccr = _s([]), crossCatRelated = ccr[0], setCrossCatRelated = ccr[1];
   var shp = _s(false), showPastGen = shp[0], setShowPastGen = shp[1];
+  var pim = _s([]), personImages = pim[0], setPersonImages = pim[1];
+  var lpi = _s(null), lockedPersonImage = lpi[0], setLockedPersonImage = lpi[1];
+  var pdn = _s(null), personDetected = pdn[0], setPersonDetected = pdn[1];
   var wrs = _s([]), webResults = wrs[0], setWebResults = wrs[1];
   var sld = _s(false), isSearching = sld[0], setIsSearching = sld[1];
   var slideRef = _ref(null);
@@ -1861,7 +1864,39 @@ export default function LoathrMediaGenerator() {
     searchTimer.current = setTimeout(function() { fetchSmartAngles(query); }, 800);
     // Web search after 1500ms
     webTimer.current = setTimeout(function() { fetchWebContext(query); }, 1500);
+    // Person detection after 600ms
+    setTimeout(function() { detectPerson(query); }, 600);
   }, [fetchSmartAngles, fetchWebContext]);
+
+  // Person name detection + image fetch
+  var detectPerson = _cb(async function(query) {
+    if (!query || query.length < 4) { setPersonDetected(null); setPersonImages([]); return; }
+    // Check if input looks like a person name: 2-3 capitalized words
+    var words = query.trim().split(" ");
+    if (words.length < 2 || words.length > 4) { setPersonDetected(null); setPersonImages([]); return; }
+    var allCapped = words.every(function(w) { return w.length > 1 && /^[A-Z]/.test(w); });
+    if (!allCapped) { setPersonDetected(null); setPersonImages([]); return; }
+    setPersonDetected(query.trim());
+    // Fetch 3 images: 1 Wikipedia + 2 stock
+    var imgs = [];
+    try {
+      var wikiImgs = await searchWikimedia(query.trim());
+      if (wikiImgs.length > 0) imgs.push(wikiImgs[0]);
+    } catch (e) {}
+    try {
+      var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
+      var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
+      if (unsplashKey) {
+        var uImgs = await searchUnsplash(query.trim() + " portrait", unsplashKey);
+        if (uImgs.length > 0) imgs.push(uImgs[0]);
+      }
+      if (pexelsKey && imgs.length < 3) {
+        var pImgs = await searchPexels(query.trim() + " portrait", pexelsKey);
+        if (pImgs.length > 0) imgs.push(pImgs[0]);
+      }
+    } catch (e) {}
+    setPersonImages(imgs.slice(0, 3));
+  }, [apiKeys]);
 
   var cancelGenerate = _cb(function() {
     if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
@@ -1880,7 +1915,7 @@ export default function LoathrMediaGenerator() {
     setEditionData(edition);
     try {
       if (controller.signal.aborted) throw new Error("Generation cancelled");
-      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers);
+      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers, !!lockedPersonImage);
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 6000, messages: [{ role: "user", content: prompt }] }) });
@@ -1951,10 +1986,34 @@ export default function LoathrMediaGenerator() {
           var slides = results[0] && results[0].slides ? results[0].slides : [];
           var vintageSlots = [1, 2, 7];
 
+          // 0. Place locked person image on Claude's chosen slide
+          if (lockedPersonImage && results[0]) {
+            var piSlide = results[0].personImageSlide;
+            if (typeof piSlide === "number" && piSlide >= 0 && piSlide < 12) {
+              imgMap[piSlide] = lockedPersonImage;
+            } else {
+              // Fallback: place on slide 4 (Human Story)
+              imgMap[4] = lockedPersonImage;
+            }
+          }
+
           // 1. Main topic search for cover + closer
           var mainImgs = await primaryFn(catInfo.label + " " + shortTopic, primaryKey);
           if (mainImgs.length > 0) imgMap[0] = mainImgs[0]; // cover
           if (mainImgs.length > 1) imgMap[9] = mainImgs[1]; // closer
+
+          // Track used image URLs to prevent duplicates
+          var usedUrls = {};
+          Object.values(imgMap).forEach(function(img) { if (img && img.url) usedUrls[img.url] = true; });
+          function pickUnique(results, fallback) {
+            for (var u = 0; u < results.length; u++) {
+              if (results[u] && results[u].url && !usedUrls[results[u].url]) {
+                usedUrls[results[u].url] = true;
+                return results[u];
+              }
+            }
+            return fallback || (results.length > 0 ? results[0] : null);
+          }
 
           // 2. Per-slide contextual search for content slides
           setImgStatus("Matching images to slides...");
@@ -1966,21 +2025,24 @@ export default function LoathrMediaGenerator() {
               // Person field — search Wikimedia first for portraits
               if (slideData.person) {
                 var wikiImgs = await searchWikimedia(slideData.person);
-                if (wikiImgs.length > 0) { imgMap[ps] = wikiImgs[0]; continue; }
+                var wPick = pickUnique(wikiImgs);
+                if (wPick) { imgMap[ps] = wPick; continue; }
               }
               // Vintage slots use vintage APIs
               if (vintageSlots.indexOf(ps) !== -1) {
                 var vApis = VINTAGE_APIS[category] || [searchMetMuseum];
                 var vr = await vApis[ps % vApis.length](sq.split(" ").slice(0, 2).join(" "));
-                if (vr.length > 0) { imgMap[ps] = vr[0]; continue; }
+                var vPick = pickUnique(vr);
+                if (vPick) { imgMap[ps] = vPick; continue; }
               }
               // Alternate between primary and secondary stock API
               var useSec = secondaryFn && ps % 2 === 0;
               var fn = useSec ? secondaryFn : primaryFn;
               var k = useSec ? secondaryKey : primaryKey;
               var sr = await fn(sq, k);
-              if (sr.length > 0) imgMap[ps] = sr[Math.min(ps, sr.length - 1)];
-              else if (mainImgs.length > ps) imgMap[ps] = mainImgs[ps];
+              var sPick = pickUnique(sr);
+              if (sPick) imgMap[ps] = sPick;
+              else if (mainImgs.length > ps) { var mPick = pickUnique(mainImgs); if (mPick) imgMap[ps] = mPick; }
             } catch (pe) {
               // Fallback: use main results
               if (mainImgs.length > ps) imgMap[ps] = mainImgs[ps];
@@ -2162,6 +2224,30 @@ export default function LoathrMediaGenerator() {
               <button key={i} onClick={function() { setCategory(x.category); setTopic(x.topic); setSuggestions([]); setCrossCatSuggestions([]); }}
                 style={{ padding: "2px 6px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>{x.topic} <span style={{ color: uiAccent, fontSize: 6 }}>({x.category})</span></button>
             ); })}
+          </div>}
+
+          {/* Person image picker */}
+          {personDetected && personImages.length > 0 && !lockedPersonImage && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent, background: "var(--color-background-secondary)", padding: 8 }}>
+            <div style={{ ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.1em", marginBottom: 6 }}>{"\uD83D\uDC64"} {personDetected.toUpperCase()} — CHOOSE AN IMAGE:</div>
+            <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6 }}>
+              {personImages.map(function(img, i) { return (
+                <div key={i} onClick={function() { setLockedPersonImage(img); }}
+                  style={{ width: 70, height: 70, overflow: "hidden", cursor: "pointer", border: "2px solid transparent", borderRadius: 4 }}>
+                  <img src={img.thumb || img.url} alt={img.alt || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={function(e) { e.target.style.display = "none"; }} />
+                  <div style={{ ...CP, fontSize: 5, color: "var(--color-text-tertiary)", textAlign: "center", marginTop: 2 }}>{img.source}</div>
+                </div>
+              ); })}
+            </div>
+            <button onClick={function() { setPersonDetected(null); setPersonImages([]); }}
+              style={{ width: "100%", background: "none", border: "0.5px solid var(--color-border-tertiary)", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)", padding: "3px 0" }}>Skip — use auto images</button>
+          </div>}
+
+          {/* Locked person image indicator */}
+          {lockedPersonImage && <div style={{ marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <img src={lockedPersonImage.thumb || lockedPersonImage.url} alt="" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover" }} />
+            <span style={{ ...CP, fontSize: 7, color: uiAccent }}>Portrait locked — Claude will place it</span>
+            <button onClick={function() { setLockedPersonImage(null); }}
+              style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>{"\u2715"}</button>
           </div>}
 
           {/* Smart angles from Claude */}
