@@ -1692,6 +1692,7 @@ export default function LoathrMediaGenerator() {
   var ths = _s([]), topicHistory = ths[0], setTopicHistory = ths[1];
   var sas = _s([]), smartAngles = sas[0], setSmartAngles = sas[1];
   var ccr = _s([]), crossCatRelated = ccr[0], setCrossCatRelated = ccr[1];
+  var shp = _s(false), showPastGen = shp[0], setShowPastGen = shp[1];
   var wrs = _s([]), webResults = wrs[0], setWebResults = wrs[1];
   var sld = _s(false), isSearching = sld[0], setIsSearching = sld[1];
   var slideRef = _ref(null);
@@ -1894,7 +1895,8 @@ export default function LoathrMediaGenerator() {
         localStorage.setItem("loathr_recent", JSON.stringify(recent));
         setRecentTopics(recent);
         var hist = JSON.parse(localStorage.getItem("loathr_history") || "[]");
-        if (hist.indexOf(topic) === -1) { hist.push(topic); localStorage.setItem("loathr_history", JSON.stringify(hist)); setTopicHistory(hist); }
+        var alreadyInHist = hist.some(function(h) { return typeof h === "string" ? h === topic : h.topic === topic; });
+        if (!alreadyInHist) { hist.unshift({ topic: topic, category: category, date: new Date().toLocaleDateString() }); localStorage.setItem("loathr_history", JSON.stringify(hist.slice(0, 50))); setTopicHistory(hist); }
       } catch (e) {}
       // Generate related topics
       if (results[0] && results[0].slides) {
@@ -2138,7 +2140,7 @@ export default function LoathrMediaGenerator() {
           {topic.trim() && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 6 }}>
             <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Shareability:</span>
             {[1,2,3,4,5].map(function(n) { return <div key={n} style={{ width: 5, height: 5, borderRadius: "50%", background: n <= scoreTopic(topic) ? uiAccent : "var(--color-border-tertiary)" }} />; })}
-            {topicHistory.indexOf(topic) !== -1 && <span style={{ ...CP, fontSize: 6, color: uiAccent, marginLeft: 4 }}>previously generated</span>}
+            {topicHistory.some(function(h) { return typeof h === "string" ? h === topic : h.topic === topic; }) && <span style={{ ...CP, fontSize: 6, color: uiAccent, marginLeft: 4 }}>previously generated</span>}
           </div>}
 
           {/* Recent topics */}
@@ -2157,6 +2159,32 @@ export default function LoathrMediaGenerator() {
               <button key={i} onClick={function() { setTopic(t); }}
                 style={{ padding: "2px 6px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent + "88" }}>{t}</button>
             ); })}
+          </div>}
+
+          {/* Past Generations */}
+          {topicHistory.length > 0 && <div style={{ marginBottom: 6, textAlign: "center" }}>
+            <button onClick={function() { setShowPastGen(!showPastGen); }}
+              style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 8, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", opacity: 0.6 }}>
+              {showPastGen ? "\u25B2 HIDE PAST GENERATIONS" : "\u25BC PAST GENERATIONS (" + topicHistory.length + ")"}
+            </button>
+            {showPastGen && <div style={{ marginTop: 6, padding: 8, border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)", maxHeight: 200, overflowY: "auto" }}>
+              {topicHistory.map(function(h, i) {
+                var t = typeof h === "string" ? h : h.topic;
+                var c = typeof h === "string" ? null : h.category;
+                var d = typeof h === "string" ? null : h.date;
+                var catLabel = c ? (CATEGORIES.find(function(x) { return x.id === c; }) || {}).label : null;
+                return <div key={i} onClick={function() { setTopic(t); if (c) setCategory(c); setShowPastGen(false); }}
+                  style={{ padding: "5px 0", cursor: "pointer", borderBottom: i < topicHistory.length - 1 ? "0.5px solid var(--color-border-tertiary)" : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ ...CP, fontSize: 9, color: "var(--color-text-primary)" }}>{t}</div>
+                    {catLabel && <div style={{ ...CP, fontSize: 6, color: uiAccent + "88" }}>{catLabel}{d ? " · " + d : ""}</div>}
+                  </div>
+                  <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", flexShrink: 0 }}>{"\u203A"}</div>
+                </div>;
+              })}
+              <button onClick={function() { localStorage.removeItem("loathr_history"); setTopicHistory([]); setShowPastGen(false); }}
+                style={{ marginTop: 6, background: "none", border: "0.5px solid var(--color-border-tertiary)", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)", padding: "3px 8px", width: "100%" }}>Clear history</button>
+            </div>}
           </div>}
 
           {/* Edition Settings */}
