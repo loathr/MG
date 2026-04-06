@@ -1487,7 +1487,8 @@ var searchEuropeana = async function(query) {
 var searchWikimedia = async function(personName) {
   if (!personName || personName.length < 3) return [];
   try {
-    var r = await fetchWithTimeout("https://en.wikipedia.org/w/api.php?action=query&titles=" + encodeURIComponent(personName) + "&prop=pageimages&format=json&pithumbsize=800&origin=*", 5000);
+    var wikiTitle = personName.trim().split(" ").map(function(w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join("_");
+    var r = await fetchWithTimeout("https://en.wikipedia.org/w/api.php?action=query&titles=" + encodeURIComponent(wikiTitle) + "&prop=pageimages&format=json&pithumbsize=800&origin=*", 5000);
     if (!r.ok) return [];
     var d = await r.json();
     var pages = d.query && d.query.pages ? d.query.pages : {};
@@ -1722,6 +1723,11 @@ export default function LoathrMediaGenerator() {
   var pim = _s([]), personImages = pim[0], setPersonImages = pim[1];
   var lpi = _s(null), lockedPersonImage = lpi[0], setLockedPersonImage = lpi[1];
   var pdn = _s(null), personDetected = pdn[0], setPersonDetected = pdn[1];
+  var clr = _s([]), claudeRelated = clr[0], setClaudeRelated = clr[1];
+  var fvs = _s([]), favorites = fvs[0], setFavorites = fvs[1];
+  var tch = _s([]), topicChain = tch[0], setTopicChain = tch[1];
+  var shl = _s(null), shareLink = shl[0], setShareLink = shl[1];
+  var shf = _s(false), showFavorites = shf[0], setShowFavorites = shf[1];
   var wrs = _s([]), webResults = wrs[0], setWebResults = wrs[1];
   var sld = _s(false), isSearching = sld[0], setIsSearching = sld[1];
   var slideRef = _ref(null);
@@ -1745,6 +1751,14 @@ export default function LoathrMediaGenerator() {
       setRecentTopics(r.slice(0, 10));
       var h = JSON.parse(localStorage.getItem("loathr_history") || "[]");
       setTopicHistory(h);
+      var f = JSON.parse(localStorage.getItem("loathr_favorites") || "[]");
+      setFavorites(f);
+    } catch (e) {}
+    // Read shared link params
+    try {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get("t")) setTopic(params.get("t"));
+      if (params.get("c")) setCategory(params.get("c"));
     } catch (e) {}
   }, []);
 
@@ -1898,6 +1912,55 @@ export default function LoathrMediaGenerator() {
     setPersonImages(imgs.slice(0, 3));
   }, [apiKeys]);
 
+  // 1. Claude-generated related topics after generation
+  var fetchClaudeRelated = _cb(async function(genTopic, genCategory, slides) {
+    try {
+      var headings = slides.slice(1, 6).map(function(s) { return s && s.heading ? s.heading : ""; }).filter(Boolean).join(", ");
+      var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 400, messages: [{ role: "user",
+          content: "Based on a carousel about \"" + genTopic + "\" in " + genCategory + " covering: " + headings + ".\n\nSuggest 3 related but DIFFERENT topics the reader should explore next. Each should feel like a natural next chapter. Mix categories.\n\nRespond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why this connects\",\"category\":\"" + genCategory + " or another category\"}]" }] }) });
+      var d = await r.json();
+      if (d.error) return;
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var cleaned = text.replace(/```json|```/g, "").trim();
+      var js = cleaned.indexOf("["); var je = cleaned.lastIndexOf("]");
+      if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
+      var parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) setClaudeRelated(parsed.slice(0, 3));
+    } catch (e) { /* silent */ }
+  }, []);
+
+  // 2. Favorites management
+  var toggleFavorite = _cb(function(t, c) {
+    var newFavs = favorites.some(function(f) { return f.topic === t && f.category === c; })
+      ? favorites.filter(function(f) { return !(f.topic === t && f.category === c); })
+      : favorites.concat([{ topic: t, category: c, date: new Date().toLocaleDateString() }]);
+    setFavorites(newFavs);
+    try { localStorage.setItem("loathr_favorites", JSON.stringify(newFavs.slice(0, 50))); } catch (e) {}
+  }, [favorites]);
+
+  var isFavorited = _cb(function(t, c) {
+    return favorites.some(function(f) { return f.topic === t && f.category === c; });
+  }, [favorites]);
+
+  // 3. Topic chain — track the journey
+  var addToChain = _cb(function(t, c) {
+    setTopicChain(function(prev) {
+      var newChain = prev.concat([{ topic: t, category: c }]);
+      return newChain.slice(-10); // keep last 10
+    });
+  }, []);
+
+  // 4. Share link — encode carousel state as URL params
+  var generateShareLink = _cb(function() {
+    var params = new URLSearchParams();
+    params.set("t", topic);
+    params.set("c", category);
+    var link = window.location.origin + window.location.pathname + "?" + params.toString();
+    setShareLink(link);
+    if (navigator.clipboard) { navigator.clipboard.writeText(link); }
+  }, [topic, category]);
+
   var cancelGenerate = _cb(function() {
     if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
     setIsGenerating(false); setError("Generation cancelled");
@@ -1969,6 +2032,8 @@ export default function LoathrMediaGenerator() {
       if (results[0] && results[0].slides) {
         setRelatedTopics(getRelatedTopics(results[0].slides, category));
         setCrossCatRelated(getCrossCategoryRelated(results[0].slides, category));
+        fetchClaudeRelated(topic, catInfo.label, results[0].slides);
+        addToChain(topic, category);
       }
       setSuggestions([]);
       var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
@@ -2552,6 +2617,56 @@ export default function LoathrMediaGenerator() {
             <button key={i} onClick={function() { setCategory(x.category); setTopic(x.topic); setRelatedTopics([]); setCrossCatRelated([]); setOptions(null); }}
               style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-secondary)" }}>{x.topic} <span style={{ fontSize: 6, color: uiAccent }}>({x.category})</span></button>
           ); })}
+        </div>}
+      </div>}
+
+      {/* Claude-generated "If you liked this..." */}
+      {claudeRelated.length > 0 && options && <div style={{ marginBottom: 4 }}>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
+          <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>If you liked this:</span>
+          {claudeRelated.map(function(cr, i) { return (
+            <button key={i} onClick={function() { var c = CATEGORIES.find(function(x) { return x.label.toLowerCase().indexOf(cr.category.toLowerCase()) !== -1 || x.id === cr.category; }); setTopic(cr.topic); if (c) setCategory(c.id); setClaudeRelated([]); setOptions(null); }}
+              style={{ padding: "3px 8px", border: "0.5px solid " + uiAccent + "33", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-secondary)" }} title={cr.hook}>{cr.topic}</button>
+          ); })}
+        </div>
+      </div>}
+
+      {/* Favorite + Share buttons */}
+      {options && topic && <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 8 }}>
+        <button onClick={function() { toggleFavorite(topic, category); }}
+          style={{ padding: "4px 10px", border: "0.5px solid var(--color-border-tertiary)", background: isFavorited(topic, category) ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: isFavorited(topic, category) ? uiAccent : "var(--color-text-tertiary)" }}>
+          {isFavorited(topic, category) ? "\u2605 Favorited" : "\u2606 Favorite"}
+        </button>
+        <button onClick={generateShareLink}
+          style={{ padding: "4px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>
+          {shareLink ? "\u2713 Link copied" : "\u21E7 Share"}
+        </button>
+      </div>}
+
+      {/* Topic chain breadcrumb */}
+      {topicChain.length > 1 && <div style={{ display: "flex", gap: 2, flexWrap: "wrap", justifyContent: "center", marginBottom: 8, alignItems: "center" }}>
+        <span style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)" }}>Journey:</span>
+        {topicChain.map(function(tc, i) { return (
+          <span key={i} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <button onClick={function() { setTopic(tc.topic); setCategory(tc.category); setOptions(null); }}
+              style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 6, color: i === topicChain.length - 1 ? uiAccent : "var(--color-text-tertiary)", textDecoration: i === topicChain.length - 1 ? "none" : "underline" }}>{tc.topic}</button>
+            {i < topicChain.length - 1 && <span style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)" }}>{"\u2192"}</span>}
+          </span>
+        ); })}
+      </div>}
+
+      {/* Favorites panel */}
+      {favorites.length > 0 && <div style={{ textAlign: "center", marginBottom: 8 }}>
+        <button onClick={function() { setShowFavorites(!showFavorites); }}
+          style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)", opacity: 0.6 }}>
+          {showFavorites ? "\u25B2 HIDE FAVORITES" : "\u2605 FAVORITES (" + favorites.length + ")"}
+        </button>
+        {showFavorites && <div style={{ marginTop: 4, padding: 6, border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)", display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
+          {favorites.map(function(f, i) {
+            var catLabel = (CATEGORIES.find(function(x) { return x.id === f.category; }) || {}).label || "";
+            return <button key={i} onClick={function() { setTopic(f.topic); setCategory(f.category); setShowFavorites(false); }}
+              style={{ padding: "3px 8px", border: "0.5px solid " + uiAccent + "33", background: uiAccent + "08", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent }} title={catLabel}>{f.topic}</button>;
+          })}
         </div>}
       </div>}
 
