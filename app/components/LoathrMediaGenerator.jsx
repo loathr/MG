@@ -1998,6 +1998,13 @@ export default function LoathrMediaGenerator() {
   var pnw = _s({}), personNetwork = pnw[0], setPersonNetwork = pnw[1]; // { "Name": [{ name, relation, img }] }
   var nwl = _s(false), networkLoading = nwl[0], setNetworkLoading = nwl[1];
   var slideRef = _ref(null);
+  // Post-generation image swap
+  var swp = _s(null), swapSlide = swp[0], setSwapSlide = swp[1]; // slide index being swapped
+  var swi = _s([]), swapImages = swi[0], setSwapImages = swi[1]; // candidate images for swap
+  var swl = _s(false), swapLoading = swl[0], setSwapLoading = swl[1];
+  var siq = _s(""), swapQuery = siq[0], setSwapQuery = siq[1]; // custom search query for swap
+  // Image style hover preview
+  var hov = _s(null), hoverStyle = hov[0], setHoverStyle = hov[1];
   var searchTimer = _ref(null);
   var webTimer = _ref(null);
   var previewTimer = _ref(null);
@@ -2244,8 +2251,7 @@ export default function LoathrMediaGenerator() {
     searchTimer.current = setTimeout(function() { fetchSmartAngles(query); }, 800);
     // Web search after 1500ms
     webTimer.current = setTimeout(function() { fetchWebContext(query); }, 1500);
-    // Preview images after 1200ms
-    previewTimer.current = setTimeout(function() { fetchPreviewImages(query); }, 1200);
+    // Preview images — no longer auto-loaded, triggered by button click
   }, [fetchSmartAngles, fetchWebContext, fetchPreviewImages]);
 
   // Person name detection + image fetch
@@ -2288,6 +2294,39 @@ export default function LoathrMediaGenerator() {
       var newChain = prev.concat([{ topic: t, category: c }]);
       return newChain.slice(-10); // keep last 10
     });
+  }, []);
+
+  // Image swap: fetch replacement candidates for a specific slide
+  var fetchSwapImages = _cb(async function(slideIdx, query) {
+    setSwapLoading(true); setSwapImages([]);
+    try {
+      var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
+      var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
+      var catLabel = cat ? cat.label : category;
+      var searchQ = query || (catLabel + " " + extractKeywords(topic, 3));
+      var results = [];
+      if (unsplashKey) { try { var us = await searchUnsplash(searchQ, unsplashKey); results = results.concat(us.slice(0, 6)); } catch (e) {} }
+      if (pexelsKey) { try { var px = await searchPexels(searchQ, pexelsKey); results = results.concat(px.slice(0, 4)); } catch (e) {} }
+      try { var vi = await searchVintage(category, extractKeywords(query || topic, 2)); results = results.concat(vi.slice(0, 3)); } catch (e) {}
+      // Also try Wikipedia if the slide has a person field
+      var cur = options ? options[selectedOption] : null;
+      if (cur && cur.slides && cur.slides[slideIdx] && cur.slides[slideIdx].person) {
+        try { var wr = await searchWikiRest(cur.slides[slideIdx].person); results = results.concat(wr); } catch (e) {}
+      }
+      var seen = {};
+      results = results.filter(function(r) { if (!r.url || seen[r.url]) return false; seen[r.url] = true; return true; });
+      setSwapImages(results.slice(0, 12));
+    } catch (e) { console.error("Swap image search error:", e); }
+    finally { setSwapLoading(false); }
+  }, [category, cat, topic, apiKeys, options, selectedOption]);
+
+  var applySwap = _cb(function(slideIdx, newImg) {
+    setImages(function(prev) {
+      var n = Object.assign({}, prev);
+      n[slideIdx] = newImg;
+      return n;
+    });
+    setSwapSlide(null); setSwapImages([]); setSwapQuery("");
   }, []);
 
   // 4. Share link — encode carousel state as URL params
@@ -2724,34 +2763,47 @@ export default function LoathrMediaGenerator() {
             ); })}
           </div>}
 
-          {/* Multi-person image picker */}
+          {/* Multi-person image picker — improved */}
           {personsDetected.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent, background: "#f8f8f8", padding: 8 }}>
             <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>PEOPLE DETECTED</div>
             {personsDetected.map(function(name) {
               var imgs = personImages[name] || [];
               var locked = lockedPersonImages[name];
               var loading = !personImages.hasOwnProperty(name);
-              return <div key={name} style={{ marginBottom: 6 }}>
-                <div style={{ ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>{"\uD83D\uDC64"} {name.toUpperCase()}{locked ? " \u2713" : ""}{loading ? " ..." : imgs.length === 0 && !locked ? " (no images found)" : ""}</div>
-                {!locked && imgs.length > 0 && <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+              return <div key={name} style={{ marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                  <div style={{ ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.1em", flex: 1 }}>{"\uD83D\uDC64"} {name.toUpperCase()}{locked ? " \u2713" : ""}{loading ? " ..." : imgs.length === 0 && !locked ? " (no images)" : ""}</div>
+                  {!locked && <input placeholder="Search different name..." onKeyDown={function(e) { if (e.key === "Enter" && e.target.value.trim()) {
+                    var altName = e.target.value.trim();
+                    searchPersonImages(altName).then(function(altImgs) {
+                      setPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = altImgs; return n; });
+                    });
+                    e.target.value = "";
+                  }}} style={{ width: 120, padding: "2px 6px", border: "0.5px solid #ccc", ...CP, fontSize: 6, color: "#666" }} />}
+                </div>
+                {!locked && imgs.length > 0 && <div style={{ display: "flex", gap: 6, marginBottom: 4 }}>
                   {imgs.map(function(img, i) { return (
                     <div key={i} style={{ textAlign: "center" }}>
                       <div onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = { img: img, placement: "claude" }; return n; }); }}
-                        style={{ width: 56, height: 56, overflow: "hidden", cursor: "pointer", border: "2px solid transparent", borderRadius: 4 }}>
+                        style={{ width: 72, height: 90, overflow: "hidden", cursor: "pointer", border: "2px solid transparent", borderRadius: 4, transition: "border 0.2s" }}
+                        onMouseEnter={function(e) { e.currentTarget.style.borderColor = uiAccent; }}
+                        onMouseLeave={function(e) { e.currentTarget.style.borderColor = "transparent"; }}>
                         <img src={img.thumb || img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={function(e) { e.target.style.display = "none"; }} />
                       </div>
-                      <div style={{ ...CP, fontSize: 4, color: "#999" }}>{img.source}</div>
+                      <div style={{ ...CP, fontSize: 5, color: "#999" }}>{img.source}</div>
                     </div>
                   ); })}
                 </div>}
-                {locked && <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <img src={locked.img.thumb || locked.img.url} alt="" style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover" }} />
-                  <button onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = { img: locked.img, placement: "cover" }; return n; }); }}
-                    style={{ padding: "2px 5px", border: "0.5px solid #ccc", background: locked.placement === "cover" ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: locked.placement === "cover" ? uiAccent : "#999" }}>Cover</button>
-                  <button onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = { img: locked.img, placement: "claude" }; return n; }); }}
-                    style={{ padding: "2px 5px", border: "0.5px solid #ccc", background: locked.placement === "claude" ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: locked.placement === "claude" ? uiAccent : "#999" }}>Claude picks</button>
-                  <button onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); delete n[name]; return n; }); }}
-                    style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 7, color: "#999" }}>{"\u2715"}</button>
+                {locked && <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <img src={locked.img.thumb || locked.img.url} alt="" style={{ width: 36, height: 45, borderRadius: 3, objectFit: "cover", border: "1px solid " + uiAccent }} />
+                  <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                    <button onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = { img: locked.img, placement: "cover" }; return n; }); }}
+                      style={{ padding: "3px 8px", border: "0.5px solid #ccc", background: locked.placement === "cover" ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: locked.placement === "cover" ? uiAccent : "#999", fontWeight: locked.placement === "cover" ? 700 : 400 }}>Cover</button>
+                    <button onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = { img: locked.img, placement: "claude" }; return n; }); }}
+                      style={{ padding: "3px 8px", border: "0.5px solid #ccc", background: locked.placement === "claude" ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: locked.placement === "claude" ? uiAccent : "#999", fontWeight: locked.placement === "claude" ? 700 : 400 }}>Claude picks</button>
+                    <button onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); delete n[name]; return n; }); }}
+                      style={{ padding: "3px 8px", background: "none", border: "0.5px solid #eee", cursor: "pointer", ...CP, fontSize: 7, color: "#999" }}>Change</button>
+                  </div>
                 </div>}
               </div>;
             })}
@@ -2835,18 +2887,31 @@ export default function LoathrMediaGenerator() {
             </div>}
           </div>}
 
-          {/* Topic preview images — visual mood board */}
-          {(previewImages.length > 0 || previewLoading) && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "33", background: "#f8f8f8", padding: 6 }}>
-            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>IMAGE PREVIEW {previewLoading && <span style={{ animation: "pulse 1s infinite" }}>...</span>}</div>
+          {/* Topic preview images — button-triggered mood board */}
+          {topic.trim() && <div style={{ marginBottom: 6, textAlign: "center" }}>
+            <button onClick={function() { if (previewImages.length > 0) { setPreviewImages([]); } else { fetchPreviewImages(topic); } }}
+              disabled={previewLoading}
+              style={{ padding: "4px 10px", border: "0.5px solid " + uiAccent + "44", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.05em" }}>
+              <Eye size={9} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />{previewLoading ? "Loading..." : previewImages.length > 0 ? "Hide Preview" : "Preview Images"}
+            </button>
+          </div>}
+          {previewImages.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "33", background: "#f8f8f8", padding: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em" }}>MOOD BOARD</div>
+              <button onClick={function() { fetchPreviewImages(topic); }}
+                style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 6, color: "#999" }}>{"\u21BB"} Refresh</button>
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
               {previewImages.map(function(img, i) {
                 var roles = ["cover", "origin", "evidence", "hotTake", "closer"];
-                var roleLabels = ["Cover", "Origin", "Evidence", "Hot Take", "Closer"];
+                var roleLabels = ["Cover", "Origin", "Stats", "Hot Take", "Closer"];
                 var lockedRole = null;
                 Object.keys(previewLocked).forEach(function(role) { if (previewLocked[role] && previewLocked[role].url === img.url) lockedRole = role; });
+                // Apply hover style filter for live preview
+                var previewFilter = hoverStyle && IMAGE_STYLE_PRESETS[hoverStyle] && IMAGE_STYLE_PRESETS[hoverStyle].filters ? IMAGE_STYLE_PRESETS[hoverStyle].filters[0] : "";
                 return <div key={i} style={{ textAlign: "center" }}>
                   <div style={{ width: "100%", aspectRatio: "4/5", overflow: "hidden", borderRadius: 3, border: lockedRole ? "2px solid " + uiAccent : "1px solid #ddd", position: "relative" }}>
-                    <img src={img.thumb || img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={function(e) { e.target.style.display = "none"; }} />
+                    <img src={img.thumb || img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: previewFilter, transition: "filter 0.3s" }} onError={function(e) { e.target.style.display = "none"; }} />
                     {lockedRole && <div style={{ position: "absolute", top: 2, right: 2, background: uiAccent, color: "#fff", ...CP, fontSize: 5, padding: "1px 3px", borderRadius: 2 }}>{lockedRole}</div>}
                   </div>
                   <div style={{ display: "flex", gap: 1, justifyContent: "center", marginTop: 2, flexWrap: "wrap" }}>
@@ -2865,6 +2930,10 @@ export default function LoathrMediaGenerator() {
                 </div>;
               })}
             </div>
+            {Object.keys(previewLocked).length > 0 && <div style={{ marginTop: 4, ...CP, fontSize: 6, color: uiAccent }}>
+              {Object.keys(previewLocked).length} image{Object.keys(previewLocked).length > 1 ? "s" : ""} locked
+              <button onClick={function() { setPreviewLocked({}); }} style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 6, color: "#999", marginLeft: 6 }}>Clear all</button>
+            </div>}
           </div>}
 
           {/* Reverse image flow — drop an image to get topic suggestions */}
@@ -3029,7 +3098,10 @@ export default function LoathrMediaGenerator() {
               <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", marginBottom: 4 }}>IMAGE STYLE</div>
               <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                 {Object.keys(IMAGE_STYLE_PRESETS).map(function(key) { var preset = IMAGE_STYLE_PRESETS[key]; return (
-                  <button key={key} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { imageStyle: key }); }); }}
+                  <button key={key}
+                    onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { imageStyle: key }); }); setHoverStyle(null); }}
+                    onMouseEnter={function() { setHoverStyle(key); }}
+                    onMouseLeave={function() { setHoverStyle(null); }}
                     style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.imageStyle === key ? uiAccent + "22" : "transparent", color: editionPicks.imageStyle === key ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>{preset.label}</button>
                 ); })}
               </div>
@@ -3173,6 +3245,40 @@ export default function LoathrMediaGenerator() {
           <button onClick={function() { setCurrentSlide(Math.min(total - 1, currentSlide + 1)); }} disabled={currentSlide === total - 1}
             style={{ width: 34, height: 34, cursor: currentSlide === total - 1 ? "default" : "pointer", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", opacity: currentSlide === total - 1 ? 0.3 : 1 }}>{"\u203A"}</button>
         </div>
+        {/* Image swap controls */}
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+          <button onClick={function() {
+            if (swapSlide === currentSlide) { setSwapSlide(null); setSwapImages([]); setSwapQuery(""); }
+            else { setSwapSlide(currentSlide); var slideData = cur.slides[currentSlide] || {}; var q = slideData.heading || slideData.title || topic; setSwapQuery(q); fetchSwapImages(currentSlide, q); }
+          }}
+            style={{ padding: "4px 10px", border: "0.5px solid " + (swapSlide === currentSlide ? uiAccent : "#ccc"), background: swapSlide === currentSlide ? uiAccent + "15" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: swapSlide === currentSlide ? uiAccent : "#999", letterSpacing: "0.05em" }}>
+            <Camera size={9} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />{swapSlide === currentSlide ? "Cancel Swap" : "Swap Image"}
+          </button>
+        </div>
+        {swapSlide !== null && swapSlide === currentSlide && <div style={{ marginTop: 8, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8, borderRadius: 3 }}>
+          <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+            <input value={swapQuery} onChange={function(e) { setSwapQuery(e.target.value); }}
+              onKeyDown={function(e) { if (e.key === "Enter") fetchSwapImages(swapSlide, swapQuery); }}
+              placeholder="Search for replacement image..."
+              style={{ flex: 1, padding: "4px 8px", border: "0.5px solid #ccc", ...CP, fontSize: 8, color: "#333" }} />
+            <button onClick={function() { fetchSwapImages(swapSlide, swapQuery); }}
+              disabled={swapLoading}
+              style={{ padding: "4px 8px", border: "0.5px solid " + uiAccent, background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent }}>{swapLoading ? "..." : "Search"}</button>
+          </div>
+          {swapImages.length > 0 && <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4 }}>
+            {swapImages.map(function(img, i) { return (
+              <div key={i} onClick={function() { applySwap(swapSlide, img); }}
+                style={{ cursor: "pointer", borderRadius: 3, overflow: "hidden", border: "2px solid transparent", transition: "border 0.2s", aspectRatio: "4/5" }}
+                onMouseEnter={function(e) { e.currentTarget.style.borderColor = uiAccent; }}
+                onMouseLeave={function(e) { e.currentTarget.style.borderColor = "transparent"; }}>
+                <img src={img.thumb || img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={function(e) { e.target.style.display = "none"; }} />
+              </div>
+            ); })}
+          </div>}
+          {swapImages.length > 0 && <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 3 }}>Click an image to replace slide {swapSlide + 1}</div>}
+          {!swapLoading && swapImages.length === 0 && swapQuery && <div style={{ ...CP, fontSize: 7, color: "#999", textAlign: "center", padding: 8 }}>No results. Try a different search.</div>}
+        </div>}
+
         <div style={{ marginTop: 18 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 8, textTransform: "uppercase" }}>All Slides</div>
           <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 8, paddingLeft: 2, paddingRight: 2 }}>
