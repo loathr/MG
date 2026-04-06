@@ -1299,7 +1299,7 @@ function RecSlideRenderer({ category, slideData, slideIndex, totalSlides, images
   else if (slideIndex === 3) slide = <RecCulture slide={slideData} category={category} images={images} />;
   else slide = <RecShortlist slide={slideData} category={category} images={images} />;
   return (
-    <div style={{ width: "100%", height: "100%", border: "2px solid " + borderColor, overflow: "hidden" }}>
+    <div style={{ width: "100%", height: "100%", border: "2px solid " + borderColor, outline: "1px solid #000000", overflow: "hidden" }}>
       {slide}
     </div>
   );
@@ -1326,7 +1326,7 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
     slide = <Component slide={slideData} index={slideIndex} category={category} images={images} />;
   }
   return (
-    <div style={{ width: "100%", height: "100%", border: "2px solid " + borderColor, overflow: "hidden" }}>
+    <div style={{ width: "100%", height: "100%", border: "2px solid " + borderColor, outline: "1px solid #000000", overflow: "hidden" }}>
       {slide}
     </div>
   );
