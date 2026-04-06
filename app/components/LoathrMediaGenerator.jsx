@@ -1121,10 +1121,9 @@ var testApiConnection = async function(service, key) {
 // --- VINTAGE/PUBLIC DOMAIN IMAGE APIs (all free, no keys) ---
 
 var fetchWithTimeout = function(url, ms) {
-  return Promise.race([
-    fetch(url),
-    new Promise(function(_, reject) { setTimeout(function() { reject(new Error("timeout")); }, ms || 5000); })
-  ]);
+  var controller = new AbortController();
+  var timer = setTimeout(function() { controller.abort(); }, ms || 5000);
+  return fetch(url, { signal: controller.signal }).then(function(r) { clearTimeout(timer); return r; }).catch(function(e) { clearTimeout(timer); throw e; });
 };
 
 var searchMetMuseum = async function(query) {
@@ -1488,9 +1487,13 @@ export default function LoathrMediaGenerator() {
       var parsed;
       try { parsed = JSON.parse(cleaned); } catch (je) {
         // Try aggressive cleanup
-        cleaned = cleaned.replace(/,\s*$/, "");
-        if (!cleaned.endsWith("]}")) cleaned += "]}";
-        parsed = JSON.parse(cleaned);
+        try {
+          cleaned = cleaned.replace(/,\s*$/, "");
+          if (!cleaned.endsWith("]}")) cleaned += "]}";
+          parsed = JSON.parse(cleaned);
+        } catch (je2) {
+          throw new Error("Failed to parse carousel JSON. Try generating again.");
+        }
       }
       var results = [];
       if (parsed && parsed.slides) results.push(parsed);
