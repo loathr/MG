@@ -51,6 +51,14 @@ var IMG_FILTERS = [
 
 var COVER_STYLES = ["classic", "split", "typeOnly", "fullBleed"];
 
+var IMAGE_STYLE_PRESETS = {
+  mixed: { label: "Mixed", filters: null },
+  bw: { label: "Editorial B&W", filters: ["grayscale(1) brightness(0.85) contrast(1.1)"] },
+  vivid: { label: "Vivid", filters: ["saturate(1.3) brightness(0.9) contrast(1.1)"] },
+  vintage: { label: "Vintage", filters: ["sepia(0.35) brightness(0.8) contrast(1.05)"] },
+  documentary: { label: "Documentary", filters: ["grayscale(0.4) contrast(1.1) brightness(0.8)"] },
+};
+
 // --- TOPIC INTELLIGENCE ---
 var MODIFIERS = [
   { id: "controversial", label: "Controversial", instr: "Make every claim bold and debatable. Challenge assumptions." },
@@ -172,22 +180,42 @@ function pickWritingStyle(seed) { return WRITING_STYLES[Math.abs(seed) % WRITING
 function pickCoverStyle(seed) { return COVER_STYLES[Math.abs(seed) % COVER_STYLES.length]; }
 function getImgFilter(index, seed) { return IMG_FILTERS[(index + seed) % IMG_FILTERS.length]; }
 
-function getEditionId(topic, category) {
+function getEditionId(topic, category, genNum, picks) {
   var hash = 0;
   var str = topic + category;
   for (var i = 0; i < str.length; i++) { hash = ((hash << 5) - hash) + str.charCodeAt(i); hash = hash & hash; }
-  var issueNum = Math.abs(hash % 900) + 100;
+  // Mix in generation counter so each regeneration gets different editorial choices
+  var varied = Math.abs(hash) + (genNum || 0) * 7919; // large prime to spread choices
+  var issueNum = Math.abs(hash % 900) + 100; // issue number stays tied to topic
   var months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
   var d = new Date();
-  return { num: issueNum, label: months[d.getMonth()] + " " + d.getFullYear(), seed: Math.abs(hash) };
+  var seed = Math.abs(varied);
+  // Resolve editorial choices for display
+  var p = picks || { persona: -1, angle: -1, style: -1 };
+  var voiceLabels = ["Historian", "Critic", "Insider", "Storyteller", "Researcher"];
+  var angleLabels = ["Economics", "Psychology", "Technology", "Cultural", "Backstory", "Prediction", "Failure", "Parallel"];
+  var styleLabels = ["Classic", "Interview", "Manifesto", "Observation", "Contrast"];
+  var resolvedVoice = p.persona >= 0 ? voiceLabels[p.persona] : voiceLabels[seed % voiceLabels.length];
+  var resolvedAngle = p.angle >= 0 ? angleLabels[p.angle] : angleLabels[seed % angleLabels.length];
+  var resolvedStyle = p.style >= 0 ? styleLabels[p.style] : styleLabels[seed % styleLabels.length];
+  return { num: issueNum, label: months[d.getMonth()] + " " + d.getFullYear(), seed: seed, voice: resolvedVoice, angle: resolvedAngle, style: resolvedStyle };
+}
+
+// Extract 2-4 meaningful keywords from text for image search
+var STOP_WORDS = { the:1, a:1, an:1, and:1, or:1, but:1, in:1, on:1, at:1, to:1, for:1, of:1, with:1, by:1, from:1, is:1, are:1, was:1, were:1, be:1, been:1, being:1, have:1, has:1, had:1, do:1, does:1, did:1, will:1, would:1, could:1, should:1, may:1, might:1, shall:1, can:1, it:1, its:1, this:1, that:1, these:1, those:1, how:1, what:1, when:1, where:1, why:1, who:1, which:1, not:1, no:1, so:1, if:1, then:1, than:1, too:1, very:1, just:1, about:1, into:1, over:1, after:1, before:1, between:1, through:1, during:1, above:1, below:1, up:1, down:1, out:1, off:1, all:1, each:1, every:1, both:1, few:1, more:1, most:1, other:1, some:1, such:1, only:1, own:1, same:1, also:1, back:1, still:1, ever:1, never:1, always:1, once:1, here:1, there:1, as:1, your:1, their:1, his:1, her:1, my:1, our:1, they:1, them:1, we:1, us:1, you:1, he:1, she:1, me:1, him:1, changed:1, made:1, really:1, actually:1, things:1 };
+function extractKeywords(text, max) {
+  if (!text) return "";
+  return text.replace(/[^\w\s'-]/g, "").split(/\s+/).filter(function(w) { return w.length > 2 && !STOP_WORDS[w.toLowerCase()]; }).slice(0, max || 3).join(" ");
 }
 
 function getSlideImageQuery(slide, categoryLabel, topic) {
+  // Person field gets priority — search for their name directly
+  if (slide.person) return slide.person;
   var heading = slide.heading || slide.title || slide.name || slide.headline || "";
   var caps = (slide.body || "").split(" ").filter(function(w) { return w.length > 4 && w === w.toUpperCase(); }).slice(0, 2).join(" ");
-  if (heading && heading.length > 3) return categoryLabel + " " + heading;
+  if (heading && heading.length > 3) return categoryLabel + " " + extractKeywords(heading, 3);
   if (caps) return categoryLabel + " " + caps;
-  return categoryLabel + " " + topic;
+  return categoryLabel + " " + extractKeywords(topic, 3);
 }
 
 var PALETTES = {
@@ -333,8 +361,16 @@ function EditorialFill({ pal, category }) {
   );
 }
 
+// Module-level image style — set by generate(), read by ImgBg
+var _activeImageStyle = "mixed";
+
 function ImgBg({ url, pal, children, darken, category, imgFilter, slideIndex }) {
-  var filt = imgFilter || IMG_FILTERS[(slideIndex || 0) % IMG_FILTERS.length];
+  // Image style preset overrides rotation when set
+  var preset = _activeImageStyle && IMAGE_STYLE_PRESETS[_activeImageStyle] ? IMAGE_STYLE_PRESETS[_activeImageStyle] : null;
+  var filt;
+  if (imgFilter) { filt = imgFilter; }
+  else if (preset && preset.filters) { filt = preset.filters[0]; }
+  else { var urlSeed = 0; if (url) { for (var ci = 0; ci < Math.min(url.length, 50); ci++) urlSeed += url.charCodeAt(ci); } filt = IMG_FILTERS[(slideIndex + urlSeed) % IMG_FILTERS.length]; }
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: pal.bg }}>
       {url && <img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: filt }} onError={function(e) { e.target.style.display = "none"; }} />}
@@ -739,13 +775,10 @@ function SplitTextBox({ slide, position, accent, accent2, category, seed, styleB
 
 function getImg(images, idx) {
   if (!images) return null;
-  var keys = Object.keys(images);
-  if (keys.length === 0) return null;
-  // Direct match first
+  // Only return a direct match — no cycling, no fallback to other slides' images
+  // This prevents the same photo appearing on multiple slides with different filters
   if (images[idx] && images[idx].url) return images[idx].url;
-  // Cycle through available images so every slide gets one
-  var cycled = keys[idx % keys.length];
-  return images[cycled] && images[cycled].url ? images[cycled].url : null;
+  return null;
 }
 
 // --- S1 COVER (Vibe / The Source) ---
@@ -1484,34 +1517,54 @@ var searchEuropeana = async function(query) {
 };
 
 // Wikimedia Commons — for famous people portraits
-var searchWikimedia = async function(personName) {
-  if (!personName || personName.length < 3) return [];
+// Wikipedia REST API — best source for celebrity photos (high-res, 100% hit rate)
+var searchWikiRest = async function(personName) {
+  if (!personName || personName.length < 2) return [];
   try {
-    var wikiTitle = personName.trim().split(" ").map(function(w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join("_");
-    var r = await fetchWithTimeout("https://en.wikipedia.org/w/api.php?action=query&titles=" + encodeURIComponent(wikiTitle) + "&prop=pageimages&format=json&pithumbsize=800&origin=*", 5000);
-    if (!r.ok) return [];
-    var d = await r.json();
-    var pages = d.query && d.query.pages ? d.query.pages : {};
+    var title = personName.trim().split(" ").map(function(w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join("_");
+    var r = await fetchWithTimeout("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title), 5000);
+    if (r.ok) {
+      var d = await r.json();
+      if (d.thumbnail && d.thumbnail.source) {
+        var origUrl = d.originalimage && d.originalimage.source ? d.originalimage.source : d.thumbnail.source;
+        return [{ url: origUrl, thumb: d.thumbnail.source, alt: d.title || personName, credit: "Wikipedia", source: "Wikipedia" }];
+      }
+    }
+    // If exact title failed, search for it first then get summary
+    var sr = await fetchWithTimeout("https://en.wikipedia.org/w/api.php?action=opensearch&search=" + encodeURIComponent(personName) + "&limit=1&format=json&origin=*", 5000);
+    if (sr.ok) {
+      var sd = await sr.json();
+      if (sd[1] && sd[1][0]) {
+        var foundTitle = sd[1][0].replace(/ /g, "_");
+        var r2 = await fetchWithTimeout("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(foundTitle), 5000);
+        if (r2.ok) {
+          var d2 = await r2.json();
+          if (d2.thumbnail && d2.thumbnail.source) {
+            var origUrl2 = d2.originalimage && d2.originalimage.source ? d2.originalimage.source : d2.thumbnail.source;
+            return [{ url: origUrl2, thumb: d2.thumbnail.source, alt: d2.title || personName, credit: "Wikipedia", source: "Wikipedia" }];
+          }
+        }
+      }
+    }
+    return [];
+  } catch (e) { console.error("Wiki REST error for " + personName + ":", e); return []; }
+};
+
+// Wikipedia pageimages API — backup source with size control
+var searchWikimedia = async function(personName) {
+  if (!personName || personName.length < 2) return [];
+  try {
+    var sr = await fetchWithTimeout("https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=" + encodeURIComponent(personName) + "&gsrlimit=3&prop=pageimages&format=json&pithumbsize=800&origin=*", 5000);
+    if (!sr.ok) return [];
+    var sd = await sr.json();
+    var sp = sd.query && sd.query.pages ? sd.query.pages : {};
     var results = [];
-    Object.values(pages).forEach(function(page) {
+    Object.values(sp).forEach(function(page) {
       if (page.thumbnail && page.thumbnail.source) {
-        results.push({ url: page.thumbnail.source, thumb: page.thumbnail.source, alt: personName, credit: "Wikipedia", source: "Wikimedia" });
+        results.push({ url: page.thumbnail.source, thumb: page.thumbnail.source, alt: personName, credit: "Wikipedia", source: "Wiki Search" });
       }
     });
     return results;
-  } catch (e) { return []; }
-};
-
-// Open Verse — 700M+ CC-licensed images, great for famous people
-var searchOpenVerse = async function(query) {
-  if (!query || query.length < 3) return [];
-  try {
-    var r = await fetchWithTimeout("https://api.openverse.org/v1/images/?q=" + encodeURIComponent(query) + "&page_size=4&license_type=commercial", 5000);
-    if (!r.ok) return [];
-    var d = await r.json();
-    return (d.results || []).slice(0, 3).map(function(img) {
-      return { url: img.url || img.thumbnail, thumb: img.thumbnail || img.url, alt: img.title || query, credit: img.creator || "Open Verse", source: "OpenVerse" };
-    });
   } catch (e) { return []; }
 };
 
@@ -1519,14 +1572,173 @@ var searchOpenVerse = async function(query) {
 var searchPersonImages = async function(personName) {
   if (!personName || personName.length < 2) return [];
   var results = [];
-  // Wikipedia first
-  try { var w = await searchWikimedia(personName); results = results.concat(w); } catch (e) {}
-  // Open Verse
-  try { var ov = await searchOpenVerse(personName + " portrait"); results = results.concat(ov); } catch (e) {}
+  // 1. Wikipedia REST API — best quality, handles nicknames via opensearch
+  try { var wr = await searchWikiRest(personName); results = results.concat(wr); } catch (e) { console.error("Wiki REST failed:", e); }
+  // 2. Wikipedia pageimages search — returns multiple results for picker variety
+  try { var wp = await searchWikimedia(personName); results = results.concat(wp); } catch (e) { console.error("Wiki pageimages failed:", e); }
+  // 3. Unsplash fallback for generic portrait if wiki found nothing
+  if (results.length < 2) {
+    var unsplashKey = typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_UNSPLASH_KEY : "";
+    if (unsplashKey) {
+      try { var us = await searchUnsplash(personName + " portrait", unsplashKey); results = results.concat(us.slice(0, 2)); } catch (e) {}
+    }
+  }
   // Deduplicate by URL
   var seen = {};
   results = results.filter(function(r) { if (!r.url || seen[r.url]) return false; seen[r.url] = true; return true; });
   return results.slice(0, 4);
+};
+
+// --- WIKIDATA ENRICHMENT ---
+// Shared Wikidata entity fetcher
+var fetchWikidataEntity = async function(topic) {
+  try {
+    // 1. Search for the entity
+    var sr = await fetchWithTimeout("https://www.wikidata.org/w/api.php?action=wbsearchentities&search=" + encodeURIComponent(topic) + "&language=en&limit=1&format=json&origin=*", 5000);
+    if (!sr.ok) return null;
+    var sd = await sr.json();
+    if (!sd.search || sd.search.length === 0) return null;
+    var qid = sd.search[0].id;
+    var label = sd.search[0].label;
+    // 2. Get entity data
+    var er = await fetchWithTimeout("https://www.wikidata.org/w/api.php?action=wbgetentities&ids=" + qid + "&props=claims|labels&languages=en&format=json&origin=*", 8000);
+    if (!er.ok) return null;
+    var ed = await er.json();
+    var entity = ed.entities && ed.entities[qid] ? ed.entities[qid] : null;
+    if (!entity) return null;
+    return { qid: qid, label: label, claims: entity.claims || {} };
+  } catch (e) { console.error("Wikidata fetch error:", e); return null; }
+};
+
+// Extract structured stats from Wikidata claims
+var WIKIDATA_PROPS = {
+  P1082: "Population", P2046: "Area", P2139: "Revenue", P1128: "Employees",
+  P2196: "Students", P1114: "Quantity", P2295: "Net worth",
+  P1087: "Rating", P2142: "Box office", P2218: "Net income",
+  P3373: "Sibling", P569: "Born", P570: "Died", P571: "Founded",
+  P576: "Dissolved", P580: "Start", P582: "End",
+  P17: "Country", P27: "Citizenship", P106: "Occupation",
+  P166: "Awards", P1411: "Nominations",
+};
+
+var extractWikidataStats = function(entity) {
+  if (!entity || !entity.claims) return {};
+  var stats = {};
+  var claims = entity.claims;
+  Object.keys(WIKIDATA_PROPS).forEach(function(prop) {
+    if (!claims[prop]) return;
+    var claim = claims[prop][0];
+    if (!claim || !claim.mainsnak || !claim.mainsnak.datavalue) return;
+    var val = claim.mainsnak.datavalue;
+    var label = WIKIDATA_PROPS[prop];
+    if (val.type === "quantity") {
+      stats[label] = val.value.amount.replace("+", "");
+    } else if (val.type === "time") {
+      var yr = val.value.time.match(/\+?(\d{4})/);
+      stats[label] = yr ? yr[1] : val.value.time;
+    } else if (val.type === "wikibase-entityid") {
+      stats[label + "_qid"] = val.value.id;
+    } else if (val.type === "string") {
+      stats[label] = val.value;
+    }
+  });
+  // Count awards/nominations
+  if (claims.P166) stats["Awards"] = claims.P166.length.toString();
+  if (claims.P1411) stats["Nominations"] = claims.P1411.length.toString();
+  return stats;
+};
+
+// Extract timeline events from Wikidata claims
+var extractWikidataTimeline = function(entity) {
+  if (!entity || !entity.claims) return [];
+  var events = [];
+  var claims = entity.claims;
+  var timeProps = { P569: "Born", P570: "Died", P571: "Founded", P576: "Dissolved", P580: "Started", P582: "Ended", P585: "Event" };
+  Object.keys(timeProps).forEach(function(prop) {
+    if (!claims[prop]) return;
+    claims[prop].forEach(function(claim) {
+      if (!claim.mainsnak || !claim.mainsnak.datavalue || claim.mainsnak.datavalue.type !== "time") return;
+      var yr = claim.mainsnak.datavalue.value.time.match(/\+?(\d{4})/);
+      if (yr) events.push({ year: yr[1], event: timeProps[prop], property: prop });
+    });
+  });
+  // Also extract qualifiers with dates from major claims (P166=awards with dates)
+  if (claims.P166) {
+    claims.P166.slice(0, 5).forEach(function(claim) {
+      if (claim.qualifiers && claim.qualifiers.P585) {
+        var q = claim.qualifiers.P585[0];
+        if (q.datavalue && q.datavalue.type === "time") {
+          var yr = q.datavalue.value.time.match(/\+?(\d{4})/);
+          if (yr) events.push({ year: yr[1], event: "Award", property: "P166" });
+        }
+      }
+    });
+  }
+  events.sort(function(a, b) { return parseInt(a.year) - parseInt(b.year); });
+  return events;
+};
+
+// Fetch related people from Wikidata (person network)
+var fetchPersonNetwork = async function(personName) {
+  var entity = await fetchWikidataEntity(personName);
+  if (!entity) return [];
+  var relProps = {
+    P26: "Spouse", P40: "Child", P22: "Father", P25: "Mother",
+    P3373: "Sibling", P1327: "Partner", P451: "Partner",
+    P112: "Co-founder", P161: "Cast member", P175: "Performer",
+    P86: "Composer", P57: "Director", P162: "Producer",
+  };
+  var related = [];
+  var claims = entity.claims;
+  var seen = {};
+  Object.keys(relProps).forEach(function(prop) {
+    if (!claims[prop]) return;
+    claims[prop].slice(0, 3).forEach(function(claim) {
+      if (!claim.mainsnak || !claim.mainsnak.datavalue || claim.mainsnak.datavalue.type !== "wikibase-entityid") return;
+      var relQid = claim.mainsnak.datavalue.value.id;
+      if (seen[relQid]) return;
+      seen[relQid] = true;
+      related.push({ qid: relQid, relation: relProps[prop] });
+    });
+  });
+  // Resolve names and images for related entities (batch up to 8)
+  if (related.length > 0) {
+    var qids = related.slice(0, 8).map(function(r) { return r.qid; }).join("|");
+    try {
+      var lr = await fetchWithTimeout("https://www.wikidata.org/w/api.php?action=wbgetentities&ids=" + qids + "&props=labels&languages=en&format=json&origin=*", 5000);
+      if (lr.ok) {
+        var ld = await lr.json();
+        related.forEach(function(r) {
+          var ent = ld.entities && ld.entities[r.qid] ? ld.entities[r.qid] : null;
+          r.name = ent && ent.labels && ent.labels.en ? ent.labels.en.value : r.qid;
+        });
+      }
+    } catch (e) {}
+    // Fetch Wikipedia portraits in parallel
+    await Promise.all(related.slice(0, 6).map(async function(r) {
+      if (!r.name || r.name === r.qid) return;
+      try {
+        var imgs = await searchWikiRest(r.name);
+        r.img = imgs.length > 0 ? imgs[0] : null;
+      } catch (e) { r.img = null; }
+    }));
+  }
+  return related.filter(function(r) { return r.name && r.name !== r.qid; }).slice(0, 6);
+};
+
+// Search for location/landmark images
+var searchLocationImages = async function(placeName) {
+  if (!placeName || placeName.length < 2) return [];
+  var results = [];
+  try { var wr = await searchWikiRest(placeName); results = results.concat(wr); } catch (e) {}
+  if (results.length < 2) {
+    var unsplashKey = typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_UNSPLASH_KEY : "";
+    if (unsplashKey) {
+      try { var us = await searchUnsplash(placeName + " landmark", unsplashKey); results = results.concat(us.slice(0, 2)); } catch (e) {}
+    }
+  }
+  var seen = {};
+  return results.filter(function(r) { if (!r.url || seen[r.url]) return false; seen[r.url] = true; return true; }).slice(0, 3);
 };
 
 // Category-to-vintage-API mapping
@@ -1640,7 +1852,7 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
 };
 
 // --- DIFFERENTIATED PROMPTS ---
-function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPersonImage) {
+function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPersonImage, wdStats, wdTimeline) {
   var p = picks || { persona: -1, angle: -1, style: -1, emphasis: "balanced" };
   var persona = p.persona >= 0 ? PERSONAS[p.persona] : pickPersona(editionSeed || 0);
   var freshness = p.angle >= 0 ? FRESHNESS_SEEDS[p.angle] : pickFreshness(editionSeed || 0);
@@ -1652,6 +1864,17 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPe
   else if (emph === "timeline") emphasisInstr = "\nEMPHASIS: Lean heavily into chronological narrative. Include specific years on as many slides as possible. Frame each slide as a distinct era or moment in time.";
   else if (emph === "narrative") emphasisInstr = "\nEMPHASIS: Lean heavily into storytelling. Every slide should read like a chapter. Use scene-setting, character, conflict, and resolution across the carousel.";
   else if (emph === "data") emphasisInstr = "\nEMPHASIS: Lean heavily into data and evidence. Include specific numbers, percentages, or statistics on every slide possible. Let the data drive the narrative.";
+
+  // Inject Wikidata structured data when available
+  var wdInstr = "";
+  if (wdStats && Object.keys(wdStats).length > 0) {
+    var statPairs = Object.keys(wdStats).filter(function(k) { return !k.endsWith("_qid"); }).map(function(k) { return k + ": " + wdStats[k]; }).join(", ");
+    wdInstr += "\nVERIFIED DATA (from Wikidata — use these REAL numbers instead of approximations): " + statPairs;
+  }
+  if (wdTimeline && wdTimeline.length > 0) {
+    var tlItems = wdTimeline.map(function(t) { return t.year + " — " + t.event; }).join(", ");
+    wdInstr += "\nVERIFIED TIMELINE: " + tlItems + "\nUse these exact dates for THE TURNING POINT slide and any timeline references.";
+  }
 
   // Apply modifier instructions
   var modInstr = "";
@@ -1670,7 +1893,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPe
   ];
   var forcedStat = statFormats[(editionSeed || 0) % statFormats.length];
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + "\n\nDYNAMIC SLIDE COUNT: Decide the optimal number of slides (7-12) based on topic depth.\n- A narrow topic (one event, one person, one moment) → 7-8 slides\n- A standard topic → 9-10 slides\n- A broad topic (history of an era, cultural movement, complex system) → 11-12 slides\nYou MUST include at minimum: Cover, 2 content slides, 1 stat, 1 quote, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + wdInstr + "\n\nDYNAMIC SLIDE COUNT: Decide the optimal number of slides (7-12) based on topic depth.\n- A narrow topic (one event, one person, one moment) → 7-8 slides\n- A standard topic → 9-10 slides\n- A broad topic (history of an era, cultural movement, complex system) → 11-12 slides\nYou MUST include at minimum: Cover, 2 content slides, 1 stat, 1 quote, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -1721,6 +1944,7 @@ export default function LoathrMediaGenerator() {
   var ss = _s(0), selectedOption = ss[0], setSelectedOption = ss[1];
   var cls = _s(0), currentSlide = cls[0], setCurrentSlide = cls[1];
   var gs = _s(false), isGenerating = gs[0], setIsGenerating = gs[1];
+  var gc = _s(0), genCount = gc[0], setGenCount = gc[1];
   var es = _s(null), error = es[0], setError = es[1];
   var aks = _s({ unsplash: process.env.NEXT_PUBLIC_UNSPLASH_KEY || "", pexels: process.env.NEXT_PUBLIC_PEXELS_KEY || "" }), apiKeys = aks[0], setApiKeys = aks[1];
   var shs = _s(false), showSettings = shs[0], setShowSettings = shs[1];
@@ -1736,7 +1960,7 @@ export default function LoathrMediaGenerator() {
   var exs = _s(null), exportStatus = exs[0], setExportStatus = exs[1];
   var rms = _s(false), isRecMode = rms[0], setIsRecMode = rms[1];
   var eds = _s(null), editionData = eds[0], setEditionData = eds[1];
-  var eps = _s({ persona: -1, angle: -1, style: -1, emphasis: "balanced" }), editionPicks = eps[0], setEditionPicks = eps[1];
+  var eps = _s({ persona: -1, angle: -1, style: -1, emphasis: "balanced", imageStyle: "mixed" }), editionPicks = eps[0], setEditionPicks = eps[1];
   var ess = _s(false), showEditionSettings = ess[0], setShowEditionSettings = ess[1];
   var sug = _s([]), suggestions = sug[0], setSuggestions = sug[1];
   var rtp = _s([]), relatedTopics = rtp[0], setRelatedTopics = rtp[1];
@@ -1749,6 +1973,7 @@ export default function LoathrMediaGenerator() {
   var shp = _s(false), showPastGen = shp[0], setShowPastGen = shp[1];
   var pim = _s({}), personImages = pim[0], setPersonImages = pim[1]; // { "Name": [imgs] }
   var lpi = _s({}), lockedPersonImages = lpi[0], setLockedPersonImages = lpi[1]; // { "Name": img }
+  var lockedRef = _ref({});
   var pdn = _s([]), personsDetected = pdn[0], setPersonsDetected = pdn[1]; // ["Name1", "Name2"]
   var clr = _s([]), claudeRelated = clr[0], setClaudeRelated = clr[1];
   var fvs = _s([]), favorites = fvs[0], setFavorites = fvs[1];
@@ -1757,10 +1982,29 @@ export default function LoathrMediaGenerator() {
   var shf = _s(false), showFavorites = shf[0], setShowFavorites = shf[1];
   var wrs = _s([]), webResults = wrs[0], setWebResults = wrs[1];
   var sld = _s(false), isSearching = sld[0], setIsSearching = sld[1];
+  // --- Search bar image features ---
+  var pvi = _s([]), previewImages = pvi[0], setPreviewImages = pvi[1];
+  var pvl = _s(false), previewLoading = pvl[0], setPreviewLoading = pvl[1];
+  var pvk = _s({}), previewLocked = pvk[0], setPreviewLocked = pvk[1]; // { "cover": img, "evidence": img }
+  var ldi = _s([]), locationsDetected = ldi[0], setLocationsDetected = ldi[1];
+  var lim = _s({}), locationImages = lim[0], setLocationImages = lim[1];
+  var lli = _s({}), lockedLocationImages = lli[0], setLockedLocationImages = lli[1];
+  var dim = _s(null), droppedImage = dim[0], setDroppedImage = dim[1];
+  var rti = _s([]), reverseTopics = rti[0], setReverseTopics = rti[1];
+  var rvl = _s(false), reverseLoading = rvl[0], setReverseLoading = rvl[1];
+  // --- Wikidata enrichment ---
+  var wds = _s(null), wikidataStats = wds[0], setWikidataStats = wds[1];
+  var wdt = _s([]), wikidataTimeline = wdt[0], setWikidataTimeline = wdt[1];
+  var pnw = _s({}), personNetwork = pnw[0], setPersonNetwork = pnw[1]; // { "Name": [{ name, relation, img }] }
+  var nwl = _s(false), networkLoading = nwl[0], setNetworkLoading = nwl[1];
   var slideRef = _ref(null);
   var searchTimer = _ref(null);
   var webTimer = _ref(null);
+  var previewTimer = _ref(null);
   var abortRef = _ref(null);
+
+  // Keep ref in sync so generate() always reads latest locked images
+  _ef(function() { lockedRef.current = lockedPersonImages; }, [lockedPersonImages]);
 
   _ef(function() {
     var l = document.createElement("link"); l.href = FONT_URL; l.rel = "stylesheet"; document.head.appendChild(l);
@@ -1857,32 +2101,64 @@ export default function LoathrMediaGenerator() {
 
   // Smart search: Claude suggests angles after 800ms pause
   var fetchSmartAngles = _cb(async function(query) {
-    if (!query || query.length < 4 || !category) return;
+    if (!query || query.length < 2 || !category) return;
     setIsSearching(true);
     try {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 500, messages: [{ role: "user",
-          content: "For the topic \"" + query + "\" in " + (cat ? cat.label : category) + ":\n1. Suggest 3 sharp carousel angles\n2. If any famous people are central to this topic, list their full names\n\nRespond ONLY with JSON:\n{\"angles\":[{\"topic\":\"title\",\"hook\":\"why\"}],\"persons\":[\"Full Name 1\",\"Full Name 2\"] or empty array if no famous people}" }] }) });
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 600, messages: [{ role: "user",
+          content: "For the topic \"" + query + "\" in " + (cat ? cat.label : category) + ":\n1. Suggest 3 sharp carousel angles\n2. Identify ALL famous people connected to this topic. Resolve nicknames/stage names to full names (e.g. \"Ye\" = Kanye West, \"MJ\" = Michael Jordan, \"Bey\" = Beyoncé, \"Drake\" = Aubrey Drake Graham).\n3. Identify key locations, cities, or landmarks central to the topic.\n\nRespond ONLY with JSON (no extra text):\n{\"angles\":[{\"topic\":\"title\",\"hook\":\"why\"}],\"persons\":[\"Full Name\"],\"locations\":[\"Place Name\"]}\nUse empty arrays if none: \"persons\":[],\"locations\":[]" }] }) });
       var d = await r.json();
-      if (d.error) return;
+      if (d.error) { console.error("Smart angles API error:", d.error); return; }
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
       var cleaned = text.replace(/```json|```/g, "").trim();
       var js = cleaned.indexOf("{"); var je = cleaned.lastIndexOf("}");
       if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
       var parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) { setSmartAngles(parsed.slice(0, 3)); setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); return; }
       if (parsed.angles && Array.isArray(parsed.angles)) setSmartAngles(parsed.angles.slice(0, 3));
-      // Person detection via Claude
+      // Person detection
       if (parsed.persons && Array.isArray(parsed.persons) && parsed.persons.length > 0) {
-        setPersonsDetected(parsed.persons.slice(0, 3));
-        // Fetch images for each person in parallel
-        var imgPromises = {};
-        parsed.persons.slice(0, 3).forEach(function(name) {
+        var names = parsed.persons.slice(0, 3);
+        setPersonsDetected(names);
+        setPersonImages({});
+        names.forEach(function(name) {
           searchPersonImages(name).then(function(imgs) {
             setPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = imgs; return n; });
-          });
+          }).catch(function(err) { console.error("Person image fetch failed for " + name + ":", err); });
+          // Fetch person network from Wikidata
+          fetchPersonNetwork(name).then(function(network) {
+            if (network.length > 0) setPersonNetwork(function(prev) { var n = Object.assign({}, prev); n[name] = network; return n; });
+          }).catch(function() {});
         });
-      } else { setPersonsDetected([]); setPersonImages({}); }
-    } catch (e) { /* silent */ }
+        // Fetch Wikidata stats for the first detected person (or the topic)
+        fetchWikidataEntity(names[0]).then(function(entity) {
+          if (entity) {
+            setWikidataStats(extractWikidataStats(entity));
+            setWikidataTimeline(extractWikidataTimeline(entity));
+          }
+        }).catch(function() {});
+      } else { setPersonsDetected([]); setPersonImages({}); setPersonNetwork({}); }
+      // Location detection
+      if (parsed.locations && Array.isArray(parsed.locations) && parsed.locations.length > 0) {
+        var places = parsed.locations.slice(0, 3);
+        setLocationsDetected(places);
+        setLocationImages({});
+        places.forEach(function(place) {
+          searchLocationImages(place).then(function(imgs) {
+            setLocationImages(function(prev) { var n = Object.assign({}, prev); n[place] = imgs; return n; });
+          }).catch(function() {});
+        });
+      } else { setLocationsDetected([]); setLocationImages({}); }
+      // Fetch Wikidata for the topic itself if no persons detected
+      if (!parsed.persons || parsed.persons.length === 0) {
+        fetchWikidataEntity(query).then(function(entity) {
+          if (entity) {
+            setWikidataStats(extractWikidataStats(entity));
+            setWikidataTimeline(extractWikidataTimeline(entity));
+          }
+        }).catch(function() {});
+      }
+    } catch (e) { console.error("Smart angles error:", e); }
     finally { setIsSearching(false); }
   }, [category, cat]);
 
@@ -1906,18 +2182,67 @@ export default function LoathrMediaGenerator() {
   }, [category, cat]);
 
   // Debounced search trigger on topic input change
+  // Fetch preview images for topic (debounced)
+  var fetchPreviewImages = _cb(async function(query) {
+    if (!query || query.length < 3 || !category) return;
+    setPreviewLoading(true);
+    try {
+      var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
+      var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
+      var keywords = extractKeywords(query, 3);
+      var catLabel = cat ? cat.label : category;
+      var results = [];
+      if (unsplashKey) {
+        try { var us = await searchUnsplash(catLabel + " " + keywords, unsplashKey); results = results.concat(us.slice(0, 4)); } catch (e) {}
+      }
+      if (pexelsKey && results.length < 4) {
+        try { var px = await searchPexels(catLabel + " " + keywords, pexelsKey); results = results.concat(px.slice(0, 4 - results.length)); } catch (e) {}
+      }
+      // Add vintage for variety
+      try { var vi = await searchVintage(category, keywords); results = results.concat(vi.slice(0, 2)); } catch (e) {}
+      // Deduplicate
+      var seen = {};
+      results = results.filter(function(r) { if (!r.url || seen[r.url]) return false; seen[r.url] = true; return true; });
+      setPreviewImages(results.slice(0, 6));
+    } catch (e) { console.error("Preview images error:", e); }
+    finally { setPreviewLoading(false); }
+  }, [category, cat, apiKeys]);
+
+  // Reverse image analysis
+  var analyzeDroppedImage = _cb(async function(base64, mimeType) {
+    setReverseLoading(true); setReverseTopics([]);
+    try {
+      var catLabel = cat ? cat.label : category || "general";
+      var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 400, messages: [{ role: "user", content: [
+          { type: "image", source: { type: "base64", media_type: mimeType || "image/jpeg", data: base64 } },
+          { type: "text", text: "Analyze this image. Suggest 5 editorial carousel topics for an Instagram brand in \"" + catLabel + "\". Each topic should be inspired by what you see but editorially interesting.\n\nRespond ONLY with JSON:\n[{\"topic\":\"title\",\"hook\":\"why this works\"}]" }
+        ] }] }) });
+      var d = await r.json();
+      if (d.error) return;
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var cleaned = text.replace(/```json|```/g, "").trim();
+      var js = cleaned.indexOf("["); var je = cleaned.lastIndexOf("]");
+      if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
+      var parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) setReverseTopics(parsed.slice(0, 5));
+    } catch (e) { console.error("Reverse image error:", e); }
+    finally { setReverseLoading(false); }
+  }, [category, cat]);
+
   var triggerSearch = _cb(function(query) {
-    // Clear previous timers
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (webTimer.current) clearTimeout(webTimer.current);
-    setSmartAngles([]); setWebResults([]);
-    if (!query || query.length < 4) return;
-    // Smart angles after 800ms
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+    setSmartAngles([]); setWebResults([]); setPreviewImages([]); setWikidataStats(null); setWikidataTimeline([]); setPersonNetwork({});
+    if (!query || query.length < 2) return;
+    // Smart angles + person/location detection after 800ms
     searchTimer.current = setTimeout(function() { fetchSmartAngles(query); }, 800);
     // Web search after 1500ms
     webTimer.current = setTimeout(function() { fetchWebContext(query); }, 1500);
-    // Person detection now handled by Claude in fetchSmartAngles
-  }, [fetchSmartAngles, fetchWebContext]);
+    // Preview images after 1200ms
+    previewTimer.current = setTimeout(function() { fetchPreviewImages(query); }, 1200);
+  }, [fetchSmartAngles, fetchWebContext, fetchPreviewImages]);
 
   // Person name detection + image fetch
   // detectPerson now handled by Claude in fetchSmartAngles
@@ -1983,12 +2308,15 @@ export default function LoathrMediaGenerator() {
     abortRef.current = controller;
     setIsGenerating(true); setError(null); setOptions(null); setImages({});
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
+    var thisGen = genCount + 1;
+    setGenCount(thisGen);
     var catInfo = CATEGORIES.find(function(c) { return c.id === category; });
-    var edition = getEditionId(topic, category);
+    var edition = getEditionId(topic, category, thisGen, editionPicks);
     setEditionData(edition);
+    _activeImageStyle = editionPicks.imageStyle || "mixed";
     try {
       if (controller.signal.aborted) throw new Error("Generation cancelled");
-      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers, Object.keys(lockedPersonImages).length > 0);
+      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers, Object.keys(lockedRef.current || {}).length > 0, wikidataStats, wikidataTimeline);
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] }) });
@@ -2056,18 +2384,21 @@ export default function LoathrMediaGenerator() {
           var primaryKey = unsplashKey || pexelsKey;
           var secondaryFn = unsplashKey && pexelsKey ? searchPexels : null;
           var secondaryKey = pexelsKey || "";
-          var shortTopic = topic.split(" ").slice(0, 3).join(" ");
+          var shortTopic = extractKeywords(topic, 3);
           var imgMap = {};
           var slides = results[0] && results[0].slides ? results[0].slides : [];
           var vintageSlots = [1, 2, 7];
 
-          // 0. Place locked person images — multi-person support
-          var lockedNames = Object.keys(lockedPersonImages);
+          // 0. Place locked person images — read from ref for guaranteed freshness
+          var currentLocked = lockedRef.current || {};
+          var lockedNames = Object.keys(currentLocked);
+          console.log("Locked person images:", lockedNames.length, JSON.stringify(currentLocked));
           if (lockedNames.length > 0 && results[0]) {
             var piSlide = results[0].personImageSlide;
             lockedNames.forEach(function(name, ni) {
-              var locked = lockedPersonImages[name];
-              if (!locked || !locked.img) return;
+              var locked = currentLocked[name];
+              if (!locked || !locked.img) { console.log("Skipping " + name + ": no img"); return; }
+              console.log("Placing " + name + " as " + locked.placement + " img:", locked.img.url);
               if (locked.placement === "cover") {
                 imgMap[0] = locked.img;
               } else {
@@ -2086,22 +2417,51 @@ export default function LoathrMediaGenerator() {
             });
           }
 
+          // 0b. Place locked location images
+          var lockedLocNames = Object.keys(lockedLocationImages);
+          lockedLocNames.forEach(function(place, li) {
+            var locImg = lockedLocationImages[place];
+            if (!locImg || !locImg.img) return;
+            if (locImg.placement === "cover" && !imgMap[0]) { imgMap[0] = locImg.img; }
+            else { var locSlot = 2 + li; if (!imgMap[locSlot]) imgMap[locSlot] = locImg.img; }
+          });
+
+          // 0c. Place preview-locked images (user picked from topic preview)
+          Object.keys(previewLocked).forEach(function(role) {
+            var pvImg = previewLocked[role];
+            if (!pvImg) return;
+            if (role === "cover" && !imgMap[0]) imgMap[0] = pvImg;
+            else if (role === "closer") { var cIdx = slides.length ? slides.length - 1 : 9; if (!imgMap[cIdx]) imgMap[cIdx] = pvImg; }
+            else if (role === "evidence") { var eIdx = slides.findIndex(function(s) { return s && (s.statFormat || s.stat); }); if (eIdx > 0 && !imgMap[eIdx]) imgMap[eIdx] = pvImg; }
+            else if (role === "origin" && !imgMap[1]) imgMap[1] = pvImg;
+            else if (role === "hotTake" && !imgMap[3]) imgMap[3] = pvImg;
+          });
+
           // 1. Main topic search for cover + closer
           var mainImgs = await primaryFn(catInfo.label + " " + shortTopic, primaryKey);
-          if (mainImgs.length > 0) imgMap[0] = mainImgs[0]; // cover
-          if (mainImgs.length > 1) imgMap[9] = mainImgs[1]; // closer
+          if (mainImgs.length > 0 && !imgMap[0]) imgMap[0] = mainImgs[0]; // cover (skip if person image locked)
+          // Closer gets a different image from main results (not index 1 which may be too similar to cover)
+          var closerIdx = slides.length ? slides.length - 1 : 9;
+          if (mainImgs.length > 2 && !imgMap[closerIdx]) imgMap[closerIdx] = mainImgs[2];
+          else if (mainImgs.length > 1 && !imgMap[closerIdx]) imgMap[closerIdx] = mainImgs[1];
 
-          // Track used image URLs to prevent duplicates
+          // Track used image URLs to prevent duplicates (including locked person images)
           var usedUrls = {};
-          Object.values(imgMap).forEach(function(img) { if (img && img.url) usedUrls[img.url] = true; });
-          function pickUnique(results, fallback) {
+          Object.values(imgMap).forEach(function(img) {
+            if (img && img.url) usedUrls[img.url] = true;
+            if (img && img.thumb) usedUrls[img.thumb] = true;
+          });
+          function pickUnique(results) {
             for (var u = 0; u < results.length; u++) {
-              if (results[u] && results[u].url && !usedUrls[results[u].url]) {
-                usedUrls[results[u].url] = true;
-                return results[u];
+              var img = results[u];
+              if (img && img.url && !usedUrls[img.url] && (!img.thumb || !usedUrls[img.thumb])) {
+                usedUrls[img.url] = true;
+                if (img.thumb) usedUrls[img.thumb] = true;
+                return img;
               }
             }
-            return fallback || (results.length > 0 ? results[0] : null);
+            // Return null instead of a duplicate — slide will show editorial fill pattern
+            return null;
           }
 
           // 2. Per-slide contextual search for content slides
@@ -2111,11 +2471,14 @@ export default function LoathrMediaGenerator() {
             var slideData = slides[ps] || {};
             var sq = getSlideImageQuery(slideData, catInfo.label, topic);
             try {
-              // Person field — search Wikimedia first for portraits
+              // Person field — search Wikipedia REST for portraits (skip if person already placed)
               if (slideData.person) {
-                var wikiImgs = await searchWikimedia(slideData.person);
-                var wPick = pickUnique(wikiImgs);
-                if (wPick) { imgMap[ps] = wPick; continue; }
+                var alreadyPlaced = Object.values(imgMap).some(function(img) { return img && img.alt && img.alt.toLowerCase() === slideData.person.toLowerCase(); });
+                if (!alreadyPlaced) {
+                  var wikiImgs = await searchWikiRest(slideData.person);
+                  var wPick = pickUnique(wikiImgs);
+                  if (wPick) { imgMap[ps] = wPick; continue; }
+                }
               }
               // Vintage slots use vintage APIs
               if (vintageSlots.indexOf(ps) !== -1) {
@@ -2133,18 +2496,23 @@ export default function LoathrMediaGenerator() {
               if (sPick) imgMap[ps] = sPick;
               else if (mainImgs.length > ps) { var mPick = pickUnique(mainImgs); if (mPick) imgMap[ps] = mPick; }
             } catch (pe) {
-              // Fallback: use main results
-              if (mainImgs.length > ps) imgMap[ps] = mainImgs[ps];
+              // Fallback: try to pick a unique image from main results
+              var catchPick = pickUnique(mainImgs);
+              if (catchPick) imgMap[ps] = catchPick;
             }
           }
 
-          // 3. Fill any remaining gaps from main results
+          // 3. Fill remaining gaps with unique images from main results (no repeats)
           var slideTotal = slides.length || 10;
           for (var fill = 0; fill < slideTotal; fill++) {
-            if (!imgMap[fill] && mainImgs.length > 0) imgMap[fill] = mainImgs[fill % mainImgs.length];
+            if (!imgMap[fill]) {
+              var fillPick = pickUnique(mainImgs);
+              if (fillPick) imgMap[fill] = fillPick;
+            }
           }
 
           var totalLoaded = Object.keys(imgMap).length;
+          console.log("Final imgMap slot 0:", imgMap[0] ? imgMap[0].url : "EMPTY", "total:", totalLoaded);
           if (totalLoaded > 0) {
             setImages(imgMap);
             setImgStatus(totalLoaded + " contextual images loaded");
@@ -2169,7 +2537,14 @@ export default function LoathrMediaGenerator() {
           }
           if (vintageOnly.length > 0) {
             var vMap = {};
-            vintageOnly.forEach(function(img, i) { vMap[i] = img; });
+            // Preserve locked person images in vintage-only path
+            var vCurrentLocked = lockedRef.current || {};
+            var vLockedNames = Object.keys(vCurrentLocked);
+            vLockedNames.forEach(function(name) {
+              var vLocked = vCurrentLocked[name];
+              if (vLocked && vLocked.img && vLocked.placement === "cover") vMap[0] = vLocked.img;
+            });
+            vintageOnly.forEach(function(img, i) { if (!vMap[i]) vMap[i] = img; });
             setImages(vMap);
             setImgStatus(vintageOnly.length + " vintage images loaded");
           } else { setImgStatus("No images found"); }
@@ -2177,7 +2552,7 @@ export default function LoathrMediaGenerator() {
       }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
-  }, [topic, category, apiKeys, editionPicks, modifiers]);
+  }, [topic, category, apiKeys, editionPicks, modifiers, lockedPersonImages, genCount]);
 
   var generateRec = _cb(async function() {
     if (!topic.trim() || !category) return;
@@ -2232,9 +2607,9 @@ export default function LoathrMediaGenerator() {
         try {
           var searchFn = unsplashKey ? searchUnsplash : searchPexels;
           var key = unsplashKey || pexelsKey;
-          var imgs = await searchFn(catInfo.label + " " + topic, key);
+          var imgs = await searchFn(catInfo.label + " " + extractKeywords(topic, 3), key);
           if (imgs.length < 10) {
-            try { var vi = await searchVintage(category, topic); imgs = imgs.concat(vi); } catch (ve) {}
+            try { var vi = await searchVintage(category, extractKeywords(topic, 3)); imgs = imgs.concat(vi); } catch (ve) {}
           }
           if (imgs.length > 0) {
             var imgMap = {};
@@ -2280,10 +2655,40 @@ export default function LoathrMediaGenerator() {
 
       {category && (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+          <div style={{ display: "flex", gap: 6, marginBottom: 6 }}
+            onDragOver={function(e) { e.preventDefault(); e.stopPropagation(); }}
+            onDrop={function(e) {
+              e.preventDefault(); e.stopPropagation();
+              var file = e.dataTransfer.files && e.dataTransfer.files[0];
+              if (file && file.type.startsWith("image/")) {
+                var reader = new FileReader();
+                reader.onload = function(ev) {
+                  var base64 = ev.target.result.split(",")[1];
+                  var preview = ev.target.result;
+                  setDroppedImage({ file: file, preview: preview, base64: base64, mimeType: file.type });
+                  analyzeDroppedImage(base64, file.type);
+                };
+                reader.readAsDataURL(file);
+              }
+            }}>
             <input value={topic} onChange={function(e) { var v = e.target.value; setTopic(v); setRefinedAngles([]); setSuggestions(filterSuggestions(v, category)); setCrossCatSuggestions(searchAllCategories(v, category)); triggerSearch(v); }}
-              placeholder={"Topic for " + cat.label + "..."}
+              placeholder={"Topic for " + cat.label + "... (or drop an image)"}
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 12, ...CP }} />
+            <label style={{ padding: "10px 8px", border: "0.5px solid var(--color-border-tertiary)", cursor: "pointer", display: "flex", alignItems: "center", background: "transparent" }}>
+              <Camera size={14} style={{ color: "#999" }} />
+              <input type="file" accept="image/*" style={{ display: "none" }} onChange={function(e) {
+                var file = e.target.files && e.target.files[0];
+                if (file) {
+                  var reader = new FileReader();
+                  reader.onload = function(ev) {
+                    var base64 = ev.target.result.split(",")[1];
+                    setDroppedImage({ file: file, preview: ev.target.result, base64: base64, mimeType: file.type });
+                    analyzeDroppedImage(base64, file.type);
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }} />
+            </label>
             {!isGenerating ? (
               <div style={{ display: "flex", gap: 4 }}>
                 <button onClick={function() { setIsRecMode(false); generate(); }} disabled={!topic.trim()}
@@ -2316,37 +2721,165 @@ export default function LoathrMediaGenerator() {
           </div>}
 
           {/* Multi-person image picker */}
-          {personsDetected.length > 0 && Object.keys(personImages).length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent, background: "var(--color-background-secondary)", padding: 8 }}>
+          {personsDetected.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent, background: "#f8f8f8", padding: 8 }}>
+            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>PEOPLE DETECTED</div>
             {personsDetected.map(function(name) {
               var imgs = personImages[name] || [];
               var locked = lockedPersonImages[name];
-              if (imgs.length === 0 && !locked) return null;
+              var loading = !personImages.hasOwnProperty(name);
               return <div key={name} style={{ marginBottom: 6 }}>
-                <div style={{ ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>{"\uD83D\uDC64"} {name.toUpperCase()}{locked ? " \u2713" : ""}</div>
-                {!locked && <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
+                <div style={{ ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>{"\uD83D\uDC64"} {name.toUpperCase()}{locked ? " \u2713" : ""}{loading ? " ..." : imgs.length === 0 && !locked ? " (no images found)" : ""}</div>
+                {!locked && imgs.length > 0 && <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
                   {imgs.map(function(img, i) { return (
                     <div key={i} style={{ textAlign: "center" }}>
                       <div onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = { img: img, placement: "claude" }; return n; }); }}
                         style={{ width: 56, height: 56, overflow: "hidden", cursor: "pointer", border: "2px solid transparent", borderRadius: 4 }}>
                         <img src={img.thumb || img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={function(e) { e.target.style.display = "none"; }} />
                       </div>
-                      <div style={{ ...CP, fontSize: 4, color: "var(--color-text-tertiary)" }}>{img.source}</div>
+                      <div style={{ ...CP, fontSize: 4, color: "#999" }}>{img.source}</div>
                     </div>
                   ); })}
                 </div>}
                 {locked && <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <img src={locked.img.thumb || locked.img.url} alt="" style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover" }} />
                   <button onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = { img: locked.img, placement: "cover" }; return n; }); }}
-                    style={{ padding: "2px 5px", border: "0.5px solid var(--color-border-tertiary)", background: locked.placement === "cover" ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: locked.placement === "cover" ? uiAccent : "var(--color-text-tertiary)" }}>Cover</button>
+                    style={{ padding: "2px 5px", border: "0.5px solid #ccc", background: locked.placement === "cover" ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: locked.placement === "cover" ? uiAccent : "#999" }}>Cover</button>
                   <button onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = { img: locked.img, placement: "claude" }; return n; }); }}
-                    style={{ padding: "2px 5px", border: "0.5px solid var(--color-border-tertiary)", background: locked.placement === "claude" ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: locked.placement === "claude" ? uiAccent : "var(--color-text-tertiary)" }}>Claude picks</button>
+                    style={{ padding: "2px 5px", border: "0.5px solid #ccc", background: locked.placement === "claude" ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: locked.placement === "claude" ? uiAccent : "#999" }}>Claude picks</button>
                   <button onClick={function() { setLockedPersonImages(function(prev) { var n = Object.assign({}, prev); delete n[name]; return n; }); }}
-                    style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>{"\u2715"}</button>
+                    style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 7, color: "#999" }}>{"\u2715"}</button>
                 </div>}
               </div>;
             })}
             <button onClick={function() { setPersonsDetected([]); setPersonImages({}); setLockedPersonImages({}); }}
-              style={{ width: "100%", background: "none", border: "0.5px solid var(--color-border-tertiary)", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)", padding: "3px 0" }}>Skip all</button>
+              style={{ width: "100%", background: "none", border: "0.5px solid #ccc", cursor: "pointer", ...CP, fontSize: 7, color: "#999", padding: "3px 0" }}>Skip all</button>
+          </div>}
+
+          {/* Person network — related people from Wikidata */}
+          {Object.keys(personNetwork).length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8 }}>
+            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>CONNECTED PEOPLE</div>
+            {Object.keys(personNetwork).map(function(sourceName) {
+              var network = personNetwork[sourceName] || [];
+              if (network.length === 0) return null;
+              return <div key={sourceName} style={{ marginBottom: 4 }}>
+                <div style={{ ...CP, fontSize: 6, color: "#999", marginBottom: 3 }}>via {sourceName}</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {network.map(function(rel, ri) { return (
+                    <div key={ri} style={{ textAlign: "center", cursor: "pointer" }} onClick={function() {
+                      if (rel.img) {
+                        setPersonsDetected(function(prev) { return prev.indexOf(rel.name) === -1 ? prev.concat([rel.name]) : prev; });
+                        setPersonImages(function(prev) { var n = Object.assign({}, prev); n[rel.name] = [rel.img]; return n; });
+                      } else { setTopic(rel.name); }
+                    }}>
+                      {rel.img ? <img src={rel.img.thumb || rel.img.url} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", border: "1px solid " + uiAccent + "44" }} onError={function(e) { e.target.style.display = "none"; }} />
+                        : <div style={{ width: 32, height: 32, borderRadius: "50%", background: uiAccent + "15", display: "flex", alignItems: "center", justifyContent: "center", ...CP, fontSize: 10, color: uiAccent }}>{rel.name.charAt(0)}</div>}
+                      <div style={{ ...CP, fontSize: 5, color: "#666", maxWidth: 48, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{rel.name.split(" ")[0]}</div>
+                      <div style={{ ...CP, fontSize: 4, color: uiAccent + "88" }}>{rel.relation}</div>
+                    </div>
+                  ); })}
+                </div>
+              </div>;
+            })}
+          </div>}
+
+          {/* Location image picker */}
+          {locationsDetected.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "66", background: "#f8f8f8", padding: 8 }}>
+            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>LOCATIONS DETECTED</div>
+            {locationsDetected.map(function(place) {
+              var imgs = locationImages[place] || [];
+              var locked = lockedLocationImages[place];
+              var loading = !locationImages.hasOwnProperty(place);
+              return <div key={place} style={{ marginBottom: 4 }}>
+                <div style={{ ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.1em", marginBottom: 3 }}>{"\uD83D\uDCCD"} {place.toUpperCase()}{locked ? " \u2713" : ""}{loading ? " ..." : ""}</div>
+                {!locked && imgs.length > 0 && <div style={{ display: "flex", gap: 4, marginBottom: 3 }}>
+                  {imgs.map(function(img, i) { return (
+                    <div key={i} onClick={function() { setLockedLocationImages(function(prev) { var n = Object.assign({}, prev); n[place] = { img: img, placement: "auto" }; return n; }); }}
+                      style={{ width: 56, height: 42, overflow: "hidden", cursor: "pointer", border: "2px solid transparent", borderRadius: 3 }}>
+                      <img src={img.thumb || img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={function(e) { e.target.style.display = "none"; }} />
+                    </div>
+                  ); })}
+                </div>}
+                {locked && <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <img src={locked.img.thumb || locked.img.url} alt="" style={{ width: 20, height: 15, borderRadius: 2, objectFit: "cover" }} />
+                  <button onClick={function() { setLockedLocationImages(function(prev) { var n = Object.assign({}, prev); n[place] = { img: locked.img, placement: "cover" }; return n; }); }}
+                    style={{ padding: "2px 5px", border: "0.5px solid #ccc", background: locked.placement === "cover" ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: locked.placement === "cover" ? uiAccent : "#999" }}>Cover</button>
+                  <button onClick={function() { setLockedLocationImages(function(prev) { var n = Object.assign({}, prev); delete n[place]; return n; }); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 7, color: "#999" }}>{"\u2715"}</button>
+                </div>}
+              </div>;
+            })}
+          </div>}
+
+          {/* Wikidata stats */}
+          {wikidataStats && Object.keys(wikidataStats).filter(function(k) { return !k.endsWith("_qid"); }).length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "33", background: "#f8f8f8", padding: 6 }}>
+            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 3 }}>VERIFIED DATA</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {Object.keys(wikidataStats).filter(function(k) { return !k.endsWith("_qid"); }).map(function(key) { return (
+                <div key={key} style={{ textAlign: "center" }}>
+                  <div style={{ ...CP, fontSize: 10, color: uiAccent, fontWeight: 700 }}>{wikidataStats[key]}</div>
+                  <div style={{ ...CP, fontSize: 5, color: "#999" }}>{key}</div>
+                </div>
+              ); })}
+            </div>
+            {wikidataTimeline.length > 0 && <div style={{ marginTop: 4, borderTop: "0.5px solid #ddd", paddingTop: 3 }}>
+              <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>TIMELINE</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {wikidataTimeline.map(function(t, i) { return (
+                  <div key={i} style={{ ...CP, fontSize: 6, color: "#666" }}><span style={{ color: uiAccent, fontWeight: 700 }}>{t.year}</span> {t.event}</div>
+                ); })}
+              </div>
+            </div>}
+          </div>}
+
+          {/* Topic preview images — visual mood board */}
+          {(previewImages.length > 0 || previewLoading) && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "33", background: "#f8f8f8", padding: 6 }}>
+            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>IMAGE PREVIEW {previewLoading && <span style={{ animation: "pulse 1s infinite" }}>...</span>}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+              {previewImages.map(function(img, i) {
+                var roles = ["cover", "origin", "evidence", "hotTake", "closer"];
+                var roleLabels = ["Cover", "Origin", "Evidence", "Hot Take", "Closer"];
+                var lockedRole = null;
+                Object.keys(previewLocked).forEach(function(role) { if (previewLocked[role] && previewLocked[role].url === img.url) lockedRole = role; });
+                return <div key={i} style={{ textAlign: "center" }}>
+                  <div style={{ width: "100%", aspectRatio: "4/5", overflow: "hidden", borderRadius: 3, border: lockedRole ? "2px solid " + uiAccent : "1px solid #ddd", position: "relative" }}>
+                    <img src={img.thumb || img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={function(e) { e.target.style.display = "none"; }} />
+                    {lockedRole && <div style={{ position: "absolute", top: 2, right: 2, background: uiAccent, color: "#fff", ...CP, fontSize: 5, padding: "1px 3px", borderRadius: 2 }}>{lockedRole}</div>}
+                  </div>
+                  <div style={{ display: "flex", gap: 1, justifyContent: "center", marginTop: 2, flexWrap: "wrap" }}>
+                    {roles.map(function(role, ri) { return (
+                      <button key={role} onClick={function() {
+                        setPreviewLocked(function(prev) {
+                          var n = Object.assign({}, prev);
+                          if (n[role] && n[role].url === img.url) { delete n[role]; } else { n[role] = img; }
+                          return n;
+                        });
+                      }}
+                        style={{ padding: "1px 3px", border: "none", background: lockedRole === role ? uiAccent : "#eee", color: lockedRole === role ? "#fff" : "#999", cursor: "pointer", ...CP, fontSize: 4, borderRadius: 1 }}>{roleLabels[ri]}</button>
+                    ); })}
+                  </div>
+                  <div style={{ ...CP, fontSize: 4, color: "#999", marginTop: 1 }}>{img.source}</div>
+                </div>;
+              })}
+            </div>
+          </div>}
+
+          {/* Reverse image flow — drop an image to get topic suggestions */}
+          {droppedImage && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent, background: "#f8f8f8", padding: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <img src={droppedImage.preview} alt="" style={{ width: 40, height: 50, objectFit: "cover", borderRadius: 3 }} />
+              <div>
+                <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em" }}>IMAGE ANALYSIS {reverseLoading && <span style={{ animation: "pulse 1s infinite" }}>...</span>}</div>
+                <button onClick={function() { setDroppedImage(null); setReverseTopics([]); }}
+                  style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 6, color: "#999" }}>Remove</button>
+              </div>
+            </div>
+            {reverseTopics.map(function(rt, i) { return (
+              <div key={i} onClick={function() { setTopic(rt.topic); setPreviewLocked(function(prev) { return Object.assign({}, prev, { cover: { url: droppedImage.preview, thumb: droppedImage.preview, alt: "Uploaded", credit: "User", source: "Upload" } }); }); }}
+                style={{ padding: "3px 0", cursor: "pointer", borderBottom: i < reverseTopics.length - 1 ? "0.5px solid #eee" : "none" }}>
+                <div style={{ ...CP, fontSize: 9, color: "#333" }}>{rt.topic}</div>
+                <div style={{ ...CP, fontSize: 6, color: "#999" }}>{rt.hook}</div>
+              </div>
+            ); })}
           </div>}
 
           {/* Smart angles from Claude */}
@@ -2488,6 +3021,15 @@ export default function LoathrMediaGenerator() {
                 ); })}
               </div>
             </div>
+            <div style={{ marginTop: 8 }}>
+              <div style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", marginBottom: 4 }}>IMAGE STYLE</div>
+              <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                {Object.keys(IMAGE_STYLE_PRESETS).map(function(key) { var preset = IMAGE_STYLE_PRESETS[key]; return (
+                  <button key={key} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { imageStyle: key }); }); }}
+                    style={{ padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: editionPicks.imageStyle === key ? uiAccent + "22" : "transparent", color: editionPicks.imageStyle === key ? uiAccent : "var(--color-text-tertiary)", cursor: "pointer", ...CP, fontSize: 7 }}>{preset.label}</button>
+                ); })}
+              </div>
+            </div>
           </div>}
 
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
@@ -2600,6 +3142,10 @@ export default function LoathrMediaGenerator() {
       </div>}
 
       {cur && <div style={{ marginBottom: 18, textAlign: "center" }}>
+        {editionData && <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
+          <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.08em" }}>ISSUE {editionData.num} {"\u00b7"} {editionData.label}</div>
+          <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.08em" }}>{editionData.voice} {"\u00b7"} {editionData.angle} {"\u00b7"} {editionData.style}</div>
+        </div>}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", textTransform: "uppercase" }}>Slide {currentSlide + 1} / {total}</div>
           <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus); }} disabled={!!exportStatus}
