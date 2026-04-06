@@ -1361,7 +1361,7 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
   if (!p) return <div style={{ width: "100%", height: "100%", background: "#0a0a0a" }} />;
   var lastIdx = totalSlides - 1;
   var borderColor = slideIndex % 2 === 0 ? p.accent : p.accent2;
-  // 10-slide layout: Cover, Origin, Turning Point, Hot Take, Human, Evidence, Voice, Ripple, Now, Closer
+  // Dynamic layout (7-12 slides): Cover, Origin, Turning Point, Hot Take, Human, Evidence, Voice, Ripple, Counter, Deep Cut, Now, Closer
   var slide;
   if (slideIndex === lastIdx) slide = <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} index={slideIndex} />;
   else if (slideIndex === 0) slide = <S1Cover slide={slideData} category={category} images={images} edition={edition} index={slideIndex} />;
@@ -1981,7 +1981,7 @@ export default function LoathrMediaGenerator() {
       var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers, !!lockedPersonImage);
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 6000, messages: [{ role: "user", content: prompt }] }) });
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] }) });
       var d = await r.json();
       if (d.error) throw new Error(d.error.message || d.error);
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
