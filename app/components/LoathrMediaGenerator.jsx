@@ -1406,26 +1406,34 @@ function RecSlideRenderer({ category, slideData, slideIndex, totalSlides, images
 // --- SLIDE RENDERER ---
 function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, edition }) {
   if (!slideData || !category) return <div style={{ width: "100%", height: "100%", background: "#0a0a0a" }} />;
+  // Resolve cross-category lens — use lens palette for border, primary for cover/closer
+  var effectiveCat = category;
+  if (slideData.categoryLens && slideIndex > 0 && slideIndex < totalSlides - 1) {
+    var lensMatch = CATEGORIES.find(function(c) { return c.label === slideData.categoryLens || c.id === slideData.categoryLens.toLowerCase(); });
+    if (lensMatch && PALETTES[lensMatch.id]) effectiveCat = lensMatch.id;
+  }
   var p = PALETTES[category];
+  var lp = PALETTES[effectiveCat] || p;
   if (!p) return <div style={{ width: "100%", height: "100%", background: "#0a0a0a" }} />;
   var lastIdx = totalSlides - 1;
-  var borderColor = slideIndex % 2 === 0 ? p.accent : p.accent2;
-  // Dynamic layout (7-12 slides): Cover, Origin, Turning Point, Hot Take, Human, Evidence, Voice, Ripple, Counter, Deep Cut, Now, Closer
+  var borderColor = effectiveCat !== category ? lp.accent : (slideIndex % 2 === 0 ? p.accent : p.accent2);
   var slide;
   if (slideIndex === lastIdx) slide = <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} index={slideIndex} />;
   else if (slideIndex === 0) slide = <S1Cover slide={slideData} category={category} images={images} edition={edition} index={slideIndex} />;
-  else if (slideData.statFormat || slideData.stat || slideData.stats || slideData.before || slideData.leftStat) slide = <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
-  else if (slideData.quote) slide = <S6Purple slide={slideData} index={slideIndex} category={category} images={images} />;
+  else if (slideData.statFormat || slideData.stat || slideData.stats || slideData.before || slideData.leftStat) slide = <S4Emigre slide={slideData} index={slideIndex} category={effectiveCat} images={images} />;
+  else if (slideData.quote) slide = <S6Purple slide={slideData} index={slideIndex} category={effectiveCat} images={images} />;
   else {
-    // Rotate visual layouts across content slides
     var layouts = [S3RayGun, S5Face, S2Arena];
     var pick = (slideIndex - 1) % layouts.length;
     var Component = layouts[pick];
-    slide = <Component slide={slideData} index={slideIndex} category={category} images={images} />;
+    slide = <Component slide={slideData} index={slideIndex} category={effectiveCat} images={images} />;
   }
+  // Cross-category slides get a subtle lens indicator
+  var lensTag = effectiveCat !== category ? (CATEGORIES.find(function(c) { return c.id === effectiveCat; }) || {}).label : null;
   return (
-    <div style={{ width: "100%", height: "100%", border: "2px solid " + borderColor, overflow: "hidden" }}>
+    <div style={{ width: "100%", height: "100%", border: "2px solid " + borderColor, overflow: "hidden", position: "relative" }}>
       {slide}
+      {lensTag && <div style={{ position: "absolute", top: 4, right: 4, zIndex: 12, ...CP, fontSize: 4, letterSpacing: "0.1em", color: lp.accent, background: "rgba(0,0,0,0.6)", padding: "1px 4px", borderRadius: 2 }}>{lensTag.toUpperCase()}</div>}
     </div>
   );
 }
@@ -2090,13 +2098,27 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPe
     slideCountInstr = "DYNAMIC SLIDE COUNT: Decide the optimal number of slides (4-12) based on topic depth.\n- A narrow topic (one event, one person, one moment) \u2192 4-6 slides\n- A standard topic \u2192 7-9 slides\n- A broad topic (history of an era, cultural movement, complex system) \u2192 10-12 slides";
   }
 
-  // Cross-category lens instructions
+  // Cross-category lens instructions with editorial direction per category
+  var LENS_DIRECTIONS = {
+    "Film & TV": "How has this been documented, dramatized, or portrayed on screen? What documentary, film, or series exists about it? What would the Netflix pitch be? Think: streaming viewership, cultural representation, cinematic moments, director/creator angles.",
+    "Photography": "What is the visual story? How has this been captured or framed by photographers? Think: iconic images, visual culture, the gaze, documentation vs aesthetics, photo essays.",
+    "Sports × Culture": "What is the competitive or physical dimension? How does this connect to athletic performance, team dynamics, fan culture, or the business of sports? Think: stats, rivalries, endorsement deals, stadium culture, body/performance.",
+    "Did You Know?": "What are the most surprising, counterintuitive, or little-known facts? What stat would make someone stop scrolling? Think: unexpected numbers, myth-busting, hidden history, cognitive biases, trivia that reframes everything.",
+    "Art & Music": "How does this connect to artistic expression, sound, or creative movements? Think: album references, gallery shows, protest art, genre-defining moments, creative process, cultural movements, sampling/remixing.",
+    "Fashion": "How does this intersect with aesthetics, identity, and commerce? Think: brand collaborations, runway references, streetwear influence, uniforms-as-culture, merch economy, visual identity, what people wore and why it mattered.",
+    "Food & Drink": "What is the culinary or consumption angle? Think: recipes that went viral, restaurant economics, food as cultural identity, supply chains, specific dishes that tell a story, the business of taste.",
+    "Nightlife": "What happens after dark? Think: club culture, DJ sets, underground scenes, venue economics, the social dynamics of night spaces, music + space + crowd, after-parties that changed things.",
+    "The Tea": "What is the drama, controversy, or human mess? Think: feuds, receipts, public fallouts, social media moments, the story behind the headline, who said what to whom.",
+  };
+
   var crossCatInstr = "";
   if (secondaryCatLabel) {
-    crossCatInstr += "\n\nCROSS-CATEGORY LENS — SECONDARY: \"" + secondaryCatLabel + "\"\nAssign 2-3 slides to explore this topic through the lens of " + secondaryCatLabel + ". On these slides, add a field \"categoryLens\": \"" + secondaryCatLabel + "\" so the system can style them differently. Pick slide roles that naturally fit this lens (e.g. THE RIPPLE EFFECT, THE EVIDENCE, or THE HOT TAKE work well as cross-category perspectives).";
+    var secDir = LENS_DIRECTIONS[secondaryCatLabel] || "Explore this topic from the perspective of " + secondaryCatLabel + ".";
+    crossCatInstr += "\n\nCROSS-CATEGORY LENS — SECONDARY: \"" + secondaryCatLabel + "\" (2-3 slides)\n" + secDir + "\nOn these slides, add \"categoryLens\": \"" + secondaryCatLabel + "\". Best roles for this lens: THE RIPPLE EFFECT (unexpected consequence in " + secondaryCatLabel + "), THE EVIDENCE (stats from the " + secondaryCatLabel + " world), or THE HOT TAKE (provocative " + secondaryCatLabel + " opinion). The content must be SPECIFIC — name real brands, real events, real numbers from the " + secondaryCatLabel + " world. Not vague connections.";
   }
   if (tertiaryCatLabel) {
-    crossCatInstr += "\n\nCROSS-CATEGORY LENS — TERTIARY: \"" + tertiaryCatLabel + "\"\nAssign 1-2 slides to explore this topic through the lens of " + tertiaryCatLabel + ". On these slides, add a field \"categoryLens\": \"" + tertiaryCatLabel + "\". Choose roles like THE DEEP CUT or THE COUNTER — the unexpected angle from a completely different world.";
+    var terDir = LENS_DIRECTIONS[tertiaryCatLabel] || "Explore this topic from the perspective of " + tertiaryCatLabel + ".";
+    crossCatInstr += "\n\nCROSS-CATEGORY LENS — TERTIARY: \"" + tertiaryCatLabel + "\" (1-2 slides)\n" + terDir + "\nOn these slides, add \"categoryLens\": \"" + tertiaryCatLabel + "\". Best roles: THE DEEP CUT (niche insider knowledge from " + tertiaryCatLabel + ") or THE COUNTER (the " + tertiaryCatLabel + " world's opposing view). Must be SPECIFIC and surprising — the reader should think \"I never connected these two worlds.\"";
   }
 
   return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + "\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + wdInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
