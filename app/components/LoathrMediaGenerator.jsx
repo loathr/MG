@@ -1120,20 +1120,27 @@ var testApiConnection = async function(service, key) {
 
 // --- VINTAGE/PUBLIC DOMAIN IMAGE APIs (all free, no keys) ---
 
+var fetchWithTimeout = function(url, ms) {
+  return Promise.race([
+    fetch(url),
+    new Promise(function(_, reject) { setTimeout(function() { reject(new Error("timeout")); }, ms || 5000); })
+  ]);
+};
+
 var searchMetMuseum = async function(query) {
   try {
-    var r = await fetch("https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=" + encodeURIComponent(query));
+    var r = await fetchWithTimeout("https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=" + encodeURIComponent(query), 5000);
     if (!r.ok) return [];
     var d = await r.json();
-    var ids = (d.objectIDs || []).slice(0, 6);
+    var ids = (d.objectIDs || []).slice(0, 4);
     var results = [];
     for (var i = 0; i < ids.length; i++) {
       try {
-        var obj = await fetch("https://collectionapi.metmuseum.org/public/collection/v1/objects/" + ids[i]);
+        var obj = await fetchWithTimeout("https://collectionapi.metmuseum.org/public/collection/v1/objects/" + ids[i], 3000);
         var item = await obj.json();
         if (item.primaryImage) results.push({ url: item.primaryImage, thumb: item.primaryImageSmall || item.primaryImage, alt: item.title || query, credit: item.artistDisplayName || "Met Museum", source: "Met Museum" });
       } catch (e) { /* skip */ }
-      if (results.length >= 4) break;
+      if (results.length >= 3) break;
     }
     return results;
   } catch (e) { return []; }
@@ -1141,7 +1148,7 @@ var searchMetMuseum = async function(query) {
 
 var searchArtChicago = async function(query) {
   try {
-    var r = await fetch("https://api.artic.edu/api/v1/artworks/search?q=" + encodeURIComponent(query) + "&limit=6&fields=id,title,image_id,artist_title");
+    var r = await fetchWithTimeout("https://api.artic.edu/api/v1/artworks/search?q=" + encodeURIComponent(query) + "&limit=6&fields=id,title,image_id,artist_title");
     if (!r.ok) return [];
     var d = await r.json();
     return (d.data || []).filter(function(item) { return item.image_id; }).slice(0, 4).map(function(item) {
@@ -1152,7 +1159,7 @@ var searchArtChicago = async function(query) {
 
 var searchLibCongress = async function(query) {
   try {
-    var r = await fetch("https://www.loc.gov/search/?q=" + encodeURIComponent(query) + "&fo=json&fa=online-format:image&c=6");
+    var r = await fetchWithTimeout("https://www.loc.gov/search/?q=" + encodeURIComponent(query) + "&fo=json&fa=online-format:image&c=6");
     if (!r.ok) return [];
     var d = await r.json();
     return (d.results || []).filter(function(item) { return item.image_url && item.image_url.length > 0; }).slice(0, 4).map(function(item) {
@@ -1164,7 +1171,7 @@ var searchLibCongress = async function(query) {
 
 var searchNASA = async function(query) {
   try {
-    var r = await fetch("https://images-api.nasa.gov/search?q=" + encodeURIComponent(query) + "&media_type=image");
+    var r = await fetchWithTimeout("https://images-api.nasa.gov/search?q=" + encodeURIComponent(query) + "&media_type=image");
     if (!r.ok) return [];
     var d = await r.json();
     return (d.collection && d.collection.items || []).slice(0, 4).map(function(item) {
@@ -1177,7 +1184,7 @@ var searchNASA = async function(query) {
 
 var searchEuropeana = async function(query) {
   try {
-    var r = await fetch("https://api.europeana.eu/record/v2/search.json?query=" + encodeURIComponent(query) + "&rows=6&media=true&thumbnail=true&wskey=apidemo");
+    var r = await fetchWithTimeout("https://api.europeana.eu/record/v2/search.json?query=" + encodeURIComponent(query) + "&rows=6&media=true&thumbnail=true&wskey=apidemo");
     if (!r.ok) return [];
     var d = await r.json();
     return (d.items || []).filter(function(item) { return item.edmIsShownBy && item.edmIsShownBy[0]; }).slice(0, 4).map(function(item) {
@@ -1848,7 +1855,7 @@ export default function LoathrMediaGenerator() {
         <div style={{ marginTop: 18 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 8, textTransform: "uppercase" }}>All Slides</div>
           <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 8, paddingLeft: 2, paddingRight: 2 }}>
-            {cur.slides.map(function(slide, i) { return (
+            {cur.slides.map(function(slide, i) { if (!slide) return null; return (
               <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? uiAccent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
                 <div style={{ width: 340, height: 425, transform: "scale(0.2)", transformOrigin: "top left", pointerEvents: "none" }}>
                   {isRecMode ? <RecSlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} edition={editionData} />}
