@@ -232,7 +232,7 @@ function styleBody(text, accentColor, accent2Color) {
   var hitCount = 0;
   var parts = text.split(/(\b[A-Z][A-Z\s]{2,}[A-Z]\b)/g);
   return parts.map(function(part, i) {
-    if (/^[A-Z\s]+$/.test(part) && part.trim().length > 2) {
+    if (/^[A-Z\s]+$/.test(part) && part.trim().length > 2 && hitCount < 2) {
       var c = colors[hitCount % colors.length];
       hitCount++;
       return <span key={i} style={{ color: "#000000", fontWeight: 700, background: c, padding: "1px 4px", margin: "0 1px", display: "inline", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" }}>{part}</span>;
@@ -268,7 +268,7 @@ var FORMAL_CATS = { film: true, photo: true, sports: true, nightlife: true };
 function FormalFrame({ children, style, accent, accent2, seed }) {
   var variant = seed % 5;
   var bg = "rgba(0,0,0,0.8)";
-  var maxH = { maxHeight: 200, overflow: "hidden" };
+  var maxH = { maxHeight: 260, overflow: "hidden" };
 
   if (variant === 0) {
     // L-bracket frame — corner brackets only
@@ -338,11 +338,11 @@ function FormalFrame({ children, style, accent, accent2, seed }) {
 // Randomized frame position based on topic + slideIndex
 function getFramePosition(seed, slideIndex) {
   var positions = [
-    { bottom: M_BOT, left: M_SIDE, right: M_SIDE },          // bottom full
-    { bottom: M_BOT, left: M_SIDE, right: "50%" },            // bottom-left
-    { bottom: M_BOT, left: "40%", right: M_SIDE },            // bottom-right
-    { top: "45%", left: M_SIDE, right: "45%" },               // center-left
-    { top: "45%", left: "45%", right: M_SIDE },               // center-right
+    { bottom: M_BOT, left: M_SIDE, right: M_SIDE },           // bottom full
+    { bottom: M_BOT, left: M_SIDE, right: "45%" },            // bottom-left half
+    { bottom: M_BOT, left: "40%", right: M_SIDE },            // bottom-right half
+    { bottom: M_BOT + 10, left: M_SIDE, right: "35%" },       // bottom-left wider
+    { bottom: M_BOT + 10, left: "30%", right: M_SIDE },       // bottom-right wider
   ];
   var pick = (seed + slideIndex * 7) % positions.length;
   return positions[pick];
@@ -353,7 +353,7 @@ function BubbleBox({ children, style, accent, accent2, seed }) {
   var variant = seed % 7;
   var tailSide = seed % 2 === 0 ? "left" : "right";
   var rotation = (seed % 5 - 2) * 0.5;
-  var maxH = { maxHeight: 200, overflow: "hidden" };
+  var maxH = { maxHeight: 260, overflow: "hidden" };
 
   if (variant === 0) {
     // Speech bubble — rounded with triangle tail
@@ -567,7 +567,7 @@ function S1Cover({ slide, category, images, edition }) {
               <div style={{ ...CP, fontSize: 9, color: "#ffffffcc", letterSpacing: "0.1em", fontWeight: 700 }}>{CAT_LABELS[category]}</div>
               <div style={{ width: 8, height: 8, background: p.accent2 || p.accent }} />
             </div>
-            {slide.subtitle && <div style={{ ...WS, fontSize: 10.5, marginTop: 8, background: "linear-gradient(to right, " + p.accent + " 0%, " + p.accent + "cc 25%, " + (p.accent2 || p.accent) + "88 50%, " + (p.accent2 || p.accent) + "cc 75%, " + (p.accent2 || p.accent) + " 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{slide.subtitle}</div>}
+            {slide.subtitle && <div style={{ ...HD, fontSize: 10.5, marginTop: 8, color: "#ffffffcc", textTransform: "uppercase", letterSpacing: "0.05em" }}>{slide.subtitle}</div>}
           </div>
         </div>
       </ImgBg>
@@ -1355,7 +1355,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks) {
   ];
   var forcedStat = statFormats[(editionSeed || 0) % statFormats.length];
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": " + forcedStat + " Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": " + forcedStat + " Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
 }
 
 function buildRecPrompt(catLabel, topic) {
