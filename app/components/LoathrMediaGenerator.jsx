@@ -777,10 +777,24 @@ function SplitTextBox({ slide, position, accent, accent2, category, seed, styleB
 
 function getImg(images, idx) {
   if (!images) return null;
-  // Only return a direct match — no cycling, no fallback to other slides' images
-  // This prevents the same photo appearing on multiple slides with different filters
+  // Direct match first — always preferred
   if (images[idx] && images[idx].url) return images[idx].url;
-  return null;
+  // Smart fallback: find an image that isn't used by adjacent slides
+  // This ensures every slide has a background while minimizing visible repeats
+  var keys = Object.keys(images);
+  if (keys.length === 0) return null;
+  var adjUrls = {};
+  if (images[idx - 1] && images[idx - 1].url) adjUrls[images[idx - 1].url] = true;
+  if (images[idx + 1] && images[idx + 1].url) adjUrls[images[idx + 1].url] = true;
+  if (images[idx - 2] && images[idx - 2].url) adjUrls[images[idx - 2].url] = true;
+  // Pick a non-adjacent image
+  for (var ki = 0; ki < keys.length; ki++) {
+    var img = images[keys[ki]];
+    if (img && img.url && !adjUrls[img.url]) return img.url;
+  }
+  // Last resort: any image is better than no image
+  var first = images[keys[0]];
+  return first && first.url ? first.url : null;
 }
 
 // --- S1 COVER (Vibe / The Source) ---
