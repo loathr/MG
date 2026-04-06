@@ -1463,7 +1463,7 @@ export default function LoathrMediaGenerator() {
       var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks);
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000, messages: [{ role: "user", content: prompt }] }) });
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 6000, messages: [{ role: "user", content: prompt }] }) });
       var d = await r.json();
       if (d.error) throw new Error(d.error.message || d.error);
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
@@ -1473,7 +1473,18 @@ export default function LoathrMediaGenerator() {
       var jsonStart = cleaned.indexOf("{");
       var jsonEnd = cleaned.lastIndexOf("}");
       if (jsonStart >= 0 && jsonEnd > jsonStart) cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
-      var parsed = JSON.parse(cleaned);
+      // If JSON was truncated (no closing ]), try to close it
+      if (cleaned.indexOf('"slides"') !== -1 && !cleaned.endsWith("}")) {
+        var lastBrace = cleaned.lastIndexOf("}");
+        if (lastBrace > 0) cleaned = cleaned.slice(0, lastBrace + 1) + "]}";
+      }
+      var parsed;
+      try { parsed = JSON.parse(cleaned); } catch (je) {
+        // Try aggressive cleanup
+        cleaned = cleaned.replace(/,\s*$/, "");
+        if (!cleaned.endsWith("]}")) cleaned += "]}";
+        parsed = JSON.parse(cleaned);
+      }
       var results = [];
       if (parsed && parsed.slides) results.push(parsed);
       else if (Array.isArray(parsed) && parsed[0]) results.push(parsed[0]);
@@ -1822,7 +1833,7 @@ export default function LoathrMediaGenerator() {
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
           <div ref={slideRef} style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff", outline: "1.5px solid #000000", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
-            {isRecMode ? <RecSlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={cur.slides[currentSlide]} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
+            {isRecMode ? <RecSlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 14 }}>
