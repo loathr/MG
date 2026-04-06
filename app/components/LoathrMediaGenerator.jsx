@@ -1662,7 +1662,12 @@ export default function LoathrMediaGenerator() {
   var xcs = _s([]), crossCatSuggestions = xcs[0], setCrossCatSuggestions = xcs[1];
   var rcs = _s([]), recentTopics = rcs[0], setRecentTopics = rcs[1];
   var ths = _s([]), topicHistory = ths[0], setTopicHistory = ths[1];
+  var sas = _s([]), smartAngles = sas[0], setSmartAngles = sas[1];
+  var wrs = _s([]), webResults = wrs[0], setWebResults = wrs[1];
+  var sld = _s(false), isSearching = sld[0], setIsSearching = sld[1];
   var slideRef = _ref(null);
+  var searchTimer = _ref(null);
+  var webTimer = _ref(null);
   var abortRef = _ref(null);
 
   _ef(function() {
@@ -1749,6 +1754,58 @@ export default function LoathrMediaGenerator() {
     var result = await testApiConnection(service, apiKeys[service]);
     setApiStatus(function(p) { var n = {}; for (var k in p) n[k] = p[k]; n[service] = result; return n; });
   }, [apiKeys]);
+
+  // Smart search: Claude suggests angles after 800ms pause
+  var fetchSmartAngles = _cb(async function(query) {
+    if (!query || query.length < 4 || !category) return;
+    setIsSearching(true);
+    try {
+      var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 400, messages: [{ role: "user",
+          content: "Suggest 3 sharp, specific Instagram carousel angles for \"" + query + "\" in " + (cat ? cat.label : category) + ". Make them provocative, surprising, or niche. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why this angle works\"}]" }] }) });
+      var d = await r.json();
+      if (d.error) return;
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var cleaned = text.replace(/```json|```/g, "").trim();
+      var js = cleaned.indexOf("["); var je = cleaned.lastIndexOf("]");
+      if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
+      var parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) setSmartAngles(parsed.slice(0, 3));
+    } catch (e) { /* silent */ }
+    finally { setIsSearching(false); }
+  }, [category, cat]);
+
+  // Web search: find trending context after 1500ms pause
+  var fetchWebContext = _cb(async function(query) {
+    if (!query || query.length < 4 || !category) return;
+    try {
+      var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 400,
+          tools: [{ type: "web_search_20250305", name: "web_search" }],
+          messages: [{ role: "user", content: "Search for recent news and trends about \"" + query + "\" in " + (cat ? cat.label : category) + ". Find 3 timely, specific angles. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why trending now\",\"source\":\"publication\"}]" }] }) });
+      var d = await r.json();
+      if (d.error) return;
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var cleaned = text.replace(/```json|```/g, "").trim();
+      var js = cleaned.indexOf("["); var je = cleaned.lastIndexOf("]");
+      if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
+      var parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) setWebResults(parsed.slice(0, 3));
+    } catch (e) { /* silent */ }
+  }, [category, cat]);
+
+  // Debounced search trigger on topic input change
+  var triggerSearch = _cb(function(query) {
+    // Clear previous timers
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (webTimer.current) clearTimeout(webTimer.current);
+    setSmartAngles([]); setWebResults([]);
+    if (!query || query.length < 4) return;
+    // Smart angles after 800ms
+    searchTimer.current = setTimeout(function() { fetchSmartAngles(query); }, 800);
+    // Web search after 1500ms
+    webTimer.current = setTimeout(function() { fetchWebContext(query); }, 1500);
+  }, [fetchSmartAngles, fetchWebContext]);
 
   var cancelGenerate = _cb(function() {
     if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
@@ -1978,7 +2035,7 @@ export default function LoathrMediaGenerator() {
       {category && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-            <input value={topic} onChange={function(e) { var v = e.target.value; setTopic(v); setRefinedAngles([]); setSuggestions(filterSuggestions(v, category)); setCrossCatSuggestions(searchAllCategories(v, category)); }}
+            <input value={topic} onChange={function(e) { var v = e.target.value; setTopic(v); setRefinedAngles([]); setSuggestions(filterSuggestions(v, category)); setCrossCatSuggestions(searchAllCategories(v, category)); triggerSearch(v); }}
               placeholder={"Topic for " + cat.label + "..."}
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 12, ...CP }} />
             {!isGenerating ? (
@@ -2009,6 +2066,30 @@ export default function LoathrMediaGenerator() {
             {crossCatSuggestions.map(function(x, i) { return (
               <button key={i} onClick={function() { setCategory(x.category); setTopic(x.topic); setSuggestions([]); setCrossCatSuggestions([]); }}
                 style={{ padding: "2px 6px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>{x.topic} <span style={{ color: uiAccent, fontSize: 6 }}>({x.category})</span></button>
+            ); })}
+          </div>}
+
+          {/* Smart angles from Claude */}
+          {(smartAngles.length > 0 || isSearching) && <div style={{ marginBottom: 6, border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)", padding: 6 }}>
+            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>SMART ANGLES {isSearching && <span style={{ animation: "pulse 1s infinite" }}>...</span>}</div>
+            {smartAngles.map(function(a, i) { return (
+              <div key={i} onClick={function() { setTopic(a.topic); setSmartAngles([]); setWebResults([]); setSuggestions([]); }}
+                style={{ padding: "4px 0", cursor: "pointer", borderBottom: i < smartAngles.length - 1 ? "0.5px solid var(--color-border-tertiary)" : "none" }}>
+                <div style={{ ...CP, fontSize: 9, color: "var(--color-text-primary)" }}>{a.topic}</div>
+                <div style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)", marginTop: 1 }}>{a.hook}</div>
+              </div>
+            ); })}
+          </div>}
+
+          {/* Web trending context */}
+          {webResults.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "33", background: "var(--color-background-secondary)", padding: 6 }}>
+            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>TRENDING NOW</div>
+            {webResults.map(function(w, i) { return (
+              <div key={i} onClick={function() { setTopic(w.topic); setSmartAngles([]); setWebResults([]); setSuggestions([]); }}
+                style={{ padding: "4px 0", cursor: "pointer", borderBottom: i < webResults.length - 1 ? "0.5px solid var(--color-border-tertiary)" : "none" }}>
+                <div style={{ ...CP, fontSize: 9, color: "var(--color-text-primary)" }}>{w.topic}</div>
+                <div style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)", marginTop: 1 }}>{w.hook} {w.source && <span style={{ color: uiAccent + "88" }}>{w.source}</span>}</div>
+              </div>
             ); })}
           </div>}
 
