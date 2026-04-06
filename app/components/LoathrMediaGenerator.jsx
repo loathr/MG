@@ -2113,7 +2113,7 @@ export default function LoathrMediaGenerator() {
     try {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 600, messages: [{ role: "user",
-          content: "For the topic \"" + query + "\" in " + (cat ? cat.label : category) + ":\n1. Suggest 3 sharp carousel angles\n2. Identify ALL famous people connected to this topic. Resolve nicknames/stage names to full names (e.g. \"Ye\" = Kanye West, \"MJ\" = Michael Jordan, \"Bey\" = Beyoncé, \"Drake\" = Aubrey Drake Graham).\n3. Identify key locations, cities, or landmarks central to the topic.\n\nRespond ONLY with JSON (no extra text):\n{\"angles\":[{\"topic\":\"title\",\"hook\":\"why\"}],\"persons\":[\"Full Name\"],\"locations\":[\"Place Name\"]}\nUse empty arrays if none: \"persons\":[],\"locations\":[]" }] }) });
+          content: "For the topic \"" + query + "\" in " + (cat ? cat.label : category) + ":\n1. Suggest 3 sharp carousel angles\n2. Identify ALL famous people connected to this topic. Resolve nicknames/stage names to full names (e.g. \"Ye\" = Kanye West, \"MJ\" = Michael Jordan, \"Bey\" = Beyoncé, \"Drake\" = Aubrey Drake Graham).\n3. ONLY if the topic explicitly mentions or is ABOUT a specific place, city, venue, or landmark, include it. Do NOT include birthplaces or loosely associated locations — only places that are the SUBJECT of the topic.\n\nRespond ONLY with JSON (no extra text):\n{\"angles\":[{\"topic\":\"title\",\"hook\":\"why\"}],\"persons\":[\"Full Name\"],\"locations\":[\"Place Name\"]}\nUse empty arrays if none: \"persons\":[],\"locations\":[]" }] }) });
       var d = await r.json();
       if (d.error) { console.error("Smart angles API error:", d.error); return; }
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
@@ -2190,9 +2190,12 @@ export default function LoathrMediaGenerator() {
 
   // Debounced search trigger on topic input change
   // Fetch preview images for topic (debounced)
+  var previewPage = _ref(1);
   var fetchPreviewImages = _cb(async function(query) {
     if (!query || query.length < 3 || !category) return;
     setPreviewLoading(true);
+    var page = previewPage.current;
+    previewPage.current = page + 1; // next call gets different page
     try {
       var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
       var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
@@ -2200,14 +2203,18 @@ export default function LoathrMediaGenerator() {
       var catLabel = cat ? cat.label : category;
       var results = [];
       if (unsplashKey) {
-        try { var us = await searchUnsplash(catLabel + " " + keywords, unsplashKey); results = results.concat(us.slice(0, 4)); } catch (e) {}
+        try {
+          var ur = await fetch("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(catLabel + " " + keywords) + "&per_page=6&page=" + page + "&orientation=portrait", { headers: { Authorization: "Client-ID " + unsplashKey } });
+          if (ur.ok) { var ud = await ur.json(); results = results.concat((ud.results || []).map(function(img) { return { url: img.urls ? img.urls.regular : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; }).slice(0, 4)); }
+        } catch (e) {}
       }
       if (pexelsKey && results.length < 4) {
-        try { var px = await searchPexels(catLabel + " " + keywords, pexelsKey); results = results.concat(px.slice(0, 4 - results.length)); } catch (e) {}
+        try {
+          var pr = await fetch("https://api.pexels.com/v1/search?query=" + encodeURIComponent(catLabel + " " + keywords) + "&per_page=4&page=" + page + "&orientation=portrait", { headers: { Authorization: pexelsKey } });
+          if (pr.ok) { var pd = await pr.json(); results = results.concat((pd.photos || []).map(function(img) { return { url: img.src ? img.src.large : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; }).slice(0, 4 - results.length)); }
+        } catch (e) {}
       }
-      // Add vintage for variety
       try { var vi = await searchVintage(category, keywords); results = results.concat(vi.slice(0, 2)); } catch (e) {}
-      // Deduplicate
       var seen = {};
       results = results.filter(function(r) { if (!r.url || seen[r.url]) return false; seen[r.url] = true; return true; });
       setPreviewImages(results.slice(0, 6));
@@ -2242,6 +2249,7 @@ export default function LoathrMediaGenerator() {
     if (webTimer.current) clearTimeout(webTimer.current);
     if (previewTimer.current) clearTimeout(previewTimer.current);
     setSmartAngles([]); setWebResults([]); setPreviewImages([]); setWikidataStats(null); setWikidataTimeline([]); setPersonNetwork({});
+    previewPage.current = 1; // reset page counter for new topic
     // Clear all locked images from previous topic so they don't carry over
     setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({});
     lockedRef.current = {};
@@ -2936,23 +2944,34 @@ export default function LoathrMediaGenerator() {
             </div>}
           </div>}
 
-          {/* Reverse image flow — drop an image to get topic suggestions */}
+          {/* Uploaded image — use as cover + topic suggestions */}
           {droppedImage && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent, background: "#f8f8f8", padding: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-              <img src={droppedImage.preview} alt="" style={{ width: 40, height: 50, objectFit: "cover", borderRadius: 3 }} />
-              <div>
-                <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em" }}>IMAGE ANALYSIS {reverseLoading && <span style={{ animation: "pulse 1s infinite" }}>...</span>}</div>
-                <button onClick={function() { setDroppedImage(null); setReverseTopics([]); }}
-                  style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 6, color: "#999" }}>Remove</button>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
+              <img src={droppedImage.preview} alt="" style={{ width: 56, height: 70, objectFit: "cover", borderRadius: 3, border: "1px solid " + uiAccent + "44" }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>UPLOADED IMAGE {reverseLoading && <span style={{ animation: "pulse 1s infinite" }}>...</span>}</div>
+                <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginBottom: 3 }}>
+                  <button onClick={function() {
+                    var uploadImg = { url: droppedImage.preview, thumb: droppedImage.preview, alt: "Uploaded", credit: "User", source: "Upload" };
+                    setPreviewLocked(function(prev) { return Object.assign({}, prev, { cover: uploadImg }); });
+                  }}
+                    style={{ padding: "3px 8px", border: "0.5px solid " + uiAccent, background: previewLocked.cover && previewLocked.cover.source === "Upload" ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent, fontWeight: previewLocked.cover && previewLocked.cover.source === "Upload" ? 700 : 400 }}>
+                    {previewLocked.cover && previewLocked.cover.source === "Upload" ? "\u2713 Cover" : "Use as Cover"}</button>
+                  <button onClick={function() { setDroppedImage(null); setReverseTopics([]); setPreviewLocked(function(prev) { var n = Object.assign({}, prev); if (n.cover && n.cover.source === "Upload") delete n.cover; return n; }); }}
+                    style={{ padding: "3px 8px", border: "0.5px solid #ccc", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#999" }}>Remove</button>
+                </div>
               </div>
             </div>
-            {reverseTopics.map(function(rt, i) { return (
-              <div key={i} onClick={function() { setTopic(rt.topic); setPreviewLocked(function(prev) { return Object.assign({}, prev, { cover: { url: droppedImage.preview, thumb: droppedImage.preview, alt: "Uploaded", credit: "User", source: "Upload" } }); }); }}
-                style={{ padding: "3px 0", cursor: "pointer", borderBottom: i < reverseTopics.length - 1 ? "0.5px solid #eee" : "none" }}>
-                <div style={{ ...CP, fontSize: 9, color: "#333" }}>{rt.topic}</div>
-                <div style={{ ...CP, fontSize: 6, color: "#999" }}>{rt.hook}</div>
-              </div>
-            ); })}
+            {reverseTopics.length > 0 && <div style={{ borderTop: "0.5px solid #eee", paddingTop: 4 }}>
+              <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 3 }}>SUGGESTED TOPICS</div>
+              {reverseTopics.map(function(rt, i) { return (
+                <div key={i} onClick={function() { setTopic(rt.topic); }}
+                  style={{ padding: "3px 0", cursor: "pointer", borderBottom: i < reverseTopics.length - 1 ? "0.5px solid #eee" : "none" }}>
+                  <div style={{ ...CP, fontSize: 9, color: "#333" }}>{rt.topic}</div>
+                  <div style={{ ...CP, fontSize: 6, color: "#999" }}>{rt.hook}</div>
+                </div>
+              ); })}
+            </div>}
           </div>}
 
           {/* Smart angles from Claude */}
