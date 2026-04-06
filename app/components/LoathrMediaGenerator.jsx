@@ -699,9 +699,10 @@ var STAT_LAYOUTS = [
 
 // --- S4 STAT (5 formats: comparison, killer, story, versus, timeline) ---
 function S4Emigre({ slide, index, category, images }) {
+  if (!slide) return <div style={{ width: "100%", height: "100%", background: "#0a0a0a" }} />;
   var p = PALETTES[category];
   var url = getImg(images, index);
-  var fmt = slide.statFormat || (slide.stat2 ? "comparison" : "killer");
+  var fmt = slide.statFormat || (slide.before ? "comparison" : slide.stats ? "story" : slide.left ? "versus" : slide.year && slide.context ? "timeline" : slide.stat2 ? "comparison" : "killer");
 
   // Format A: Comparison (before → after)
   if (fmt === "comparison") {
@@ -1050,6 +1051,7 @@ function RecShortlist({ slide, category, images }) {
 
 // Rec Slide Renderer
 function RecSlideRenderer({ category, slideData, slideIndex, totalSlides, images }) {
+  if (!slideData || !category) return <div style={{ width: "100%", height: "100%", background: "#0a0a0a" }} />;
   var p = PALETTES[category];
   var borderColor = slideIndex % 2 === 0 ? p.accent : p.accent2;
   var slide;
@@ -1067,7 +1069,9 @@ function RecSlideRenderer({ category, slideData, slideIndex, totalSlides, images
 
 // --- SLIDE RENDERER ---
 function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, edition }) {
+  if (!slideData || !category) return <div style={{ width: "100%", height: "100%", background: "#0a0a0a" }} />;
   var p = PALETTES[category];
+  if (!p) return <div style={{ width: "100%", height: "100%", background: "#0a0a0a" }} />;
   var lastIdx = totalSlides - 1;
   var borderColor = slideIndex % 2 === 0 ? p.accent : p.accent2;
   // 10-slide layout: Cover, Origin, Turning Point, Hot Take, Human, Evidence, Voice, Ripple, Now, Closer
@@ -1512,9 +1516,9 @@ export default function LoathrMediaGenerator() {
           var shortTopic = topic.split(" ").slice(0, 3).join(" ");
           var stockImgs = await searchFn(catInfo.label + " " + shortTopic, key);
           // Vintage images in parallel
-          setImgStatus("Adding vintage media...");
           var vintageImgs = [];
           try { vintageImgs = await searchVintage(category, shortTopic); } catch (ve) {}
+          if (vintageImgs.length > 0) setImgStatus("Adding vintage media...");
           // INTERLEAVE stock and vintage for visual variety
           var imgs = [];
           var si = 0, vi = 0;
