@@ -1639,65 +1639,7 @@ var fetchWikidataEntity = async function(topic) {
   } catch (e) { console.error("Wikidata fetch error:", e); return null; }
 };
 
-// Resolve Wikidata QIDs to human-readable labels (batch)
-var resolveQids = async function(qids) {
-  if (!qids || qids.length === 0) return {};
-  try {
-    var r = await fetchWithTimeout("https://www.wikidata.org/w/api.php?action=wbgetentities&ids=" + qids.join("|") + "&props=labels&languages=en&format=json&origin=*", 5000);
-    if (!r.ok) return {};
-    var d = await r.json();
-    var labels = {};
-    if (d.entities) Object.keys(d.entities).forEach(function(qid) {
-      var e = d.entities[qid];
-      labels[qid] = e.labels && e.labels.en ? e.labels.en.value : qid;
-    });
-    return labels;
-  } catch (e) { return {}; }
-};
 
-// Format large numbers readably
-var formatBigNum = function(numStr) {
-  var n = parseFloat(numStr);
-  if (isNaN(n)) return numStr;
-  if (Math.abs(n) >= 1e12) return (n / 1e12).toFixed(1) + "T";
-  if (Math.abs(n) >= 1e9) return (n / 1e9).toFixed(1) + "B";
-  if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(1) + "M";
-  if (Math.abs(n) >= 1e3) return (n / 1e3).toFixed(1) + "K";
-  return numStr;
-};
-
-// Properties to extract from Wikidata — grouped by type
-var WD_NUMBERS = {
-  // Financial
-  P2139: "Revenue", P2218: "Net income", P2295: "Net worth", P2142: "Box office",
-  // People/org size
-  P1082: "Population", P1128: "Employees", P2196: "Students",
-  // Measurements
-  P2046: "Area", P2044: "Elevation", P2048: "Height", P2067: "Weight",
-  // Media stats
-  P2403: "Plays", P2397: "Followers", P1114: "Quantity", P1087: "Rating",
-  // Sports
-  P1350: "Games played", P1351: "Goals scored", P6509: "Total wins",
-  P1352: "Matches", P555: "Team members",
-  // Music/film
-  P2635: "Copies sold", P3402: "Total episodes", P1113: "Seasons",
-};
-var WD_DATES = { P569: "Born", P570: "Died", P571: "Founded", P576: "Dissolved", P577: "Published", P1191: "First performance", P6949: "Announcement" };
-var WD_ENTITIES = {
-  // Identity
-  P106: "Occupation", P27: "Citizenship", P17: "Country", P19: "Birthplace",
-  // Career
-  P108: "Employer", P264: "Record label", P449: "Network", P39: "Position", P102: "Political party",
-  P69: "Educated at", P101: "Field",
-  // Creative
-  P136: "Genre", P135: "Movement", P170: "Creator", P175: "Performer",
-  P57: "Director", P86: "Composer", P162: "Producer", P58: "Screenwriter",
-  // Sports
-  P54: "Team", P413: "Position played", P118: "League",
-  // Relationships
-  P26: "Spouse", P22: "Father", P25: "Mother",
-};
-var WD_COUNTS = { P166: "Awards", P1411: "Nominations", P800: "Notable works", P1346: "Winners", P161: "Cast members", P527: "Parts" };
 
 var extractWikidataStats = async function(entity) {
   if (!entity || !entity.claims) return {};
@@ -2048,7 +1990,7 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
 };
 
 // --- DIFFERENTIATED PROMPTS ---
-function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPersonImage, wdStats, wdTimeline, secondaryCatLabel, tertiaryCatLabel) {
+function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPersonImage, secondaryCatLabel, tertiaryCatLabel) {
   var p = picks || { persona: -1, angle: -1, style: -1, emphasis: "balanced" };
   var persona = p.persona >= 0 ? PERSONAS[p.persona] : pickPersona(editionSeed || 0);
   var freshness = p.angle >= 0 ? FRESHNESS_SEEDS[p.angle] : pickFreshness(editionSeed || 0);
@@ -2060,17 +2002,6 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPe
   else if (emph === "timeline") emphasisInstr = "\nEMPHASIS: Lean heavily into chronological narrative. Include specific years on as many slides as possible. Frame each slide as a distinct era or moment in time.";
   else if (emph === "narrative") emphasisInstr = "\nEMPHASIS: Lean heavily into storytelling. Every slide should read like a chapter. Use scene-setting, character, conflict, and resolution across the carousel.";
   else if (emph === "data") emphasisInstr = "\nEMPHASIS: Lean heavily into data and evidence. Include specific numbers, percentages, or statistics on every slide possible. Let the data drive the narrative.";
-
-  // Inject Wikidata structured data when available
-  var wdInstr = "";
-  if (wdStats && Object.keys(wdStats).length > 0) {
-    var statPairs = Object.keys(wdStats).filter(function(k) { return k.charAt(0) !== "_"; }).map(function(k) { return k + ": " + wdStats[k]; }).join(", ");
-    wdInstr += "\nVERIFIED DATA (from Wikidata — use these REAL numbers instead of approximations): " + statPairs;
-  }
-  if (wdTimeline && wdTimeline.length > 0) {
-    var tlItems = wdTimeline.map(function(t) { return t.year + " — " + t.event; }).join(", ");
-    wdInstr += "\nVERIFIED TIMELINE: " + tlItems + "\nUse these exact dates for THE TURNING POINT slide and any timeline references.";
-  }
 
   // Apply modifier instructions
   var modInstr = "";
@@ -2121,7 +2052,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks, activeModifiers, hasPe
     crossCatInstr += "\n\nCROSS-CATEGORY LENS — TERTIARY: \"" + tertiaryCatLabel + "\" (1-2 slides)\n" + terDir + "\nOn these slides, add \"categoryLens\": \"" + tertiaryCatLabel + "\". Best roles: THE DEEP CUT (niche insider knowledge from " + tertiaryCatLabel + ") or THE COUNTER (the " + tertiaryCatLabel + " world's opposing view). Must be SPECIFIC and surprising — the reader should think \"I never connected these two worlds.\"";
   }
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + "\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + wdInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + "\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + modInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -2222,11 +2153,8 @@ export default function LoathrMediaGenerator() {
   var dim = _s(null), droppedImage = dim[0], setDroppedImage = dim[1];
   var rti = _s([]), reverseTopics = rti[0], setReverseTopics = rti[1];
   var rvl = _s(false), reverseLoading = rvl[0], setReverseLoading = rvl[1];
-  // --- Wikidata enrichment ---
-  var wds = _s(null), wikidataStats = wds[0], setWikidataStats = wds[1];
-  var wdt = _s([]), wikidataTimeline = wdt[0], setWikidataTimeline = wdt[1];
+  // --- Wikidata enrichment (network only) ---
   var pnw = _s({}), personNetwork = pnw[0], setPersonNetwork = pnw[1]; // { "Name": [{ name, relation, img }] }
-  var nwl = _s(false), networkLoading = nwl[0], setNetworkLoading = nwl[1];
   var slideRef = _ref(null);
   // Post-generation image swap
   var swp = _s(null), swapSlide = swp[0], setSwapSlide = swp[1]; // slide index being swapped
@@ -2367,18 +2295,6 @@ export default function LoathrMediaGenerator() {
             if (network.length > 0) setPersonNetwork(function(prev) { var n = Object.assign({}, prev); n[name] = network; return n; });
           }).catch(function() {});
         });
-        // Fetch Wikidata stats for the first detected person (or the topic)
-        fetchWikidataEntity(names[0]).then(async function(entity) {
-          if (entity) {
-            var stats = await extractWikidataStats(entity);
-            if (entity.description) stats._description = entity.description;
-            if (entity.extract) stats._extract = entity.extract;
-            if (entity.label) stats._label = entity.label;
-            setWikidataStats(stats);
-            var tl = await extractWikidataTimeline(entity);
-            setWikidataTimeline(tl);
-          }
-        }).catch(function() {});
       } else { setPersonsDetected([]); setPersonImages({}); setPersonNetwork({}); }
       // Location detection
       if (parsed.locations && Array.isArray(parsed.locations) && parsed.locations.length > 0) {
@@ -2391,20 +2307,6 @@ export default function LoathrMediaGenerator() {
           }).catch(function() {});
         });
       } else { setLocationsDetected([]); setLocationImages({}); }
-      // Fetch Wikidata for the topic itself if no persons detected
-      if (!parsed.persons || parsed.persons.length === 0) {
-        fetchWikidataEntity(query).then(async function(entity) {
-          if (entity) {
-            var stats = await extractWikidataStats(entity);
-            if (entity.description) stats._description = entity.description;
-            if (entity.extract) stats._extract = entity.extract;
-            if (entity.label) stats._label = entity.label;
-            setWikidataStats(stats);
-            var tl = await extractWikidataTimeline(entity);
-            setWikidataTimeline(tl);
-          }
-        }).catch(function() {});
-      }
     } catch (e) { console.error("Smart angles error:", e); }
     finally { setIsSearching(false); }
   }, [category, cat]);
@@ -2488,7 +2390,7 @@ export default function LoathrMediaGenerator() {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (webTimer.current) clearTimeout(webTimer.current);
     if (previewTimer.current) clearTimeout(previewTimer.current);
-    setSmartAngles([]); setWebResults([]); setPreviewImages([]); setWikidataStats(null); setWikidataTimeline([]); setPersonNetwork({});
+    setSmartAngles([]); setWebResults([]); setPreviewImages([]); setPersonNetwork({});
     previewPage.current = 1; // reset page counter for new topic
     // Clear person/location locks from previous topic
     setLockedPersonImages({}); setLockedLocationImages({});
@@ -2614,7 +2516,7 @@ export default function LoathrMediaGenerator() {
       if (controller.signal.aborted) throw new Error("Generation cancelled");
       var secInfo = secondaryCategory ? CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) : null;
       var terInfo = tertiaryCategory ? CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) : null;
-      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers, Object.keys(lockedRef.current || {}).length > 0, wikidataStats, wikidataTimeline, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null);
+      var prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, modifiers, Object.keys(lockedRef.current || {}).length > 0, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null);
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] }) });
@@ -3150,53 +3052,6 @@ export default function LoathrMediaGenerator() {
                 </div>}
               </div>;
             })}
-          </div>}
-
-          {/* Wikidata verified data */}
-          {wikidataStats && Object.keys(wikidataStats).filter(function(k) { return k.charAt(0) !== "_"; }).length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "33", background: "#f8f8f8", padding: 8 }}>
-            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 2 }}>VERIFIED DATA</div>
-            {/* Bio line from Wikidata description + Wikipedia extract */}
-            {wikidataStats._label && <div style={{ marginBottom: 6 }}>
-              <div style={{ ...FN, fontSize: 11, color: "#333", lineHeight: 1.2 }}>{wikidataStats._label}</div>
-              {wikidataStats._description && <div style={{ ...CP, fontSize: 7, color: uiAccent, marginTop: 1 }}>{wikidataStats._description}</div>}
-              {wikidataStats._extract && <div style={{ ...HD, fontSize: 7, color: "#555", marginTop: 3, lineHeight: 1.4, maxHeight: 42, overflow: "hidden" }}>{wikidataStats._extract.split(". ").slice(0, 2).join(". ")}.</div>}
-            </div>}
-            {/* Numbers row — big stats */}
-            {(function() {
-              var numKeys = Object.keys(wikidataStats).filter(function(k) { return k.charAt(0) !== "_" && (/^\d|^[$€£]/.test(wikidataStats[k]) || /Population|Revenue|Net worth|Box office|Employees|Students|Awards|Nominations|Notable works|Area|Rating|Plays|Followers|Games|Goals|Wins|Copies|Episodes|Seasons|Members|Parts|Cast|Weight|Height|Elevation/.test(k)); });
-              if (numKeys.length === 0) return null;
-              return <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 6, paddingBottom: 6, borderBottom: "0.5px solid #eee" }}>
-                {numKeys.map(function(key) { return (
-                  <div key={key} style={{ textAlign: "center", minWidth: 40 }}>
-                    <div style={{ ...FN, fontSize: 14, color: uiAccent, fontWeight: 700, lineHeight: 1.1 }}>{wikidataStats[key]}</div>
-                    <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 1, textTransform: "uppercase", letterSpacing: "0.05em" }}>{key}</div>
-                  </div>
-                ); })}
-              </div>;
-            })()}
-            {/* Info rows — text data */}
-            {(function() {
-              var textKeys = Object.keys(wikidataStats).filter(function(k) { return k.charAt(0) !== "_" && !/^\d|^[$€£]/.test(wikidataStats[k]) && !/Population|Revenue|Net worth|Box office|Employees|Students|Awards|Nominations|Notable works|Area|Rating|Plays|Followers|Games|Goals|Wins|Copies|Episodes|Seasons|Members|Parts|Cast|Weight|Height|Elevation/.test(k); });
-              if (textKeys.length === 0) return null;
-              return <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: wikidataTimeline.length > 0 ? 0 : 0 }}>
-                {textKeys.map(function(key) { return (
-                  <div key={key} style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
-                    <div style={{ ...CP, fontSize: 6, color: "#999", minWidth: 65, textAlign: "right", flexShrink: 0 }}>{key}</div>
-                    <div style={{ ...CP, fontSize: 7, color: "#333" }}>{wikidataStats[key]}</div>
-                  </div>
-                ); })}
-              </div>;
-            })()}
-            {/* Timeline */}
-            {wikidataTimeline.length > 0 && <div style={{ marginTop: 6, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
-              <div style={{ ...CP, fontSize: 5, color: uiAccent, letterSpacing: "0.1em", marginBottom: 3 }}>TIMELINE</div>
-              {wikidataTimeline.slice(0, 10).map(function(t, i) { return (
-                <div key={i} style={{ display: "flex", gap: 6, alignItems: "baseline", marginBottom: 2 }}>
-                  <div style={{ ...CP, fontSize: 8, color: uiAccent, fontWeight: 700, minWidth: 50, textAlign: "right", flexShrink: 0 }}>{t.date || t.year}</div>
-                  <div style={{ ...CP, fontSize: 7, color: "#333" }}>{t.event}{t.detail ? " — " + t.detail : ""}</div>
-                </div>
-              ); })}
-            </div>}
           </div>}
 
           {/* Topic preview images — only show after Smart Angles has context */}
