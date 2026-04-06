@@ -189,12 +189,18 @@ function formatTitle(title, color) {
   return <>{words.slice(0, cut).join(" ")} <Accent color={color}>{words.slice(cut).join(" ")}</Accent></>;
 }
 
-// Cover-only: highlight last key word/phrase in accent color, no underline, keep on one line
-function formatCoverTitle(title, accentColor, textColor) {
+// Cover-only: highlight Claude's chosen word/phrase in accent color
+function formatCoverTitle(title, accentColor, highlightWord) {
   if (!title) return "";
+  if (highlightWord && title.indexOf(highlightWord) !== -1) {
+    var idx = title.indexOf(highlightWord);
+    var before = title.slice(0, idx);
+    var after = title.slice(idx + highlightWord.length);
+    return <>{before}<span style={{ color: accentColor, whiteSpace: "nowrap" }}>{highlightWord}</span>{after}</>;
+  }
+  // Fallback: highlight last 1-2 words if Claude didn't specify
   var words = title.split(" ");
   if (words.length <= 2) return <span style={{ color: accentColor }}>{title}</span>;
-  // Highlight just the last 1-2 words in accent color
   var highlightCount = words.length > 5 ? 2 : 1;
   var mainWords = words.slice(0, words.length - highlightCount).join(" ");
   var accentWords = words.slice(words.length - highlightCount).join(" ");
@@ -559,7 +565,7 @@ function S1Cover({ slide, category, images, edition }) {
         <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
           <div style={{ textAlign: "center" }}>
             <div style={{ ...FN, fontSize: slide.title && slide.title.length > 35 ? 24 : 30, color: p.text, lineHeight: 1.1, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }}>
-              {formatCoverTitle(slide.title, p.accent, p.text)}
+              {formatCoverTitle(slide.title, p.accent, slide.titleHighlight)}
             </div>
             <div style={{ height: 3, background: "linear-gradient(to right, transparent, " + p.accent + ", transparent)", margin: "12px auto", width: "60%" }} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8 }}>
@@ -1355,7 +1361,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks) {
   ];
   var forcedStat = statFormats[(editionSeed || 0) % statFormats.length];
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": " + forcedStat + " Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + emphasisInstr + "\n\nCreate a 10-SLIDE editorial carousel. This is a magazine issue — each slide has a SPECIFIC editorial role. NEVER repeat information between slides. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nSLIDE STRUCTURE:\n- Slide 0 \"COVER\": title (compelling, not generic), titleHighlight (the single most impactful word or short phrase from the title to visually emphasize — must be an exact substring of the title), subtitle (one evocative sentence), heading (sub-topic tag)\n- Slide 1 \"THE ORIGIN\": The backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- Slide 2 \"THE TURNING POINT\": The single moment that changed everything. heading, year (REQUIRED like \"1973\"), body, highlight, sources. Timeline tone.\n- Slide 3 \"THE HOT TAKE\": A provocative opinion or uncomfortable truth. heading, body (SHORT, punchy, 2 sentences max), highlight, sources. Hot Take tone.\n- Slide 4 \"THE HUMAN STORY\": A specific person, decision, or conflict at the center. heading, body, highlight, sources. Deep Dive tone.\n- Slide 5 \"THE EVIDENCE\": " + forcedStat + " Include sources.\n- Slide 6 \"THE VOICE\": A powerful quote from someone who lived it. quote, source (person name), sources.\n- Slide 7 \"THE RIPPLE EFFECT\": An unexpected consequence — how this impacted culture, money, or identity. heading, body, highlight, sources. Deep Dive tone.\n- Slide 8 \"THE NOW\": Where this stands today + a prediction or challenge. heading, body (provocative), highlight, sources. Hot Take tone.\n- Slide 9 \"CLOSER\": hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations like 'MIT, 2023' or 'via The Guardian'.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\",\"slides\":[{...10 slides...}]}";
 }
 
 function buildRecPrompt(catLabel, topic) {
