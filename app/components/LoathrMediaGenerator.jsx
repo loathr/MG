@@ -2304,6 +2304,7 @@ export default function LoathrMediaGenerator() {
   var hov = _s(null), hoverStyle = hov[0], setHoverStyle = hov[1];
   // --- Custom Story mode ---
   var csm = _s(false), customStoryMode = csm[0], setCustomStoryMode = csm[1];
+  var cfl = _s("editorial"), creativeFreedom = cfl[0], setCreativeFreedom = cfl[1];
   var csn = _s(""), customSubject = csn[0], setCustomSubject = csn[1];
   var csh = _s(""), customHook = csh[0], setCustomHook = csh[1];
   var csc = _s(""), customContext = csc[0], setCustomContext = csc[1];
@@ -2936,7 +2937,23 @@ export default function LoathrMediaGenerator() {
       var sc = editionPicks.slideCount || 0;
       var slideCountInstr = sc >= 4 && sc <= 12 ? "Generate EXACTLY " + sc + " slides (including Cover and Closer)." + (sc <= 5 ? " With only " + sc + " slides: Cover, " + (sc - 2) + " content slide" + (sc > 3 ? "s" : "") + ", Closer. Every slide must be high-impact." : "") : "Generate 4-12 slides based on how much context is provided. Thin context = fewer slides, rich context = more.";
       var imgRoles = customImages.map(function(ci, i) { return "Image " + (i + 1) + ": assigned to \"" + ci.role + "\""; }).join("\n");
-      var customPrompt = "You are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catInfo.label + "\"\n\nCUSTOM STORY MODE — this is an ORIGINAL story not yet on the internet.\n\nSubject: \"" + customSubject + "\"\n" + (customHook ? "Hook: \"" + customHook + "\"\n" : "") + "\nRAW CONTEXT (from the user — this is your ONLY source material, do not fabricate additional facts):\n" + customContext + "\n\n" + slideCountInstr + "\n\nThe user has uploaded " + customImages.length + " image(s):\n" + imgRoles + "\n\nIMPORTANT RULES:\n- Write ONLY from the context provided. Do not add facts, dates, or claims not in the raw context.\n- Editorialize the raw material — find the narrative arc, the tension, the hook.\n- You may reframe, highlight, and dramatize what's there, but never fabricate.\n- If the context is thin, use fewer slides and make each one count.\n- Keep body text to 2-3 sentences MAX per slide.\n\nSLIDE ROLES (adapt to fit the story):\n- COVER — title, titleHighlight, subtitle\n- Content slides — heading, body, highlight, textPosition\n- THE EVIDENCE — stat/number slide if any numbers exist in the context. Use statFormat \"killer\" with stat and caption.\n- THE VOICE — quote slide if any quotes exist. quote, source fields.\n- CLOSER — hashtags string\n\nFor design: choose textPosition per slide from: bottom-left, bottom-right, top-left, top-right, split-corners, side-left, side-right, l-shape\n\nRespond ONLY with valid JSON:\n{\"angle\":\"Custom Story\",\"slides\":[{...slides...}]}";
+      // Creative freedom levels
+      var freedomInstr = "";
+      if (creativeFreedom === "strict") {
+        freedomInstr = "CREATIVE FREEDOM: STRICT\n- Write ONLY from the context provided. Zero embellishment.\n- Do not add facts, dates, claims, or details not explicitly in the raw context.\n- If the context is thin, use fewer slides rather than inventing content.";
+      } else if (creativeFreedom === "editorial") {
+        freedomInstr = "CREATIVE FREEDOM: EDITORIAL\n- Reframe and dramatize what's in the context. Add editorial voice, vivid language, and metaphors.\n- Do NOT add new facts, but you may add emotional framing, rhetorical questions, and perspective.\n- Find the narrative arc, tension, and hook in the raw material.";
+      } else if (creativeFreedom === "expanded") {
+        freedomInstr = "CREATIVE FREEDOM: EXPANDED\n- Use the context as your foundation, but fill gaps with plausible editorial color.\n- You may add sensory details (what the scene looked/felt/sounded like), cultural context, and reasonable assumptions.\n- If context says 'opened a restaurant in Lagos' you can describe the neighborhood energy, the aroma, the crowd.\n- Stay directionally true — never contradict the context, but enrich it.";
+      } else if (creativeFreedom === "creative") {
+        freedomInstr = "CREATIVE FREEDOM: CREATIVE\n- Take the context as a starting point and build a full editorial narrative.\n- You may add invented details, scene-setting, dialogue-style moments, and speculative commentary.\n- Write as if you're a magazine journalist who visited, interviewed, and experienced the subject.\n- The context gives you the skeleton — you add the flesh, the voice, the world around it.\n- This is editorial storytelling, not journalism. Be vivid and cinematic.";
+      }
+      // Tone from edition settings
+      var toneId = editionPicks.tone || "editorial";
+      var toneObj = TONES.find(function(t) { return t.id === toneId; });
+      var toneInstr = toneObj ? "\nTONE: " + toneObj.prompt : "";
+      var customVoiceInstr = editionPicks.customVoice ? "\nCUSTOM VOICE: " + editionPicks.customVoice : "";
+      var customPrompt = "You are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catInfo.label + "\"\n\nCUSTOM STORY MODE — this is an ORIGINAL story not yet on the internet.\n\nSubject: \"" + customSubject + "\"\n" + (customHook ? "Hook: \"" + customHook + "\"\n" : "") + "\nRAW CONTEXT (from the user):\n" + customContext + "\n\n" + freedomInstr + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\n\nThe user has uploaded " + customImages.length + " image(s):\n" + imgRoles + "\n\nKeep body text to 2-3 sentences MAX per slide.\n\nSLIDE ROLES (adapt to fit the story):\n- COVER — title, titleHighlight, subtitle\n- Content slides — heading, body, highlight, textPosition\n- THE EVIDENCE — stat/number slide if any numbers exist in the context. Use statFormat \"killer\" with stat and caption.\n- THE VOICE — quote slide if any quotes exist. quote, source fields.\n- CLOSER — hashtags string\n- On 1 content slide where it fits, add \"mosaic\": true for a photo collage background.\n\nFor design: choose textPosition per slide from: bottom-left, bottom-right, top-left, top-right, split-corners, side-left, side-right, l-shape\n\nRespond ONLY with valid JSON:\n{\"angle\":\"Custom Story\",\"slides\":[{...slides...}]}";
 
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
@@ -3005,7 +3022,7 @@ export default function LoathrMediaGenerator() {
       else { setImgStatus("No supporting images found"); }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
-  }, [customSubject, customHook, customContext, customImages, category, apiKeys, editionPicks, genCount]);
+  }, [customSubject, customHook, customContext, customImages, category, apiKeys, editionPicks, genCount, creativeFreedom]);
 
   var generateRec = _cb(async function() {
     if (!topic.trim() || !category) return;
@@ -3168,6 +3185,28 @@ export default function LoathrMediaGenerator() {
           style={{ width: "100%", padding: "8px 10px", border: "0.5px solid #ccc", marginBottom: 8, ...CP, fontSize: 9, color: "#333", lineHeight: 1.5, resize: "vertical", background: "#fff" }} />
 
         {/* Image uploads */}
+        {/* Creative freedom level */}
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>CREATIVE FREEDOM</div>
+          <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+            {[
+              { id: "strict", label: "Strict", desc: "Only facts from your context" },
+              { id: "editorial", label: "Editorial", desc: "Dramatize + reframe, no new facts" },
+              { id: "expanded", label: "Expanded", desc: "Fill gaps with plausible details" },
+              { id: "creative", label: "Creative", desc: "Full narrative from your starting point" },
+            ].map(function(level) { return (
+              <button key={level.id} onClick={function() { setCreativeFreedom(level.id); }}
+                style={{ padding: "3px 8px", border: "0.5px solid " + (creativeFreedom === level.id ? uiAccent : "#ccc"), background: creativeFreedom === level.id ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: creativeFreedom === level.id ? uiAccent : "#999", borderRadius: 2 }}>{level.label}</button>
+            ); })}
+          </div>
+          <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 2 }}>
+            {creativeFreedom === "strict" ? "Claude uses only what you wrote. Nothing added." :
+             creativeFreedom === "editorial" ? "Claude adds voice, metaphors, and framing. No invented facts." :
+             creativeFreedom === "expanded" ? "Claude fills gaps with sensory details and cultural context." :
+             "Claude builds a full story from your context. Editorial fiction."}
+          </div>
+        </div>
+
         <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>IMAGES ({customImages.length} uploaded{customImages.length === 0 ? " — at least 1 required for cover" : ""})</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
           {customImages.map(function(ci, i) { return (
