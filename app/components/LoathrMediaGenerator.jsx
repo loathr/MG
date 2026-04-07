@@ -410,7 +410,7 @@ function MosaicBg({ urls, pal, children, category, slideIndex, darken }) {
   var areaNames = ["a", "b", "c", "d"];
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: pal.bg }}>
-      <div style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: layout.cols, gridTemplateRows: layout.rows, gridTemplateAreas: layout.areas, gap: 2 }}>
+      <div style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: layout.cols, gridTemplateRows: layout.rows, gridTemplateAreas: layout.areas, gap: 2, background: "#ffffff" }}>
         {areaNames.slice(0, layout.count).map(function(area, ai) {
           var imgUrl = urls[ai] || null;
           var urlSeed = 0;
@@ -2277,6 +2277,10 @@ export default function LoathrMediaGenerator() {
   var csh = _s(""), customHook = csh[0], setCustomHook = csh[1];
   var csc = _s(""), customContext = csc[0], setCustomContext = csc[1];
   var csi = _s([]), customImages = csi[0], setCustomImages = csi[1]; // [{ preview, base64, mimeType, role }]
+  // --- Post-generation editor ---
+  var edm = _s(false), editMode = edm[0], setEditMode = edm[1];
+  var edf = _s(null), editField = edf[0], setEditField = edf[1]; // { slide: idx, field: "heading"|"body"|etc }
+  var edv = _s(""), editValue = edv[0], setEditValue = edv[1];
   var searchTimer = _ref(null);
   var webTimer = _ref(null);
   var previewTimer = _ref(null);
@@ -2609,6 +2613,91 @@ export default function LoathrMediaGenerator() {
   }, []);
 
   // Fact-checker — reviews generated content for accuracy
+  // --- Editor functions ---
+  var updateSlideField = _cb(function(slideIdx, field, value) {
+    setOptions(function(prev) {
+      if (!prev || !prev[selectedOption]) return prev;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[selectedOption]);
+      var slides = opt.slides.slice();
+      slides[slideIdx] = Object.assign({}, slides[slideIdx]);
+      slides[slideIdx][field] = value;
+      opt.slides = slides;
+      newOpts[selectedOption] = opt;
+      return newOpts;
+    });
+  }, [selectedOption]);
+
+  var commitEdit = _cb(function() {
+    if (editField) { updateSlideField(editField.slide, editField.field, editValue); }
+    setEditField(null); setEditValue("");
+  }, [editField, editValue, updateSlideField]);
+
+  var startEdit = _cb(function(slideIdx, field, currentValue) {
+    setEditField({ slide: slideIdx, field: field });
+    setEditValue(currentValue || "");
+  }, []);
+
+  var deleteSlide = _cb(function(slideIdx) {
+    setOptions(function(prev) {
+      if (!prev || !prev[selectedOption]) return prev;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[selectedOption]);
+      var slides = opt.slides.slice();
+      slides.splice(slideIdx, 1);
+      opt.slides = slides;
+      newOpts[selectedOption] = opt;
+      return newOpts;
+    });
+    if (currentSlide >= slideIdx && currentSlide > 0) setCurrentSlide(currentSlide - 1);
+  }, [selectedOption, currentSlide]);
+
+  var duplicateSlide = _cb(function(slideIdx) {
+    setOptions(function(prev) {
+      if (!prev || !prev[selectedOption]) return prev;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[selectedOption]);
+      var slides = opt.slides.slice();
+      slides.splice(slideIdx + 1, 0, Object.assign({}, slides[slideIdx]));
+      opt.slides = slides;
+      newOpts[selectedOption] = opt;
+      return newOpts;
+    });
+  }, [selectedOption]);
+
+  var moveSlide = _cb(function(fromIdx, toIdx) {
+    if (toIdx < 0 || !options || !options[selectedOption]) return;
+    setOptions(function(prev) {
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[selectedOption]);
+      var slides = opt.slides.slice();
+      if (toIdx >= slides.length) return prev;
+      var item = slides.splice(fromIdx, 1)[0];
+      slides.splice(toIdx, 0, item);
+      opt.slides = slides;
+      newOpts[selectedOption] = opt;
+      return newOpts;
+    });
+    setCurrentSlide(toIdx);
+  }, [selectedOption, options]);
+
+  var cycleTextPosition = _cb(function(slideIdx) {
+    var positions = ["bottom-left", "bottom-right", "top-left", "top-right", "split-corners", "side-left", "side-right", "l-shape"];
+    setOptions(function(prev) {
+      if (!prev || !prev[selectedOption]) return prev;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[selectedOption]);
+      var slides = opt.slides.slice();
+      slides[slideIdx] = Object.assign({}, slides[slideIdx]);
+      var curPos = slides[slideIdx].textPosition || "bottom-left";
+      var curIdx = positions.indexOf(curPos);
+      slides[slideIdx].textPosition = positions[(curIdx + 1) % positions.length];
+      opt.slides = slides;
+      newOpts[selectedOption] = opt;
+      return newOpts;
+    });
+  }, [selectedOption]);
+
   var factCheck = _cb(async function() {
     var cur = options ? options[selectedOption] : null;
     if (!cur || !cur.slides) return;
@@ -3974,10 +4063,67 @@ export default function LoathrMediaGenerator() {
           <button onClick={factCheck} disabled={factCheckLoading}
             style={{ padding: "4px 10px", border: "0.5px solid #ccc", background: factCheckResult ? (factCheckResult.score >= 7 ? "#22c55e22" : "#ef444422") : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: factCheckResult ? (factCheckResult.score >= 7 ? "#22c55e" : "#ef4444") : "#999" }}>
             {factCheckLoading ? "Checking..." : factCheckResult ? factCheckResult.score + "/10" : "\u2713 Fact Check"}</button>
+          <button onClick={function() { setEditMode(!editMode); setEditField(null); }}
+            style={{ padding: "4px 10px", border: "0.5px solid " + (editMode ? uiAccent : "#ccc"), background: editMode ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: editMode ? uiAccent : "#999" }}>
+            {editMode ? "\u2713 Done Editing" : "\u270E Edit"}</button>
           <button onClick={function() { generate(); }}
             style={{ padding: "4px 10px", border: "0.5px solid " + uiAccent, background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent }}>
             {"\u21BB"} Regenerate</button>
         </div>
+        {/* Editor panel — slide editing controls */}
+        {editMode && cur && <div style={{ marginTop: 6, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8, borderRadius: 3 }}>
+          {/* Inline field editor */}
+          {editField ? <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 6, color: uiAccent, marginBottom: 3 }}>EDITING: Slide {editField.slide + 1} — {editField.field}</div>
+            {editField.field === "body" || editField.field === "context" ? (
+              <textarea value={editValue} onChange={function(e) { setEditValue(e.target.value); }}
+                rows={3} style={{ width: "100%", padding: "4px 8px", border: "0.5px solid " + uiAccent, ...CP, fontSize: 8, color: "#333", resize: "vertical", background: "#fff" }} />
+            ) : (
+              <input value={editValue} onChange={function(e) { setEditValue(e.target.value); }}
+                style={{ width: "100%", padding: "4px 8px", border: "0.5px solid " + uiAccent, ...CP, fontSize: 8, color: "#333", background: "#fff" }} />
+            )}
+            <div style={{ display: "flex", gap: 3, marginTop: 3 }}>
+              <button onClick={commitEdit} style={{ padding: "2px 8px", background: uiAccent, color: "#fff", border: "none", cursor: "pointer", ...CP, fontSize: 6 }}>Apply</button>
+              <button onClick={function() { setEditField(null); }} style={{ padding: "2px 8px", background: "transparent", border: "0.5px solid #ccc", cursor: "pointer", ...CP, fontSize: 6, color: "#999" }}>Cancel</button>
+            </div>
+          </div> : <div style={{ ...CP, fontSize: 6, color: "#999", marginBottom: 4 }}>Click a field below to edit</div>}
+          {/* Editable fields for current slide */}
+          {(function() {
+            var s = cur.slides[currentSlide] || {};
+            var fields = [];
+            if (currentSlide === 0) { fields = [["title", s.title], ["subtitle", s.subtitle], ["titleHighlight", s.titleHighlight]]; }
+            else if (currentSlide === total - 1) { fields = [["hashtags", s.hashtags]]; }
+            else if (s.quote) { fields = [["quote", s.quote], ["source", s.source]]; }
+            else if (s.stat) { fields = [["heading", s.heading], ["stat", s.stat], ["caption", s.caption || s.statLabel || s.body]]; }
+            else { fields = [["heading", s.heading], ["body", s.body], ["highlight", s.highlight]]; }
+            return <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+              {fields.map(function(f) { return f[1] ? (
+                <button key={f[0]} onClick={function() { startEdit(currentSlide, f[0], f[1]); }}
+                  style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: editField && editField.field === f[0] ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ color: uiAccent }}>{f[0]}</span>: {String(f[1]).slice(0, 20)}{String(f[1]).length > 20 ? "..." : ""}
+                </button>
+              ) : null; })}
+            </div>;
+          })()}
+          {/* Slide operations */}
+          <div style={{ display: "flex", gap: 3, marginTop: 6, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
+            <button onClick={function() { cycleTextPosition(currentSlide); }}
+              style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
+              {"\u2B12"} Layout: {(cur.slides[currentSlide] || {}).textPosition || "auto"}</button>
+            <button onClick={function() { duplicateSlide(currentSlide); }}
+              style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
+              {"\u2398"} Duplicate</button>
+            {currentSlide > 0 && currentSlide < total - 1 && <button onClick={function() { deleteSlide(currentSlide); }}
+              style={{ padding: "2px 6px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#ef4444" }}>
+              {"\u2715"} Delete</button>}
+            {currentSlide > 1 && <button onClick={function() { moveSlide(currentSlide, currentSlide - 1); }}
+              style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
+              {"\u2191"} Move Up</button>}
+            {currentSlide < total - 2 && currentSlide > 0 && <button onClick={function() { moveSlide(currentSlide, currentSlide + 1); }}
+              style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
+              {"\u2193"} Move Down</button>}
+          </div>
+        </div>}
         {/* Fact-check results */}
         {factCheckResult && factCheckResult.issues && factCheckResult.issues.length > 0 && <div style={{ marginTop: 6, border: "0.5px solid " + (factCheckResult.score >= 7 ? "#22c55e44" : "#ef444444"), background: "#f8f8f8", padding: 6, borderRadius: 3 }}>
           <div style={{ ...CP, fontSize: 6, color: factCheckResult.score >= 7 ? "#22c55e" : "#ef4444", marginBottom: 3 }}>{factCheckResult.summary}</div>
@@ -4040,17 +4186,6 @@ export default function LoathrMediaGenerator() {
         </div>
       </div>}
 
-      {/* Favorite + Share buttons */}
-      {options && topic && <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 8 }}>
-        <button onClick={function() { toggleFavorite(topic, category); }}
-          style={{ padding: "4px 10px", border: "0.5px solid var(--color-border-tertiary)", background: isFavorited(topic, category) ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: isFavorited(topic, category) ? uiAccent : "var(--color-text-tertiary)" }}>
-          {isFavorited(topic, category) ? "\u2605 Favorited" : "\u2606 Favorite"}
-        </button>
-        <button onClick={generateShareLink}
-          style={{ padding: "4px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>
-          {shareLink ? "\u2713 Link copied" : "\u21E7 Share"}
-        </button>
-      </div>}
 
       {/* Topic chain breadcrumb */}
       {topicChain.length > 1 && <div style={{ display: "flex", gap: 2, flexWrap: "wrap", justifyContent: "center", marginBottom: 8, alignItems: "center" }}>
