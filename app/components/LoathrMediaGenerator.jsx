@@ -3153,6 +3153,14 @@ export default function LoathrMediaGenerator() {
           </div>
         </div>
 
+        {/* Custom voice for original story */}
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.1em", marginBottom: 3 }}>CUSTOM VOICE <span style={{ fontSize: 5, color: "#bbb" }}>(optional)</span></div>
+          <input value={editionPicks.customVoice || ""} onChange={function(e) { setEditionPicks(function(p) { return Object.assign({}, p, { customVoice: e.target.value }); }); }}
+            placeholder='e.g. "Write like a Lagos food blogger" or "Sound like GQ travel editor"'
+            style={{ width: "100%", padding: "4px 8px", border: "0.5px solid #ccc", ...CP, fontSize: 7, color: "#333", background: "#fff" }} />
+        </div>
+
         <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>IMAGES ({customImages.length} uploaded{customImages.length === 0 ? " — at least 1 required for cover" : ""})</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
           {customImages.map(function(ci, i) { return (
