@@ -2540,18 +2540,34 @@ export default function LoathrMediaGenerator() {
     if (!category) return;
     setIsFetchingTrending(true); setTrending([]);
     var catContext = { film: "film, TV, cinema, streaming, directing", photo: "photography, cameras, visual storytelling", sports: "sports with music, fashion, art, culture", trivia: "surprising facts, science discoveries, cultural oddities", art: "music, visual arts, album releases, art history", fashion: "fashion, luxury brands, streetwear, designers, runway, style trends", food: "food, restaurants, chefs, cocktails, dining culture, culinary trends", nightlife: "nightlife, clubs, DJs, bars, parties, after-dark culture", gossip: "celebrity gossip, entertainment news, scandals, Hollywood drama, influencer culture" };
+    // Enterprise and News Desk get segment-specific trending prompts
+    var promptText;
+    if (category === "enterprise") {
+      var forceCtx = enterpriseForce ? (ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) || {}).label : "business and industry";
+      promptText = "Search for the most impactful trending business and industry stories right now related to: " + forceCtx + ". Focus on how industries are being disrupted, market shifts, policy changes, and emerging opportunities. Find 6 specific timely topics suitable for analytical Instagram carousels. Also suggest 2-3 deeper angles from your own knowledge that people aren't searching for yet. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why this matters for business\"}]";
+    } else if (category === "newsdesk") {
+      var regionCtx = newsRegion !== "global" ? " in " + (NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }) || {}).label : "";
+      var countryCtx = newsCountry ? " specifically in " + newsCountry : "";
+      var filterCtx = newsFilter ? " focusing on " + (NEWSDESK_FILTERS.find(function(f) { return f.id === newsFilter; }) || {}).label + " news" : "";
+      promptText = "Search for the top trending news stories right now" + regionCtx + countryCtx + filterCtx + ". Find 6 specific current stories that are making headlines. Include the publication source for each. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why trending now\",\"source\":\"publication\"}]";
+    } else {
+      promptText = "Search for trending topics in: " + (catContext[category] || category) + ". Find 6 specific timely topics for Instagram carousels. Also add 2 deeper angles from your own knowledge that aren't trending yet but should be. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why trending now\"}]";
+    }
     try {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000,
           tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{ role: "user", content: "Search for trending topics in: " + catContext[category] + ". Find 6 specific timely topics for Instagram carousels. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why trending now\"}]" }] }) });
+          messages: [{ role: "user", content: promptText }] }) });
       var d = await r.json();
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
-      var parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+      var cleaned = text.replace(/```json|```/g, "").trim();
+      var js = cleaned.indexOf("["); var je = cleaned.lastIndexOf("]");
+      if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
+      var parsed = JSON.parse(cleaned);
       if (Array.isArray(parsed)) setTrending(parsed);
     } catch (err) { console.error(err); }
     finally { setIsFetchingTrending(false); }
-  }, [category]);
+  }, [category, enterpriseForce, newsFilter, newsRegion, newsCountry]);
 
   // Smart search: Claude suggests angles after 800ms pause
   var fetchSmartAngles = _cb(async function(query) {
@@ -4204,10 +4220,16 @@ export default function LoathrMediaGenerator() {
           </div>}
 
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
-            <button onClick={fetchTrending} disabled={isFetchingTrending} style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Flame size={11} />{isFetchingTrending ? "..." : "Trending"}</button>
-            <button onClick={function() { setShuffleKey(function(k) { return k + 1; }); }} style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Shuffle size={11} />Shuffle</button>
-            <button onClick={surpriseMe} style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Zap size={11} />Surprise</button>
-            {topic.trim() && <button onClick={refineTopic} disabled={isRefining} style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Sparkles size={11} />{isRefining ? "..." : "Refine"}</button>}
+            <button onClick={fetchTrending} disabled={isFetchingTrending}
+              style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)" }}>
+              <Flame size={11} />{isFetchingTrending ? "..." : activeSegment === "newsdesk" ? "Top Stories" : "Trending"}</button>
+            {activeSegment === "editorial" && <button onClick={function() { setShuffleKey(function(k) { return k + 1; }); }}
+              style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Shuffle size={11} />Shuffle</button>}
+            {activeSegment === "editorial" && <button onClick={surpriseMe}
+              style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Zap size={11} />Surprise</button>}
+            {topic.trim() && <button onClick={refineTopic} disabled={isRefining}
+              style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)" }}>
+              <Sparkles size={11} />{isRefining ? "..." : "Refine"}</button>}
           </div>
           {refinedAngles.length > 0 && <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
             {refinedAngles.map(function(r, i) { return (
@@ -4221,15 +4243,16 @@ export default function LoathrMediaGenerator() {
           {trending.length > 0 && <div style={{ marginBottom: 10 }}>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
               <button onClick={function() { setTrending([]); }}
-                style={{ padding: "4px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 8, color: "var(--color-text-tertiary)" }}>
-                {"\u2190"} Back to topics
+                style={{ padding: "4px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 8, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)" }}>
+                {"\u2190"} Back
               </button>
             </div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {trending.map(function(t, i) { return (
-                <button key={i} onClick={function() { setTopic(t.topic); setRefinedAngles([]); }}
-                  style={{ padding: "6px 12px", border: "1px solid " + uiAccent + "44", background: uiAccent + "08", cursor: "pointer", ...CP, fontSize: 10, color: uiAccent }} title={t.hook}>
-                  <Flame size={9} style={{ display: "inline", marginRight: 4, verticalAlign: "middle" }} />{t.topic}
+                <button key={i} onClick={function() { setTopic(t.topic); setRefinedAngles([]); setTrending([]); }}
+                  style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : uiAccent + "44"), background: activeSegment === "enterprise" ? "#ffffff08" : activeSegment === "newsdesk" ? "#1a1a1a06" : uiAccent + "08", cursor: "pointer", ...CP, fontSize: 9, textAlign: "left", color: activeSegment === "enterprise" ? "#ddd" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent }}>
+                  <div style={{ fontWeight: 700 }}>{t.topic}</div>
+                  <div style={{ fontSize: 6, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : uiAccent + "88", marginTop: 1 }}>{t.hook}{t.source ? " — " + t.source : ""}</div>
                 </button>); })}
             </div>
           </div>}
