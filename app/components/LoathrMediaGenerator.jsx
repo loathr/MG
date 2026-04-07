@@ -752,12 +752,14 @@ function StickyNote({ children, style, accent, accent2, seed }) {
   var rotation = (seed % 7 - 3) * 0.6; // -1.8 to 1.8 deg
   var isLight = seed % 3 === 0;
   var bg = isLight ? "#f5f0e8" : "#1a1a1a";
-  var textCol = isLight ? "#1a1a1a" : "#ffffffe6";
+  var textCol = isLight ? "#1a1a1a" : "#f5f0e8";
+  // All StickyNote variants need explicit color since text inherits "inherit" from parent
+  var baseStyle = { color: textCol };
 
   if (variant === 0) {
     // Classic Post-it with folded corner
     return (
-      <div style={Object.assign({}, { position: "relative", background: bg, padding: "12px 12px 12px 12px", transform: "rotate(" + rotation + "deg)", boxShadow: "3px 3px 8px rgba(0,0,0,0.4)" }, style || {})}>
+      <div style={Object.assign({}, { position: "relative", background: bg, color: textCol, padding: "12px 12px 12px 12px", transform: "rotate(" + rotation + "deg)", boxShadow: "3px 3px 8px rgba(0,0,0,0.4)" }, style || {})}>
         <div style={{ position: "absolute", top: 0, right: 0, width: 0, height: 0, borderStyle: "solid", borderWidth: "0 16px 16px 0", borderColor: "transparent #0a0a0a transparent transparent" }} />
         <div style={{ position: "absolute", top: 0, right: 0, width: 0, height: 0, borderStyle: "solid", borderWidth: "0 14px 14px 0", borderColor: "transparent " + accent + "33 transparent transparent" }} />
         <div style={{ color: textCol }}>{children}</div>
@@ -877,73 +879,80 @@ function SplitTextBox({ slide, position, accent, accent2, category, seed, styleB
   var highlightEl = slide.highlight ? <div style={{ marginTop: 4 }}><span style={{ ...WS, fontSize: 5.3, fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "2px 6px" }}>{slide.highlight}</span></div> : null;
   var citeEl = <MicroCite sources={slide.sources} accent={accent} />;
 
-  // If customPosition is set, render as a single box at that position (overrides split)
-  if (slide.customPosition) {
-    return <div style={{ position: "absolute", top: slide.customPosition.top, left: slide.customPosition.left, zIndex: 3, maxWidth: "60%" }}>
-      {wrapFrame(<div>{headingEl}<div style={{ marginTop: 4 }}>{bodyEl}</div>{highlightEl}{citeEl}</div>, seed)}
-    </div>;
+  // Per-element position offsets from customPosition
+  var cp = slide.customPosition && typeof slide.customPosition === "object" ? slide.customPosition : {};
+  var headingOffset = cp.heading || { top: 0, left: 0 };
+  var bodyOffset = cp.body || { top: 0, left: 0 };
+  var highlightOffset = cp.highlight || { top: 0, left: 0 };
+  function applyOffset(baseStyle, offset) {
+    if (!offset.top && !offset.left) return baseStyle;
+    return Object.assign({}, baseStyle, { top: (parseInt(baseStyle.top) || 0) + offset.top, left: (parseInt(baseStyle.left) || 0) + offset.left, bottom: "auto", right: "auto" });
   }
 
   // Split-corners: heading top-left, body bottom-right
   if (pos === "split-corners") {
+    var hStyle = { position: "absolute", top: M_TOP + headingOffset.top, left: M_SIDE + headingOffset.left, right: "50%", zIndex: 3 };
+    var bStyle = headingOffset.top || headingOffset.left || bodyOffset.top || bodyOffset.left
+      ? { position: "absolute", top: 280 + bodyOffset.top, left: 120 + bodyOffset.left, maxWidth: "60%", zIndex: 3 }
+      : { position: "absolute", bottom: M_BOT, left: "35%", right: M_SIDE, zIndex: 3 };
     return <>
-      <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: "50%", zIndex: 3 }}>
+      <div style={hStyle}>
         {wrapFrame(<div>{headingEl}{citeEl}</div>, seed)}
       </div>
-      <div style={{ position: "absolute", bottom: M_BOT, left: "35%", right: M_SIDE, zIndex: 3 }}>
+      <div style={bStyle}>
         {wrapFrame(<div>{bodyEl}{highlightEl}</div>, seed + 1)}
       </div>
     </>;
   }
 
   // Side-left: heading and body stacked on left, right stays open
+  // Helper: apply nudge offset as CSS transform
+  function nudge(el, offset) { return (offset.top || offset.left) ? { transform: "translate(" + (offset.left || 0) + "px," + (offset.top || 0) + "px)" } : {}; }
+
   if (pos === "side-left") {
-    return <div style={{ position: "absolute", top: M_TOP + 10, bottom: M_BOT, left: M_SIDE, width: "42%", zIndex: 3, display: "flex", flexDirection: "column", gap: 6 }}>
-      {wrapFrame(<div>{headingEl}</div>, seed)}
-      {wrapFrame(<div>{bodyEl}{highlightEl}{citeEl}</div>, seed + 1)}
+    return <div style={Object.assign({}, { position: "absolute", top: M_TOP + 10, bottom: M_BOT, left: M_SIDE, width: "42%", zIndex: 3, display: "flex", flexDirection: "column", gap: 6 })}>
+      <div style={nudge(null, headingOffset)}>{wrapFrame(<div>{headingEl}</div>, seed)}</div>
+      <div style={nudge(null, bodyOffset)}>{wrapFrame(<div>{bodyEl}{highlightEl}{citeEl}</div>, seed + 1)}</div>
     </div>;
   }
 
-  // Side-right: heading and body stacked on right, left stays open
   if (pos === "side-right") {
-    return <div style={{ position: "absolute", top: M_TOP + 10, bottom: M_BOT, right: M_SIDE, width: "42%", zIndex: 3, display: "flex", flexDirection: "column", gap: 6 }}>
-      {wrapFrame(<div>{headingEl}</div>, seed)}
-      {wrapFrame(<div>{bodyEl}{highlightEl}{citeEl}</div>, seed + 1)}
+    return <div style={Object.assign({}, { position: "absolute", top: M_TOP + 10, bottom: M_BOT, right: M_SIDE, width: "42%", zIndex: 3, display: "flex", flexDirection: "column", gap: 6 })}>
+      <div style={nudge(null, headingOffset)}>{wrapFrame(<div>{headingEl}</div>, seed)}</div>
+      <div style={nudge(null, bodyOffset)}>{wrapFrame(<div>{bodyEl}{highlightEl}{citeEl}</div>, seed + 1)}</div>
     </div>;
   }
 
-  // Top-left: everything anchored top-left
   if (pos === "top-left") {
-    return <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: "45%", zIndex: 3 }}>
+    return <div style={Object.assign({}, { position: "absolute", top: M_TOP, left: M_SIDE, right: "45%", zIndex: 3 }, nudge(null, headingOffset))}>
       {wrapFrame(<div>{headingEl}<div style={{ marginTop: 6 }}>{bodyEl}</div>{highlightEl}{citeEl}</div>, seed)}
     </div>;
   }
 
-  // Top-right: everything anchored top-right
   if (pos === "top-right") {
-    return <div style={{ position: "absolute", top: M_TOP, left: "45%", right: M_SIDE, zIndex: 3 }}>
+    return <div style={Object.assign({}, { position: "absolute", top: M_TOP, left: "45%", right: M_SIDE, zIndex: 3 }, nudge(null, headingOffset))}>
       {wrapFrame(<div>{headingEl}<div style={{ marginTop: 6 }}>{bodyEl}</div>{highlightEl}{citeEl}</div>, seed)}
     </div>;
   }
 
-  // L-shape: heading top, body bottom-left, highlight bottom-right
   if (pos === "l-shape") {
     return <>
-      <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: "50%", zIndex: 3 }}>
+      <div style={Object.assign({}, { position: "absolute", top: M_TOP, left: M_SIDE, right: "50%", zIndex: 3 }, nudge(null, headingOffset))}>
         {wrapFrame(<div>{headingEl}</div>, seed)}
       </div>
-      <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: "40%", zIndex: 3 }}>
+      <div style={Object.assign({}, { position: "absolute", bottom: M_BOT, left: M_SIDE, right: "40%", zIndex: 3 }, nudge(null, bodyOffset))}>
         {wrapFrame(<div>{bodyEl}{citeEl}</div>, seed + 1)}
       </div>
-      {highlightEl && <div style={{ position: "absolute", bottom: M_BOT, right: M_SIDE, left: "65%", zIndex: 3 }}>
+      {highlightEl && <div style={Object.assign({}, { position: "absolute", bottom: M_BOT, right: M_SIDE, left: "65%", zIndex: 3 }, nudge(null, highlightOffset))}>
         {wrapFrame(<div>{highlightEl}</div>, seed + 2)}
       </div>}
     </>;
   }
 
-  // Default: bottom-left or bottom-right (single box, existing behavior)
+  // Default: bottom-left or bottom-right
   var fpos = pos === "bottom-right" ? { bottom: M_BOT, left: "35%", right: M_SIDE } : { bottom: M_BOT, left: M_SIDE, right: "40%" };
-  return <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fpos)}>
+  var allOffset = cp.all || cp.heading || { top: 0, left: 0 };
+  return <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fpos, nudge(null, allOffset))}>
     {wrapFrame(<div>{headingEl}<div style={{ marginTop: 6 }}>{bodyEl}</div>{highlightEl}{citeEl}</div>, seed)}
   </div>;
 }
@@ -1031,7 +1040,7 @@ function S2Arena({ slide, index, category, images }) {
     );
   }
   var contentSeed = (slide.body || "").length + (slide.heading || "").length;
-  var fpos = slide.customPosition ? { top: slide.customPosition.top, left: slide.customPosition.left, maxWidth: "65%", right: "auto", bottom: "auto" } : getFramePosition(contentSeed, index, slide.textPosition);
+  var fpos = slide.customPosition && (slide.customPosition.all || slide.customPosition.heading) ? (function() { var o = slide.customPosition.all || slide.customPosition.heading; return { top: o.top, left: o.left, maxWidth: "65%", right: "auto", bottom: "auto" }; })() : getFramePosition(contentSeed, index, slide.textPosition);
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
       <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fpos)}>
@@ -1077,7 +1086,7 @@ function S3RayGun({ slide, index, category, images }) {
         </ImgBg>
       );
     }
-    var fposFlip = slide.customPosition ? { top: slide.customPosition.top, left: slide.customPosition.left, maxWidth: "65%", right: "auto", bottom: "auto" } : getFramePosition((slide.body || "").length, index, slide.textPosition);
+    var fposFlip = slide.customPosition && (slide.customPosition.all || slide.customPosition.heading) ? (function() { var o = slide.customPosition.all || slide.customPosition.heading; return { top: o.top, left: o.left, maxWidth: "65%", right: "auto", bottom: "auto" }; })() : getFramePosition((slide.body || "").length, index, slide.textPosition);
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
         <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fposFlip)}>
@@ -1109,7 +1118,7 @@ function S3RayGun({ slide, index, category, images }) {
       </ImgBg>
     );
   }
-  var fposNorm = slide.customPosition ? { top: slide.customPosition.top, left: slide.customPosition.left, maxWidth: "65%", right: "auto", bottom: "auto" } : getFramePosition((slide.heading || "").length, index, slide.textPosition);
+  var fposNorm = slide.customPosition && (slide.customPosition.all || slide.customPosition.heading) ? (function() { var o = slide.customPosition.all || slide.customPosition.heading; return { top: o.top, left: o.left, maxWidth: "65%", right: "auto", bottom: "auto" }; })() : getFramePosition((slide.heading || "").length, index, slide.textPosition);
   if (styled) {
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
@@ -1379,7 +1388,7 @@ function S5Face({ slide, index, category, images }) {
         <div style={{ position: "absolute", top: M_TOP + 5, left: 0, right: 0, bottom: 0 }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
-          <div style={slide.customPosition ? { position: "absolute", top: slide.customPosition.top, left: slide.customPosition.left, maxWidth: "65%", zIndex: 3 } : { position: "absolute", bottom: M_BOT, right: M_SIDE, left: "50%", zIndex: 3 }}>
+          <div style={slide.customPosition && (slide.customPosition.all || slide.customPosition.heading) ? (function() { var o = slide.customPosition.all || slide.customPosition.heading; return { position: "absolute", top: o.top, left: o.left, maxWidth: "65%", zIndex: 3 }; })() : { position: "absolute", bottom: M_BOT, right: M_SIDE, left: "50%", zIndex: 3 }}>
             {s5Wrapped}
           </div>
         </div>
@@ -2370,9 +2379,7 @@ export default function LoathrMediaGenerator() {
   var edf = _s(null), editField = edf[0], setEditField = edf[1]; // { slide: idx, field: "heading"|"body"|etc }
   var edv = _s(""), editValue = edv[0], setEditValue = edv[1];
   var eds = _s("content"), editSection = eds[0], setEditSection = eds[1];
-  var pmd = _s(false), positionMode = pmd[0], setPositionMode = pmd[1];
-  var drg = _s(null), dragState = drg[0], setDragState = drg[1]; // { startX, startY, origTop, origLeft }
-  var dps = _s(null), dragPos = dps[0], setDragPos = dps[1]; // { top, left } live during drag
+  var ngt = _s("all"), nudgeTarget = ngt[0], setNudgeTarget = ngt[1]; // "all"|"heading"|"body"|"highlight"
   var searchTimer = _ref(null);
   var webTimer = _ref(null);
   var previewTimer = _ref(null);
@@ -2831,6 +2838,53 @@ export default function LoathrMediaGenerator() {
       var curIdx = CONTAINER_STYLES.indexOf(cur);
       if (curIdx === -1) curIdx = 0;
       slides[slideIdx].containerStyle = CONTAINER_STYLES[(curIdx + 1) % CONTAINER_STYLES.length];
+      opt.slides = slides;
+      newOpts[_so] = opt;
+      return newOpts;
+    });
+  };
+
+  // Nudge position — moves a specific element or all elements by 10px
+  var NUDGE_STEP = 10;
+  var nudgePosition = function(slideIdx, target, direction) {
+    setOptions(function(prev) {
+      var _so = selectedOptionRef.current;
+      if (!prev || !prev[_so]) return prev;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[_so]);
+      var slides = opt.slides.slice();
+      var s = Object.assign({}, slides[slideIdx]);
+      // Get or create customPosition object with named sub-positions
+      var cp = s.customPosition && typeof s.customPosition === "object" ? Object.assign({}, s.customPosition) : {};
+      // Determine which sub-positions to nudge
+      var targets = target === "all" ? ["heading", "body", "highlight"] : [target];
+      targets.forEach(function(t) {
+        var pos = cp[t] || { top: 0, left: 0 };
+        if (direction === "up") pos = { top: (pos.top || 0) - NUDGE_STEP, left: pos.left || 0 };
+        else if (direction === "down") pos = { top: (pos.top || 0) + NUDGE_STEP, left: pos.left || 0 };
+        else if (direction === "left") pos = { top: pos.top || 0, left: (pos.left || 0) - NUDGE_STEP };
+        else if (direction === "right") pos = { top: pos.top || 0, left: (pos.left || 0) + NUDGE_STEP };
+        cp[t] = pos;
+      });
+      s.customPosition = cp;
+      slides[slideIdx] = s;
+      opt.slides = slides;
+      newOpts[_so] = opt;
+      return newOpts;
+    });
+  };
+
+  var resetNudge = function(slideIdx, target) {
+    setOptions(function(prev) {
+      var _so = selectedOptionRef.current;
+      if (!prev || !prev[_so]) return prev;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[_so]);
+      var slides = opt.slides.slice();
+      var s = Object.assign({}, slides[slideIdx]);
+      if (target === "all") { s.customPosition = null; }
+      else if (s.customPosition) { var cp = Object.assign({}, s.customPosition); delete cp[target]; s.customPosition = Object.keys(cp).length > 0 ? cp : null; }
+      slides[slideIdx] = s;
       opt.slides = slides;
       newOpts[_so] = opt;
       return newOpts;
@@ -4129,37 +4183,7 @@ export default function LoathrMediaGenerator() {
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)", cursor: positionMode ? (dragState ? "grabbing" : "grab") : "default" }}
-            onMouseDown={function(e) {
-              if (!editMode || !positionMode) return;
-              e.preventDefault();
-              var rect = e.currentTarget.getBoundingClientRect();
-              var s = cur.slides[currentSlide] || {};
-              var origTop = s.customPosition ? s.customPosition.top : 200;
-              var origLeft = s.customPosition ? s.customPosition.left : 16;
-              setDragState({ startX: e.clientX, startY: e.clientY, origTop: origTop, origLeft: origLeft });
-            }}
-            onMouseMove={function(e) {
-              if (!dragState) return;
-              var dx = e.clientX - dragState.startX;
-              var dy = e.clientY - dragState.startY;
-              var newTop = Math.max(0, Math.min(380, dragState.origTop + dy));
-              var newLeft = Math.max(0, Math.min(300, dragState.origLeft + dx));
-              setDragPos({ top: Math.round(newTop), left: Math.round(newLeft) });
-              updateSlideField(currentSlide, "customPosition", { top: Math.round(newTop), left: Math.round(newLeft) });
-            }}
-            onMouseUp={function() {
-              if (dragState && dragPos) {
-                updateSlideField(currentSlide, "customPosition", dragPos);
-              }
-              setDragState(null); setDragPos(null);
-            }}
-            onMouseLeave={function() {
-              if (dragState) {
-                if (dragPos) updateSlideField(currentSlide, "customPosition", dragPos);
-                setDragState(null); setDragPos(null);
-              }
-            }}>
+          <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
             <div style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff" }}>
               <div data-export-target="true" style={{ width: "100%", height: "100%", border: "1px solid #000000", overflow: "hidden" }}>
             {isRecMode ? <RecSlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
@@ -4312,19 +4336,35 @@ export default function LoathrMediaGenerator() {
                 <div style={{ ...CP, fontSize: 5, color: "#666" }}>B{(s.bodySize || 0) > 0 ? "+" : ""}{s.bodySize || 0}</div>
                 <button onClick={function() { adjustFontSize(currentSlide, "body", 1); }} style={{ width: 14, height: 14, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 7, color: "#666", textAlign: "center", lineHeight: "14px" }}>+</button>
               </div>}
-              {/* Position + Container + Color (content slides only) */}
+              {/* Position + Container + Color */}
               {isContent && <div style={{ borderTop: "0.5px solid #eee", paddingTop: 4 }}>
+                {/* Position preset */}
                 <div style={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap", marginBottom: 3 }}>
                   <button onClick={function() { cycleTextPosition(currentSlide); }}
                     style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
                     {"\u2B12"} {s.textPosition || "auto"}</button>
-                  <button onClick={function() { setPositionMode(!positionMode); setDragState(null); setDragPos(null); }}
-                    style={{ padding: "2px 6px", border: "0.5px solid " + (positionMode ? uiAccent : "#ddd"), background: positionMode ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: positionMode ? uiAccent : "#666" }}>
-                    {positionMode ? "\u2725 Drag mode ON" : "\u2725 Move"}</button>
-                  {positionMode && <button onClick={function() { setPositionMode(false); setDragState(null); setDragPos(null); }}
-                    style={{ padding: "2px 6px", background: uiAccent, color: "#fff", border: "none", cursor: "pointer", ...CP, fontSize: 6 }}>Done</button>}
-                  {s.customPosition && <button onClick={function() { updateSlideField(currentSlide, "customPosition", null); if (positionMode) { setPositionMode(false); } }}
+                  {s.customPosition && <button onClick={function() { resetNudge(currentSlide, "all"); }}
                     style={{ padding: "2px 5px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>Reset</button>}
+                </div>
+                {/* Nudge controls */}
+                <div style={{ display: "flex", gap: 2, alignItems: "center", marginBottom: 3, flexWrap: "wrap" }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#999" }}>Move:</div>
+                  {["all", "heading", "body", "highlight"].map(function(t) { return (
+                    <button key={t} onClick={function() { setNudgeTarget(t); }}
+                      style={{ padding: "1px 4px", border: "0.5px solid " + (nudgeTarget === t ? uiAccent : "#ddd"), background: nudgeTarget === t ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: nudgeTarget === t ? uiAccent : "#999", textTransform: "capitalize" }}>{t}</button>
+                  ); })}
+                  <div style={{ display: "flex", gap: 1, marginLeft: 4 }}>
+                    <button onClick={function() { nudgePosition(currentSlide, nudgeTarget, "up"); }}
+                      style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>{"\u2191"}</button>
+                    <button onClick={function() { nudgePosition(currentSlide, nudgeTarget, "down"); }}
+                      style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>{"\u2193"}</button>
+                    <button onClick={function() { nudgePosition(currentSlide, nudgeTarget, "left"); }}
+                      style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>{"\u2190"}</button>
+                    <button onClick={function() { nudgePosition(currentSlide, nudgeTarget, "right"); }}
+                      style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
+                  </div>
+                  {s.customPosition && s.customPosition[nudgeTarget] && <button onClick={function() { resetNudge(currentSlide, nudgeTarget); }}
+                    style={{ padding: "1px 3px", border: "0.5px solid #ddd", cursor: "pointer", ...CP, fontSize: 4, color: "#999" }}>Reset {nudgeTarget}</button>}
                 </div>
                 <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
                   <button onClick={function() { updateSlideField(currentSlide, "containerStyle", null); }}
