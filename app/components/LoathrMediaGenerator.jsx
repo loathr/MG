@@ -2069,10 +2069,8 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
   await new Promise(function(r) { setTimeout(r, 800); });
   var el = slideRef.current;
   if (!el) return null;
-  var whiteBorder = el.firstChild;
-  var innerBlack = whiteBorder ? whiteBorder.firstChild : null;
-  var slideContent = innerBlack ? innerBlack.firstChild : null;
-  var exportTarget = slideContent || innerBlack || whiteBorder || el;
+  // Find the exact export target via data attribute — no DOM traversal guessing
+  var exportTarget = el.querySelector("[data-export-target]") || el;
   var ew = exportTarget.offsetWidth || 340;
   var eh = exportTarget.offsetHeight || 425;
   // Scale to 1080px width (3.176x) — sharp on iPhone retina (3x)
@@ -3849,7 +3847,7 @@ export default function LoathrMediaGenerator() {
         <div style={{ display: "flex", justifyContent: "center" }}>
           <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
             <div style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff" }}>
-              <div style={{ width: "100%", height: "100%", border: "1px solid #000000", overflow: "hidden" }}>
+              <div data-export-target="true" style={{ width: "100%", height: "100%", border: "1px solid #000000", overflow: "hidden" }}>
             {isRecMode ? <RecSlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
             </div>
           </div>
