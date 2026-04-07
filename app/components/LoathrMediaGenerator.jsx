@@ -404,10 +404,16 @@ var MOSAIC_LAYOUTS = [
 function MosaicBg({ urls, pal, children, category, slideIndex, darken }) {
   if (!urls || urls.length < 2) return null;
   var preset = _activeImageStyle && IMAGE_STYLE_PRESETS[_activeImageStyle] ? IMAGE_STYLE_PRESETS[_activeImageStyle] : null;
-  // Pick layout based on available images and slide index
+  // Pick layout — manual override via _layoutIdx, or auto based on image count
   var availCount = Math.min(urls.length, 4);
-  var candidates = MOSAIC_LAYOUTS.filter(function(l) { return l.count <= availCount; });
-  var layout = candidates[(slideIndex || 0) % candidates.length] || MOSAIC_LAYOUTS[0];
+  var manualIdx = urls._layoutIdx;
+  var layout;
+  if (typeof manualIdx === "number" && MOSAIC_LAYOUTS[manualIdx]) {
+    layout = MOSAIC_LAYOUTS[manualIdx];
+  } else {
+    var candidates = MOSAIC_LAYOUTS.filter(function(l) { return l.count <= availCount; });
+    layout = candidates[(slideIndex || 0) % candidates.length] || MOSAIC_LAYOUTS[0];
+  }
   var areaNames = ["a", "b", "c", "d"];
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: pal.bg }}>
@@ -4247,6 +4253,55 @@ export default function LoathrMediaGenerator() {
             <button onClick={function() { adjustFontSize(currentSlide, "body", -1); }} style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>-</button>
             <div style={{ ...CP, fontSize: 6, color: "#666", minWidth: 12, textAlign: "center" }}>{(cur.slides[currentSlide] || {}).bodySize || 0}</div>
             <button onClick={function() { adjustFontSize(currentSlide, "body", 1); }} style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>+</button>
+          </div>}
+          {/* Image layout — single vs mosaic */}
+          {currentSlide > 0 && currentSlide < total - 1 && <div style={{ display: "flex", gap: 3, marginTop: 4, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999" }}>Image:</div>
+            {[
+              { id: "single", label: "Single", desc: "1 full image" },
+              { id: "mosaic2v", label: "2 Vert", desc: "2 side by side" },
+              { id: "mosaic2h", label: "2 Horiz", desc: "2 stacked" },
+              { id: "mosaic3l", label: "3 L", desc: "1 big + 2 small" },
+              { id: "mosaic3t", label: "3 Top", desc: "1 banner + 2 bottom" },
+              { id: "mosaic4", label: "4 Grid", desc: "2x2 grid" },
+            ].map(function(opt) {
+              var isMosaic = _mosaicSlides[currentSlide];
+              var curLayout = "single";
+              if (isMosaic) {
+                var count = isMosaic.length;
+                curLayout = count >= 4 ? "mosaic4" : count >= 3 ? "mosaic3l" : "mosaic2v";
+              }
+              // Check if this slide has a manual layout override
+              var manualLayout = (cur.slides[currentSlide] || {}).imageLayout;
+              var active = manualLayout ? manualLayout === opt.id : curLayout === opt.id;
+              return <button key={opt.id} onClick={function() {
+                updateSlideField(currentSlide, "imageLayout", opt.id);
+                if (opt.id === "single") {
+                  delete _mosaicSlides[currentSlide];
+                  setImages(function(prev) { return Object.assign({}, prev); }); // force re-render
+                } else {
+                  var mUrls = getMosaicImgs(_allImages, currentSlide);
+                  var layoutMap = { mosaic2v: 0, mosaic2h: 1, mosaic3l: 2, mosaic3t: 4, mosaic4: 5 };
+                  // Store the layout index on _mosaicSlides for MosaicBg to read
+                  var needed = opt.id === "mosaic4" ? 4 : opt.id.indexOf("3") > -1 ? 3 : 2;
+                  if (mUrls.length < needed) {
+                    // Pad with available images
+                    var keys = Object.keys(_allImages);
+                    while (mUrls.length < needed && keys.length > 0) {
+                      var k = keys.shift();
+                      if (_allImages[k] && _allImages[k].url && mUrls.indexOf(_allImages[k].url) === -1) mUrls.push(_allImages[k].url);
+                    }
+                  }
+                  _mosaicSlides[currentSlide] = mUrls.slice(0, needed);
+                  // Store layout preference
+                  var layoutIdx = layoutMap[opt.id] || 0;
+                  _mosaicSlides[currentSlide]._layoutIdx = layoutIdx;
+                  setImages(function(prev) { return Object.assign({}, prev); });
+                }
+              }}
+                title={opt.desc}
+                style={{ padding: "2px 5px", border: "0.5px solid " + (active ? uiAccent : "#ddd"), background: active ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: active ? uiAccent : "#999", borderRadius: 2 }}>{opt.label}</button>;
+            })}
           </div>}
           {/* Container color + opacity */}
           {currentSlide > 0 && currentSlide < total - 1 && <div style={{ marginTop: 4 }}>
