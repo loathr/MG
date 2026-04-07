@@ -2676,7 +2676,7 @@ export default function LoathrMediaGenerator() {
 
   // Fact-checker — reviews generated content for accuracy
   // --- Editor functions ---
-  var updateSlideField = _cb(function(slideIdx, field, value) {
+  var updateSlideField = function(slideIdx, field, value) {
     setOptions(function(prev) {
       var so = selectedOptionRef.current;
       if (!prev || !prev[so]) return prev;
@@ -2689,19 +2689,19 @@ export default function LoathrMediaGenerator() {
       newOpts[so] = opt;
       return newOpts;
     });
-  }, []);
+  };
 
-  var commitEdit = _cb(function() {
+  var commitEdit = function() {
     if (editField) { updateSlideField(editField.slide, editField.field, editValue); }
     setEditField(null); setEditValue("");
-  }, [editField, editValue, updateSlideField]);
+  };
 
-  var startEdit = _cb(function(slideIdx, field, currentValue) {
+  var startEdit = function(slideIdx, field, currentValue) {
     setEditField({ slide: slideIdx, field: field });
     setEditValue(currentValue || "");
-  }, []);
+  };
 
-  var deleteSlide = _cb(function(slideIdx) {
+  var deleteSlide = function(slideIdx) {
     setOptions(function(prev) {
       var _so = selectedOptionRef.current;
       if (!prev || !prev[_so]) return prev;
@@ -2714,9 +2714,9 @@ export default function LoathrMediaGenerator() {
       return newOpts;
     });
     if (currentSlide >= slideIdx && currentSlide > 0) setCurrentSlide(currentSlide - 1);
-  }, [selectedOption, currentSlide]);
+  };
 
-  var duplicateSlide = _cb(function(slideIdx) {
+  var duplicateSlide = function(slideIdx) {
     setOptions(function(prev) {
       var _so = selectedOptionRef.current;
       if (!prev || !prev[_so]) return prev;
@@ -2728,9 +2728,9 @@ export default function LoathrMediaGenerator() {
       newOpts[_so] = opt;
       return newOpts;
     });
-  }, []);
+  };
 
-  var moveSlide = _cb(function(fromIdx, toIdx) {
+  var moveSlide = function(fromIdx, toIdx) {
     if (toIdx < 0) return;
     setOptions(function(prev) {
       var _so = selectedOptionRef.current;
@@ -2746,10 +2746,10 @@ export default function LoathrMediaGenerator() {
       return newOpts;
     });
     setTimeout(function() { setCurrentSlide(toIdx); }, 0);
-  }, []);
+  };
 
-  var cycleTextPosition = _cb(function(slideIdx) {
-    var positions = ["bottom-left", "bottom-right", "top-left", "top-right", "split-corners", "side-left", "side-right", "l-shape"];
+  var positions = ["bottom-left", "bottom-right", "top-left", "top-right", "split-corners", "side-left", "side-right", "l-shape"];
+  var cycleTextPosition = function(slideIdx) {
     setOptions(function(prev) {
       var _so = selectedOptionRef.current;
       if (!prev || !prev[_so]) return prev;
@@ -2764,12 +2764,12 @@ export default function LoathrMediaGenerator() {
       newOpts[_so] = opt;
       return newOpts;
     });
-  }, []);
+  };
 
   var CONTAINER_STYLES = [null, "bubble", "sticky", "formal", "glass", "tape", "cutout", "minimal", "none"];
   var CONTAINER_LABELS = { bubble: "Bubble", sticky: "Sticky", formal: "Formal", glass: "Glass", tape: "Tape", cutout: "Cutout", minimal: "Minimal", none: "None" };
 
-  var cycleContainerStyle = _cb(function(slideIdx) {
+  var cycleContainerStyle = function(slideIdx) {
     setOptions(function(prev) {
       var _so = selectedOptionRef.current;
       if (!prev || !prev[_so]) return prev;
@@ -2785,9 +2785,9 @@ export default function LoathrMediaGenerator() {
       newOpts[_so] = opt;
       return newOpts;
     });
-  }, []);
+  };
 
-  var adjustFontSize = _cb(function(slideIdx, field, delta) {
+  var adjustFontSize = function(slideIdx, field, delta) {
     setOptions(function(prev) {
       var _so = selectedOptionRef.current;
       if (!prev || !prev[_so]) return prev;
@@ -2801,7 +2801,7 @@ export default function LoathrMediaGenerator() {
       newOpts[_so] = opt;
       return newOpts;
     });
-  }, []);
+  };
 
   var factCheck = _cb(async function() {
     var cur = options ? options[selectedOption] : null;
