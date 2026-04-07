@@ -891,8 +891,12 @@ function SplitTextBox({ slide, position, accent, accent2, category, seed, styleB
 
   // Split-corners: heading top-left, body bottom-right
   if (pos === "split-corners") {
-    var hStyle = { position: "absolute", top: M_TOP + headingOffset.top, left: M_SIDE + headingOffset.left, right: "50%", zIndex: 3 };
-    var bStyle = headingOffset.top || headingOffset.left || bodyOffset.top || bodyOffset.left
+    var hHasOffset = headingOffset.top || headingOffset.left;
+    var hStyle = hHasOffset
+      ? { position: "absolute", top: M_TOP + headingOffset.top, left: M_SIDE + headingOffset.left, maxWidth: "55%", zIndex: 3 }
+      : { position: "absolute", top: M_TOP, left: M_SIDE, right: "50%", zIndex: 3 };
+    var bHasOffset = bodyOffset.top || bodyOffset.left;
+    var bStyle = bHasOffset
       ? { position: "absolute", top: 280 + bodyOffset.top, left: 120 + bodyOffset.left, maxWidth: "60%", zIndex: 3 }
       : { position: "absolute", bottom: M_BOT, left: "35%", right: M_SIDE, zIndex: 3 };
     return <>
@@ -924,13 +928,15 @@ function SplitTextBox({ slide, position, accent, accent2, category, seed, styleB
   }
 
   if (pos === "top-left") {
-    return <div style={Object.assign({}, { position: "absolute", top: M_TOP, left: M_SIDE, right: "45%", zIndex: 3 }, nudge(null, headingOffset))}>
+    var tlHasOffset = headingOffset.top || headingOffset.left;
+    return <div style={Object.assign({}, { position: "absolute", top: M_TOP, left: M_SIDE, zIndex: 3 }, tlHasOffset ? { maxWidth: "55%", transform: "translate(" + (headingOffset.left || 0) + "px," + (headingOffset.top || 0) + "px)" } : { right: "45%" })}>
       {wrapFrame(<div>{headingEl}<div style={{ marginTop: 6 }}>{bodyEl}</div>{highlightEl}{citeEl}</div>, seed)}
     </div>;
   }
 
   if (pos === "top-right") {
-    return <div style={Object.assign({}, { position: "absolute", top: M_TOP, left: "45%", right: M_SIDE, zIndex: 3 }, nudge(null, headingOffset))}>
+    var trHasOffset = headingOffset.top || headingOffset.left;
+    return <div style={Object.assign({}, { position: "absolute", top: M_TOP, zIndex: 3 }, trHasOffset ? { left: "45%", maxWidth: "55%", transform: "translate(" + (headingOffset.left || 0) + "px," + (headingOffset.top || 0) + "px)" } : { left: "45%", right: M_SIDE })}>
       {wrapFrame(<div>{headingEl}<div style={{ marginTop: 6 }}>{bodyEl}</div>{highlightEl}{citeEl}</div>, seed)}
     </div>;
   }
