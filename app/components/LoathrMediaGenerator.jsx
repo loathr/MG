@@ -870,32 +870,24 @@ function SplitTextBox({ slide, position, accent, accent2, category, seed, styleB
   </div>;
 }
 
-// Track which fallback images have been used across slides to prevent repeats
-var _usedFallbackUrls = {};
-
 function getImg(images, idx) {
   if (!images) return null;
   // Direct match — always preferred
   if (images[idx] && images[idx].url) return images[idx].url;
-  // Fallback: find an image not used by adjacent slides AND not already used as fallback elsewhere
+  // Fallback: find an image not adjacent to this slide
   var keys = Object.keys(images);
   if (keys.length === 0) return null;
-  var avoid = {};
-  // Avoid adjacent slide images
-  for (var d = -2; d <= 2; d++) { if (d !== 0 && images[idx + d] && images[idx + d].url) avoid[images[idx + d].url] = true; }
-  // Avoid images already used as fallbacks by other slides
-  Object.keys(_usedFallbackUrls).forEach(function(u) { avoid[u] = true; });
-  // Pick the best non-repeating image
-  for (var ki = 0; ki < keys.length; ki++) {
-    var img = images[keys[ki]];
-    if (img && img.url && !avoid[img.url]) { _usedFallbackUrls[img.url] = true; return img.url; }
+  // Build set of URLs used by neighboring slides (avoid visual repeats with neighbors)
+  var adjUrls = {};
+  if (images[idx - 1] && images[idx - 1].url) adjUrls[images[idx - 1].url] = true;
+  if (images[idx + 1] && images[idx + 1].url) adjUrls[images[idx + 1].url] = true;
+  // Try to find a unique image: prioritize images far from this slide index
+  var sorted = keys.slice().sort(function(a, b) { return Math.abs(parseInt(b) - idx) - Math.abs(parseInt(a) - idx); });
+  for (var ki = 0; ki < sorted.length; ki++) {
+    var img = images[sorted[ki]];
+    if (img && img.url && !adjUrls[img.url]) return img.url;
   }
-  // If everything is avoided, pick any non-adjacent
-  for (var ki2 = 0; ki2 < keys.length; ki2++) {
-    var img2 = images[keys[ki2]];
-    if (img2 && img2.url && !(images[idx - 1] && images[idx - 1].url === img2.url) && !(images[idx + 1] && images[idx + 1].url === img2.url)) return img2.url;
-  }
-  // Last resort: any image is better than no image
+  // Last resort: any image
   var first = images[keys[0]];
   return first && first.url ? first.url : null;
 }
@@ -2069,10 +2061,10 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
   await new Promise(function(r) { setTimeout(r, 800); });
   var el = slideRef.current;
   if (!el) return null;
-  // Find the exact export target via data attribute — no DOM traversal guessing
-  var exportTarget = el.querySelector("[data-export-target]") || el;
-  var ew = exportTarget.offsetWidth || 340;
-  var eh = exportTarget.offsetHeight || 425;
+  // Export the full framed slide exactly as seen on screen — all borders included
+  var exportTarget = el;
+  var ew = exportTarget.offsetWidth;
+  var eh = exportTarget.offsetHeight;
   // Scale to 1080px width (3.176x) — sharp on iPhone retina (3x)
   return window.html2canvas(exportTarget, {
     width: ew,
@@ -2750,6 +2742,13 @@ export default function LoathrMediaGenerator() {
 
           // 1. Main topic search for cover + closer
           var mainImgs = await primaryFn(catInfo.label + " " + shortTopic, primaryKey);
+          // Retry with broader terms if main search returned nothing
+          if (mainImgs.length === 0) {
+            try { mainImgs = await primaryFn(catInfo.label, primaryKey); } catch (e) {}
+          }
+          if (mainImgs.length === 0 && secondaryFn) {
+            try { mainImgs = await secondaryFn(catInfo.label + " " + shortTopic, secondaryKey); } catch (e) {}
+          }
           if (mainImgs.length > 0 && !imgMap[0]) imgMap[0] = mainImgs[0]; // cover (skip if person image locked)
           // Closer gets a different image from main results (not index 1 which may be too similar to cover)
           var closerIdx = slides.length ? slides.length - 1 : 9;
@@ -2833,7 +2832,6 @@ export default function LoathrMediaGenerator() {
           // Build mosaic map for slides Claude flagged as mosaic
           _mosaicSlides = {};
           _allImages = imgMap;
-          _usedFallbackUrls = {}; // reset fallback tracking for fresh render
           var mosaicFlagged = slides.filter(function(s) { return s && s.mosaic; }).length;
           console.log("Mosaic: " + mosaicFlagged + " slides flagged, " + totalLoaded + " images available");
           if (totalLoaded >= 3) {
