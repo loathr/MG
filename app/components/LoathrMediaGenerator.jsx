@@ -4066,22 +4066,38 @@ export default function LoathrMediaGenerator() {
               var target = e.target.closest("[data-draggable-text]");
               if (!target) return;
               e.preventDefault();
-              var rect = slideRef.current.getBoundingClientRect();
+              e.stopPropagation();
+              var slideIdx = parseInt(target.getAttribute("data-slide-index")) || currentSlide;
               var startX = e.clientX; var startY = e.clientY;
               var origTop = parseInt(target.style.top) || 0;
               var origLeft = parseInt(target.style.left) || 0;
+              var dragged = false;
               var onMove = function(me) {
+                dragged = true;
                 var dx = me.clientX - startX; var dy = me.clientY - startY;
                 target.style.top = (origTop + dy) + "px";
                 target.style.left = (origLeft + dx) + "px";
                 target.style.right = "auto"; target.style.bottom = "auto";
+                target.style.cursor = "grabbing";
               };
               var onUp = function() {
                 document.removeEventListener("mousemove", onMove);
                 document.removeEventListener("mouseup", onUp);
+                target.style.cursor = "grab";
+                if (!dragged) return; // click without drag — don't update
                 var finalTop = parseInt(target.style.top) || 0;
                 var finalLeft = parseInt(target.style.left) || 0;
-                updateSlideField(currentSlide, "customPosition", { top: finalTop, left: finalLeft });
+                // Use setOptions directly to avoid stale closure
+                setOptions(function(prev) {
+                  if (!prev || !prev[selectedOption]) return prev;
+                  var newOpts = prev.slice();
+                  var opt = Object.assign({}, newOpts[selectedOption]);
+                  var slides = opt.slides.slice();
+                  slides[slideIdx] = Object.assign({}, slides[slideIdx], { customPosition: { top: finalTop, left: finalLeft } });
+                  opt.slides = slides;
+                  newOpts[selectedOption] = opt;
+                  return newOpts;
+                });
               };
               document.addEventListener("mousemove", onMove);
               document.addEventListener("mouseup", onUp);
@@ -4352,11 +4368,40 @@ export default function LoathrMediaGenerator() {
         </div>}
         {/* Fact-check results */}
         {factCheckResult && factCheckResult.issues && factCheckResult.issues.length > 0 && <div style={{ marginTop: 6, border: "0.5px solid " + (factCheckResult.score >= 7 ? "#22c55e44" : "#ef444444"), background: "#f8f8f8", padding: 6, borderRadius: 3 }}>
-          <div style={{ ...CP, fontSize: 6, color: factCheckResult.score >= 7 ? "#22c55e" : "#ef4444", marginBottom: 3 }}>{factCheckResult.summary}</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+            <div style={{ ...CP, fontSize: 6, color: factCheckResult.score >= 7 ? "#22c55e" : "#ef4444" }}>{factCheckResult.summary}</div>
+            {factCheckResult.issues.some(function(is) { return is.fix; }) && <button onClick={function() {
+              // Auto-apply all fixes that have a suggested correction
+              factCheckResult.issues.forEach(function(issue) {
+                if (!issue.fix || !issue.slide) return;
+                var slideIdx = issue.slide - 1; // fact checker uses 1-indexed
+                var curSlide = cur.slides[slideIdx];
+                if (!curSlide) return;
+                // Find which field the fix applies to — check body first, then heading, then stat
+                var fixText = issue.fix;
+                if (curSlide.body && issue.issue.toLowerCase().indexOf("body") > -1) { updateSlideField(slideIdx, "body", fixText); }
+                else if (curSlide.stat && (issue.issue.toLowerCase().indexOf("stat") > -1 || issue.issue.toLowerCase().indexOf("number") > -1 || issue.issue.toLowerCase().indexOf("revenue") > -1)) { updateSlideField(slideIdx, "stat", fixText); }
+                else if (curSlide.quote && issue.issue.toLowerCase().indexOf("quote") > -1) { updateSlideField(slideIdx, "quote", fixText); }
+                else if (curSlide.body) {
+                  // Default: replace the problematic text in body
+                  var newBody = curSlide.body;
+                  // Try to find and replace the incorrect part
+                  var issueWords = issue.issue.split('"').filter(function(w) { return w.length > 5; });
+                  if (issueWords.length > 0) {
+                    issueWords.forEach(function(w) { if (newBody.indexOf(w) > -1) newBody = newBody.replace(w, fixText); });
+                  }
+                  if (newBody !== curSlide.body) updateSlideField(slideIdx, "body", newBody);
+                }
+              });
+              setFactCheckResult(Object.assign({}, factCheckResult, { _applied: true }));
+            }}
+              style={{ padding: "2px 6px", border: "0.5px solid #22c55e", background: factCheckResult._applied ? "#22c55e22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#22c55e" }}>
+              {factCheckResult._applied ? "\u2713 Applied" : "Apply Fixes"}</button>}
+          </div>
           {factCheckResult.issues.map(function(issue, i) { return (
             <div key={i} style={{ ...CP, fontSize: 6, color: "#666", marginBottom: 2 }}>
               <span style={{ color: "#ef4444", fontWeight: 700 }}>Slide {issue.slide}:</span> {issue.issue}
-              {issue.fix && <span style={{ color: "#22c55e" }}> → {issue.fix}</span>}
+              {issue.fix && <span style={{ color: "#22c55e" }}> {"\u2192"} {issue.fix}</span>}
             </div>
           ); })}
         </div>}
