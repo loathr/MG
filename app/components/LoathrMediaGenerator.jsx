@@ -716,9 +716,9 @@ function TapeStrip({ children, style, accent, accent2, seed }) {
 function CutoutBox({ children, style, accent, accent2, seed }) {
   var rotation = ((seed || 0) % 3) - 1;
   return (
-    <div style={Object.assign({}, { position: "relative", background: "#ffffffee", padding: "10px 12px", transform: "rotate(" + rotation + "deg)", boxShadow: "3px 3px 8px rgba(0,0,0,0.4)", borderLeft: "3px solid " + (accent || "#000") }, style || {})}>
-      <div style={{ position: "absolute", top: -2, right: 0, width: "30%", height: 3, background: "#ffffffee", transform: "rotate(1deg)" }} />
-      <div style={{ position: "absolute", bottom: -2, left: "20%", width: "40%", height: 3, background: "#ffffffee", transform: "rotate(-1deg)" }} />
+    <div style={Object.assign({}, { position: "relative", background: "rgba(0,0,0,0.85)", padding: "10px 12px", transform: "rotate(" + rotation + "deg)", boxShadow: "3px 3px 8px rgba(0,0,0,0.4)", borderLeft: "3px solid " + (accent || "#fff") }, style || {})}>
+      <div style={{ position: "absolute", top: -2, right: 0, width: "30%", height: 2, background: accent || "#fff", transform: "rotate(1deg)", opacity: 0.5 }} />
+      <div style={{ position: "absolute", bottom: -2, left: "20%", width: "40%", height: 2, background: accent2 || accent || "#fff", transform: "rotate(-1deg)", opacity: 0.5 }} />
       {children}
     </div>
   );
@@ -984,7 +984,8 @@ function S2Arena({ slide, index, category, images }) {
   var CONTAINER_MAP = { bubble: BubbleBox, sticky: StickyNote, formal: FormalFrame, glass: GlassBox, tape: TapeStrip, cutout: CutoutBox, minimal: MinimalBox, none: null };
   var containerOverride = slide.containerStyle && CONTAINER_MAP.hasOwnProperty(slide.containerStyle) ? slide.containerStyle : null;
   var ContainerComp = containerOverride ? CONTAINER_MAP[containerOverride] : (useBubble ? BubbleBox : useSticky ? StickyNote : useFormal ? FormalFrame : null);
-  var wrappedText = ContainerComp ? <ContainerComp accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</ContainerComp> : textContent;
+  var containerSeed = typeof slide.containerVariant === "number" ? slide.containerVariant : index;
+  var wrappedText = ContainerComp ? <ContainerComp accent={p.accent} accent2={p.accent2} seed={containerSeed}>{textContent}</ContainerComp> : textContent;
   var hasSplitPos = slide.textPosition && ["split-corners", "side-left", "side-right", "top-left", "top-right", "l-shape"].indexOf(slide.textPosition) !== -1;
   if (hasSplitPos) {
     return (
@@ -1326,7 +1327,8 @@ function S5Face({ slide, index, category, images }) {
   var CONTAINER_MAP5 = { bubble: BubbleBox, sticky: StickyNote, formal: FormalFrame, glass: GlassBox, tape: TapeStrip, cutout: CutoutBox, minimal: MinimalBox, none: null };
   var co5 = slide.containerStyle && CONTAINER_MAP5.hasOwnProperty(slide.containerStyle) ? slide.containerStyle : null;
   var CC5 = co5 ? CONTAINER_MAP5[co5] : (useBubble ? BubbleBox : useSticky ? StickyNote : useFormal ? FormalFrame : null);
-  var s5Wrapped = CC5 ? <CC5 accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</CC5> : s5Text;
+  var s5Seed = typeof slide.containerVariant === "number" ? slide.containerVariant : index + 2;
+  var s5Wrapped = CC5 ? <CC5 accent={p.accent} accent2={p.accent2} seed={s5Seed}>{s5Text}</CC5> : s5Text;
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: M_TOP + 5, background: p.accent, display: "flex", alignItems: "center", padding: "0 " + M_SIDE + "px", zIndex: 4 }}>
@@ -4213,6 +4215,9 @@ export default function LoathrMediaGenerator() {
             <button onClick={function() { cycleContainerStyle(currentSlide); }}
               style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
               {"\u25A3"} {CONTAINER_LABELS[(cur.slides[currentSlide] || {}).containerStyle] || "Auto"}</button>
+            <button onClick={function() { var curVar = (cur.slides[currentSlide] || {}).containerVariant || 0; updateSlideField(currentSlide, "containerVariant", (curVar + 1) % 7); }}
+              style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
+              {"\u21BB"} Variant {((cur.slides[currentSlide] || {}).containerVariant || 0) + 1}/7</button>
           </div>
           {/* Container style picker — full grid */}
           <div style={{ display: "flex", gap: 2, marginTop: 3, flexWrap: "wrap" }}>
