@@ -2819,13 +2819,27 @@ export default function LoathrMediaGenerator() {
           // Build mosaic map for slides Claude flagged as mosaic
           _mosaicSlides = {};
           _allImages = imgMap;
-          if (totalLoaded >= 4) {
+          var mosaicFlagged = slides.filter(function(s) { return s && s.mosaic; }).length;
+          console.log("Mosaic: " + mosaicFlagged + " slides flagged, " + totalLoaded + " images available");
+          if (totalLoaded >= 3) {
             slides.forEach(function(s, si) {
               if (s && s.mosaic && si > 0 && si < slides.length - 1) {
                 var mUrls = getMosaicImgs(imgMap, si, slides.length);
+                console.log("Mosaic slide " + si + ": " + mUrls.length + " images found");
                 if (mUrls.length >= 2) _mosaicSlides[si] = mUrls;
               }
             });
+          }
+          // If Claude didn't flag any mosaic but we have enough images, auto-assign one
+          if (Object.keys(_mosaicSlides).length === 0 && totalLoaded >= 5) {
+            var bestMosaicIdx = -1;
+            slides.forEach(function(s, si) {
+              if (si > 1 && si < slides.length - 2 && !s.statFormat && !s.stat && !s.quote && bestMosaicIdx === -1) {
+                var mUrls = getMosaicImgs(imgMap, si, slides.length);
+                if (mUrls.length >= 2) { _mosaicSlides[si] = mUrls; bestMosaicIdx = si; }
+              }
+            });
+            if (bestMosaicIdx >= 0) console.log("Auto-mosaic assigned to slide " + bestMosaicIdx);
           }
           if (totalLoaded > 0) {
             setImages(imgMap);
