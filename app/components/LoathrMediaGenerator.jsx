@@ -381,7 +381,6 @@ function EditorialFill({ pal, category }) {
 
 // Module-level image style — set by generate(), read by ImgBg
 var _activeImageStyle = "mixed";
-var _editModeActive = false; // module-level flag for edit mode
 var _mosaicSlides = {}; // { slideIndex: [url1, url2, ...] } — set by generate(), read by ImgBg
 var _allImages = {}; // full images map for mosaic to pull from
 
@@ -1008,7 +1007,7 @@ function S2Arena({ slide, index, category, images }) {
   var fpos = slide.customPosition ? { top: slide.customPosition.top, left: slide.customPosition.left } : getFramePosition(contentSeed, index);
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
-      <div data-draggable-text="true" data-slide-index={index} style={Object.assign({}, { position: "absolute", zIndex: 3, cursor: _editModeActive ? "grab" : "default" }, fpos)}>
+      <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fpos)}>
         {wrappedText}
       </div>
       <div style={{ position: "absolute", bottom: M_PAGE, right: M_SIDE, zIndex: 4 }}>
@@ -2269,6 +2268,7 @@ export default function LoathrMediaGenerator() {
   var ts = _s(""), topic = ts[0], setTopic = ts[1];
   var os = _s(null), options = os[0], setOptions = os[1];
   var ss = _s(0), selectedOption = ss[0], setSelectedOption = ss[1];
+  var selectedOptionRef = _ref(0);
   var cls = _s(0), currentSlide = cls[0], setCurrentSlide = cls[1];
   var gs = _s(false), isGenerating = gs[0], setIsGenerating = gs[1];
   var gc = _s(0), genCount = gc[0], setGenCount = gc[1];
@@ -2347,6 +2347,7 @@ export default function LoathrMediaGenerator() {
   var previewTimer = _ref(null);
   var abortRef = _ref(null);
 
+  _ef(function() { selectedOptionRef.current = selectedOption; }, [selectedOption]);
   // Keep ref in sync so generate() always reads latest locked images
   _ef(function() { lockedRef.current = lockedPersonImages; }, [lockedPersonImages]);
 
@@ -2677,17 +2678,18 @@ export default function LoathrMediaGenerator() {
   // --- Editor functions ---
   var updateSlideField = _cb(function(slideIdx, field, value) {
     setOptions(function(prev) {
-      if (!prev || !prev[selectedOption]) return prev;
+      var so = selectedOptionRef.current;
+      if (!prev || !prev[so]) return prev;
       var newOpts = prev.slice();
-      var opt = Object.assign({}, newOpts[selectedOption]);
+      var opt = Object.assign({}, newOpts[so]);
       var slides = opt.slides.slice();
       slides[slideIdx] = Object.assign({}, slides[slideIdx]);
       slides[slideIdx][field] = value;
       opt.slides = slides;
-      newOpts[selectedOption] = opt;
+      newOpts[so] = opt;
       return newOpts;
     });
-  }, [selectedOption]);
+  }, []);
 
   var commitEdit = _cb(function() {
     if (editField) { updateSlideField(editField.slide, editField.field, editValue); }
@@ -2701,13 +2703,14 @@ export default function LoathrMediaGenerator() {
 
   var deleteSlide = _cb(function(slideIdx) {
     setOptions(function(prev) {
-      if (!prev || !prev[selectedOption]) return prev;
+      var _so = selectedOptionRef.current;
+      if (!prev || !prev[_so]) return prev;
       var newOpts = prev.slice();
-      var opt = Object.assign({}, newOpts[selectedOption]);
+      var opt = Object.assign({}, newOpts[_so]);
       var slides = opt.slides.slice();
       slides.splice(slideIdx, 1);
       opt.slides = slides;
-      newOpts[selectedOption] = opt;
+      newOpts[_so] = opt;
       return newOpts;
     });
     if (currentSlide >= slideIdx && currentSlide > 0) setCurrentSlide(currentSlide - 1);
@@ -2715,59 +2718,63 @@ export default function LoathrMediaGenerator() {
 
   var duplicateSlide = _cb(function(slideIdx) {
     setOptions(function(prev) {
-      if (!prev || !prev[selectedOption]) return prev;
+      var _so = selectedOptionRef.current;
+      if (!prev || !prev[_so]) return prev;
       var newOpts = prev.slice();
-      var opt = Object.assign({}, newOpts[selectedOption]);
+      var opt = Object.assign({}, newOpts[_so]);
       var slides = opt.slides.slice();
       slides.splice(slideIdx + 1, 0, Object.assign({}, slides[slideIdx]));
       opt.slides = slides;
-      newOpts[selectedOption] = opt;
+      newOpts[_so] = opt;
       return newOpts;
     });
-  }, [selectedOption]);
+  }, []);
 
   var moveSlide = _cb(function(fromIdx, toIdx) {
     if (toIdx < 0) return;
     setOptions(function(prev) {
-      if (!prev || !prev[selectedOption]) return prev;
+      var _so = selectedOptionRef.current;
+      if (!prev || !prev[_so]) return prev;
       var newOpts = prev.slice();
-      var opt = Object.assign({}, newOpts[selectedOption]);
+      var opt = Object.assign({}, newOpts[_so]);
       var slides = opt.slides.slice();
       if (toIdx >= slides.length) return prev;
       var item = slides.splice(fromIdx, 1)[0];
       slides.splice(toIdx, 0, item);
       opt.slides = slides;
-      newOpts[selectedOption] = opt;
+      newOpts[_so] = opt;
       return newOpts;
     });
     setTimeout(function() { setCurrentSlide(toIdx); }, 0);
-  }, [selectedOption]);
+  }, []);
 
   var cycleTextPosition = _cb(function(slideIdx) {
     var positions = ["bottom-left", "bottom-right", "top-left", "top-right", "split-corners", "side-left", "side-right", "l-shape"];
     setOptions(function(prev) {
-      if (!prev || !prev[selectedOption]) return prev;
+      var _so = selectedOptionRef.current;
+      if (!prev || !prev[_so]) return prev;
       var newOpts = prev.slice();
-      var opt = Object.assign({}, newOpts[selectedOption]);
+      var opt = Object.assign({}, newOpts[_so]);
       var slides = opt.slides.slice();
       slides[slideIdx] = Object.assign({}, slides[slideIdx]);
       var curPos = slides[slideIdx].textPosition || "bottom-left";
       var curIdx = positions.indexOf(curPos);
       slides[slideIdx].textPosition = positions[(curIdx + 1) % positions.length];
       opt.slides = slides;
-      newOpts[selectedOption] = opt;
+      newOpts[_so] = opt;
       return newOpts;
     });
-  }, [selectedOption]);
+  }, []);
 
   var CONTAINER_STYLES = [null, "bubble", "sticky", "formal", "glass", "tape", "cutout", "minimal", "none"];
   var CONTAINER_LABELS = { bubble: "Bubble", sticky: "Sticky", formal: "Formal", glass: "Glass", tape: "Tape", cutout: "Cutout", minimal: "Minimal", none: "None" };
 
   var cycleContainerStyle = _cb(function(slideIdx) {
     setOptions(function(prev) {
-      if (!prev || !prev[selectedOption]) return prev;
+      var _so = selectedOptionRef.current;
+      if (!prev || !prev[_so]) return prev;
       var newOpts = prev.slice();
-      var opt = Object.assign({}, newOpts[selectedOption]);
+      var opt = Object.assign({}, newOpts[_so]);
       var slides = opt.slides.slice();
       slides[slideIdx] = Object.assign({}, slides[slideIdx]);
       var cur = slides[slideIdx].containerStyle || null;
@@ -2775,14 +2782,26 @@ export default function LoathrMediaGenerator() {
       if (curIdx === -1) curIdx = 0;
       slides[slideIdx].containerStyle = CONTAINER_STYLES[(curIdx + 1) % CONTAINER_STYLES.length];
       opt.slides = slides;
-      newOpts[selectedOption] = opt;
+      newOpts[_so] = opt;
       return newOpts;
     });
-  }, [selectedOption]);
+  }, []);
 
   var adjustFontSize = _cb(function(slideIdx, field, delta) {
-    updateSlideField(slideIdx, field + "Size", ((options[selectedOption].slides[slideIdx] || {})[field + "Size"] || 0) + delta);
-  }, [selectedOption, options, updateSlideField]);
+    setOptions(function(prev) {
+      var _so = selectedOptionRef.current;
+      if (!prev || !prev[_so]) return prev;
+      var curVal = (prev[_so].slides[slideIdx] || {})[field + "Size"] || 0;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[_so]);
+      var slides = opt.slides.slice();
+      slides[slideIdx] = Object.assign({}, slides[slideIdx]);
+      slides[slideIdx][field + "Size"] = curVal + delta;
+      opt.slides = slides;
+      newOpts[_so] = opt;
+      return newOpts;
+    });
+  }, []);
 
   var factCheck = _cb(async function() {
     var cur = options ? options[selectedOption] : null;
@@ -4061,46 +4080,17 @@ export default function LoathrMediaGenerator() {
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
           <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}
-            onMouseDown={function(e) {
+            onClick={function(e) {
               if (!editMode) return;
-              var target = e.target.closest("[data-draggable-text]");
-              if (!target) return;
-              e.preventDefault();
-              e.stopPropagation();
-              var slideIdx = parseInt(target.getAttribute("data-slide-index")) || currentSlide;
-              var startX = e.clientX; var startY = e.clientY;
-              var origTop = parseInt(target.style.top) || 0;
-              var origLeft = parseInt(target.style.left) || 0;
-              var dragged = false;
-              var onMove = function(me) {
-                dragged = true;
-                var dx = me.clientX - startX; var dy = me.clientY - startY;
-                target.style.top = (origTop + dy) + "px";
-                target.style.left = (origLeft + dx) + "px";
-                target.style.right = "auto"; target.style.bottom = "auto";
-                target.style.cursor = "grabbing";
-              };
-              var onUp = function() {
-                document.removeEventListener("mousemove", onMove);
-                document.removeEventListener("mouseup", onUp);
-                target.style.cursor = "grab";
-                if (!dragged) return; // click without drag — don't update
-                var finalTop = parseInt(target.style.top) || 0;
-                var finalLeft = parseInt(target.style.left) || 0;
-                // Use setOptions directly to avoid stale closure
-                setOptions(function(prev) {
-                  if (!prev || !prev[selectedOption]) return prev;
-                  var newOpts = prev.slice();
-                  var opt = Object.assign({}, newOpts[selectedOption]);
-                  var slides = opt.slides.slice();
-                  slides[slideIdx] = Object.assign({}, slides[slideIdx], { customPosition: { top: finalTop, left: finalLeft } });
-                  opt.slides = slides;
-                  newOpts[selectedOption] = opt;
-                  return newOpts;
-                });
-              };
-              document.addEventListener("mousemove", onMove);
-              document.addEventListener("mouseup", onUp);
+              // Click-to-place: click anywhere on the slide to move the text box there
+              var rect = e.currentTarget.getBoundingClientRect();
+              var clickY = e.clientY - rect.top;
+              var clickX = e.clientX - rect.left;
+              // Convert to position within the 340x425 content area (accounting for borders)
+              var borderOffset = 5.5; // 1.5px outer + 4px white
+              var top = Math.max(0, Math.min(380, clickY - borderOffset));
+              var left = Math.max(0, Math.min(300, clickX - borderOffset));
+              updateSlideField(currentSlide, "customPosition", { top: Math.round(top), left: Math.round(left) });
             }}>
             <div style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff" }}>
               <div data-export-target="true" style={{ width: "100%", height: "100%", border: "1px solid #000000", overflow: "hidden" }}>
@@ -4190,7 +4180,7 @@ export default function LoathrMediaGenerator() {
           <button onClick={factCheck} disabled={factCheckLoading}
             style={{ padding: "4px 10px", border: "0.5px solid #ccc", background: factCheckResult ? (factCheckResult.score >= 7 ? "#22c55e22" : "#ef444422") : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: factCheckResult ? (factCheckResult.score >= 7 ? "#22c55e" : "#ef4444") : "#999" }}>
             {factCheckLoading ? "Checking..." : factCheckResult ? factCheckResult.score + "/10" : "\u2713 Fact Check"}</button>
-          <button onClick={function() { var next = !editMode; setEditMode(next); _editModeActive = next; setEditField(null); }}
+          <button onClick={function() { setEditMode(!editMode); setEditField(null); }}
             style={{ padding: "4px 10px", border: "0.5px solid " + (editMode ? uiAccent : "#ccc"), background: editMode ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: editMode ? uiAccent : "#999" }}>
             {editMode ? "\u2713 Done Editing" : "\u270E Edit"}</button>
           <button onClick={function() { generate(); }}
@@ -4233,7 +4223,7 @@ export default function LoathrMediaGenerator() {
             </div>;
           })()}
           {/* Drag hint */}
-          {currentSlide > 0 && currentSlide < total - 1 && <div style={{ ...CP, fontSize: 5, color: uiAccent, marginTop: 4 }}>{"\u2725"} Drag text on the slide to reposition</div>}
+          {currentSlide > 0 && currentSlide < total - 1 && <div style={{ ...CP, fontSize: 5, color: uiAccent, marginTop: 4 }}>{"\u2725"} Click anywhere on the slide to move text there</div>}
           {/* Style controls */}
           <div style={{ display: "flex", gap: 3, marginTop: 4, borderTop: "0.5px solid #eee", paddingTop: 4, flexWrap: "wrap" }}>
             <button onClick={function() { cycleTextPosition(currentSlide); }}
