@@ -386,18 +386,21 @@ var _allImages = {}; // full images map for mosaic to pull from
 
 // Mosaic layouts — CSS grid templates for collage backgrounds
 var MOSAIC_LAYOUTS = [
-  // 2-panel vertical split
-  { cols: "1fr 1fr", rows: "1fr", areas: '"a b"', count: 2 },
-  // 2-panel horizontal split
-  { cols: "1fr", rows: "1fr 1fr", areas: '"a" "b"', count: 2 },
-  // L-shape: 1 big left + 2 stacked right
-  { cols: "3fr 2fr", rows: "1fr 1fr", areas: '"a b" "a c"', count: 3 },
-  // Inverted L: 2 stacked left + 1 big right
-  { cols: "2fr 3fr", rows: "1fr 1fr", areas: '"a c" "b c"', count: 3 },
-  // Top banner + 2 bottom
-  { cols: "1fr 1fr", rows: "3fr 2fr", areas: '"a a" "b c"', count: 3 },
-  // 4-grid
-  { cols: "1fr 1fr", rows: "1fr 1fr", areas: '"a b" "c d"', count: 4 },
+  // 2-panel layouts
+  { id: "2v5050", cols: "1fr 1fr", rows: "1fr", areas: '"a b"', count: 2, label: "2V 50/50" },
+  { id: "2v7030", cols: "7fr 3fr", rows: "1fr", areas: '"a b"', count: 2, label: "2V 70/30" },
+  { id: "2v3070", cols: "3fr 7fr", rows: "1fr", areas: '"a b"', count: 2, label: "2V 30/70" },
+  { id: "2h5050", cols: "1fr", rows: "1fr 1fr", areas: '"a" "b"', count: 2, label: "2H 50/50" },
+  { id: "2h7030", cols: "1fr", rows: "7fr 3fr", areas: '"a" "b"', count: 2, label: "2H 70/30" },
+  { id: "2h3070", cols: "1fr", rows: "3fr 7fr", areas: '"a" "b"', count: 2, label: "2H 30/70" },
+  // 3-panel layouts
+  { id: "3l", cols: "3fr 2fr", rows: "1fr 1fr", areas: '"a b" "a c"', count: 3, label: "3 L-Shape" },
+  { id: "3linv", cols: "2fr 3fr", rows: "1fr 1fr", areas: '"a c" "b c"', count: 3, label: "3 Inv-L" },
+  { id: "3top", cols: "1fr 1fr", rows: "3fr 2fr", areas: '"a a" "b c"', count: 3, label: "3 Top" },
+  { id: "3bot", cols: "1fr 1fr", rows: "2fr 3fr", areas: '"a b" "c c"', count: 3, label: "3 Bottom" },
+  // 4-panel layouts
+  { id: "4grid", cols: "1fr 1fr", rows: "1fr 1fr", areas: '"a b" "c d"', count: 4, label: "4 Grid" },
+  { id: "4wide", cols: "2fr 1fr", rows: "1fr 1fr", areas: '"a b" "c d"', count: 4, label: "4 Wide L" },
 ];
 
 function MosaicBg({ urls, pal, children, category, slideIndex, darken }) {
@@ -1043,8 +1046,8 @@ function S3RayGun({ slide, index, category, images }) {
   if (flipped) {
     // Text left, image right (carousel position 5)
     var flippedText = <div>
-      <div style={{ ...FN, fontSize: 12, color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }}>{slide.heading || "Part " + index}</div>
-      <div style={{ ...HD, fontSize: 8.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right", overflow: "hidden" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
+      <div style={{ ...FN, fontSize: 12 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }}>{slide.heading || "Part " + index}</div>
+      <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right", overflow: "hidden" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
       {slide.highlight && <div style={{ marginTop: 6, display: "flex", alignItems: "stretch", justifyContent: "flex-end", gap: 0 }}>
         <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "3px 8px", boxShadow: "2px 2px 0px " + p.accent2 }}>{slide.highlight}</div>
         <div style={{ width: 3, background: p.accent2, flexShrink: 0 }} />
@@ -1075,8 +1078,8 @@ function S3RayGun({ slide, index, category, images }) {
 
   // Image top, text bottom (carousel position 2)
   var normalText = <div>
-    <div style={{ ...FN, fontSize: 12, color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
-    <div style={{ ...HD, fontSize: 8.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "left", overflow: "hidden" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    <div style={{ ...FN, fontSize: 12 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
+    <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "left", overflow: "hidden" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
     {slide.highlight && <div style={{ marginTop: 6, display: "flex", alignItems: "stretch", justifyContent: "flex-start", gap: 0 }}>
       <div style={{ width: 3, background: p.accent, flexShrink: 0 }} />
       <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "3px 8px", boxShadow: "2px 2px 0px " + p.accent }}>{slide.highlight}</div>
@@ -1339,7 +1342,7 @@ function S5Face({ slide, index, category, images }) {
   var useFormal = FORMAL_CATS[category];
   var styled = useBubble || useSticky || useFormal;
   var s5Text = <div style={{ overflow: "hidden" }}>
-    <div style={{ ...HD, fontSize: 8.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
     {!styled && <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />}
     {slide.highlight && <div style={{ marginTop: 6, display: "flex", alignItems: "stretch", justifyContent: "flex-end", gap: 0 }}>
       <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "3px 8px", boxShadow: "2px 2px 0px " + p.accent2 }}>{slide.highlight}</div>
@@ -2355,7 +2358,9 @@ export default function LoathrMediaGenerator() {
   var edm = _s(false), editMode = edm[0], setEditMode = edm[1];
   var edf = _s(null), editField = edf[0], setEditField = edf[1]; // { slide: idx, field: "heading"|"body"|etc }
   var edv = _s(""), editValue = edv[0], setEditValue = edv[1];
-  var eds = _s("text"), editSection = eds[0], setEditSection = eds[1]; // "text"|"layout"|"style"|"slide"
+  var eds = _s("content"), editSection = eds[0], setEditSection = eds[1];
+  var pmd = _s(false), positionMode = pmd[0], setPositionMode = pmd[1]; // dedicated position editing mode
+  var pmp = _s(null), pendingPosition = pmp[0], setPendingPosition = pmp[1]; // { top, left } waiting for confirm
   var searchTimer = _ref(null);
   var webTimer = _ref(null);
   var previewTimer = _ref(null);
@@ -2759,7 +2764,16 @@ export default function LoathrMediaGenerator() {
       newOpts[_so] = opt;
       return newOpts;
     });
-    setTimeout(function() { setCurrentSlide(toIdx); }, 0);
+    // Also swap images to follow the slide
+    setImages(function(prev) {
+      var n = Object.assign({}, prev);
+      var fromImg = n[fromIdx];
+      var toImg = n[toIdx];
+      n[toIdx] = fromImg;
+      n[fromIdx] = toImg;
+      return n;
+    });
+    setCurrentSlide(toIdx);
   };
 
   var positions = ["bottom-left", "bottom-right", "top-left", "top-right", "split-corners", "side-left", "side-right", "l-shape"];
@@ -4093,19 +4107,22 @@ export default function LoathrMediaGenerator() {
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}
+          <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)", cursor: positionMode ? "crosshair" : "default" }}
             onClick={function(e) {
-              if (!editMode) return;
-              // Click-to-place: click anywhere on the slide to move the text box there
+              if (!editMode || !positionMode) return;
+              // Position mode: click to preview, then confirm
               var rect = e.currentTarget.getBoundingClientRect();
               var clickY = e.clientY - rect.top;
               var clickX = e.clientX - rect.left;
-              // Convert to position within the 340x425 content area (accounting for borders)
-              var borderOffset = 5.5; // 1.5px outer + 4px white
+              var borderOffset = 5.5;
               var top = Math.max(0, Math.min(380, clickY - borderOffset));
               var left = Math.max(0, Math.min(300, clickX - borderOffset));
-              updateSlideField(currentSlide, "customPosition", { top: Math.round(top), left: Math.round(left) });
-            }}>
+              var pos = { top: Math.round(top), left: Math.round(left) };
+              setPendingPosition(pos);
+              // Apply immediately as preview
+              updateSlideField(currentSlide, "customPosition", pos);
+            }}
+>
             <div style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff" }}>
               <div data-export-target="true" style={{ width: "100%", height: "100%", border: "1px solid #000000", overflow: "hidden" }}>
             {isRecMode ? <RecSlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
@@ -4264,9 +4281,15 @@ export default function LoathrMediaGenerator() {
                   <button onClick={function() { cycleTextPosition(currentSlide); }}
                     style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
                     {"\u2B12"} {s.textPosition || "auto"}</button>
-                  {s.customPosition && <button onClick={function() { updateSlideField(currentSlide, "customPosition", null); }}
+                  <button onClick={function() { setPositionMode(!positionMode); setPendingPosition(null); }}
+                    style={{ padding: "2px 6px", border: "0.5px solid " + (positionMode ? uiAccent : "#ddd"), background: positionMode ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: positionMode ? uiAccent : "#666" }}>
+                    {positionMode ? "\u2725 Click slide..." : "\u2725 Move"}</button>
+                  {positionMode && pendingPosition && <button onClick={function() { setPositionMode(false); setPendingPosition(null); }}
+                    style={{ padding: "2px 6px", background: uiAccent, color: "#fff", border: "none", cursor: "pointer", ...CP, fontSize: 6 }}>Done</button>}
+                  {positionMode && <button onClick={function() { updateSlideField(currentSlide, "customPosition", null); setPositionMode(false); setPendingPosition(null); }}
                     style={{ padding: "2px 5px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>Reset</button>}
-                  <div style={{ ...CP, fontSize: 4, color: "#bbb" }}>click slide to move</div>
+                  {!positionMode && s.customPosition && <button onClick={function() { updateSlideField(currentSlide, "customPosition", null); }}
+                    style={{ padding: "2px 5px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>Reset Pos</button>}
                 </div>
                 <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
                   <button onClick={function() { updateSlideField(currentSlide, "containerStyle", null); }}
@@ -4293,32 +4316,25 @@ export default function LoathrMediaGenerator() {
               </div>}
             </div>}
 
-            {/* === LAYOUT — image arrangement only === */}
+            {/* === LAYOUT — image arrangement with ratios === */}
             {editSection === "layout" && isContent && <div>
+              <button onClick={function() { updateSlideField(currentSlide, "imageLayout", "single"); delete _mosaicSlides[currentSlide]; setImages(function(prev) { return Object.assign({}, prev); }); }}
+                style={{ padding: "3px 8px", border: "0.5px solid " + (!_mosaicSlides[currentSlide] ? uiAccent : "#ddd"), background: !_mosaicSlides[currentSlide] ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: !_mosaicSlides[currentSlide] ? uiAccent : "#999", marginBottom: 4, display: "block" }}>Single Image</button>
+              <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>MOSAIC</div>
               <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                {[
-                  { id: "single", label: "Single" }, { id: "mosaic2v", label: "2 Vert" }, { id: "mosaic2h", label: "2 Horiz" },
-                  { id: "mosaic3l", label: "3 L-Shape" }, { id: "mosaic3t", label: "3 Top" }, { id: "mosaic4", label: "4 Grid" },
-                ].map(function(opt) {
+                {MOSAIC_LAYOUTS.map(function(layout, li) {
                   var isMosaic = _mosaicSlides[currentSlide];
-                  var curLayout = isMosaic ? (isMosaic.length >= 4 ? "mosaic4" : isMosaic.length >= 3 ? "mosaic3l" : "mosaic2v") : "single";
-                  var manualLayout = s.imageLayout;
-                  var active = manualLayout ? manualLayout === opt.id : curLayout === opt.id;
-                  return <button key={opt.id} onClick={function() {
-                    updateSlideField(currentSlide, "imageLayout", opt.id);
-                    if (opt.id === "single") { delete _mosaicSlides[currentSlide]; setImages(function(prev) { return Object.assign({}, prev); }); }
-                    else {
-                      var mUrls = getMosaicImgs(_allImages, currentSlide);
-                      var layoutMap = { mosaic2v: 0, mosaic2h: 1, mosaic3l: 2, mosaic3t: 4, mosaic4: 5 };
-                      var needed = opt.id === "mosaic4" ? 4 : opt.id.indexOf("3") > -1 ? 3 : 2;
-                      var keys = Object.keys(_allImages);
-                      while (mUrls.length < needed && keys.length > 0) { var k = keys.shift(); if (_allImages[k] && _allImages[k].url && mUrls.indexOf(_allImages[k].url) === -1) mUrls.push(_allImages[k].url); }
-                      _mosaicSlides[currentSlide] = mUrls.slice(0, needed);
-                      _mosaicSlides[currentSlide]._layoutIdx = layoutMap[opt.id] || 0;
-                      setImages(function(prev) { return Object.assign({}, prev); });
-                    }
+                  var active = isMosaic && isMosaic._layoutIdx === li;
+                  return <button key={layout.id} onClick={function() {
+                    updateSlideField(currentSlide, "imageLayout", layout.id);
+                    var mUrls = getMosaicImgs(_allImages, currentSlide);
+                    var keys = Object.keys(_allImages);
+                    while (mUrls.length < layout.count && keys.length > 0) { var k = keys.shift(); if (_allImages[k] && _allImages[k].url && mUrls.indexOf(_allImages[k].url) === -1) mUrls.push(_allImages[k].url); }
+                    _mosaicSlides[currentSlide] = mUrls.slice(0, layout.count);
+                    _mosaicSlides[currentSlide]._layoutIdx = li;
+                    setImages(function(prev) { return Object.assign({}, prev); });
                   }}
-                    style={{ padding: "2px 6px", border: "0.5px solid " + (active ? uiAccent : "#ddd"), background: active ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: active ? uiAccent : "#999" }}>{opt.label}</button>;
+                    style={{ padding: "2px 5px", border: "0.5px solid " + (active ? uiAccent : "#ddd"), background: active ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: active ? uiAccent : "#999" }}>{layout.label}</button>;
                 })}
               </div>
             </div>}
