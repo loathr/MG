@@ -424,7 +424,7 @@ function MosaicBg({ urls, pal, children, category, slideIndex, darken }) {
       </div>
       {darken && <div style={{ position: "absolute", inset: 0, background: darken }} />}
       {children}
-      <div style={{ position: "absolute", bottom: 6, left: 8, zIndex: 10, ...CP, fontSize: 4, letterSpacing: "0.15em", color: "#ffffff33", fontWeight: 700 }}>LOATHR</div>
+      <div style={{ position: "absolute", bottom: 6, left: 8, zIndex: 10, ...CP, fontSize: 4, letterSpacing: "0.15em", color: "#ffffff", fontWeight: 700 }}>LOATHR</div>
     </div>
   );
 }
@@ -436,12 +436,20 @@ function getMosaicImgs(images, idx, totalSlides) {
   var used = {};
   // Primary image for this slide
   if (images[idx] && images[idx].url) { urls.push(images[idx].url); used[images[idx].url] = true; }
-  // Gather nearby images (skip adjacent to avoid visual repetition with neighboring slides)
+  // First pass: non-adjacent images (2+ slides away)
   var keys = Object.keys(images);
   for (var k = 0; k < keys.length && urls.length < 4; k++) {
     var img = images[keys[k]];
     var ki = parseInt(keys[k]);
     if (img && img.url && !used[img.url] && Math.abs(ki - idx) > 1) { urls.push(img.url); used[img.url] = true; }
+  }
+  // Second pass: if still need more, allow adjacent (but not same slide)
+  if (urls.length < 2) {
+    for (var k2 = 0; k2 < keys.length && urls.length < 4; k2++) {
+      var img2 = images[keys[k2]];
+      var ki2 = parseInt(keys[k2]);
+      if (img2 && img2.url && !used[img2.url] && ki2 !== idx) { urls.push(img2.url); used[img2.url] = true; }
+    }
   }
   return urls;
 }
@@ -465,7 +473,7 @@ function ImgBg({ url, pal, children, darken, category, imgFilter, slideIndex }) 
       {darken && <div style={{ position: "absolute", inset: 0, background: darken }} />}
       {children}
       {/* LOATHR watermark — bottom left, minimal */}
-      <div style={{ position: "absolute", bottom: 6, left: 8, zIndex: 10, ...CP, fontSize: 4, letterSpacing: "0.15em", color: "#ffffff33", fontWeight: 700 }}>LOATHR</div>
+      <div style={{ position: "absolute", bottom: 6, left: 8, zIndex: 10, ...CP, fontSize: 4, letterSpacing: "0.15em", color: "#ffffff", fontWeight: 700 }}>LOATHR</div>
     </div>
   );
 }
@@ -862,22 +870,30 @@ function SplitTextBox({ slide, position, accent, accent2, category, seed, styleB
   </div>;
 }
 
+// Track which fallback images have been used across slides to prevent repeats
+var _usedFallbackUrls = {};
+
 function getImg(images, idx) {
   if (!images) return null;
-  // Direct match first — always preferred
+  // Direct match — always preferred
   if (images[idx] && images[idx].url) return images[idx].url;
-  // Smart fallback: find an image that isn't used by adjacent slides
-  // This ensures every slide has a background while minimizing visible repeats
+  // Fallback: find an image not used by adjacent slides AND not already used as fallback elsewhere
   var keys = Object.keys(images);
   if (keys.length === 0) return null;
-  var adjUrls = {};
-  if (images[idx - 1] && images[idx - 1].url) adjUrls[images[idx - 1].url] = true;
-  if (images[idx + 1] && images[idx + 1].url) adjUrls[images[idx + 1].url] = true;
-  if (images[idx - 2] && images[idx - 2].url) adjUrls[images[idx - 2].url] = true;
-  // Pick a non-adjacent image
+  var avoid = {};
+  // Avoid adjacent slide images
+  for (var d = -2; d <= 2; d++) { if (d !== 0 && images[idx + d] && images[idx + d].url) avoid[images[idx + d].url] = true; }
+  // Avoid images already used as fallbacks by other slides
+  Object.keys(_usedFallbackUrls).forEach(function(u) { avoid[u] = true; });
+  // Pick the best non-repeating image
   for (var ki = 0; ki < keys.length; ki++) {
     var img = images[keys[ki]];
-    if (img && img.url && !adjUrls[img.url]) return img.url;
+    if (img && img.url && !avoid[img.url]) { _usedFallbackUrls[img.url] = true; return img.url; }
+  }
+  // If everything is avoided, pick any non-adjacent
+  for (var ki2 = 0; ki2 < keys.length; ki2++) {
+    var img2 = images[keys[ki2]];
+    if (img2 && img2.url && !(images[idx - 1] && images[idx - 1].url === img2.url) && !(images[idx + 1] && images[idx + 1].url === img2.url)) return img2.url;
   }
   // Last resort: any image is better than no image
   var first = images[keys[0]];
@@ -891,7 +907,7 @@ function S1Cover({ slide, category, images, edition, index }) {
   var edLabel = edition ? edition.label : "";
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
-        <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: M_SIDE, textAlign: "left", zIndex: 2 }}>
+        <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: M_SIDE, textAlign: "right", zIndex: 2 }}>
           <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "6B", fontWeight: 700, textDecoration: "line-through", textDecorationColor: p.accent + "6B", textDecorationThickness: 1 }}>LOATHR</div>
           {edLabel && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffffcc", marginTop: 3 }}>{edLabel}</div>}
         </div>
@@ -2819,6 +2835,7 @@ export default function LoathrMediaGenerator() {
           // Build mosaic map for slides Claude flagged as mosaic
           _mosaicSlides = {};
           _allImages = imgMap;
+          _usedFallbackUrls = {}; // reset fallback tracking for fresh render
           var mosaicFlagged = slides.filter(function(s) { return s && s.mosaic; }).length;
           console.log("Mosaic: " + mosaicFlagged + " slides flagged, " + totalLoaded + " images available");
           if (totalLoaded >= 3) {
