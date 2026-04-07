@@ -4188,174 +4188,139 @@ export default function LoathrMediaGenerator() {
             {"\u21BB"} Regenerate</button>
         </div>
         {/* Editor panel — slide editing controls */}
-        {editMode && cur && <div style={{ marginTop: 6, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8, borderRadius: 3 }}>
-          {/* Inline field editor */}
-          {editField ? <div style={{ marginBottom: 6 }}>
-            <div style={{ ...CP, fontSize: 6, color: uiAccent, marginBottom: 3 }}>EDITING: Slide {editField.slide + 1} — {editField.field}</div>
-            {editField.field === "body" || editField.field === "context" ? (
-              <textarea value={editValue} onChange={function(e) { setEditValue(e.target.value); }}
-                rows={3} style={{ width: "100%", padding: "4px 8px", border: "0.5px solid " + uiAccent, ...CP, fontSize: 8, color: "#333", resize: "vertical", background: "#fff" }} />
-            ) : (
-              <input value={editValue} onChange={function(e) { setEditValue(e.target.value); }}
-                style={{ width: "100%", padding: "4px 8px", border: "0.5px solid " + uiAccent, ...CP, fontSize: 8, color: "#333", background: "#fff" }} />
-            )}
-            <div style={{ display: "flex", gap: 3, marginTop: 3 }}>
-              <button onClick={commitEdit} style={{ padding: "2px 8px", background: uiAccent, color: "#fff", border: "none", cursor: "pointer", ...CP, fontSize: 6 }}>Apply</button>
-              <button onClick={function() { setEditField(null); }} style={{ padding: "2px 8px", background: "transparent", border: "0.5px solid #ccc", cursor: "pointer", ...CP, fontSize: 6, color: "#999" }}>Cancel</button>
-            </div>
-          </div> : <div style={{ ...CP, fontSize: 6, color: "#999", marginBottom: 4 }}>Click a field below to edit</div>}
-          {/* Editable fields for current slide */}
-          {(function() {
-            var s = cur.slides[currentSlide] || {};
-            var fields = [];
-            if (currentSlide === 0) { fields = [["title", s.title], ["subtitle", s.subtitle], ["titleHighlight", s.titleHighlight]]; }
-            else if (currentSlide === total - 1) { fields = [["hashtags", s.hashtags]]; }
-            else if (s.quote) { fields = [["quote", s.quote], ["source", s.source]]; }
-            else if (s.stat) { fields = [["heading", s.heading], ["stat", s.stat], ["caption", s.caption || s.statLabel || s.body]]; }
-            else { fields = [["heading", s.heading], ["body", s.body], ["highlight", s.highlight]]; }
-            return <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+        {editMode && cur && (function() {
+          var s = cur.slides[currentSlide] || {};
+          var isContent = currentSlide > 0 && currentSlide < total - 1;
+          var isCover = currentSlide === 0;
+          var isCloser = currentSlide === total - 1;
+          var fields = [];
+          if (isCover) { fields = [["title", s.title], ["subtitle", s.subtitle], ["titleHighlight", s.titleHighlight]]; }
+          else if (isCloser) { fields = [["hashtags", s.hashtags]]; }
+          else if (s.quote) { fields = [["quote", s.quote], ["source", s.source]]; }
+          else if (s.stat) { fields = [["heading", s.heading], ["stat", s.stat], ["caption", s.caption || s.statLabel || s.body]]; }
+          else { fields = [["heading", s.heading], ["body", s.body], ["highlight", s.highlight]]; }
+          return <div style={{ marginTop: 6, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8, borderRadius: 3 }}>
+            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>EDIT SLIDE {currentSlide + 1}</div>
+
+            {/* === TEXT === */}
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>TEXT</div>
+            {editField ? <div style={{ marginBottom: 4 }}>
+              {editField.field === "body" || editField.field === "context" || editField.field === "quote" ? (
+                <textarea value={editValue} onChange={function(e) { setEditValue(e.target.value); }}
+                  rows={3} style={{ width: "100%", padding: "4px 8px", border: "0.5px solid " + uiAccent, ...CP, fontSize: 8, color: "#333", resize: "vertical", background: "#fff" }} />
+              ) : (
+                <input value={editValue} onChange={function(e) { setEditValue(e.target.value); }}
+                  style={{ width: "100%", padding: "4px 8px", border: "0.5px solid " + uiAccent, ...CP, fontSize: 8, color: "#333", background: "#fff" }} />
+              )}
+              <div style={{ display: "flex", gap: 3, marginTop: 2 }}>
+                <button onClick={commitEdit} style={{ padding: "2px 8px", background: uiAccent, color: "#fff", border: "none", cursor: "pointer", ...CP, fontSize: 6 }}>Apply</button>
+                <button onClick={function() { setEditField(null); }} style={{ padding: "2px 8px", background: "transparent", border: "0.5px solid #ccc", cursor: "pointer", ...CP, fontSize: 6, color: "#999" }}>Cancel</button>
+              </div>
+            </div> : null}
+            <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: isContent ? 0 : 4 }}>
               {fields.map(function(f) { return f[1] !== undefined ? (
-                <button key={f[0]} onClick={function() { startEdit(currentSlide, f[0], f[1]); }}
-                  style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: editField && editField.field === f[0] ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  <span style={{ color: uiAccent }}>{f[0]}</span>: {String(f[1]).slice(0, 20)}{String(f[1]).length > 20 ? "..." : ""}
+                <button key={f[0]} onClick={function() { startEdit(currentSlide, f[0], f[1] || ""); }}
+                  style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: editField && editField.field === f[0] ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ color: uiAccent }}>{f[0]}</span>: {f[1] ? String(f[1]).slice(0, 25) : "(empty)"}
                 </button>
               ) : null; })}
-            </div>;
-          })()}
-          {/* Drag hint */}
-          {currentSlide > 0 && currentSlide < total - 1 && <div style={{ ...CP, fontSize: 5, color: uiAccent, marginTop: 4 }}>{"\u2725"} Click anywhere on the slide to move text there</div>}
-          {/* Style controls */}
-          <div style={{ display: "flex", gap: 3, marginTop: 4, borderTop: "0.5px solid #eee", paddingTop: 4, flexWrap: "wrap" }}>
-            <button onClick={function() { cycleTextPosition(currentSlide); }}
-              style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
-              {"\u2B12"} {(cur.slides[currentSlide] || {}).textPosition || "auto"}</button>
-            {(cur.slides[currentSlide] || {}).customPosition && <button onClick={function() { updateSlideField(currentSlide, "customPosition", null); }}
-              style={{ padding: "2px 6px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#ef4444" }}>
-              Reset Position</button>}
-            <button onClick={function() { cycleContainerStyle(currentSlide); }}
-              style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
-              {"\u25A3"} {CONTAINER_LABELS[(cur.slides[currentSlide] || {}).containerStyle] || "Auto"}</button>
-            <button onClick={function() { var curVar = (cur.slides[currentSlide] || {}).containerVariant || 0; updateSlideField(currentSlide, "containerVariant", (curVar + 1) % 7); }}
-              style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
-              {"\u21BB"} Variant {((cur.slides[currentSlide] || {}).containerVariant || 0) + 1}/7</button>
-          </div>
-          {/* Container style picker — full grid */}
-          <div style={{ display: "flex", gap: 2, marginTop: 3, flexWrap: "wrap" }}>
-            <button onClick={function() { updateSlideField(currentSlide, "containerStyle", null); }}
-              style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: !(cur.slides[currentSlide] || {}).containerStyle ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: !(cur.slides[currentSlide] || {}).containerStyle ? uiAccent : "#999" }}>Auto</button>
-            {CONTAINER_STYLES.map(function(cs) { return (
-              <button key={cs} onClick={function() { updateSlideField(currentSlide, "containerStyle", cs); }}
-                style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: (cur.slides[currentSlide] || {}).containerStyle === cs ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: (cur.slides[currentSlide] || {}).containerStyle === cs ? uiAccent : "#999" }}>{CONTAINER_LABELS[cs]}</button>
-            ); })}
-          </div>
-          {/* Font size controls */}
-          {currentSlide > 0 && currentSlide < total - 1 && <div style={{ display: "flex", gap: 4, marginTop: 4, alignItems: "center" }}>
-            <div style={{ ...CP, fontSize: 5, color: "#999" }}>Heading:</div>
-            <button onClick={function() { adjustFontSize(currentSlide, "heading", -1); }} style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>-</button>
-            <div style={{ ...CP, fontSize: 6, color: "#666", minWidth: 12, textAlign: "center" }}>{(cur.slides[currentSlide] || {}).headingSize || 0}</div>
-            <button onClick={function() { adjustFontSize(currentSlide, "heading", 1); }} style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>+</button>
-            <div style={{ width: 1, height: 12, background: "#eee" }} />
-            <div style={{ ...CP, fontSize: 5, color: "#999" }}>Body:</div>
-            <button onClick={function() { adjustFontSize(currentSlide, "body", -1); }} style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>-</button>
-            <div style={{ ...CP, fontSize: 6, color: "#666", minWidth: 12, textAlign: "center" }}>{(cur.slides[currentSlide] || {}).bodySize || 0}</div>
-            <button onClick={function() { adjustFontSize(currentSlide, "body", 1); }} style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>+</button>
-          </div>}
-          {/* Image layout — single vs mosaic */}
-          {currentSlide > 0 && currentSlide < total - 1 && <div style={{ display: "flex", gap: 3, marginTop: 4, alignItems: "center", flexWrap: "wrap" }}>
-            <div style={{ ...CP, fontSize: 5, color: "#999" }}>Image:</div>
-            {[
-              { id: "single", label: "Single", desc: "1 full image" },
-              { id: "mosaic2v", label: "2 Vert", desc: "2 side by side" },
-              { id: "mosaic2h", label: "2 Horiz", desc: "2 stacked" },
-              { id: "mosaic3l", label: "3 L", desc: "1 big + 2 small" },
-              { id: "mosaic3t", label: "3 Top", desc: "1 banner + 2 bottom" },
-              { id: "mosaic4", label: "4 Grid", desc: "2x2 grid" },
-            ].map(function(opt) {
-              var isMosaic = _mosaicSlides[currentSlide];
-              var curLayout = "single";
-              if (isMosaic) {
-                var count = isMosaic.length;
-                curLayout = count >= 4 ? "mosaic4" : count >= 3 ? "mosaic3l" : "mosaic2v";
-              }
-              // Check if this slide has a manual layout override
-              var manualLayout = (cur.slides[currentSlide] || {}).imageLayout;
-              var active = manualLayout ? manualLayout === opt.id : curLayout === opt.id;
-              return <button key={opt.id} onClick={function() {
-                updateSlideField(currentSlide, "imageLayout", opt.id);
-                if (opt.id === "single") {
-                  delete _mosaicSlides[currentSlide];
-                  setImages(function(prev) { return Object.assign({}, prev); }); // force re-render
-                } else {
-                  var mUrls = getMosaicImgs(_allImages, currentSlide);
-                  var layoutMap = { mosaic2v: 0, mosaic2h: 1, mosaic3l: 2, mosaic3t: 4, mosaic4: 5 };
-                  // Store the layout index on _mosaicSlides for MosaicBg to read
-                  var needed = opt.id === "mosaic4" ? 4 : opt.id.indexOf("3") > -1 ? 3 : 2;
-                  if (mUrls.length < needed) {
-                    // Pad with available images
-                    var keys = Object.keys(_allImages);
-                    while (mUrls.length < needed && keys.length > 0) {
-                      var k = keys.shift();
-                      if (_allImages[k] && _allImages[k].url && mUrls.indexOf(_allImages[k].url) === -1) mUrls.push(_allImages[k].url);
+            </div>
+            {isContent && <div style={{ display: "flex", gap: 4, marginTop: 3, alignItems: "center" }}>
+              <div style={{ ...CP, fontSize: 5, color: "#999" }}>Size:</div>
+              <button onClick={function() { adjustFontSize(currentSlide, "heading", -1); }} style={{ width: 14, height: 14, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 7, color: "#666", textAlign: "center", lineHeight: "14px" }}>-</button>
+              <div style={{ ...CP, fontSize: 5, color: "#666" }}>H{(s.headingSize || 0) > 0 ? "+" : ""}{s.headingSize || 0}</div>
+              <button onClick={function() { adjustFontSize(currentSlide, "heading", 1); }} style={{ width: 14, height: 14, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 7, color: "#666", textAlign: "center", lineHeight: "14px" }}>+</button>
+              <div style={{ width: 1, height: 10, background: "#ddd" }} />
+              <button onClick={function() { adjustFontSize(currentSlide, "body", -1); }} style={{ width: 14, height: 14, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 7, color: "#666", textAlign: "center", lineHeight: "14px" }}>-</button>
+              <div style={{ ...CP, fontSize: 5, color: "#666" }}>B{(s.bodySize || 0) > 0 ? "+" : ""}{s.bodySize || 0}</div>
+              <button onClick={function() { adjustFontSize(currentSlide, "body", 1); }} style={{ width: 14, height: 14, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 7, color: "#666", textAlign: "center", lineHeight: "14px" }}>+</button>
+            </div>}
+
+            {/* === LAYOUT (content slides only) === */}
+            {isContent && <div style={{ marginTop: 6, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
+              <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>LAYOUT</div>
+              <div style={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap", marginBottom: 3 }}>
+                <button onClick={function() { cycleTextPosition(currentSlide); }}
+                  style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
+                  {"\u2B12"} {s.textPosition || "auto"}</button>
+                {s.customPosition && <button onClick={function() { updateSlideField(currentSlide, "customPosition", null); }}
+                  style={{ padding: "2px 6px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>Reset</button>}
+              </div>
+              <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 2 }}>
+                {[
+                  { id: "single", label: "Single" }, { id: "mosaic2v", label: "2V" }, { id: "mosaic2h", label: "2H" },
+                  { id: "mosaic3l", label: "3L" }, { id: "mosaic3t", label: "3T" }, { id: "mosaic4", label: "4G" },
+                ].map(function(opt) {
+                  var isMosaic = _mosaicSlides[currentSlide];
+                  var curLayout = isMosaic ? (isMosaic.length >= 4 ? "mosaic4" : isMosaic.length >= 3 ? "mosaic3l" : "mosaic2v") : "single";
+                  var manualLayout = s.imageLayout;
+                  var active = manualLayout ? manualLayout === opt.id : curLayout === opt.id;
+                  return <button key={opt.id} onClick={function() {
+                    updateSlideField(currentSlide, "imageLayout", opt.id);
+                    if (opt.id === "single") { delete _mosaicSlides[currentSlide]; setImages(function(prev) { return Object.assign({}, prev); }); }
+                    else {
+                      var mUrls = getMosaicImgs(_allImages, currentSlide);
+                      var layoutMap = { mosaic2v: 0, mosaic2h: 1, mosaic3l: 2, mosaic3t: 4, mosaic4: 5 };
+                      var needed = opt.id === "mosaic4" ? 4 : opt.id.indexOf("3") > -1 ? 3 : 2;
+                      var keys = Object.keys(_allImages);
+                      while (mUrls.length < needed && keys.length > 0) { var k = keys.shift(); if (_allImages[k] && _allImages[k].url && mUrls.indexOf(_allImages[k].url) === -1) mUrls.push(_allImages[k].url); }
+                      _mosaicSlides[currentSlide] = mUrls.slice(0, needed);
+                      _mosaicSlides[currentSlide]._layoutIdx = layoutMap[opt.id] || 0;
+                      setImages(function(prev) { return Object.assign({}, prev); });
                     }
-                  }
-                  _mosaicSlides[currentSlide] = mUrls.slice(0, needed);
-                  // Store layout preference
-                  var layoutIdx = layoutMap[opt.id] || 0;
-                  _mosaicSlides[currentSlide]._layoutIdx = layoutIdx;
-                  setImages(function(prev) { return Object.assign({}, prev); });
-                }
-              }}
-                title={opt.desc}
-                style={{ padding: "2px 5px", border: "0.5px solid " + (active ? uiAccent : "#ddd"), background: active ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: active ? uiAccent : "#999", borderRadius: 2 }}>{opt.label}</button>;
-            })}
-          </div>}
-          {/* Container color + opacity */}
-          {currentSlide > 0 && currentSlide < total - 1 && <div style={{ marginTop: 4 }}>
-            <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
-              <div style={{ ...CP, fontSize: 5, color: "#999" }}>Box Color:</div>
-              {[
-                { id: null, label: "Auto", color: "#666" },
-                { id: "rgba(0,0,0,0.85)", label: "Dark", color: "#333" },
-                { id: "rgba(0,0,0,0.6)", label: "Mid", color: "#555" },
-                { id: "rgba(255,255,255,0.9)", label: "Light", color: "#eee" },
-                { id: "rgba(255,255,255,0.15)", label: "Ghost", color: "#ccc" },
-              ].map(function(c) {
-                var active = (cur.slides[currentSlide] || {}).containerBg === c.id;
-                return <button key={c.label} onClick={function() { updateSlideField(currentSlide, "containerBg", c.id); }}
-                  style={{ padding: "2px 5px", border: "0.5px solid " + (active ? uiAccent : "#ddd"), background: active ? uiAccent + "22" : c.color, cursor: "pointer", ...CP, fontSize: 5, color: active ? uiAccent : (c.id && c.id.indexOf("255") > -1 ? "#333" : "#fff"), borderRadius: 2 }}>{c.label}</button>;
-              })}
-              <button onClick={function() {
-                var hue = Math.floor(Math.random() * 360);
-                updateSlideField(currentSlide, "containerBg", "hsla(" + hue + ",60%,20%,0.85)");
-              }} style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: "linear-gradient(90deg,#e63946,#e6a817,#1abc9c,#9b59b6)", cursor: "pointer", ...CP, fontSize: 5, color: "#fff", borderRadius: 2 }}>Hue</button>
+                  }}
+                    style={{ padding: "2px 5px", border: "0.5px solid " + (active ? uiAccent : "#ddd"), background: active ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: active ? uiAccent : "#999" }}>{opt.label}</button>;
+                })}
+              </div>
+              <div style={{ ...CP, fontSize: 4, color: uiAccent + "88" }}>{"\u2725"} Click slide to reposition text</div>
+            </div>}
+
+            {/* === STYLE (content slides only) === */}
+            {isContent && <div style={{ marginTop: 6, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
+              <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>STYLE</div>
+              <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
+                <button onClick={function() { updateSlideField(currentSlide, "containerStyle", null); }}
+                  style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: !s.containerStyle ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: !s.containerStyle ? uiAccent : "#999" }}>Auto</button>
+                {CONTAINER_STYLES.filter(Boolean).map(function(cs) { return (
+                  <button key={cs} onClick={function() { updateSlideField(currentSlide, "containerStyle", cs); }}
+                    style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: s.containerStyle === cs ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: s.containerStyle === cs ? uiAccent : "#999" }}>{CONTAINER_LABELS[cs]}</button>
+                ); })}
+                <button onClick={function() { updateSlideField(currentSlide, "containerVariant", ((s.containerVariant || 0) + 1) % 7); }}
+                  style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#666" }}>V{(s.containerVariant || 0) + 1}/7</button>
+              </div>
+              <div style={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", marginBottom: 2 }}>
+                {[{ id: null, l: "Auto", c: "#666" }, { id: "rgba(0,0,0,0.85)", l: "Dark", c: "#333" }, { id: "rgba(0,0,0,0.6)", l: "Mid", c: "#555" }, { id: "rgba(255,255,255,0.9)", l: "Light", c: "#eee" }, { id: "rgba(255,255,255,0.15)", l: "Ghost", c: "#ccc" }].map(function(c) {
+                  return <button key={c.l} onClick={function() { updateSlideField(currentSlide, "containerBg", c.id); }}
+                    style={{ padding: "1px 4px", border: "0.5px solid " + (s.containerBg === c.id ? uiAccent : "#ddd"), background: s.containerBg === c.id ? uiAccent + "22" : c.c, cursor: "pointer", ...CP, fontSize: 4, color: s.containerBg === c.id ? uiAccent : (c.id && c.id.indexOf("255") > -1 ? "#333" : "#fff") }}>{c.l}</button>;
+                })}
+                <button onClick={function() { updateSlideField(currentSlide, "containerBg", "hsla(" + Math.floor(Math.random() * 360) + ",60%,20%,0.85)"); }}
+                  style={{ padding: "1px 4px", border: "0.5px solid #ddd", background: "linear-gradient(90deg,#e63946,#e6a817,#1abc9c,#9b59b6)", cursor: "pointer", ...CP, fontSize: 4, color: "#fff" }}>Hue</button>
+              </div>
+              <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                <input type="range" min="0.1" max="1" step="0.05" value={s.containerOpacity || 1}
+                  onChange={function(e) { updateSlideField(currentSlide, "containerOpacity", parseFloat(e.target.value)); }}
+                  style={{ width: 70, height: 3, cursor: "pointer" }} />
+                <div style={{ ...CP, fontSize: 5, color: "#666" }}>{Math.round((s.containerOpacity || 1) * 100)}%</div>
+                {s.containerOpacity && <button onClick={function() { updateSlideField(currentSlide, "containerOpacity", null); }}
+                  style={{ padding: "1px 3px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 4, color: "#999" }}>Reset</button>}
+              </div>
+            </div>}
+
+            {/* === SLIDE === */}
+            <div style={{ display: "flex", gap: 3, marginTop: 6, borderTop: "0.5px solid #eee", paddingTop: 4, alignItems: "center" }}>
+              <div style={{ ...CP, fontSize: 5, color: "#999" }}>SLIDE</div>
+              <button onClick={function() { duplicateSlide(currentSlide); }}
+                style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#666" }}>{"\u2398"} Copy</button>
+              {currentSlide > 1 && <button onClick={function() { moveSlide(currentSlide, currentSlide - 1); }}
+                style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>{"\u2191"}</button>}
+              {currentSlide < total - 2 && currentSlide > 0 && <button onClick={function() { moveSlide(currentSlide, currentSlide + 1); }}
+                style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>{"\u2193"}</button>}
+              <div style={{ flex: 1 }} />
+              {isContent && <button onClick={function() { deleteSlide(currentSlide); }}
+                style={{ padding: "2px 5px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>{"\u2715"} Delete</button>}
             </div>
-            <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
-              <div style={{ ...CP, fontSize: 5, color: "#999" }}>Opacity:</div>
-              <input type="range" min="0.1" max="1" step="0.05"
-                value={(cur.slides[currentSlide] || {}).containerOpacity || 1}
-                onChange={function(e) { updateSlideField(currentSlide, "containerOpacity", parseFloat(e.target.value)); }}
-                style={{ width: 80, height: 4, cursor: "pointer" }} />
-              <div style={{ ...CP, fontSize: 6, color: "#666" }}>{Math.round(((cur.slides[currentSlide] || {}).containerOpacity || 1) * 100)}%</div>
-              {(cur.slides[currentSlide] || {}).containerOpacity && <button onClick={function() { updateSlideField(currentSlide, "containerOpacity", null); }}
-                style={{ padding: "1px 4px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#999" }}>Reset</button>}
-            </div>
-          </div>}
-          {/* Slide operations */}
-          <div style={{ display: "flex", gap: 3, marginTop: 4, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
-            <button onClick={function() { duplicateSlide(currentSlide); }}
-              style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
-              {"\u2398"} Duplicate</button>
-            {currentSlide > 0 && currentSlide < total - 1 && <button onClick={function() { deleteSlide(currentSlide); }}
-              style={{ padding: "2px 6px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#ef4444" }}>
-              {"\u2715"} Delete</button>}
-            {currentSlide > 1 && <button onClick={function() { moveSlide(currentSlide, currentSlide - 1); }}
-              style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
-              {"\u2191"}</button>}
-            {currentSlide < total - 2 && currentSlide > 0 && <button onClick={function() { moveSlide(currentSlide, currentSlide + 1); }}
-              style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
-              {"\u2193"}</button>}
-          </div>
-        </div>}
+          </div>;
+        })()}
         {/* Fact-check results */}
         {factCheckResult && factCheckResult.issues && factCheckResult.issues.length > 0 && <div style={{ marginTop: 6, border: "0.5px solid " + (factCheckResult.score >= 7 ? "#22c55e44" : "#ef444444"), background: "#f8f8f8", padding: 6, borderRadius: 3 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
