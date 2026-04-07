@@ -1,8 +1,10 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase } from "lucide-react";
+import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
 import { ENTERPRISE_FORCES, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, buildEnterprisePrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
 import { EnterpriseCover, EnterpriseCloser, EnterprisePlaybook } from "./segments/EnterpriseSlides";
+import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, buildNewsDeskPrompt } from "./segments/newsdesk.config";
+import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser } from "./segments/NewsDeskSlides";
 
 var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap";
 // Margins from inside the accent border frame
@@ -249,10 +251,11 @@ var PALETTES = {
   nightlife: { bg: "#0a0a1a", accent: "#9b59b6", accent2: "#f1c40f", text: "#f0e6ff" },
   gossip: { bg: "#1a0a14", accent: "#ff4081", accent2: "#ffab40", text: "#fff0f5" },
   enterprise: { bg: "#0a0a0a", accent: "#ffffff", accent2: "#888888", text: "#ffffff" },
+  newsdesk: { bg: "#f5f0e4", accent: "#c41e1e", accent2: "#1a1a1a", text: "#1a1a1a" },
 };
 
-var CAT_LABELS = { film: "FILM & TV", photo: "PHOTOGRAPHY", sports: "SPORTS \u00d7 CULTURE", trivia: "DID YOU KNOW?", art: "ART & MUSIC", fashion: "FASHION", food: "FOOD & DRINK", nightlife: "NIGHTLIFE", gossip: "THE TEA", enterprise: "ENTERPRISE" };
-var CLOSER_TAGS = { film: "FOLLOW FOR MORE", photo: "FOLLOW FOR MORE", sports: "GAME. CULTURE. REPEAT.", trivia: "NOW YOU KNOW", art: "SEE. HEAR. FEEL.", fashion: "DRESS. EXPRESS. REPEAT.", food: "TASTE. SAVOR. SHARE.", nightlife: "AFTER DARK.", gossip: "SPILL. SIP. SCROLL.", enterprise: "ANALYZE. ADAPT. WIN." };
+var CAT_LABELS = { film: "FILM & TV", photo: "PHOTOGRAPHY", sports: "SPORTS \u00d7 CULTURE", trivia: "DID YOU KNOW?", art: "ART & MUSIC", fashion: "FASHION", food: "FOOD & DRINK", nightlife: "NIGHTLIFE", gossip: "THE TEA", enterprise: "ENTERPRISE", newsdesk: "NEWS DESK" };
+var CLOSER_TAGS = { film: "FOLLOW FOR MORE", photo: "FOLLOW FOR MORE", sports: "GAME. CULTURE. REPEAT.", trivia: "NOW YOU KNOW", art: "SEE. HEAR. FEEL.", fashion: "DRESS. EXPRESS. REPEAT.", food: "TASTE. SAVOR. SHARE.", nightlife: "AFTER DARK.", gossip: "SPILL. SIP. SCROLL.", enterprise: "ANALYZE. ADAPT. WIN.", newsdesk: "REPORTING. CONTEXT. PERSPECTIVE." };
 
 var CATEGORIES = [
   { id: "film", label: "Film & TV", icon: Clapperboard },
@@ -265,6 +268,7 @@ var CATEGORIES = [
   { id: "nightlife", label: "Nightlife", icon: Wine },
   { id: "gossip", label: "Gossip", icon: MessageCircle },
   { id: "enterprise", label: "Enterprise", icon: Briefcase, segment: "enterprise" },
+  { id: "newsdesk", label: "News Desk", icon: Newspaper, segment: "newsdesk" },
 ];
 
 var OPTION_TYPES = [
@@ -533,7 +537,7 @@ function AutoFit({ children, style, maxShrink }) {
 // Comic bubble categories
 var BUBBLE_CATS = { trivia: true, art: true, food: true, gossip: true };
 var STICKY_CATS = { fashion: true };
-var FORMAL_CATS = { film: true, photo: true, sports: true, nightlife: true, enterprise: true };
+var FORMAL_CATS = { film: true, photo: true, sports: true, nightlife: true, enterprise: true, newsdesk: true };
 
 // Formal frame styles for editorial categories
 function FormalFrame({ children, style, accent, accent2, seed, bg: bgProp }) {
@@ -1622,7 +1626,7 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
   var lp = PALETTES[effectiveCat] || p;
   if (!p) return <div style={{ width: "100%", height: "100%", background: "#0a0a0a" }} />;
   var lastIdx = totalSlides - 1;
-  var borderColor = category === "enterprise" ? "#ffffff" : (effectiveCat !== category ? lp.accent : (slideIndex % 2 === 0 ? p.accent : p.accent2));
+  var borderColor = category === "enterprise" ? "#ffffff" : category === "newsdesk" ? "#1a1a1a" : (effectiveCat !== category ? lp.accent : (slideIndex % 2 === 0 ? p.accent : p.accent2));
   var slide;
   // Enterprise segment — use B&W slide components
   if (category === "enterprise") {
@@ -1636,6 +1640,12 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
       var EComp = eLayouts[ePick];
       slide = <EComp slide={slideData} index={slideIndex} category={category} images={images} />;
     }
+  } else if (category === "newsdesk") {
+    if (slideIndex === 0) slide = <NewsFrontPage slide={slideData} images={images} index={slideIndex} />;
+    else if (slideIndex === lastIdx || slideData.fullSources) slide = <NewsSourcesCloser slide={slideData} />;
+    else if (slideData.quote || (slideData.heading && slideData.heading.toUpperCase().indexOf("REACTION") > -1)) slide = <NewsReaction slide={slideData} images={images} index={slideIndex} />;
+    else if (slideData.statFormat || slideData.stat || slideData.stats) slide = <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
+    else slide = <NewsStory slide={Object.assign({}, slideData, { role: slideData.heading || "" })} images={images} index={slideIndex} />;
   } else {
     if (slideIndex === lastIdx) slide = <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} index={slideIndex} />;
     else if (slideIndex === 0) slide = <S1Cover slide={slideData} category={category} images={images} edition={edition} index={slideIndex} />;
@@ -2131,6 +2141,7 @@ var VINTAGE_APIS = {
   nightlife: [searchLibCongress, searchEuropeana],
   gossip: [searchLibCongress, searchMetMuseum],
   enterprise: [searchLibCongress, searchMetMuseum],
+  newsdesk: [searchLibCongress, searchMetMuseum],
 };
 
 // Search vintage APIs for a category
@@ -2146,6 +2157,7 @@ var VINTAGE_TERMS = {
   nightlife: ["dance", "jazz", "nightclub", "poster"],
   gossip: ["celebrity", "scandal", "newspaper", "tabloid"],
   enterprise: ["business", "office", "corporate", "industry"],
+  newsdesk: ["newspaper", "press", "politics", "news"],
 };
 
 var searchVintage = async function(category, query) {
@@ -2439,6 +2451,10 @@ export default function LoathrMediaGenerator() {
   var ngt = _s("all"), nudgeTarget = ngt[0], setNudgeTarget = ngt[1]; // "all"|"heading"|"body"|"highlight"
   // Enterprise state
   var efc = _s(null), enterpriseForce = efc[0], setEnterpriseForce = efc[1];
+  // News Desk state
+  var ndf = _s(null), newsFilter = ndf[0], setNewsFilter = ndf[1];
+  var ndr = _s("global"), newsRegion = ndr[0], setNewsRegion = ndr[1];
+  var ndt = _s("today"), newsTimeframe = ndt[0], setNewsTimeframe = ndt[1];
   var searchTimer = _ref(null);
   var webTimer = _ref(null);
   var previewTimer = _ref(null);
@@ -3021,7 +3037,7 @@ export default function LoathrMediaGenerator() {
     var edition = getEditionId(topic, category, thisGen, editionPicks);
     setEditionData(edition);
     _activeImageStyle = category === "enterprise" ? "bw" : (editionPicks.imageStyle || "mixed");
-    _activeSegment = category === "enterprise" ? "enterprise" : null;
+    _activeSegment = category === "enterprise" ? "enterprise" : category === "newsdesk" ? "newsdesk" : null;
     try {
       if (controller.signal.aborted) throw new Error("Generation cancelled");
       var secInfo = secondaryCategory ? CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) : null;
@@ -3030,12 +3046,20 @@ export default function LoathrMediaGenerator() {
       if (category === "enterprise") {
         var force = enterpriseForce ? ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) : null;
         prompt = buildEnterprisePrompt(topic, force, edition.seed, editionPicks);
+      } else if (category === "newsdesk") {
+        var nfObj = newsFilter ? NEWSDESK_FILTERS.find(function(f) { return f.id === newsFilter; }) : null;
+        var nrObj = NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }) || null;
+        var ntObj = NEWSDESK_TIMEFRAMES.find(function(t) { return t.id === newsTimeframe; }) || null;
+        prompt = buildNewsDeskPrompt(topic, nfObj, nrObj, ntObj);
       } else {
         prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, Object.keys(lockedRef.current || {}).length > 0, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null, secondaryCount, tertiaryCount);
       }
+      // News Desk uses web search tool
+      var fetchBody = { model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] };
+      if (category === "newsdesk") { fetchBody.tools = [{ type: "web_search_20250305", name: "web_search" }]; }
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] }) });
+        body: JSON.stringify(fetchBody) });
       var d = await r.json();
       if (d.error) throw new Error(d.error.message || d.error);
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
@@ -3327,7 +3351,7 @@ export default function LoathrMediaGenerator() {
     var edition = getEditionId(customSubject, category, thisGen, editionPicks);
     setEditionData(edition);
     _activeImageStyle = category === "enterprise" ? "bw" : (editionPicks.imageStyle || "mixed");
-    _activeSegment = category === "enterprise" ? "enterprise" : null;
+    _activeSegment = category === "enterprise" ? "enterprise" : category === "newsdesk" ? "newsdesk" : null;
     try {
       if (controller.signal.aborted) throw new Error("Generation cancelled");
       var sc = editionPicks.slideCount || 0;
@@ -3497,13 +3521,13 @@ export default function LoathrMediaGenerator() {
   }, [topic, category, apiKeys]);
 
   return (
-    <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px", background: category === "enterprise" ? "#0a0a0a" : undefined, color: category === "enterprise" ? "#eeeeee" : undefined, minHeight: category === "enterprise" ? "100vh" : undefined, transition: "background 0.3s, color 0.3s" }}>
+    <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px", background: category === "enterprise" ? "#0a0a0a" : category === "newsdesk" ? "#f5f0e4" : undefined, color: category === "enterprise" ? "#eeeeee" : category === "newsdesk" ? "#1a1a1a" : undefined, minHeight: category === "enterprise" || category === "newsdesk" ? "100vh" : undefined, transition: "background 0.3s, color 0.3s" }}>
       <style>{"@font-face{font-family:'Foun';src:url('/Fonts/Foun/OpenType-PS/Foun.otf') format('opentype'),url('/Fonts/Foun/OpenType-TT/Foun.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Wenssep';src:url('/Fonts/Wenssep/Wenssep.otf') format('opentype'),url('/Fonts/Wenssep/Wenssep.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Regular.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}@keyframes walk{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}@keyframes hammer{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-45deg)}}@keyframes sweep{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}@keyframes paint{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}@keyframes carry{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-3px) rotate(-2deg)}75%{transform:translateY(-3px) rotate(2deg)}}@keyframes figfade{0%{opacity:1}45%{opacity:1}50%{opacity:0}95%{opacity:0}100%{opacity:1}}"}</style>
 
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         <div style={{ ...CP, fontSize: 14, letterSpacing: "0.4em", color: "var(--color-text-primary)", fontWeight: 700, lineHeight: 1.1 }}>L O A T H R</div>
         <div style={{ width: 40, height: 1, background: "var(--color-border-tertiary)", margin: "9px auto" }} />
-        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", color: category === "enterprise" ? "#888888" : "var(--color-text-tertiary)", textTransform: "uppercase", marginTop: 2 }}>{category === "enterprise" ? "Enterprise" : "Media Maker"}</div>
+        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", color: category === "enterprise" ? "#888888" : category === "newsdesk" ? "#c41e1e" : "var(--color-text-tertiary)", textTransform: "uppercase", marginTop: 2 }}>{category === "enterprise" ? "Enterprise" : category === "newsdesk" ? "News Desk" : "Media Maker"}</div>
       </div>
 
 
@@ -3511,7 +3535,7 @@ export default function LoathrMediaGenerator() {
         {CATEGORIES.map(function(c) {
           var p = PALETTES[c.id]; var sel = category === c.id; var Icon = c.icon;
           return (
-            <button key={c.id} onClick={function() { setCategory(c.id); setSecondaryCategory(null); setTertiaryCategory(null); setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({}); lockedRef.current = {}; setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({}); setDroppedImage(null); setReverseTopics([]); setEnterpriseForce(null); }}
+            <button key={c.id} onClick={function() { setCategory(c.id); setSecondaryCategory(null); setTertiaryCategory(null); setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({}); lockedRef.current = {}; setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({}); setDroppedImage(null); setReverseTopics([]); setEnterpriseForce(null); setNewsFilter(null); }}
               style={{ padding: "8px 12px", cursor: "pointer", border: sel ? "2px solid " + (c.id === "photo" ? "#888888" : p.accent) : "1px solid var(--color-border-tertiary)", background: sel ? (c.id === "photo" ? "#88888822" : p.accent + "12") : "transparent", display: "flex", alignItems: "center", gap: 5, fontSize: 10, ...CP, color: sel ? (c.id === "photo" ? "#888888" : p.accent) : "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
               <Icon size={12} />{c.label}
             </button>);
@@ -3525,6 +3549,34 @@ export default function LoathrMediaGenerator() {
           return <button key={f.id} onClick={function() { setEnterpriseForce(sel ? null : f.id); }}
             style={{ padding: "3px 8px", cursor: "pointer", border: sel ? "1px solid #ffffff" : "0.5px solid #444", background: sel ? "#ffffff22" : "transparent", ...CP, fontSize: 7, color: sel ? "#ffffff" : "#888", letterSpacing: "0.03em" }}>{f.label}</button>;
         })}
+      </div>}
+
+      {/* News Desk filters */}
+      {category === "newsdesk" && <div style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 3, marginBottom: 6, justifyContent: "center", flexWrap: "wrap" }}>
+          {NEWSDESK_FILTERS.map(function(f) {
+            var sel = newsFilter === f.id;
+            return <button key={f.id} onClick={function() { setNewsFilter(sel ? null : f.id); }}
+              style={{ padding: "3px 8px", cursor: "pointer", border: sel ? "1px solid " + (f.id === "breaking" ? "#c41e1e" : "#1a1a1a") : "0.5px solid #c8c0aa", background: sel ? (f.id === "breaking" ? "#c41e1e22" : "#1a1a1a11") : "transparent", ...CP, fontSize: 7, color: sel ? (f.id === "breaking" ? "#c41e1e" : "#1a1a1a") : "#8a8270", letterSpacing: "0.03em" }}>{f.label}</button>;
+          })}
+        </div>
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+            <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Region:</div>
+            <select value={newsRegion} onChange={function(e) { setNewsRegion(e.target.value); }}
+              style={{ padding: "2px 4px", border: "0.5px solid #c8c0aa", background: "#ffffff", ...CP, fontSize: 6, color: "#1a1a1a" }}>
+              {NEWSDESK_REGIONS.map(function(r) { return <option key={r.id} value={r.id}>{r.label}</option>; })}
+            </select>
+          </div>
+          <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+            <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Time:</div>
+            {NEWSDESK_TIMEFRAMES.map(function(t) {
+              var sel = newsTimeframe === t.id;
+              return <button key={t.id} onClick={function() { setNewsTimeframe(t.id); }}
+                style={{ padding: "2px 6px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#c8c0aa"), background: sel ? "#1a1a1a11" : "transparent", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270", cursor: "pointer" }}>{t.label}</button>;
+            })}
+          </div>
+        </div>
       </div>}
 
       {/* Cross-category lens pickers — Level 3 only */}
@@ -3696,7 +3748,7 @@ export default function LoathrMediaGenerator() {
               }
             }}>
             <input value={topic} onChange={function(e) { var v = e.target.value; setTopic(v); setRefinedAngles([]); setSuggestions(filterSuggestions(v, category)); setCrossCatSuggestions(searchAllCategories(v, category)); triggerSearch(v); }}
-              placeholder={"Topic for " + cat.label + "... (or drop an image)"}
+              placeholder={category === "newsdesk" ? "Search keywords: oil, election, LeBron..." : category === "enterprise" ? "Industry or topic to analyze..." : "Topic for " + cat.label + "... (or drop an image)"}
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 12, ...CP }} />
             <label style={{ padding: "10px 8px", border: "0.5px solid var(--color-border-tertiary)", cursor: "pointer", display: "flex", alignItems: "center", background: "transparent" }}>
               <Camera size={14} style={{ color: "#999" }} />
@@ -3717,7 +3769,7 @@ export default function LoathrMediaGenerator() {
               <div style={{ display: "flex", gap: 4 }}>
                 <button onClick={function() { setIsRecMode(false); generate(); }} disabled={!topic.trim()}
                   style={{ padding: "10px 14px", background: uiAccent, color: "#ffffff", border: "none", cursor: topic.trim() ? "pointer" : "default", ...CP, fontSize: 9, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() ? 1 : 0.4 }}>
-                  {category === "enterprise" ? "ANALYZE" : "GENERATE"}
+                  {category === "enterprise" ? "ANALYZE" : category === "newsdesk" ? "SEARCH" : "GENERATE"}
                 </button>
               </div>
             ) : (
