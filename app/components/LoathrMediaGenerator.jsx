@@ -3332,7 +3332,7 @@ export default function LoathrMediaGenerator() {
       }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
-  }, [topic, category, secondaryCategory, secondaryCount, tertiaryCategory, tertiaryCount, apiKeys, editionPicks, lockedPersonImages, genCount, previewLocked, lockedLocationImages]);
+  }, [topic, category, secondaryCategory, secondaryCount, tertiaryCategory, tertiaryCount, apiKeys, editionPicks, lockedPersonImages, genCount, previewLocked, lockedLocationImages, enterpriseForce, newsFilter, newsRegion, newsTimeframe, newsCountry]);
 
   // --- Custom Story generator ---
   var generateCustomStory = _cb(async function() {
