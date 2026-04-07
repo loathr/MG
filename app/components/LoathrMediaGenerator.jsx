@@ -381,8 +381,77 @@ function EditorialFill({ pal, category }) {
 
 // Module-level image style — set by generate(), read by ImgBg
 var _activeImageStyle = "mixed";
+var _mosaicSlides = {}; // { slideIndex: [url1, url2, ...] } — set by generate(), read by ImgBg
+var _allImages = {}; // full images map for mosaic to pull from
+
+// Mosaic layouts — CSS grid templates for collage backgrounds
+var MOSAIC_LAYOUTS = [
+  // 2-panel vertical split
+  { cols: "1fr 1fr", rows: "1fr", areas: '"a b"', count: 2 },
+  // 2-panel horizontal split
+  { cols: "1fr", rows: "1fr 1fr", areas: '"a" "b"', count: 2 },
+  // L-shape: 1 big left + 2 stacked right
+  { cols: "3fr 2fr", rows: "1fr 1fr", areas: '"a b" "a c"', count: 3 },
+  // Inverted L: 2 stacked left + 1 big right
+  { cols: "2fr 3fr", rows: "1fr 1fr", areas: '"a c" "b c"', count: 3 },
+  // Top banner + 2 bottom
+  { cols: "1fr 1fr", rows: "3fr 2fr", areas: '"a a" "b c"', count: 3 },
+  // 4-grid
+  { cols: "1fr 1fr", rows: "1fr 1fr", areas: '"a b" "c d"', count: 4 },
+];
+
+function MosaicBg({ urls, pal, children, category, slideIndex, darken }) {
+  if (!urls || urls.length < 2) return null;
+  var preset = _activeImageStyle && IMAGE_STYLE_PRESETS[_activeImageStyle] ? IMAGE_STYLE_PRESETS[_activeImageStyle] : null;
+  // Pick layout based on available images and slide index
+  var availCount = Math.min(urls.length, 4);
+  var candidates = MOSAIC_LAYOUTS.filter(function(l) { return l.count <= availCount; });
+  var layout = candidates[(slideIndex || 0) % candidates.length] || MOSAIC_LAYOUTS[0];
+  var areaNames = ["a", "b", "c", "d"];
+  return (
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: pal.bg }}>
+      <div style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: layout.cols, gridTemplateRows: layout.rows, gridTemplateAreas: layout.areas, gap: 2 }}>
+        {areaNames.slice(0, layout.count).map(function(area, ai) {
+          var imgUrl = urls[ai] || null;
+          var urlSeed = 0;
+          if (imgUrl) { for (var ci = 0; ci < Math.min(imgUrl.length, 50); ci++) urlSeed += imgUrl.charCodeAt(ci); }
+          var filt = preset && preset.filters ? preset.filters[0] : IMG_FILTERS[(slideIndex + ai + urlSeed) % IMG_FILTERS.length];
+          return <div key={area} style={{ gridArea: area, overflow: "hidden", position: "relative" }}>
+            {imgUrl ? <img src={imgUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: filt }} onError={function(e) { e.target.style.display = "none"; }} />
+              : <div style={{ width: "100%", height: "100%", background: pal.bg }} />}
+          </div>;
+        })}
+      </div>
+      {darken && <div style={{ position: "absolute", inset: 0, background: darken }} />}
+      {children}
+      <div style={{ position: "absolute", bottom: 6, left: 8, zIndex: 10, ...CP, fontSize: 4, letterSpacing: "0.15em", color: "#ffffff33", fontWeight: 700 }}>LOATHR</div>
+    </div>
+  );
+}
+
+// Get multiple image URLs for mosaic from the images map
+function getMosaicImgs(images, idx, totalSlides) {
+  if (!images) return [];
+  var urls = [];
+  var used = {};
+  // Primary image for this slide
+  if (images[idx] && images[idx].url) { urls.push(images[idx].url); used[images[idx].url] = true; }
+  // Gather nearby images (skip adjacent to avoid visual repetition with neighboring slides)
+  var keys = Object.keys(images);
+  for (var k = 0; k < keys.length && urls.length < 4; k++) {
+    var img = images[keys[k]];
+    var ki = parseInt(keys[k]);
+    if (img && img.url && !used[img.url] && Math.abs(ki - idx) > 1) { urls.push(img.url); used[img.url] = true; }
+  }
+  return urls;
+}
 
 function ImgBg({ url, pal, children, darken, category, imgFilter, slideIndex }) {
+  // Auto-mosaic: if this slide is flagged for mosaic, render collage layout
+  var mosaicUrls = _mosaicSlides[slideIndex];
+  if (mosaicUrls && mosaicUrls.length >= 2) {
+    return <MosaicBg urls={mosaicUrls} pal={pal} category={category} slideIndex={slideIndex} darken={darken}>{children}</MosaicBg>;
+  }
   // Image style preset overrides rotation when set
   var preset = _activeImageStyle && IMAGE_STYLE_PRESETS[_activeImageStyle] ? IMAGE_STYLE_PRESETS[_activeImageStyle] : null;
   var filt;
@@ -2121,7 +2190,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks, hasPersonImage, second
     crossCatInstr += "\n\nCROSS-CATEGORY LENS — TERTIARY: \"" + tertiaryCatLabel + "\" (EXACTLY " + terN + " slide" + (terN > 1 ? "s" : "") + ")\n" + terDir + "\nOn these slides, add \"categoryLens\": \"" + tertiaryCatLabel + "\". Best roles: THE DEEP CUT or THE COUNTER. Must be SPECIFIC and surprising.";
   }
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + "\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + "\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nMOSAIC LAYOUT: On 1-2 content slides where it fits editorially (THE RIPPLE EFFECT, THE DEEP CUT, or THE HUMAN STORY work best), add '\"mosaic\": true' to create a magazine-style photo collage background instead of a single image. Good for slides that reference multiple things, places, or people. Do NOT use mosaic on Cover, Closer, stat slides, or quote slides.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -2795,10 +2864,20 @@ export default function LoathrMediaGenerator() {
           }
 
           var totalLoaded = Object.keys(imgMap).length;
-          console.log("Final imgMap slot 0:", imgMap[0] ? imgMap[0].url : "EMPTY", "total:", totalLoaded);
+          // Build mosaic map for slides Claude flagged as mosaic
+          _mosaicSlides = {};
+          _allImages = imgMap;
+          if (totalLoaded >= 4) {
+            slides.forEach(function(s, si) {
+              if (s && s.mosaic && si > 0 && si < slides.length - 1) {
+                var mUrls = getMosaicImgs(imgMap, si, slides.length);
+                if (mUrls.length >= 2) _mosaicSlides[si] = mUrls;
+              }
+            });
+          }
           if (totalLoaded > 0) {
             setImages(imgMap);
-            setImgStatus(totalLoaded + " contextual images loaded");
+            setImgStatus(totalLoaded + " contextual images loaded" + (Object.keys(_mosaicSlides).length > 0 ? " (" + Object.keys(_mosaicSlides).length + " mosaic)" : ""));
           } else { setImgStatus("No images found"); }
         } catch (e) { setImgStatus("Image search failed: " + e.message); }
       } else {
