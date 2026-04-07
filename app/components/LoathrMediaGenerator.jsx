@@ -271,6 +271,8 @@ var CATEGORIES = [
   { id: "newsdesk", label: "News Desk", icon: Newspaper, segment: "newsdesk" },
 ];
 
+var EDITORIAL_CATS = CATEGORIES.filter(function(c) { return !c.segment; });
+
 var OPTION_TYPES = [
   { id: "deep", label: "Deep Dive", desc: "Educational, detailed", icon: BookOpen },
   { id: "hot", label: "Hot Take", desc: "Punchy, provocative", icon: Zap },
@@ -2365,6 +2367,7 @@ function buildRecPrompt(catLabel, topic) {
 // --- MAIN COMPONENT ---
 export default function LoathrMediaGenerator() {
   var _s = useState, _cb = useCallback, _ef = useEffect, _ref = useRef;
+  var seg = _s("editorial"), activeSegment = seg[0], setActiveSegment = seg[1]; // "editorial"|"enterprise"|"newsdesk"
   var cs = _s(null), category = cs[0], setCategory = cs[1];
   var sc2 = _s(null), secondaryCategory = sc2[0], setSecondaryCategory = sc2[1];
   var scc = _s(2), secondaryCount = scc[0], setSecondaryCount = scc[1];
@@ -3521,29 +3524,49 @@ export default function LoathrMediaGenerator() {
   }, [topic, category, apiKeys]);
 
   return (
-    <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px", background: category === "enterprise" ? "#0a0a0a" : category === "newsdesk" ? "#f5f0e4" : undefined, color: category === "enterprise" ? "#eeeeee" : category === "newsdesk" ? "#1a1a1a" : undefined, minHeight: category === "enterprise" || category === "newsdesk" ? "100vh" : undefined, transition: "background 0.3s, color 0.3s" }}>
+    <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px", background: activeSegment === "enterprise" ? "#0a0a0a" : activeSegment === "newsdesk" ? "#f5f0e4" : undefined, color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : undefined, minHeight: activeSegment !== "editorial" ? "100vh" : undefined, transition: "background 0.3s, color 0.3s" }}>
       <style>{"@font-face{font-family:'Foun';src:url('/Fonts/Foun/OpenType-PS/Foun.otf') format('opentype'),url('/Fonts/Foun/OpenType-TT/Foun.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Wenssep';src:url('/Fonts/Wenssep/Wenssep.otf') format('opentype'),url('/Fonts/Wenssep/Wenssep.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Regular.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}@keyframes walk{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}@keyframes hammer{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-45deg)}}@keyframes sweep{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}@keyframes paint{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}@keyframes carry{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-3px) rotate(-2deg)}75%{transform:translateY(-3px) rotate(2deg)}}@keyframes figfade{0%{opacity:1}45%{opacity:1}50%{opacity:0}95%{opacity:0}100%{opacity:1}}"}</style>
 
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         <div style={{ ...CP, fontSize: 14, letterSpacing: "0.4em", color: "var(--color-text-primary)", fontWeight: 700, lineHeight: 1.1 }}>L O A T H R</div>
         <div style={{ width: 40, height: 1, background: "var(--color-border-tertiary)", margin: "9px auto" }} />
-        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", color: category === "enterprise" ? "#888888" : category === "newsdesk" ? "#c41e1e" : "var(--color-text-tertiary)", textTransform: "uppercase", marginTop: 2 }}>{category === "enterprise" ? "Enterprise" : category === "newsdesk" ? "News Desk" : "Media Maker"}</div>
+        <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", color: activeSegment === "enterprise" ? "#888888" : activeSegment === "newsdesk" ? "#c41e1e" : "var(--color-text-tertiary)", textTransform: "uppercase", marginTop: 2 }}>Media Maker</div>
       </div>
 
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, justifyContent: "center", flexWrap: "wrap" }}>
-        {CATEGORIES.map(function(c) {
-          var p = PALETTES[c.id]; var sel = category === c.id; var Icon = c.icon;
-          return (
-            <button key={c.id} onClick={function() { setCategory(c.id); setSecondaryCategory(null); setTertiaryCategory(null); setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({}); lockedRef.current = {}; setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({}); setDroppedImage(null); setReverseTopics([]); setEnterpriseForce(null); setNewsFilter(null); }}
-              style={{ padding: "8px 12px", cursor: "pointer", border: sel ? "2px solid " + (c.id === "photo" ? "#888888" : p.accent) : "1px solid var(--color-border-tertiary)", background: sel ? (c.id === "photo" ? "#88888822" : p.accent + "12") : "transparent", display: "flex", alignItems: "center", gap: 5, fontSize: 10, ...CP, color: sel ? (c.id === "photo" ? "#888888" : p.accent) : "var(--color-text-secondary)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
-              <Icon size={12} />{c.label}
-            </button>);
+      {/* Segment tabs */}
+      <div style={{ display: "flex", gap: 0, marginBottom: 12, justifyContent: "center" }}>
+        {[
+          { id: "editorial", label: "Editorial", color: null },
+          { id: "enterprise", label: "Enterprise", color: "#ffffff" },
+          { id: "newsdesk", label: "News Desk", color: "#c41e1e" },
+        ].map(function(s) {
+          var sel = activeSegment === s.id;
+          return <button key={s.id} onClick={function() {
+            setActiveSegment(s.id);
+            if (s.id === "enterprise") { setCategory("enterprise"); }
+            else if (s.id === "newsdesk") { setCategory("newsdesk"); }
+            else { setCategory(null); }
+            setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({}); lockedRef.current = {}; setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({}); setDroppedImage(null); setReverseTopics([]); setEnterpriseForce(null); setNewsFilter(null); setSecondaryCategory(null); setTertiaryCategory(null);
+          }}
+            style={{ padding: "8px 16px", cursor: "pointer", border: "none", borderBottom: "2px solid " + (sel ? (s.color || uiAccent) : "transparent"), background: sel ? (activeSegment === "enterprise" ? "#ffffff08" : activeSegment === "newsdesk" ? "#c41e1e08" : "transparent") : "transparent", ...CP, fontSize: 9, letterSpacing: "0.12em", color: sel ? (s.color || (category ? (PALETTES[category] || {}).accent : "#666")) : (activeSegment === "enterprise" ? "#666" : "#999"), fontWeight: sel ? 700 : 400, textTransform: "uppercase" }}>{s.label}</button>;
         })}
       </div>
 
+      {/* Editorial category pills — only when Editorial segment is active */}
+      {activeSegment === "editorial" && <div style={{ display: "flex", gap: 6, marginBottom: 12, justifyContent: "center", flexWrap: "wrap" }}>
+        {EDITORIAL_CATS.map(function(c) {
+          var p = PALETTES[c.id]; var sel = category === c.id; var Icon = c.icon;
+          return (
+            <button key={c.id} onClick={function() { setCategory(c.id); setSecondaryCategory(null); setTertiaryCategory(null); setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({}); lockedRef.current = {}; setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({}); setDroppedImage(null); setReverseTopics([]); }}
+              style={{ padding: "6px 10px", cursor: "pointer", border: sel ? "1.5px solid " + (c.id === "photo" ? "#888888" : p.accent) : "0.5px solid var(--color-border-tertiary)", background: sel ? (c.id === "photo" ? "#88888822" : p.accent + "12") : "transparent", display: "flex", alignItems: "center", gap: 4, fontSize: 9, ...CP, color: sel ? (c.id === "photo" ? "#888888" : p.accent) : "var(--color-text-secondary)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+              <Icon size={10} />{c.label}
+            </button>);
+        })}
+      </div>}
+
       {/* Enterprise force selector */}
-      {category === "enterprise" && <div style={{ display: "flex", gap: 3, marginBottom: 12, justifyContent: "center", flexWrap: "wrap" }}>
+      {activeSegment === "enterprise" && <div style={{ display: "flex", gap: 3, marginBottom: 12, justifyContent: "center", flexWrap: "wrap" }}>
         {ENTERPRISE_FORCES.map(function(f) {
           var sel = enterpriseForce === f.id;
           return <button key={f.id} onClick={function() { setEnterpriseForce(sel ? null : f.id); }}
@@ -3552,7 +3575,7 @@ export default function LoathrMediaGenerator() {
       </div>}
 
       {/* News Desk filters */}
-      {category === "newsdesk" && <div style={{ marginBottom: 12 }}>
+      {activeSegment === "newsdesk" && <div style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 3, marginBottom: 6, justifyContent: "center", flexWrap: "wrap" }}>
           {NEWSDESK_FILTERS.map(function(f) {
             var sel = newsFilter === f.id;
@@ -3579,8 +3602,8 @@ export default function LoathrMediaGenerator() {
         </div>
       </div>}
 
-      {/* Cross-category lens pickers — Level 3 only */}
-      {userLevel >= 3 && category && <div style={{ marginBottom: 12 }}>
+      {/* Cross-category lens pickers — Level 3, editorial only */}
+      {userLevel >= 3 && activeSegment === "editorial" && category && <div style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 4, justifyContent: "center", flexWrap: "wrap", alignItems: "center", marginBottom: secondaryCategory ? 6 : 0 }}>
           <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.05em" }}>+LENS</div>
           {CATEGORIES.filter(function(c) { return c.id !== category && c.id !== tertiaryCategory; }).map(function(c) {
@@ -3618,8 +3641,8 @@ export default function LoathrMediaGenerator() {
         </div>}
       </div>}
 
-      {/* Custom Story toggle — Level 2+ */}
-      {userLevel >= 2 && category && <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+      {/* Custom Story toggle — Level 2+, editorial only */}
+      {userLevel >= 2 && activeSegment === "editorial" && category && <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
         <button onClick={function() { setCustomStoryMode(!customStoryMode); }}
           style={{ padding: "5px 12px", border: "0.5px solid " + (customStoryMode ? uiAccent : "#ccc"), background: customStoryMode ? uiAccent + "15" : "transparent", cursor: "pointer", ...CP, fontSize: 8, color: customStoryMode ? uiAccent : "#999", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 5 }}>
           <Users size={11} />{customStoryMode ? "BACK TO SEARCH" : "CREATE ORIGINAL STORY"}
