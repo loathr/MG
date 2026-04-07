@@ -1540,18 +1540,6 @@ var searchPexels = async function(query, apiKey) {
   return (d.photos || []).map(function(img) { return { url: img.src ? img.src.large : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; });
 };
 
-var testApiConnection = async function(service, key) {
-  try {
-    var url = service === "unsplash" ? "https://api.unsplash.com/search/photos?query=test&per_page=1" : "https://api.pexels.com/v1/search?query=test&per_page=1";
-    var headers = service === "unsplash" ? { Authorization: "Client-ID " + key } : { Authorization: key };
-    var r = await fetch(url, { headers: headers });
-    if (r.ok) return { ok: true, msg: "Connected" };
-    if (r.status === 401) return { ok: false, msg: "Invalid key" };
-    return { ok: false, msg: "Error " + r.status };
-  } catch (e) {
-    return { ok: false, msg: e.message && e.message.indexOf("fetch") >= 0 ? "Blocked by sandbox" : (e.message || "Failed") };
-  }
-};
 
 // --- VINTAGE/PUBLIC DOMAIN IMAGE APIs (all free, no keys) ---
 
@@ -2198,39 +2186,6 @@ function buildRecPrompt(catLabel, topic) {
 }
 
 // --- SETTINGS PANEL ---
-function Settings({ apiKeys, setApiKeys, show, setShow, apiStatus, onTest }) {
-  return (
-    <div style={{ marginBottom: 16, textAlign: "center" }}>
-      <button onClick={function() { setShow(!show); }} style={{ background: "none", border: "0.5px solid var(--color-border-tertiary)", padding: "8px 14px", cursor: "pointer", fontSize: 11, ...CP, letterSpacing: "0.05em", color: "var(--color-text-secondary)", textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: 6 }}>
-        <Hash size={12} />{show ? "Hide" : "API"} Settings
-        {(apiStatus.unsplash && apiStatus.unsplash.ok) || (apiStatus.pexels && apiStatus.pexels.ok) ? <CheckCircle size={12} style={{ color: "var(--color-text-success)" }} /> : null}
-      </button>
-      {show && (
-        <div style={{ marginTop: 10, padding: 16, border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)", textAlign: "left" }}>
-          <div style={{ ...CP, fontSize: 10, letterSpacing: "0.1em", color: "var(--color-text-tertiary)", marginBottom: 10, textTransform: "uppercase" }}>Image APIs (optional)</div>
-          {[{ key: "unsplash", label: "Unsplash Access Key", hint: "unsplash.com/developers" },
-            { key: "pexels", label: "Pexels API Key", hint: "pexels.com/api" }].map(function(item) {
-            return (
-              <div key={item.key} style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 10, color: "var(--color-text-secondary)", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>{item.label}
-                  {apiStatus[item.key] && <span style={{ fontSize: 9, color: apiStatus[item.key].ok ? "var(--color-text-success)" : "var(--color-text-warning)", display: "inline-flex", alignItems: "center", gap: 3 }}>
-                    {apiStatus[item.key].ok ? <CheckCircle size={9} /> : <AlertTriangle size={9} />}{apiStatus[item.key].msg}
-                  </span>}
-                </div>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <input type="password" value={apiKeys[item.key]} onChange={function(e) { setApiKeys(function(prev) { var n = {}; for (var k in prev) n[k] = prev[k]; n[item.key] = e.target.value; return n; }); }}
-                    placeholder={item.hint} style={{ flex: 1, padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 11, ...CP }} />
-                  <button onClick={function() { onTest(item.key); }} disabled={!apiKeys[item.key]}
-                    style={{ padding: "6px 12px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: apiKeys[item.key] ? "pointer" : "default", ...CP, fontSize: 9, color: "var(--color-text-secondary)", opacity: apiKeys[item.key] ? 1 : 0.4 }}>Test</button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // --- MAIN COMPONENT ---
 export default function LoathrMediaGenerator() {
@@ -2248,9 +2203,7 @@ export default function LoathrMediaGenerator() {
   var gc = _s(0), genCount = gc[0], setGenCount = gc[1];
   var es = _s(null), error = es[0], setError = es[1];
   var aks = _s({ unsplash: process.env.NEXT_PUBLIC_UNSPLASH_KEY || "", pexels: process.env.NEXT_PUBLIC_PEXELS_KEY || "" }), apiKeys = aks[0], setApiKeys = aks[1];
-  var shs = _s(false), showSettings = shs[0], setShowSettings = shs[1];
   var ims = _s({}), images = ims[0], setImages = ims[1];
-  var aps = _s({}), apiStatus = aps[0], setApiStatus = aps[1];
   var iss = _s(null), imgStatus = iss[0], setImgStatus = iss[1];
   var trs = _s([]), trending = trs[0], setTrending = trs[1];
   var fts = _s(false), isFetchingTrending = fts[0], setIsFetchingTrending = fts[1];
@@ -2403,12 +2356,6 @@ export default function LoathrMediaGenerator() {
     } catch (err) { console.error(err); }
     finally { setIsFetchingTrending(false); }
   }, [category]);
-
-  var handleTest = _cb(async function(service) {
-    setApiStatus(function(p) { var n = {}; for (var k in p) n[k] = p[k]; n[service] = { ok: false, msg: "Testing..." }; return n; });
-    var result = await testApiConnection(service, apiKeys[service]);
-    setApiStatus(function(p) { var n = {}; for (var k in p) n[k] = p[k]; n[service] = result; return n; });
-  }, [apiKeys]);
 
   // Smart search: Claude suggests angles after 800ms pause
   var fetchSmartAngles = _cb(async function(query) {
@@ -3110,7 +3057,6 @@ export default function LoathrMediaGenerator() {
         <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", color: "var(--color-text-tertiary)", textTransform: "uppercase", marginTop: 2 }}>Media Maker</div>
       </div>
 
-      <Settings apiKeys={apiKeys} setApiKeys={setApiKeys} show={showSettings} setShow={setShowSettings} apiStatus={apiStatus} onTest={handleTest} />
 
       <div style={{ display: "flex", gap: 6, marginBottom: 16, justifyContent: "center", flexWrap: "wrap" }}>
         {CATEGORIES.map(function(c) {
