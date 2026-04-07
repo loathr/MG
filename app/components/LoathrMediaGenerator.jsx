@@ -381,6 +381,7 @@ function EditorialFill({ pal, category }) {
 
 // Module-level image style — set by generate(), read by ImgBg
 var _activeImageStyle = "mixed";
+var _editModeActive = false; // module-level flag for edit mode
 var _mosaicSlides = {}; // { slideIndex: [url1, url2, ...] } — set by generate(), read by ImgBg
 var _allImages = {}; // full images map for mosaic to pull from
 
@@ -993,10 +994,10 @@ function S2Arena({ slide, index, category, images }) {
     );
   }
   var contentSeed = (slide.body || "").length + (slide.heading || "").length;
-  var fpos = getFramePosition(contentSeed, index);
+  var fpos = slide.customPosition ? { top: slide.customPosition.top, left: slide.customPosition.left } : getFramePosition(contentSeed, index);
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
-      <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fpos)}>
+      <div data-draggable-text="true" data-slide-index={index} style={Object.assign({}, { position: "absolute", zIndex: 3, cursor: _editModeActive ? "grab" : "default" }, fpos)}>
         {wrappedText}
       </div>
       <div style={{ position: "absolute", bottom: M_PAGE, right: M_SIDE, zIndex: 4 }}>
@@ -2711,8 +2712,9 @@ export default function LoathrMediaGenerator() {
   }, [selectedOption]);
 
   var moveSlide = _cb(function(fromIdx, toIdx) {
-    if (toIdx < 0 || !options || !options[selectedOption]) return;
+    if (toIdx < 0) return;
     setOptions(function(prev) {
+      if (!prev || !prev[selectedOption]) return prev;
       var newOpts = prev.slice();
       var opt = Object.assign({}, newOpts[selectedOption]);
       var slides = opt.slides.slice();
@@ -2723,8 +2725,8 @@ export default function LoathrMediaGenerator() {
       newOpts[selectedOption] = opt;
       return newOpts;
     });
-    setCurrentSlide(toIdx);
-  }, [selectedOption, options]);
+    setTimeout(function() { setCurrentSlide(toIdx); }, 0);
+  }, [selectedOption]);
 
   var cycleTextPosition = _cb(function(slideIdx) {
     var positions = ["bottom-left", "bottom-right", "top-left", "top-right", "split-corners", "side-left", "side-right", "l-shape"];
@@ -4042,7 +4044,32 @@ export default function LoathrMediaGenerator() {
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
+          <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}
+            onMouseDown={function(e) {
+              if (!editMode) return;
+              var target = e.target.closest("[data-draggable-text]");
+              if (!target) return;
+              e.preventDefault();
+              var rect = slideRef.current.getBoundingClientRect();
+              var startX = e.clientX; var startY = e.clientY;
+              var origTop = parseInt(target.style.top) || 0;
+              var origLeft = parseInt(target.style.left) || 0;
+              var onMove = function(me) {
+                var dx = me.clientX - startX; var dy = me.clientY - startY;
+                target.style.top = (origTop + dy) + "px";
+                target.style.left = (origLeft + dx) + "px";
+                target.style.right = "auto"; target.style.bottom = "auto";
+              };
+              var onUp = function() {
+                document.removeEventListener("mousemove", onMove);
+                document.removeEventListener("mouseup", onUp);
+                var finalTop = parseInt(target.style.top) || 0;
+                var finalLeft = parseInt(target.style.left) || 0;
+                updateSlideField(currentSlide, "customPosition", { top: finalTop, left: finalLeft });
+              };
+              document.addEventListener("mousemove", onMove);
+              document.addEventListener("mouseup", onUp);
+            }}>
             <div style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff" }}>
               <div data-export-target="true" style={{ width: "100%", height: "100%", border: "1px solid #000000", overflow: "hidden" }}>
             {isRecMode ? <RecSlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
@@ -4131,7 +4158,7 @@ export default function LoathrMediaGenerator() {
           <button onClick={factCheck} disabled={factCheckLoading}
             style={{ padding: "4px 10px", border: "0.5px solid #ccc", background: factCheckResult ? (factCheckResult.score >= 7 ? "#22c55e22" : "#ef444422") : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: factCheckResult ? (factCheckResult.score >= 7 ? "#22c55e" : "#ef4444") : "#999" }}>
             {factCheckLoading ? "Checking..." : factCheckResult ? factCheckResult.score + "/10" : "\u2713 Fact Check"}</button>
-          <button onClick={function() { setEditMode(!editMode); setEditField(null); }}
+          <button onClick={function() { var next = !editMode; setEditMode(next); _editModeActive = next; setEditField(null); }}
             style={{ padding: "4px 10px", border: "0.5px solid " + (editMode ? uiAccent : "#ccc"), background: editMode ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: editMode ? uiAccent : "#999" }}>
             {editMode ? "\u2713 Done Editing" : "\u270E Edit"}</button>
           <button onClick={function() { generate(); }}
@@ -4173,11 +4200,16 @@ export default function LoathrMediaGenerator() {
               ) : null; })}
             </div>;
           })()}
+          {/* Drag hint */}
+          {currentSlide > 0 && currentSlide < total - 1 && <div style={{ ...CP, fontSize: 5, color: uiAccent, marginTop: 4 }}>{"\u2725"} Drag text on the slide to reposition</div>}
           {/* Style controls */}
-          <div style={{ display: "flex", gap: 3, marginTop: 6, borderTop: "0.5px solid #eee", paddingTop: 4, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 3, marginTop: 4, borderTop: "0.5px solid #eee", paddingTop: 4, flexWrap: "wrap" }}>
             <button onClick={function() { cycleTextPosition(currentSlide); }}
               style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
               {"\u2B12"} {(cur.slides[currentSlide] || {}).textPosition || "auto"}</button>
+            {(cur.slides[currentSlide] || {}).customPosition && <button onClick={function() { updateSlideField(currentSlide, "customPosition", null); }}
+              style={{ padding: "2px 6px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#ef4444" }}>
+              Reset Position</button>}
             <button onClick={function() { cycleContainerStyle(currentSlide); }}
               style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
               {"\u25A3"} {CONTAINER_LABELS[(cur.slides[currentSlide] || {}).containerStyle] || "Auto"}</button>
