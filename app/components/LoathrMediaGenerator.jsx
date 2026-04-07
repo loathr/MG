@@ -2188,7 +2188,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks, hasPersonImage, second
     crossCatInstr += "\n\nCROSS-CATEGORY LENS — TERTIARY: \"" + tertiaryCatLabel + "\" (EXACTLY " + terN + " slide" + (terN > 1 ? "s" : "") + ")\n" + terDir + "\nOn these slides, add \"categoryLens\": \"" + tertiaryCatLabel + "\". Best roles: THE DEEP CUT or THE COUNTER. Must be SPECIFIC and surprising.";
   }
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + "\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nMOSAIC LAYOUT: On 1-2 content slides where it fits editorially (THE RIPPLE EFFECT, THE DEEP CUT, or THE HUMAN STORY work best), add '\"mosaic\": true' to create a magazine-style photo collage background instead of a single image. Good for slides that reference multiple things, places, or people. Do NOT use mosaic on Cover, Closer, stat slides, or quote slides.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + "\n\nEDITORIAL ANGLE: " + freshness + "\nWRITING STYLE for content slides: " + style + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Slide 3 must CONTRADICT or CHALLENGE something from slides 1-2\n- Slide 7+ must connect the topic to a DIFFERENT field or unexpected consequence\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching\n\nSLIDE ROLES (use as many as the topic warrants, minimum 7):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nMOSAIC LAYOUT: Add '\"mosaic\": true' on approximately 40% of content slides to create magazine-style photo collage backgrounds. This is a key visual feature — use it generously. Good on: THE ORIGIN, THE RIPPLE EFFECT, THE DEEP CUT, THE HUMAN STORY, THE COUNTER, THE NOW. Do NOT use mosaic on Cover, Closer, stat slides (THE EVIDENCE), or quote slides (THE VOICE).\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -2578,13 +2578,26 @@ export default function LoathrMediaGenerator() {
     finally { setSwapLoading(false); }
   }, [category, cat, topic, apiKeys, options, selectedOption]);
 
-  var applySwap = _cb(function(slideIdx, newImg) {
-    setImages(function(prev) {
-      var n = Object.assign({}, prev);
-      n[slideIdx] = newImg;
-      return n;
-    });
-    setSwapSlide(null); setSwapImages([]); setSwapQuery("");
+  var swpn = _s(-1), swapPanel = swpn[0], setSwapPanel = swpn[1]; // -1 = full slide, 0-3 = mosaic panel
+
+  var applySwap = _cb(function(slideIdx, newImg, panelIdx) {
+    if (panelIdx >= 0 && _mosaicSlides[slideIdx]) {
+      // Swap a specific mosaic panel
+      var updated = _mosaicSlides[slideIdx].slice();
+      if (panelIdx < updated.length) { updated[panelIdx] = newImg.url || newImg.thumb; }
+      else { updated.push(newImg.url || newImg.thumb); }
+      _mosaicSlides[slideIdx] = updated;
+      // Force re-render by touching images state
+      setImages(function(prev) { return Object.assign({}, prev); });
+    } else {
+      // Swap the full slide image
+      setImages(function(prev) {
+        var n = Object.assign({}, prev);
+        n[slideIdx] = newImg;
+        return n;
+      });
+    }
+    setSwapSlide(null); setSwapImages([]); setSwapQuery(""); setSwapPanel(-1);
   }, []);
 
   // 4. Share link — encode carousel state as URL params
@@ -2843,16 +2856,19 @@ export default function LoathrMediaGenerator() {
               }
             });
           }
-          // If Claude didn't flag any mosaic but we have enough images, auto-assign one
-          if (Object.keys(_mosaicSlides).length === 0 && totalLoaded >= 5) {
-            var bestMosaicIdx = -1;
+          // Auto-assign mosaic to reach ~40% of content slides if Claude didn't flag enough
+          var contentSlideCount = Math.max(slides.length - 2, 1); // exclude cover + closer
+          var targetMosaic = Math.max(Math.round(contentSlideCount * 0.4), 1);
+          var currentMosaic = Object.keys(_mosaicSlides).length;
+          if (currentMosaic < targetMosaic && totalLoaded >= 3) {
             slides.forEach(function(s, si) {
-              if (si > 1 && si < slides.length - 2 && !s.statFormat && !s.stat && !s.quote && bestMosaicIdx === -1) {
-                var mUrls = getMosaicImgs(imgMap, si, slides.length);
-                if (mUrls.length >= 2) { _mosaicSlides[si] = mUrls; bestMosaicIdx = si; }
-              }
+              if (Object.keys(_mosaicSlides).length >= targetMosaic) return;
+              if (si <= 0 || si >= slides.length - 1) return; // skip cover/closer
+              if (_mosaicSlides[si]) return; // already mosaic
+              if (s.statFormat || s.stat || s.stats || s.before || s.leftStat || s.quote) return; // skip stat/quote
+              var mUrls = getMosaicImgs(imgMap, si, slides.length);
+              if (mUrls.length >= 2) _mosaicSlides[si] = mUrls;
             });
-            if (bestMosaicIdx >= 0) console.log("Auto-mosaic assigned to slide " + bestMosaicIdx);
           }
           if (totalLoaded > 0) {
             setImages(imgMap);
@@ -3871,6 +3887,18 @@ export default function LoathrMediaGenerator() {
           </button>
         </div>
         {swapSlide !== null && swapSlide === currentSlide && <div style={{ marginTop: 8, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8, borderRadius: 3 }}>
+          {/* Mosaic panel selector — choose which panel to swap */}
+          {_mosaicSlides[currentSlide] && <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 6, color: "#999", marginBottom: 3 }}>SWAP TARGET</div>
+            <div style={{ display: "flex", gap: 3 }}>
+              <button onClick={function() { setSwapPanel(-1); }}
+                style={{ padding: "2px 6px", border: "0.5px solid " + (swapPanel === -1 ? uiAccent : "#ccc"), background: swapPanel === -1 ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: swapPanel === -1 ? uiAccent : "#999" }}>Full Slide</button>
+              {_mosaicSlides[currentSlide].map(function(_, pi) { return (
+                <button key={pi} onClick={function() { setSwapPanel(pi); }}
+                  style={{ padding: "2px 6px", border: "0.5px solid " + (swapPanel === pi ? uiAccent : "#ccc"), background: swapPanel === pi ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: swapPanel === pi ? uiAccent : "#999" }}>Panel {pi + 1}</button>
+              ); })}
+            </div>
+          </div>}
           <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
             <input value={swapQuery} onChange={function(e) { setSwapQuery(e.target.value); }}
               onKeyDown={function(e) { if (e.key === "Enter") fetchSwapImages(swapSlide, swapQuery); }}
@@ -3882,7 +3910,7 @@ export default function LoathrMediaGenerator() {
           </div>
           {swapImages.length > 0 && <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4 }}>
             {swapImages.map(function(img, i) { return (
-              <div key={i} onClick={function() { applySwap(swapSlide, img); }}
+              <div key={i} onClick={function() { applySwap(swapSlide, img, swapPanel); }}
                 style={{ cursor: "pointer", borderRadius: 3, overflow: "hidden", border: "2px solid transparent", transition: "border 0.2s", aspectRatio: "4/5" }}
                 onMouseEnter={function(e) { e.currentTarget.style.borderColor = uiAccent; }}
                 onMouseLeave={function(e) { e.currentTarget.style.borderColor = "transparent"; }}>
@@ -3899,7 +3927,7 @@ export default function LoathrMediaGenerator() {
                 if (file) {
                   var reader = new FileReader();
                   reader.onload = function(ev) {
-                    applySwap(swapSlide, { url: ev.target.result, thumb: ev.target.result, alt: "Uploaded", credit: "User", source: "Upload" });
+                    applySwap(swapSlide, { url: ev.target.result, thumb: ev.target.result, alt: "Uploaded", credit: "User", source: "Upload" }, swapPanel);
                   };
                   reader.readAsDataURL(file);
                 }
