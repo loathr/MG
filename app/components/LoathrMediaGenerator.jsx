@@ -1050,7 +1050,7 @@ function S3RayGun({ slide, index, category, images }) {
         </ImgBg>
       );
     }
-    var fposFlip = getFramePosition((slide.body || "").length, index);
+    var fposFlip = slide.customPosition ? { top: slide.customPosition.top, left: slide.customPosition.left } : getFramePosition((slide.body || "").length, index);
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
         <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fposFlip)}>
@@ -1082,7 +1082,7 @@ function S3RayGun({ slide, index, category, images }) {
       </ImgBg>
     );
   }
-  var fposNorm = getFramePosition((slide.heading || "").length, index);
+  var fposNorm = slide.customPosition ? { top: slide.customPosition.top, left: slide.customPosition.left } : getFramePosition((slide.heading || "").length, index);
   if (styled) {
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
@@ -1352,7 +1352,7 @@ function S5Face({ slide, index, category, images }) {
         <div style={{ position: "absolute", top: M_TOP + 5, left: 0, right: 0, bottom: 0 }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
-          <div style={{ position: "absolute", bottom: M_BOT, right: M_SIDE, left: "50%", zIndex: 3 }}>
+          <div style={slide.customPosition ? { position: "absolute", top: slide.customPosition.top, left: slide.customPosition.left, zIndex: 3 } : { position: "absolute", bottom: M_BOT, right: M_SIDE, left: "50%", zIndex: 3 }}>
             {s5Wrapped}
           </div>
         </div>
@@ -2342,6 +2342,7 @@ export default function LoathrMediaGenerator() {
   var edm = _s(false), editMode = edm[0], setEditMode = edm[1];
   var edf = _s(null), editField = edf[0], setEditField = edf[1]; // { slide: idx, field: "heading"|"body"|etc }
   var edv = _s(""), editValue = edv[0], setEditValue = edv[1];
+  var eds = _s("text"), editSection = eds[0], setEditSection = eds[1]; // "text"|"layout"|"style"|"slide"
   var searchTimer = _ref(null);
   var webTimer = _ref(null);
   var previewTimer = _ref(null);
@@ -4200,10 +4201,17 @@ export default function LoathrMediaGenerator() {
           else if (s.stat) { fields = [["heading", s.heading], ["stat", s.stat], ["caption", s.caption || s.statLabel || s.body]]; }
           else { fields = [["heading", s.heading], ["body", s.body], ["highlight", s.highlight]]; }
           return <div style={{ marginTop: 6, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8, borderRadius: 3 }}>
-            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>EDIT SLIDE {currentSlide + 1}</div>
+            {/* Section tabs */}
+            <div style={{ display: "flex", gap: 0, marginBottom: 6 }}>
+              {(isContent ? ["text", "layout", "style", "slide"] : ["text", "slide"]).map(function(sec) {
+                var labels = { text: "TEXT", layout: "LAYOUT", style: "STYLE", slide: "SLIDE" };
+                return <button key={sec} onClick={function() { setEditSection(sec); }}
+                  style={{ flex: 1, padding: "4px 0", border: "none", borderBottom: "2px solid " + (editSection === sec ? uiAccent : "transparent"), background: editSection === sec ? uiAccent + "08" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: editSection === sec ? uiAccent : "#999", letterSpacing: "0.08em" }}>{labels[sec]}</button>;
+              })}
+            </div>
 
             {/* === TEXT === */}
-            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>TEXT</div>
+            {editSection === "text" && <div>
             {editField ? <div style={{ marginBottom: 4 }}>
               {editField.field === "body" || editField.field === "context" || editField.field === "quote" ? (
                 <textarea value={editValue} onChange={function(e) { setEditValue(e.target.value); }}
@@ -4236,9 +4244,10 @@ export default function LoathrMediaGenerator() {
               <button onClick={function() { adjustFontSize(currentSlide, "body", 1); }} style={{ width: 14, height: 14, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 7, color: "#666", textAlign: "center", lineHeight: "14px" }}>+</button>
             </div>}
 
+            </div>}
+
             {/* === LAYOUT (content slides only) === */}
-            {isContent && <div style={{ marginTop: 6, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
-              <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>LAYOUT</div>
+            {editSection === "layout" && isContent && <div>
               <div style={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap", marginBottom: 3 }}>
                 <button onClick={function() { cycleTextPosition(currentSlide); }}
                   style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
@@ -4276,8 +4285,7 @@ export default function LoathrMediaGenerator() {
             </div>}
 
             {/* === STYLE (content slides only) === */}
-            {isContent && <div style={{ marginTop: 6, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
-              <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>STYLE</div>
+            {editSection === "style" && isContent && <div>
               <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
                 <button onClick={function() { updateSlideField(currentSlide, "containerStyle", null); }}
                   style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: !s.containerStyle ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: !s.containerStyle ? uiAccent : "#999" }}>Auto</button>
@@ -4307,8 +4315,7 @@ export default function LoathrMediaGenerator() {
             </div>}
 
             {/* === SLIDE === */}
-            <div style={{ display: "flex", gap: 3, marginTop: 6, borderTop: "0.5px solid #eee", paddingTop: 4, alignItems: "center" }}>
-              <div style={{ ...CP, fontSize: 5, color: "#999" }}>SLIDE</div>
+            {editSection === "slide" && <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
               <button onClick={function() { duplicateSlide(currentSlide); }}
                 style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#666" }}>{"\u2398"} Copy</button>
               {currentSlide > 1 && <button onClick={function() { moveSlide(currentSlide, currentSlide - 1); }}
@@ -4318,7 +4325,7 @@ export default function LoathrMediaGenerator() {
               <div style={{ flex: 1 }} />
               {isContent && <button onClick={function() { deleteSlide(currentSlide); }}
                 style={{ padding: "2px 5px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>{"\u2715"} Delete</button>}
-            </div>
+            </div>}
           </div>;
         })()}
         {/* Fact-check results */}
