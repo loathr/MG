@@ -519,9 +519,9 @@ var STICKY_CATS = { fashion: true };
 var FORMAL_CATS = { film: true, photo: true, sports: true, nightlife: true };
 
 // Formal frame styles for editorial categories
-function FormalFrame({ children, style, accent, accent2, seed }) {
+function FormalFrame({ children, style, accent, accent2, seed, bg: bgProp }) {
   var variant = seed % 5;
-  var bg = "rgba(0,0,0,0.8)";
+  var bg = bgProp || "rgba(0,0,0,0.8)";
   var maxH = { maxHeight: 260, overflow: "hidden" };
 
   if (variant === 0) {
@@ -603,10 +603,11 @@ function getFramePosition(seed, slideIndex) {
 }
 
 // 7 bubble styles — enough for no repeats in any carousel
-function BubbleBox({ children, style, accent, accent2, seed }) {
+function BubbleBox({ children, style, accent, accent2, seed, bg: bgProp }) {
   var variant = seed % 7;
   var tailSide = seed % 2 === 0 ? "left" : "right";
   var rotation = (seed % 5 - 2) * 0.5;
+  var _bg = bgProp || null; // if set, overrides hardcoded backgrounds
   var maxH = { maxHeight: 260, overflow: "hidden" };
 
   if (variant === 0) {
@@ -985,7 +986,10 @@ function S2Arena({ slide, index, category, images }) {
   var containerOverride = slide.containerStyle && CONTAINER_MAP.hasOwnProperty(slide.containerStyle) ? slide.containerStyle : null;
   var ContainerComp = containerOverride ? CONTAINER_MAP[containerOverride] : (useBubble ? BubbleBox : useSticky ? StickyNote : useFormal ? FormalFrame : null);
   var containerSeed = typeof slide.containerVariant === "number" ? slide.containerVariant : index;
-  var wrappedText = ContainerComp ? <ContainerComp accent={p.accent} accent2={p.accent2} seed={containerSeed}>{textContent}</ContainerComp> : textContent;
+  var containerBg = slide.containerBg || null;
+  var containerOpacity = typeof slide.containerOpacity === "number" ? slide.containerOpacity : null;
+  var containerStyle = containerBg || containerOpacity !== null ? { background: containerBg || undefined, opacity: containerOpacity !== null ? containerOpacity : undefined } : undefined;
+  var wrappedText = ContainerComp ? <ContainerComp accent={p.accent} accent2={p.accent2} seed={containerSeed} style={containerStyle}>{textContent}</ContainerComp> : textContent;
   var hasSplitPos = slide.textPosition && ["split-corners", "side-left", "side-right", "top-left", "top-right", "l-shape"].indexOf(slide.textPosition) !== -1;
   if (hasSplitPos) {
     return (
@@ -1328,7 +1332,10 @@ function S5Face({ slide, index, category, images }) {
   var co5 = slide.containerStyle && CONTAINER_MAP5.hasOwnProperty(slide.containerStyle) ? slide.containerStyle : null;
   var CC5 = co5 ? CONTAINER_MAP5[co5] : (useBubble ? BubbleBox : useSticky ? StickyNote : useFormal ? FormalFrame : null);
   var s5Seed = typeof slide.containerVariant === "number" ? slide.containerVariant : index + 2;
-  var s5Wrapped = CC5 ? <CC5 accent={p.accent} accent2={p.accent2} seed={s5Seed}>{s5Text}</CC5> : s5Text;
+  var s5Bg = slide.containerBg || null;
+  var s5Op = typeof slide.containerOpacity === "number" ? slide.containerOpacity : null;
+  var s5Style = s5Bg || s5Op !== null ? { background: s5Bg || undefined, opacity: s5Op !== null ? s5Op : undefined } : undefined;
+  var s5Wrapped = CC5 ? <CC5 accent={p.accent} accent2={p.accent2} seed={s5Seed} style={s5Style}>{s5Text}</CC5> : s5Text;
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: M_TOP + 5, background: p.accent, display: "flex", alignItems: "center", padding: "0 " + M_SIDE + "px", zIndex: 4 }}>
@@ -2747,7 +2754,7 @@ export default function LoathrMediaGenerator() {
     });
   }, [selectedOption]);
 
-  var CONTAINER_STYLES = ["bubble", "sticky", "formal", "glass", "tape", "cutout", "minimal", "none"];
+  var CONTAINER_STYLES = [null, "bubble", "sticky", "formal", "glass", "tape", "cutout", "minimal", "none"];
   var CONTAINER_LABELS = { bubble: "Bubble", sticky: "Sticky", formal: "Formal", glass: "Glass", tape: "Tape", cutout: "Cutout", minimal: "Minimal", none: "None" };
 
   var cycleContainerStyle = _cb(function(slideIdx) {
@@ -2757,8 +2764,9 @@ export default function LoathrMediaGenerator() {
       var opt = Object.assign({}, newOpts[selectedOption]);
       var slides = opt.slides.slice();
       slides[slideIdx] = Object.assign({}, slides[slideIdx]);
-      var cur = slides[slideIdx].containerStyle || "auto";
+      var cur = slides[slideIdx].containerStyle || null;
       var curIdx = CONTAINER_STYLES.indexOf(cur);
+      if (curIdx === -1) curIdx = 0;
       slides[slideIdx].containerStyle = CONTAINER_STYLES[(curIdx + 1) % CONTAINER_STYLES.length];
       opt.slides = slides;
       newOpts[selectedOption] = opt;
@@ -4194,7 +4202,7 @@ export default function LoathrMediaGenerator() {
             else if (s.stat) { fields = [["heading", s.heading], ["stat", s.stat], ["caption", s.caption || s.statLabel || s.body]]; }
             else { fields = [["heading", s.heading], ["body", s.body], ["highlight", s.highlight]]; }
             return <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-              {fields.map(function(f) { return f[1] ? (
+              {fields.map(function(f) { return f[1] !== undefined ? (
                 <button key={f[0]} onClick={function() { startEdit(currentSlide, f[0], f[1]); }}
                   style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: editField && editField.field === f[0] ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   <span style={{ color: uiAccent }}>{f[0]}</span>: {String(f[1]).slice(0, 20)}{String(f[1]).length > 20 ? "..." : ""}
@@ -4239,6 +4247,37 @@ export default function LoathrMediaGenerator() {
             <button onClick={function() { adjustFontSize(currentSlide, "body", -1); }} style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>-</button>
             <div style={{ ...CP, fontSize: 6, color: "#666", minWidth: 12, textAlign: "center" }}>{(cur.slides[currentSlide] || {}).bodySize || 0}</div>
             <button onClick={function() { adjustFontSize(currentSlide, "body", 1); }} style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>+</button>
+          </div>}
+          {/* Container color + opacity */}
+          {currentSlide > 0 && currentSlide < total - 1 && <div style={{ marginTop: 4 }}>
+            <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+              <div style={{ ...CP, fontSize: 5, color: "#999" }}>Box Color:</div>
+              {[
+                { id: null, label: "Auto", color: "#666" },
+                { id: "rgba(0,0,0,0.85)", label: "Dark", color: "#333" },
+                { id: "rgba(0,0,0,0.6)", label: "Mid", color: "#555" },
+                { id: "rgba(255,255,255,0.9)", label: "Light", color: "#eee" },
+                { id: "rgba(255,255,255,0.15)", label: "Ghost", color: "#ccc" },
+              ].map(function(c) {
+                var active = (cur.slides[currentSlide] || {}).containerBg === c.id;
+                return <button key={c.label} onClick={function() { updateSlideField(currentSlide, "containerBg", c.id); }}
+                  style={{ padding: "2px 5px", border: "0.5px solid " + (active ? uiAccent : "#ddd"), background: active ? uiAccent + "22" : c.color, cursor: "pointer", ...CP, fontSize: 5, color: active ? uiAccent : (c.id && c.id.indexOf("255") > -1 ? "#333" : "#fff"), borderRadius: 2 }}>{c.label}</button>;
+              })}
+              <button onClick={function() {
+                var hue = Math.floor(Math.random() * 360);
+                updateSlideField(currentSlide, "containerBg", "hsla(" + hue + ",60%,20%,0.85)");
+              }} style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: "linear-gradient(90deg,#e63946,#e6a817,#1abc9c,#9b59b6)", cursor: "pointer", ...CP, fontSize: 5, color: "#fff", borderRadius: 2 }}>Hue</button>
+            </div>
+            <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+              <div style={{ ...CP, fontSize: 5, color: "#999" }}>Opacity:</div>
+              <input type="range" min="0.1" max="1" step="0.05"
+                value={(cur.slides[currentSlide] || {}).containerOpacity || 1}
+                onChange={function(e) { updateSlideField(currentSlide, "containerOpacity", parseFloat(e.target.value)); }}
+                style={{ width: 80, height: 4, cursor: "pointer" }} />
+              <div style={{ ...CP, fontSize: 6, color: "#666" }}>{Math.round(((cur.slides[currentSlide] || {}).containerOpacity || 1) * 100)}%</div>
+              {(cur.slides[currentSlide] || {}).containerOpacity && <button onClick={function() { updateSlideField(currentSlide, "containerOpacity", null); }}
+                style={{ padding: "1px 4px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#999" }}>Reset</button>}
+            </div>
           </div>}
           {/* Slide operations */}
           <div style={{ display: "flex", gap: 3, marginTop: 4, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
