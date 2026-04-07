@@ -497,7 +497,11 @@ function styleBody(text, accentColor, accent2Color) {
     if (/^[A-Z\s]+$/.test(part) && part.trim().length > 2 && hitCount < 2) {
       var c = colors[hitCount % colors.length];
       hitCount++;
-      return <span key={i} style={{ color: "#000000", fontWeight: 700, background: c, padding: "1px 4px", margin: "0 1px", display: "inline", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone", lineHeight: "inherit", whiteSpace: "nowrap" }}>{part}</span>;
+      // Wrap each word individually for cleaner line breaks
+      var words = part.trim().split(/\s+/);
+      return words.map(function(word, wi) {
+        return <span key={i + "-" + wi} style={{ color: "#000000", fontWeight: 700, background: c, padding: "1px 4px", margin: "0 2px 2px 0", display: "inline-block", lineHeight: 1.6 }}>{word}</span>;
+      });
     }
     return part;
   });
@@ -2194,7 +2198,9 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
       var innerDivs = clonedEl.querySelectorAll("div");
       innerDivs.forEach(function(div) {
         // Lock absolutely positioned text containers — freeze both width AND height
-        if (div.style.position === "absolute" && div.style.zIndex) {
+        // Skip centered elements (translate -50%) — locking their width clips the centered content
+        var isCentered = div.style.transform && div.style.transform.indexOf("-50%") > -1;
+        if (div.style.position === "absolute" && div.style.zIndex && !isCentered) {
           var w = div.offsetWidth;
           var h = div.offsetHeight;
           if (w > 0 && w < 400) { div.style.maxWidth = w + "px"; div.style.width = w + "px"; }
