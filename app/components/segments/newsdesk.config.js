@@ -15,13 +15,13 @@ export var NEWSDESK_FILTERS = [
 ];
 
 export var NEWSDESK_REGIONS = [
-  { id: "global", label: "Global" },
-  { id: "americas", label: "Americas" },
-  { id: "europe", label: "Europe" },
-  { id: "africa", label: "Africa" },
-  { id: "asia", label: "Asia" },
-  { id: "middleeast", label: "Middle East" },
-  { id: "oceania", label: "Oceania" },
+  { id: "global", label: "Global", countries: [] },
+  { id: "americas", label: "Americas", countries: ["United States", "Canada", "Mexico", "Brazil", "Argentina", "Colombia", "Chile", "Peru", "Cuba", "Jamaica", "Trinidad"] },
+  { id: "europe", label: "Europe", countries: ["United Kingdom", "France", "Germany", "Spain", "Italy", "Netherlands", "Sweden", "Poland", "Ukraine", "Ireland", "Switzerland", "Belgium", "Portugal", "Greece", "Turkey"] },
+  { id: "africa", label: "Africa", countries: ["Nigeria", "South Africa", "Kenya", "Ghana", "Ethiopia", "Egypt", "Tanzania", "Rwanda", "Senegal", "Morocco", "Algeria", "Uganda", "Cameroon", "Ivory Coast", "DR Congo"] },
+  { id: "asia", label: "Asia", countries: ["China", "Japan", "India", "South Korea", "Indonesia", "Philippines", "Vietnam", "Thailand", "Singapore", "Malaysia", "Pakistan", "Bangladesh", "Taiwan", "Hong Kong"] },
+  { id: "middleeast", label: "Middle East", countries: ["Saudi Arabia", "UAE", "Israel", "Iran", "Iraq", "Qatar", "Kuwait", "Jordan", "Lebanon", "Bahrain", "Oman"] },
+  { id: "oceania", label: "Oceania", countries: ["Australia", "New Zealand", "Fiji", "Papua New Guinea"] },
 ];
 
 export var NEWSDESK_TIMEFRAMES = [
@@ -70,9 +70,11 @@ export var NEWSDESK_SLIDE_ROLES = [
   "THE NUMBERS", "THE PERSPECTIVE", "RELATED", "SOURCES"
 ];
 
-export function buildNewsDeskPrompt(keywords, filter, region, timeframe) {
+export function buildNewsDeskPrompt(keywords, filter, region, timeframe, country) {
   var filterLabel = filter ? filter.label : "general news";
   var regionLabel = region ? region.label : "Global";
+  var countryLabel = country || "";
+  var locationLabel = countryLabel ? countryLabel + " (" + regionLabel + ")" : regionLabel;
   var timeLabel = timeframe ? timeframe.label.toLowerCase() : "today";
   var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var d = new Date();
@@ -81,7 +83,7 @@ export function buildNewsDeskPrompt(keywords, filter, region, timeframe) {
   return "You are a senior news editor writing for LOATHR NEWS DESK, an editorial Instagram brand that presents news in a newspaper-style carousel format.\n\n" +
     "SEARCH KEYWORDS: \"" + keywords + "\"\n" +
     "FILTER: " + filterLabel + "\n" +
-    "REGION: " + regionLabel + "\n" +
+    "LOCATION: " + locationLabel + "\n" +
     "TIMEFRAME: " + timeLabel + "\n" +
     "DATE: " + dateline + "\n\n" +
     "Use web search to find CURRENT, REAL news matching these keywords. This is a NEWS product — accuracy is critical.\n\n" +

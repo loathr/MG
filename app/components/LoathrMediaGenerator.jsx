@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
 import { ENTERPRISE_FORCES, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, buildEnterprisePrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
-import { EnterpriseCover, EnterpriseCloser, EnterprisePlaybook } from "./segments/EnterpriseSlides";
+import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook } from "./segments/EnterpriseSlides";
 import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, buildNewsDeskPrompt } from "./segments/newsdesk.config";
 import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser } from "./segments/NewsDeskSlides";
 
@@ -1636,12 +1636,7 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
     else if (slideIndex === lastIdx) slide = <EnterpriseCloser slide={slideData} images={images} index={slideIndex} category={category} />;
     else if (slideData.heading && slideData.heading.toUpperCase().indexOf("PLAYBOOK") > -1) slide = <EnterprisePlaybook slide={slideData} images={images} index={slideIndex} />;
     else if (slideData.statFormat || slideData.stat || slideData.stats) slide = <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
-    else {
-      var eLayouts = [S3RayGun, S5Face, S2Arena];
-      var ePick = (slideIndex - 1) % eLayouts.length;
-      var EComp = eLayouts[ePick];
-      slide = <EComp slide={slideData} index={slideIndex} category={category} images={images} />;
-    }
+    else slide = <EnterpriseContent slide={Object.assign({}, slideData, { role: slideData.heading || "" })} images={images} index={slideIndex} />;
   } else if (category === "newsdesk") {
     if (slideIndex === 0) slide = <NewsFrontPage slide={slideData} images={images} index={slideIndex} />;
     else if (slideIndex === lastIdx || slideData.fullSources) slide = <NewsSourcesCloser slide={slideData} />;
@@ -2458,6 +2453,7 @@ export default function LoathrMediaGenerator() {
   var ndf = _s(null), newsFilter = ndf[0], setNewsFilter = ndf[1];
   var ndr = _s("global"), newsRegion = ndr[0], setNewsRegion = ndr[1];
   var ndt = _s("today"), newsTimeframe = ndt[0], setNewsTimeframe = ndt[1];
+  var ndc = _s(""), newsCountry = ndc[0], setNewsCountry = ndc[1];
   var searchTimer = _ref(null);
   var webTimer = _ref(null);
   var previewTimer = _ref(null);
@@ -3053,7 +3049,7 @@ export default function LoathrMediaGenerator() {
         var nfObj = newsFilter ? NEWSDESK_FILTERS.find(function(f) { return f.id === newsFilter; }) : null;
         var nrObj = NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }) || null;
         var ntObj = NEWSDESK_TIMEFRAMES.find(function(t) { return t.id === newsTimeframe; }) || null;
-        prompt = buildNewsDeskPrompt(topic, nfObj, nrObj, ntObj);
+        prompt = buildNewsDeskPrompt(topic, nfObj, nrObj, ntObj, newsCountry);
       } else {
         prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, Object.keys(lockedRef.current || {}).length > 0, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null, secondaryCount, tertiaryCount);
       }
@@ -3586,11 +3582,21 @@ export default function LoathrMediaGenerator() {
         <div style={{ display: "flex", gap: 6, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
             <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Region:</div>
-            <select value={newsRegion} onChange={function(e) { setNewsRegion(e.target.value); }}
+            <select value={newsRegion} onChange={function(e) { setNewsRegion(e.target.value); setNewsCountry(""); }}
               style={{ padding: "2px 4px", border: "0.5px solid #c8c0aa", background: "#ffffff", ...CP, fontSize: 6, color: "#1a1a1a" }}>
               {NEWSDESK_REGIONS.map(function(r) { return <option key={r.id} value={r.id}>{r.label}</option>; })}
             </select>
           </div>
+          {(function() { var reg = NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }); return reg && reg.countries && reg.countries.length > 0 ? (
+            <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+              <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Country:</div>
+              <select value={newsCountry} onChange={function(e) { setNewsCountry(e.target.value); }}
+                style={{ padding: "2px 4px", border: "0.5px solid #c8c0aa", background: "#ffffff", ...CP, fontSize: 6, color: "#1a1a1a" }}>
+                <option value="">All {reg.label}</option>
+                {reg.countries.map(function(c) { return <option key={c} value={c}>{c}</option>; })}
+              </select>
+            </div>
+          ) : null; })()}
           <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
             <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Time:</div>
             {NEWSDESK_TIMEFRAMES.map(function(t) {
