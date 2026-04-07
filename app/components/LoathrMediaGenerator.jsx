@@ -598,13 +598,17 @@ function FormalFrame({ children, style, accent, accent2, seed, bg: bgProp }) {
 }
 
 // Randomized frame position based on topic + slideIndex
-function getFramePosition(seed, slideIndex) {
+function getFramePosition(seed, slideIndex, textPosition) {
+  // If textPosition is explicitly set (bottom-left or bottom-right), respect it
+  if (textPosition === "bottom-left") return { bottom: M_BOT, left: M_SIDE, right: "40%" };
+  if (textPosition === "bottom-right") return { bottom: M_BOT, left: "40%", right: M_SIDE };
+  // Otherwise use seed-based rotation
   var positions = [
-    { bottom: M_BOT, left: M_SIDE, right: M_SIDE },           // bottom full
-    { bottom: M_BOT, left: M_SIDE, right: "45%" },            // bottom-left half
-    { bottom: M_BOT, left: "40%", right: M_SIDE },            // bottom-right half
-    { bottom: M_BOT + 10, left: M_SIDE, right: "35%" },       // bottom-left wider
-    { bottom: M_BOT + 10, left: "30%", right: M_SIDE },       // bottom-right wider
+    { bottom: M_BOT, left: M_SIDE, right: M_SIDE },
+    { bottom: M_BOT, left: M_SIDE, right: "45%" },
+    { bottom: M_BOT, left: "40%", right: M_SIDE },
+    { bottom: M_BOT + 10, left: M_SIDE, right: "35%" },
+    { bottom: M_BOT + 10, left: "30%", right: M_SIDE },
   ];
   var pick = (seed + slideIndex * 7) % positions.length;
   return positions[pick];
@@ -873,6 +877,13 @@ function SplitTextBox({ slide, position, accent, accent2, category, seed, styleB
   var highlightEl = slide.highlight ? <div style={{ marginTop: 4 }}><span style={{ ...WS, fontSize: 5.3, fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "2px 6px" }}>{slide.highlight}</span></div> : null;
   var citeEl = <MicroCite sources={slide.sources} accent={accent} />;
 
+  // If customPosition is set, render as a single box at that position (overrides split)
+  if (slide.customPosition) {
+    return <div style={{ position: "absolute", top: slide.customPosition.top, left: slide.customPosition.left, zIndex: 3, maxWidth: "60%" }}>
+      {wrapFrame(<div>{headingEl}<div style={{ marginTop: 4 }}>{bodyEl}</div>{highlightEl}{citeEl}</div>, seed)}
+    </div>;
+  }
+
   // Split-corners: heading top-left, body bottom-right
   if (pos === "split-corners") {
     return <>
@@ -1020,7 +1031,7 @@ function S2Arena({ slide, index, category, images }) {
     );
   }
   var contentSeed = (slide.body || "").length + (slide.heading || "").length;
-  var fpos = slide.customPosition ? { top: slide.customPosition.top, left: slide.customPosition.left } : getFramePosition(contentSeed, index);
+  var fpos = slide.customPosition ? { top: slide.customPosition.top, left: slide.customPosition.left, maxWidth: "65%", right: "auto", bottom: "auto" } : getFramePosition(contentSeed, index, slide.textPosition);
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
       <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fpos)}>
@@ -1066,7 +1077,7 @@ function S3RayGun({ slide, index, category, images }) {
         </ImgBg>
       );
     }
-    var fposFlip = slide.customPosition ? { top: slide.customPosition.top, left: slide.customPosition.left } : getFramePosition((slide.body || "").length, index);
+    var fposFlip = slide.customPosition ? { top: slide.customPosition.top, left: slide.customPosition.left, maxWidth: "65%", right: "auto", bottom: "auto" } : getFramePosition((slide.body || "").length, index, slide.textPosition);
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
         <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fposFlip)}>
@@ -1098,7 +1109,7 @@ function S3RayGun({ slide, index, category, images }) {
       </ImgBg>
     );
   }
-  var fposNorm = slide.customPosition ? { top: slide.customPosition.top, left: slide.customPosition.left } : getFramePosition((slide.heading || "").length, index);
+  var fposNorm = slide.customPosition ? { top: slide.customPosition.top, left: slide.customPosition.left, maxWidth: "65%", right: "auto", bottom: "auto" } : getFramePosition((slide.heading || "").length, index, slide.textPosition);
   if (styled) {
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
@@ -1368,7 +1379,7 @@ function S5Face({ slide, index, category, images }) {
         <div style={{ position: "absolute", top: M_TOP + 5, left: 0, right: 0, bottom: 0 }}>
           {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
           {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
-          <div style={slide.customPosition ? { position: "absolute", top: slide.customPosition.top, left: slide.customPosition.left, zIndex: 3 } : { position: "absolute", bottom: M_BOT, right: M_SIDE, left: "50%", zIndex: 3 }}>
+          <div style={slide.customPosition ? { position: "absolute", top: slide.customPosition.top, left: slide.customPosition.left, maxWidth: "65%", zIndex: 3 } : { position: "absolute", bottom: M_BOT, right: M_SIDE, left: "50%", zIndex: 3 }}>
             {s5Wrapped}
           </div>
         </div>
