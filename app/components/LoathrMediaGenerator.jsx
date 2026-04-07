@@ -2047,7 +2047,47 @@ var loadScript = function(src) {
   });
 };
 
-var exportSlides = async function(slides, category, slideRef, setCurrentSlide, setExportStatus) {
+// Render a single slide to canvas
+var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) {
+  setCurrentSlide(slideIndex);
+  await new Promise(function(r) { setTimeout(r, 800); });
+  var el = slideRef.current;
+  if (!el) return null;
+  var whiteBorder = el.firstChild;
+  var innerBlack = whiteBorder ? whiteBorder.firstChild : null;
+  var slideContent = innerBlack ? innerBlack.firstChild : null;
+  var exportTarget = slideContent || innerBlack || whiteBorder || el;
+  var ew = exportTarget.offsetWidth || 340;
+  var eh = exportTarget.offsetHeight || 425;
+  // Scale to 1080px width (3.176x) — sharp on iPhone retina (3x)
+  return window.html2canvas(exportTarget, {
+    width: ew,
+    height: eh,
+    scale: 1080 / ew,
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: "#000000",
+    logging: false,
+    onclone: function(clonedDoc, clonedEl) {
+      var imgs = clonedEl.querySelectorAll("img[style*='object-fit']");
+      imgs.forEach(function(img) {
+        var parent = img.parentElement;
+        if (parent && img.src && img.style.objectFit === "cover") {
+          parent.style.backgroundImage = "url(" + img.src + ")";
+          parent.style.backgroundSize = "cover";
+          parent.style.backgroundPosition = "center";
+          img.style.opacity = "0";
+        }
+      });
+    },
+  });
+};
+
+var exportSlides = async function(slides, category, slideRef, setCurrentSlide, setExportStatus, format) {
+  var useJpeg = format === "jpeg";
+  var mimeType = useJpeg ? "image/jpeg" : "image/png";
+  var ext = useJpeg ? ".jpg" : ".png";
+  var quality = useJpeg ? 0.92 : 1.0;
   setExportStatus("Loading export libraries...");
   try {
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
@@ -2060,48 +2100,12 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
   var zip = new window.JSZip();
   var imgFolder = zip.folder("LOATHR-" + category.toUpperCase());
   for (var i = 0; i < slides.length; i++) {
-    setExportStatus("Rendering slide " + (i + 1) + " of " + slides.length + "...");
-    setCurrentSlide(i);
-    // Wait for React re-render + image loading
-    await new Promise(function(r) { setTimeout(r, 800); });
-    var el = slideRef.current;
-    if (!el) continue;
-    // Navigate to the SlideRenderer content: slideRef > whiteBorderDiv > innerBlackDiv > SlideRenderer(accent border)
-    // We want the accent-bordered div which is the actual 4:5 slide content
-    var whiteBorder = el.firstChild;
-    var innerBlack = whiteBorder ? whiteBorder.firstChild : null;
-    var slideContent = innerBlack ? innerBlack.firstChild : null;
-    var exportTarget = slideContent || innerBlack || whiteBorder || el;
+    setExportStatus("Rendering " + (i + 1) + "/" + slides.length + "...");
     try {
-      // Export at exactly 1080x1350 — Instagram's recommended 4:5 portrait
-      // Use the element's actual dimensions to avoid stretch
-      var ew = exportTarget.offsetWidth || 340;
-      var eh = exportTarget.offsetHeight || 425;
-      var canvas = await window.html2canvas(exportTarget, {
-        width: ew,
-        height: eh,
-        scale: 1080 / ew,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#000000",
-        logging: false,
-        onclone: function(clonedDoc, clonedEl) {
-          // Fix objectFit:cover — html2canvas doesn't support it natively
-          // Convert cover images to background-image on the parent div
-          var imgs = clonedEl.querySelectorAll("img[style*='object-fit']");
-          imgs.forEach(function(img) {
-            var parent = img.parentElement;
-            if (parent && img.src && img.style.objectFit === "cover") {
-              parent.style.backgroundImage = "url(" + img.src + ")";
-              parent.style.backgroundSize = "cover";
-              parent.style.backgroundPosition = "center";
-              img.style.opacity = "0";
-            }
-          });
-        },
-      });
-      var blob = await new Promise(function(r) { canvas.toBlob(r, "image/png", 1.0); });
-      if (blob) imgFolder.file("slide-" + String(i + 1).padStart(2, "0") + ".png", blob);
+      var canvas = await renderSlideToCanvas(slideRef, i, setCurrentSlide);
+      if (!canvas) continue;
+      var blob = await new Promise(function(r) { canvas.toBlob(r, mimeType, quality); });
+      if (blob) imgFolder.file("slide-" + String(i + 1).padStart(2, "0") + ext, blob);
     } catch (err) { console.error("Failed slide " + (i + 1), err); }
   }
   setExportStatus("Creating ZIP...");
@@ -2110,7 +2114,7 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
     var blobUrl = URL.createObjectURL(content);
     var a = document.createElement("a");
     a.href = blobUrl;
-    a.download = "LOATHR-" + category.toUpperCase() + "-carousel.zip";
+    a.download = "LOATHR-" + category.toUpperCase() + "-carousel" + (useJpeg ? "-optimized" : "") + ".zip";
     a.click();
     URL.revokeObjectURL(blobUrl);
     setExportStatus("Downloaded!");
@@ -3776,12 +3780,40 @@ export default function LoathrMediaGenerator() {
           <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.08em" }}>ISSUE {editionData.num} {"\u00b7"} {editionData.label}</div>
           <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.08em" }}>{editionData.voice} {"\u00b7"} {editionData.angle} {"\u00b7"} {editionData.style}{secondaryCategory ? " \u00b7 +" + secondaryCount + " " + (CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) || {}).label : ""}{tertiaryCategory ? " \u00b7 +" + tertiaryCount + " " + (CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) || {}).label : ""}</div>
         </div>}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 4 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", textTransform: "uppercase" }}>Slide {currentSlide + 1} / {total}</div>
-          <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus); }} disabled={!!exportStatus}
-            style={{ padding: "6px 12px", border: "1px solid " + uiAccent, background: "transparent", cursor: exportStatus ? "default" : "pointer", display: "flex", alignItems: "center", gap: 5, ...CP, fontSize: 9, color: uiAccent, letterSpacing: "0.08em", opacity: exportStatus ? 0.5 : 1 }}>
-            <Archive size={11} />{exportStatus || "EXPORT PNG ZIP"}
-          </button>
+          <div style={{ display: "flex", gap: 3 }}>
+            {/* Save single slide — optimized for iPhone (long-press to save) */}
+            <button onClick={async function() {
+              if (exportStatus) return;
+              setExportStatus("Rendering...");
+              try {
+                await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+                var canvas = await renderSlideToCanvas(slideRef, currentSlide, setCurrentSlide);
+                if (canvas) {
+                  var blob = await new Promise(function(r) { canvas.toBlob(r, "image/jpeg", 0.92); });
+                  var blobUrl = URL.createObjectURL(blob);
+                  var a = document.createElement("a"); a.href = blobUrl; a.download = "LOATHR-slide-" + (currentSlide + 1) + ".jpg"; a.click();
+                  URL.revokeObjectURL(blobUrl);
+                }
+                setExportStatus("Saved!");
+              } catch (e) { setExportStatus("Failed"); }
+              setTimeout(function() { setExportStatus(null); }, 1500);
+            }} disabled={!!exportStatus}
+              style={{ padding: "6px 8px", border: "1px solid " + uiAccent, background: "transparent", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 8, color: uiAccent, opacity: exportStatus ? 0.5 : 1 }}>
+              {"\u2B07"} SAVE
+            </button>
+            {/* Export all — JPEG (smaller, iPhone optimized) */}
+            <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus, "jpeg"); }} disabled={!!exportStatus}
+              style={{ padding: "6px 8px", border: "1px solid " + uiAccent, background: uiAccent + "15", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 8, color: uiAccent, opacity: exportStatus ? 0.5 : 1 }}>
+              <Archive size={9} /> {exportStatus || "ALL JPG"}
+            </button>
+            {/* Export all — PNG (lossless, larger files) */}
+            <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus, "png"); }} disabled={!!exportStatus}
+              style={{ padding: "6px 8px", border: "0.5px solid #ccc", background: "transparent", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 8, color: "#999", opacity: exportStatus ? 0.5 : 1 }}>
+              ALL PNG
+            </button>
+          </div>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
           <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
