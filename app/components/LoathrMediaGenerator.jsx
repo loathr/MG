@@ -2359,8 +2359,9 @@ export default function LoathrMediaGenerator() {
   var edf = _s(null), editField = edf[0], setEditField = edf[1]; // { slide: idx, field: "heading"|"body"|etc }
   var edv = _s(""), editValue = edv[0], setEditValue = edv[1];
   var eds = _s("content"), editSection = eds[0], setEditSection = eds[1];
-  var pmd = _s(false), positionMode = pmd[0], setPositionMode = pmd[1]; // dedicated position editing mode
-  var pmp = _s(null), pendingPosition = pmp[0], setPendingPosition = pmp[1]; // { top, left } waiting for confirm
+  var pmd = _s(false), positionMode = pmd[0], setPositionMode = pmd[1];
+  var drg = _s(null), dragState = drg[0], setDragState = drg[1]; // { startX, startY, origTop, origLeft }
+  var dps = _s(null), dragPos = dps[0], setDragPos = dps[1]; // { top, left } live during drag
   var searchTimer = _ref(null);
   var webTimer = _ref(null);
   var previewTimer = _ref(null);
@@ -2673,25 +2674,35 @@ export default function LoathrMediaGenerator() {
 
   var swpn = _s(-1), swapPanel = swpn[0], setSwapPanel = swpn[1]; // -1 = full slide, 0-3 = mosaic panel
 
-  var applySwap = _cb(function(slideIdx, newImg, panelIdx) {
+  var applySwap = function(slideIdx, newImg, panelIdx) {
     if (panelIdx >= 0 && _mosaicSlides[slideIdx]) {
       // Swap a specific mosaic panel
       var updated = _mosaicSlides[slideIdx].slice();
+      var layoutIdx = updated._layoutIdx;
       if (panelIdx < updated.length) { updated[panelIdx] = newImg.url || newImg.thumb; }
       else { updated.push(newImg.url || newImg.thumb); }
       _mosaicSlides[slideIdx] = updated;
-      // Force re-render by touching images state
+      if (layoutIdx !== undefined) _mosaicSlides[slideIdx]._layoutIdx = layoutIdx;
       setImages(function(prev) { return Object.assign({}, prev); });
     } else {
-      // Swap the full slide image
+      // Swap the full slide image — preserve mosaic layout if it exists
+      var hadMosaic = _mosaicSlides[slideIdx];
       setImages(function(prev) {
         var n = Object.assign({}, prev);
         n[slideIdx] = newImg;
         return n;
       });
+      // Update mosaic panel 0 with the new image too
+      if (hadMosaic) {
+        var mUpdated = hadMosaic.slice();
+        var mLayoutIdx = mUpdated._layoutIdx;
+        mUpdated[0] = newImg.url || newImg.thumb;
+        _mosaicSlides[slideIdx] = mUpdated;
+        if (mLayoutIdx !== undefined) _mosaicSlides[slideIdx]._layoutIdx = mLayoutIdx;
+      }
     }
     setSwapSlide(null); setSwapImages([]); setSwapQuery(""); setSwapPanel(-1);
-  }, []);
+  };
 
   // Fact-checker — reviews generated content for accuracy
   // --- Editor functions ---
@@ -4107,22 +4118,37 @@ export default function LoathrMediaGenerator() {
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)", cursor: positionMode ? "crosshair" : "default" }}
-            onClick={function(e) {
+          <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)", cursor: positionMode ? (dragState ? "grabbing" : "grab") : "default" }}
+            onMouseDown={function(e) {
               if (!editMode || !positionMode) return;
-              // Position mode: click to preview, then confirm
+              e.preventDefault();
               var rect = e.currentTarget.getBoundingClientRect();
-              var clickY = e.clientY - rect.top;
-              var clickX = e.clientX - rect.left;
-              var borderOffset = 5.5;
-              var top = Math.max(0, Math.min(380, clickY - borderOffset));
-              var left = Math.max(0, Math.min(300, clickX - borderOffset));
-              var pos = { top: Math.round(top), left: Math.round(left) };
-              setPendingPosition(pos);
-              // Apply immediately as preview
-              updateSlideField(currentSlide, "customPosition", pos);
+              var s = cur.slides[currentSlide] || {};
+              var origTop = s.customPosition ? s.customPosition.top : 200;
+              var origLeft = s.customPosition ? s.customPosition.left : 16;
+              setDragState({ startX: e.clientX, startY: e.clientY, origTop: origTop, origLeft: origLeft });
             }}
->
+            onMouseMove={function(e) {
+              if (!dragState) return;
+              var dx = e.clientX - dragState.startX;
+              var dy = e.clientY - dragState.startY;
+              var newTop = Math.max(0, Math.min(380, dragState.origTop + dy));
+              var newLeft = Math.max(0, Math.min(300, dragState.origLeft + dx));
+              setDragPos({ top: Math.round(newTop), left: Math.round(newLeft) });
+              updateSlideField(currentSlide, "customPosition", { top: Math.round(newTop), left: Math.round(newLeft) });
+            }}
+            onMouseUp={function() {
+              if (dragState && dragPos) {
+                updateSlideField(currentSlide, "customPosition", dragPos);
+              }
+              setDragState(null); setDragPos(null);
+            }}
+            onMouseLeave={function() {
+              if (dragState) {
+                if (dragPos) updateSlideField(currentSlide, "customPosition", dragPos);
+                setDragState(null); setDragPos(null);
+              }
+            }}>
             <div style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff" }}>
               <div data-export-target="true" style={{ width: "100%", height: "100%", border: "1px solid #000000", overflow: "hidden" }}>
             {isRecMode ? <RecSlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
@@ -4281,15 +4307,13 @@ export default function LoathrMediaGenerator() {
                   <button onClick={function() { cycleTextPosition(currentSlide); }}
                     style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
                     {"\u2B12"} {s.textPosition || "auto"}</button>
-                  <button onClick={function() { setPositionMode(!positionMode); setPendingPosition(null); }}
+                  <button onClick={function() { setPositionMode(!positionMode); setDragState(null); setDragPos(null); }}
                     style={{ padding: "2px 6px", border: "0.5px solid " + (positionMode ? uiAccent : "#ddd"), background: positionMode ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: positionMode ? uiAccent : "#666" }}>
-                    {positionMode ? "\u2725 Click slide..." : "\u2725 Move"}</button>
-                  {positionMode && pendingPosition && <button onClick={function() { setPositionMode(false); setPendingPosition(null); }}
+                    {positionMode ? "\u2725 Drag mode ON" : "\u2725 Move"}</button>
+                  {positionMode && <button onClick={function() { setPositionMode(false); setDragState(null); setDragPos(null); }}
                     style={{ padding: "2px 6px", background: uiAccent, color: "#fff", border: "none", cursor: "pointer", ...CP, fontSize: 6 }}>Done</button>}
-                  {positionMode && <button onClick={function() { updateSlideField(currentSlide, "customPosition", null); setPositionMode(false); setPendingPosition(null); }}
+                  {s.customPosition && <button onClick={function() { updateSlideField(currentSlide, "customPosition", null); if (positionMode) { setPositionMode(false); } }}
                     style={{ padding: "2px 5px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>Reset</button>}
-                  {!positionMode && s.customPosition && <button onClick={function() { updateSlideField(currentSlide, "customPosition", null); }}
-                    style={{ padding: "2px 5px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>Reset Pos</button>}
                 </div>
                 <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
                   <button onClick={function() { updateSlideField(currentSlide, "containerStyle", null); }}
