@@ -497,7 +497,7 @@ function styleBody(text, accentColor, accent2Color) {
     if (/^[A-Z\s]+$/.test(part) && part.trim().length > 2 && hitCount < 2) {
       var c = colors[hitCount % colors.length];
       hitCount++;
-      return <span key={i} style={{ color: "#000000", fontWeight: 700, background: c, padding: "1px 4px", margin: "0 1px", display: "inline", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" }}>{part}</span>;
+      return <span key={i} style={{ color: "#000000", fontWeight: 700, background: c, padding: "1px 4px", margin: "0 1px", display: "inline", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone", lineHeight: "inherit", whiteSpace: "nowrap" }}>{part}</span>;
     }
     return part;
   });
@@ -2189,24 +2189,28 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
         }
       });
       // Fix text container expansion at export scale
-      var allDivs = clonedEl.querySelectorAll("div");
-      allDivs.forEach(function(div) {
-        // Lock absolutely positioned elements to prevent reflow
+      // Lock the outermost slide container to prevent any overflow
+      clonedEl.style.overflow = "hidden";
+      var innerDivs = clonedEl.querySelectorAll("div");
+      innerDivs.forEach(function(div) {
+        // Lock absolutely positioned text containers — freeze both width AND height
         if (div.style.position === "absolute" && div.style.zIndex) {
+          var w = div.offsetWidth;
+          var h = div.offsetHeight;
+          if (w > 0 && w < 400) { div.style.maxWidth = w + "px"; div.style.width = w + "px"; }
+          if (h > 0 && h < 450) { div.style.maxHeight = h + "px"; }
           div.style.overflow = "hidden";
-          // Lock current dimensions if the element has computed size
-          if (div.offsetHeight > 0 && div.offsetHeight < 400) {
-            div.style.maxHeight = div.offsetHeight + "px";
-          }
         }
         // Remove backdrop-filter (html2canvas can't render it)
         if (div.style.backdropFilter || div.style.webkitBackdropFilter) {
           div.style.backdropFilter = "none";
           div.style.webkitBackdropFilter = "none";
-          // Replace blur with solid semi-transparent background
           div.style.background = "rgba(0,0,0,0.7)";
         }
       });
+      // Also lock the slide content wrapper to clip any overflow
+      var contentWrapper = clonedEl.querySelector("[data-export-target]");
+      if (contentWrapper) { contentWrapper.style.overflow = "hidden"; }
     },
   });
 };
