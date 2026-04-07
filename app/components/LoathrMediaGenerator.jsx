@@ -2934,7 +2934,7 @@ export default function LoathrMediaGenerator() {
     try {
       if (controller.signal.aborted) throw new Error("Generation cancelled");
       var sc = editionPicks.slideCount || 0;
-      var slideCountInstr = sc >= 4 && sc <= 12 ? "Generate EXACTLY " + sc + " slides." : "Generate 7-10 slides based on content depth.";
+      var slideCountInstr = sc >= 4 && sc <= 12 ? "Generate EXACTLY " + sc + " slides (including Cover and Closer)." + (sc <= 5 ? " With only " + sc + " slides: Cover, " + (sc - 2) + " content slide" + (sc > 3 ? "s" : "") + ", Closer. Every slide must be high-impact." : "") : "Generate 4-12 slides based on how much context is provided. Thin context = fewer slides, rich context = more.";
       var imgRoles = customImages.map(function(ci, i) { return "Image " + (i + 1) + ": assigned to \"" + ci.role + "\""; }).join("\n");
       var customPrompt = "You are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catInfo.label + "\"\n\nCUSTOM STORY MODE — this is an ORIGINAL story not yet on the internet.\n\nSubject: \"" + customSubject + "\"\n" + (customHook ? "Hook: \"" + customHook + "\"\n" : "") + "\nRAW CONTEXT (from the user — this is your ONLY source material, do not fabricate additional facts):\n" + customContext + "\n\n" + slideCountInstr + "\n\nThe user has uploaded " + customImages.length + " image(s):\n" + imgRoles + "\n\nIMPORTANT RULES:\n- Write ONLY from the context provided. Do not add facts, dates, or claims not in the raw context.\n- Editorialize the raw material — find the narrative arc, the tension, the hook.\n- You may reframe, highlight, and dramatize what's there, but never fabricate.\n- If the context is thin, use fewer slides and make each one count.\n- Keep body text to 2-3 sentences MAX per slide.\n\nSLIDE ROLES (adapt to fit the story):\n- COVER — title, titleHighlight, subtitle\n- Content slides — heading, body, highlight, textPosition\n- THE EVIDENCE — stat/number slide if any numbers exist in the context. Use statFormat \"killer\" with stat and caption.\n- THE VOICE — quote slide if any quotes exist. quote, source fields.\n- CLOSER — hashtags string\n\nFor design: choose textPosition per slide from: bottom-left, bottom-right, top-left, top-right, split-corners, side-left, side-right, l-shape\n\nRespond ONLY with valid JSON:\n{\"angle\":\"Custom Story\",\"slides\":[{...slides...}]}";
 
@@ -3204,6 +3204,17 @@ export default function LoathrMediaGenerator() {
           </label>
         </div>
 
+        {/* Slide count picker for custom story */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+          <div style={{ ...CP, fontSize: 6, color: "#999" }}>Slides:</div>
+          <button onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: 0 }); }); }}
+            style={{ padding: "2px 6px", border: "0.5px solid " + (!editionPicks.slideCount ? uiAccent : "#ccc"), background: !editionPicks.slideCount ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: !editionPicks.slideCount ? uiAccent : "#999", borderRadius: 2 }}>Auto</button>
+          {[4,5,6,7,8,9,10,11,12].map(function(n) { return (
+            <button key={n} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: n }); }); }}
+              style={{ padding: "2px 5px", border: "0.5px solid " + (editionPicks.slideCount === n ? uiAccent : "#ccc"), background: editionPicks.slideCount === n ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: editionPicks.slideCount === n ? uiAccent : "#999", borderRadius: 2, minWidth: 18, textAlign: "center" }}>{n}</button>
+          ); })}
+        </div>
+
         <div style={{ display: "flex", gap: 6 }}>
           <button onClick={generateCustomStory} disabled={isGenerating || !customSubject.trim() || !customContext.trim() || customImages.length === 0}
             style={{ flex: 1, padding: "10px 14px", background: !customSubject.trim() || !customContext.trim() || customImages.length === 0 ? "#ccc" : uiAccent, color: "#ffffff", border: "none", cursor: !customSubject.trim() || !customContext.trim() || customImages.length === 0 ? "default" : "pointer", ...CP, fontSize: 10, letterSpacing: "0.1em", fontWeight: 700 }}>
@@ -3212,7 +3223,7 @@ export default function LoathrMediaGenerator() {
           {isGenerating && <button onClick={cancelGenerate}
             style={{ padding: "10px 14px", background: "#e63946", color: "#ffffff", border: "none", cursor: "pointer", ...CP, fontSize: 10, letterSpacing: "0.1em", fontWeight: 700 }}>CANCEL</button>}
         </div>
-        {customContext.length > 0 && <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 4 }}>{customContext.split(/\s+/).length} words {"\u00b7"} Claude will editorialize this into a {editionPicks.slideCount || "7-10"} slide carousel</div>}
+        {customContext.length > 0 && <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 4 }}>{customContext.split(/\s+/).length} words {"\u00b7"} {editionPicks.slideCount ? editionPicks.slideCount + " slides" : "Auto (4-12 based on content depth)"}</div>}
       </div>}
 
       {category && !customStoryMode && (
