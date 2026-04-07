@@ -4246,19 +4246,12 @@ export default function LoathrMediaGenerator() {
 
             </div>}
 
-            {/* === LAYOUT (content slides only) === */}
+            {/* === LAYOUT — image arrangement only === */}
             {editSection === "layout" && isContent && <div>
-              <div style={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap", marginBottom: 3 }}>
-                <button onClick={function() { cycleTextPosition(currentSlide); }}
-                  style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
-                  {"\u2B12"} {s.textPosition || "auto"}</button>
-                {s.customPosition && <button onClick={function() { updateSlideField(currentSlide, "customPosition", null); }}
-                  style={{ padding: "2px 6px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>Reset</button>}
-              </div>
-              <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 2 }}>
+              <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
                 {[
-                  { id: "single", label: "Single" }, { id: "mosaic2v", label: "2V" }, { id: "mosaic2h", label: "2H" },
-                  { id: "mosaic3l", label: "3L" }, { id: "mosaic3t", label: "3T" }, { id: "mosaic4", label: "4G" },
+                  { id: "single", label: "Single" }, { id: "mosaic2v", label: "2 Vert" }, { id: "mosaic2h", label: "2 Horiz" },
+                  { id: "mosaic3l", label: "3 L-Shape" }, { id: "mosaic3t", label: "3 Top" }, { id: "mosaic4", label: "4 Grid" },
                 ].map(function(opt) {
                   var isMosaic = _mosaicSlides[currentSlide];
                   var curLayout = isMosaic ? (isMosaic.length >= 4 ? "mosaic4" : isMosaic.length >= 3 ? "mosaic3l" : "mosaic2v") : "single";
@@ -4278,14 +4271,25 @@ export default function LoathrMediaGenerator() {
                       setImages(function(prev) { return Object.assign({}, prev); });
                     }
                   }}
-                    style={{ padding: "2px 5px", border: "0.5px solid " + (active ? uiAccent : "#ddd"), background: active ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: active ? uiAccent : "#999" }}>{opt.label}</button>;
+                    style={{ padding: "2px 6px", border: "0.5px solid " + (active ? uiAccent : "#ddd"), background: active ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: active ? uiAccent : "#999" }}>{opt.label}</button>;
                 })}
               </div>
-              <div style={{ ...CP, fontSize: 4, color: uiAccent + "88" }}>{"\u2725"} Click slide to reposition text</div>
             </div>}
 
-            {/* === STYLE (content slides only) === */}
+            {/* === STYLE — text placement + container + color + opacity === */}
             {editSection === "style" && isContent && <div>
+              {/* Text position */}
+              <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>POSITION</div>
+              <div style={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
+                <button onClick={function() { cycleTextPosition(currentSlide); }}
+                  style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
+                  {"\u2B12"} {s.textPosition || "auto"}</button>
+                {s.customPosition && <button onClick={function() { updateSlideField(currentSlide, "customPosition", null); }}
+                  style={{ padding: "2px 6px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>Reset</button>}
+                <div style={{ ...CP, fontSize: 4, color: uiAccent + "88" }}>{"\u2725"} Click slide to move text</div>
+              </div>
+              {/* Container type */}
+              <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>CONTAINER</div>
               <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
                 <button onClick={function() { updateSlideField(currentSlide, "containerStyle", null); }}
                   style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: !s.containerStyle ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: !s.containerStyle ? uiAccent : "#999" }}>Auto</button>
@@ -4296,6 +4300,8 @@ export default function LoathrMediaGenerator() {
                 <button onClick={function() { updateSlideField(currentSlide, "containerVariant", ((s.containerVariant || 0) + 1) % 7); }}
                   style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#666" }}>V{(s.containerVariant || 0) + 1}/7</button>
               </div>
+              {/* Color + opacity */}
+              <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>COLOR</div>
               <div style={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", marginBottom: 2 }}>
                 {[{ id: null, l: "Auto", c: "#666" }, { id: "rgba(0,0,0,0.85)", l: "Dark", c: "#333" }, { id: "rgba(0,0,0,0.6)", l: "Mid", c: "#555" }, { id: "rgba(255,255,255,0.9)", l: "Light", c: "#eee" }, { id: "rgba(255,255,255,0.15)", l: "Ghost", c: "#ccc" }].map(function(c) {
                   return <button key={c.l} onClick={function() { updateSlideField(currentSlide, "containerBg", c.id); }}
