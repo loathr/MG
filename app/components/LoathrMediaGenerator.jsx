@@ -2265,6 +2265,11 @@ export default function LoathrMediaGenerator() {
   var siq = _s(""), swapQuery = siq[0], setSwapQuery = siq[1]; // custom search query for swap
   // Image style hover preview
   var hov = _s(null), hoverStyle = hov[0], setHoverStyle = hov[1];
+  // Progressive disclosure — user level based on generation count
+  var ulv = _s(3), userLevel = ulv[0], setUserLevel = ulv[1]; // 1=new, 2=intermediate, 3=power
+  // Fact-checker state
+  var fcs = _s(null), factCheckResult = fcs[0], setFactCheckResult = fcs[1];
+  var fcl = _s(false), factCheckLoading = fcl[0], setFactCheckLoading = fcl[1];
   // --- Custom Story mode ---
   var csm = _s(false), customStoryMode = csm[0], setCustomStoryMode = csm[1];
   var cfl = _s("editorial"), creativeFreedom = cfl[0], setCreativeFreedom = cfl[1];
@@ -2298,6 +2303,9 @@ export default function LoathrMediaGenerator() {
       setTopicHistory(h);
       var f = JSON.parse(localStorage.getItem("loathr_favorites") || "[]");
       setFavorites(f);
+      // User level from generation count
+      var gc = parseInt(localStorage.getItem("loathr_gen_count") || "0");
+      setUserLevel(gc === 0 ? 1 : gc < 5 ? 2 : 3);
     } catch (e) {}
     // Read shared link params
     try {
@@ -2600,6 +2608,33 @@ export default function LoathrMediaGenerator() {
     setSwapSlide(null); setSwapImages([]); setSwapQuery(""); setSwapPanel(-1);
   }, []);
 
+  // Fact-checker — reviews generated content for accuracy
+  var factCheck = _cb(async function() {
+    var cur = options ? options[selectedOption] : null;
+    if (!cur || !cur.slides) return;
+    setFactCheckLoading(true); setFactCheckResult(null);
+    try {
+      var slideTexts = cur.slides.map(function(s, i) {
+        if (i === 0) return "COVER: " + (s.title || "");
+        if (i === cur.slides.length - 1) return null;
+        return "SLIDE " + (i + 1) + ": " + (s.heading || "") + " — " + (s.body || "") + (s.stat ? " [STAT: " + s.stat + "]" : "") + (s.quote ? " [QUOTE: " + s.quote + "]" : "");
+      }).filter(Boolean).join("\n");
+      var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 600,
+          tools: [{ type: "web_search_20250305", name: "web_search" }],
+          messages: [{ role: "user", content: "You are a fact-checker reviewing an Instagram carousel about \"" + topic + "\".\n\nHere is the content:\n" + slideTexts + "\n\nFor each slide, verify:\n1. Are the facts accurate? Flag anything wrong or unverifiable.\n2. Are statistics real? Flag made-up numbers.\n3. Are quotes attributed correctly?\n4. Is the overall narrative fair or misleading?\n\nRespond ONLY with JSON:\n{\"score\": 1-10, \"summary\": \"one sentence overall\", \"issues\": [{\"slide\": N, \"issue\": \"what's wrong\", \"fix\": \"suggested correction\"}]}\nIf everything checks out, return empty issues array." }] }) });
+      var d = await r.json();
+      if (d.error) { setFactCheckResult({ score: 0, summary: "Fact-check failed: " + (d.error.message || d.error), issues: [] }); return; }
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var cleaned = text.replace(/```json|```/g, "").trim();
+      var js = cleaned.indexOf("{"); var je = cleaned.lastIndexOf("}");
+      if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
+      var parsed = JSON.parse(cleaned);
+      setFactCheckResult(parsed);
+    } catch (e) { setFactCheckResult({ score: 0, summary: "Parse error: " + e.message, issues: [] }); }
+    finally { setFactCheckLoading(false); }
+  }, [options, selectedOption, topic]);
+
   // 4. Share link — encode carousel state as URL params
   var generateShareLink = _cb(function() {
     var params = new URLSearchParams();
@@ -2624,6 +2659,7 @@ export default function LoathrMediaGenerator() {
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
     var thisGen = genCount + 1;
     setGenCount(thisGen);
+    try { var gtotal = parseInt(localStorage.getItem("loathr_gen_count") || "0") + 1; localStorage.setItem("loathr_gen_count", String(gtotal)); setUserLevel(gtotal < 5 ? 2 : 3); } catch (e) {}
     var catInfo = CATEGORIES.find(function(c) { return c.id === category; });
     var edition = getEditionId(topic, category, thisGen, editionPicks);
     setEditionData(edition);
@@ -2922,6 +2958,7 @@ export default function LoathrMediaGenerator() {
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
     var thisGen = genCount + 1;
     setGenCount(thisGen);
+    try { var gtotal = parseInt(localStorage.getItem("loathr_gen_count") || "0") + 1; localStorage.setItem("loathr_gen_count", String(gtotal)); setUserLevel(gtotal < 5 ? 2 : 3); } catch (e) {}
     var catInfo = CATEGORIES.find(function(c) { return c.id === category; });
     var edition = getEditionId(customSubject, category, thisGen, editionPicks);
     setEditionData(edition);
@@ -3116,8 +3153,8 @@ export default function LoathrMediaGenerator() {
         })}
       </div>
 
-      {/* Cross-category lens pickers with slide count */}
-      {category && <div style={{ marginBottom: 12 }}>
+      {/* Cross-category lens pickers — Level 3 only */}
+      {userLevel >= 3 && category && <div style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 4, justifyContent: "center", flexWrap: "wrap", alignItems: "center", marginBottom: secondaryCategory ? 6 : 0 }}>
           <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.05em" }}>+LENS</div>
           {CATEGORIES.filter(function(c) { return c.id !== category && c.id !== tertiaryCategory; }).map(function(c) {
@@ -3155,8 +3192,8 @@ export default function LoathrMediaGenerator() {
         </div>}
       </div>}
 
-      {/* Custom Story toggle */}
-      {category && <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+      {/* Custom Story toggle — Level 2+ */}
+      {userLevel >= 2 && category && <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
         <button onClick={function() { setCustomStoryMode(!customStoryMode); }}
           style={{ padding: "5px 12px", border: "0.5px solid " + (customStoryMode ? uiAccent : "#ccc"), background: customStoryMode ? uiAccent + "15" : "transparent", cursor: "pointer", ...CP, fontSize: 8, color: customStoryMode ? uiAccent : "#999", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 5 }}>
           <Users size={11} />{customStoryMode ? "BACK TO SEARCH" : "CREATE ORIGINAL STORY"}
@@ -3333,8 +3370,8 @@ export default function LoathrMediaGenerator() {
             ); })}
           </div>}
 
-          {/* Multi-person image picker — improved */}
-          {personsDetected.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent, background: "#f8f8f8", padding: 8 }}>
+          {/* Multi-person image picker — Level 3 */}
+          {userLevel >= 3 && personsDetected.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent, background: "#f8f8f8", padding: 8 }}>
             <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>PEOPLE DETECTED</div>
             {personsDetected.map(function(name) {
               var imgs = personImages[name] || [];
@@ -3381,8 +3418,8 @@ export default function LoathrMediaGenerator() {
               style={{ width: "100%", background: "none", border: "0.5px solid #ccc", cursor: "pointer", ...CP, fontSize: 7, color: "#999", padding: "3px 0" }}>Skip all</button>
           </div>}
 
-          {/* Person network — related people from Wikidata */}
-          {Object.keys(personNetwork).length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8 }}>
+          {/* Person network — Level 3 */}
+          {userLevel >= 3 && Object.keys(personNetwork).length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8 }}>
             <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>CONNECTED PEOPLE</div>
             {Object.keys(personNetwork).map(function(sourceName) {
               var network = personNetwork[sourceName] || [];
@@ -3408,8 +3445,8 @@ export default function LoathrMediaGenerator() {
             })}
           </div>}
 
-          {/* Location image picker */}
-          {locationsDetected.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "66", background: "#f8f8f8", padding: 8 }}>
+          {/* Location image picker — Level 3 */}
+          {userLevel >= 3 && locationsDetected.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "66", background: "#f8f8f8", padding: 8 }}>
             <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>LOCATIONS DETECTED</div>
             {locationsDetected.map(function(place) {
               var imgs = locationImages[place] || [];
@@ -3596,7 +3633,8 @@ export default function LoathrMediaGenerator() {
             </div>}
           </div>}
 
-          {/* Edition Settings */}
+          {/* Edition Settings — Level 2+ */}
+          {userLevel >= 2 && <div>
           <div style={{ marginBottom: 6, textAlign: "center" }}>
             <button onClick={function() { setShowEditionSettings(!showEditionSettings); }}
               style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 8, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", opacity: 0.6 }}>
@@ -3708,6 +3746,7 @@ export default function LoathrMediaGenerator() {
               </div>
             </div>
           </div>}
+          </div>}
 
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
             <button onClick={fetchTrending} disabled={isFetchingTrending} style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Flame size={11} />{isFetchingTrending ? "..." : "Trending"}</button>
@@ -3804,19 +3843,6 @@ export default function LoathrMediaGenerator() {
       </div>}
       {error && <div style={{ padding: "14px 18px", background: "var(--color-background-danger)", border: "1px solid var(--color-border-danger)", color: "var(--color-text-danger)", fontSize: 12, marginBottom: 16 }}>{error}</div>}
       {imgStatus && options && <div style={{ textAlign: "center", marginBottom: 12, ...CP, fontSize: 10, color: imgStatus.indexOf("loaded") >= 0 ? "var(--color-text-success)" : "var(--color-text-warning)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>{imgStatus.indexOf("loaded") >= 0 ? <CheckCircle size={11} /> : <AlertTriangle size={11} />}{imgStatus}</div>}
-
-      {false && options && !isRecMode && <div style={{ marginBottom: 14, textAlign: "center" }}>
-        <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 10, textTransform: "uppercase" }}>Choose an angle</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {options.map(function(opt, i) { var info = OPTION_TYPES[i]; var InfoIcon = info ? info.icon : BookOpen; return (
-            <button key={i} onClick={function() { setSelectedOption(i); setCurrentSlide(0); }}
-              style={{ flex: 1, padding: "12px 10px", cursor: "pointer", border: "1px solid " + (selectedOption === i ? uiAccent : "var(--color-border-tertiary)"), background: selectedOption === i ? "var(--color-background-secondary)" : "transparent", textAlign: "left" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--color-text-primary)", ...CP }}><InfoIcon size={12} />{info ? info.label : (opt.angle || "Option " + (i + 1))}</div>
-              <div style={{ fontSize: 10, color: "var(--color-text-tertiary)", marginTop: 2 }}>{info ? info.desc : ""}</div>
-              <div style={{ ...CP, fontSize: 9, color: "var(--color-text-tertiary)", marginTop: 3 }}>{opt.slides ? opt.slides.length : 0} slides</div>
-            </button>); })}
-        </div>
-      </div>}
 
       {cur && <div style={{ marginBottom: 18, textAlign: "center" }}>
         {editionData && <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
@@ -3937,6 +3963,41 @@ export default function LoathrMediaGenerator() {
           {!swapLoading && swapImages.length === 0 && swapQuery && <div style={{ ...CP, fontSize: 7, color: "#999", textAlign: "center", padding: 8 }}>No results. Try a different search or upload.</div>}
         </div>}
 
+        {/* Actions — elevated above filmstrip */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 12, flexWrap: "wrap" }}>
+          <button onClick={function() { toggleFavorite(topic, category); }}
+            style={{ padding: "4px 10px", border: "0.5px solid " + (isFavorited(topic, category) ? uiAccent : "#ccc"), background: isFavorited(topic, category) ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: isFavorited(topic, category) ? uiAccent : "#999" }}>
+            {isFavorited(topic, category) ? "\u2605 Saved" : "\u2606 Save"}</button>
+          <button onClick={generateShareLink}
+            style={{ padding: "4px 10px", border: "0.5px solid #ccc", background: shareLink ? uiAccent + "15" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: shareLink ? uiAccent : "#999" }}>
+            {shareLink ? "\u2713 Copied" : "\u21E7 Share"}</button>
+          <button onClick={factCheck} disabled={factCheckLoading}
+            style={{ padding: "4px 10px", border: "0.5px solid #ccc", background: factCheckResult ? (factCheckResult.score >= 7 ? "#22c55e22" : "#ef444422") : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: factCheckResult ? (factCheckResult.score >= 7 ? "#22c55e" : "#ef4444") : "#999" }}>
+            {factCheckLoading ? "Checking..." : factCheckResult ? factCheckResult.score + "/10" : "\u2713 Fact Check"}</button>
+          <button onClick={function() { generate(); }}
+            style={{ padding: "4px 10px", border: "0.5px solid " + uiAccent, background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent }}>
+            {"\u21BB"} Regenerate</button>
+        </div>
+        {/* Fact-check results */}
+        {factCheckResult && factCheckResult.issues && factCheckResult.issues.length > 0 && <div style={{ marginTop: 6, border: "0.5px solid " + (factCheckResult.score >= 7 ? "#22c55e44" : "#ef444444"), background: "#f8f8f8", padding: 6, borderRadius: 3 }}>
+          <div style={{ ...CP, fontSize: 6, color: factCheckResult.score >= 7 ? "#22c55e" : "#ef4444", marginBottom: 3 }}>{factCheckResult.summary}</div>
+          {factCheckResult.issues.map(function(issue, i) { return (
+            <div key={i} style={{ ...CP, fontSize: 6, color: "#666", marginBottom: 2 }}>
+              <span style={{ color: "#ef4444", fontWeight: 700 }}>Slide {issue.slide}:</span> {issue.issue}
+              {issue.fix && <span style={{ color: "#22c55e" }}> → {issue.fix}</span>}
+            </div>
+          ); })}
+        </div>}
+        {factCheckResult && (!factCheckResult.issues || factCheckResult.issues.length === 0) && factCheckResult.score > 0 && <div style={{ marginTop: 4, ...CP, fontSize: 6, color: "#22c55e", textAlign: "center" }}>{"\u2713"} {factCheckResult.summary}</div>}
+        {/* Related topics — elevated */}
+        {relatedTopics.length > 0 && <div style={{ display: "flex", gap: 3, flexWrap: "wrap", justifyContent: "center", marginTop: 8 }}>
+          <span style={{ ...CP, fontSize: 6, color: "#999" }}>Next:</span>
+          {relatedTopics.slice(0, 4).map(function(t, i) { return (
+            <button key={i} onClick={function() { setTopic(t); setRelatedTopics([]); setOptions(null); }}
+              style={{ padding: "2px 6px", border: "0.5px solid " + uiAccent + "44", background: uiAccent + "08", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent }}>{t}</button>
+          ); })}
+        </div>}
+
         <div style={{ marginTop: 18 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 8, textTransform: "uppercase" }}>All Slides</div>
           <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 8, paddingLeft: 2, paddingRight: 2 }}>
@@ -4021,6 +4082,8 @@ export default function LoathrMediaGenerator() {
       <div style={{ textAlign: "center", padding: "18px 0 12px", borderTop: "0.5px solid var(--color-border-tertiary)", marginTop: 16 }}>
         <div style={{ ...CP, fontSize: 8, letterSpacing: "0.3em", color: "var(--color-text-tertiary)", opacity: 0.4 }}>L O A T H R</div>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 2 }}>MEDIA MAKER</div>
+        {userLevel < 3 && <button onClick={function() { setUserLevel(3); try { localStorage.setItem("loathr_gen_count", "10"); } catch (e) {} }}
+          style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 5, color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 4 }}>Show all features</button>}
       </div>
     </div>
   );
