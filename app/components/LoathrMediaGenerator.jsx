@@ -4321,6 +4321,7 @@ export default function LoathrMediaGenerator() {
                     style={{ padding: "2px 6px", border: "0.5px solid " + (active ? uiAccent : "#ddd"), background: active ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: active ? uiAccent : "#999" }}>{opt.label}</button>;
                 })}
               </div>
+            </div>}
 
             {/* === SLIDE === */}
             {editSection === "slide" && <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
