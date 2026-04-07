@@ -4402,9 +4402,17 @@ export default function LoathrMediaGenerator() {
                   var active = isMosaic && isMosaic._layoutIdx === li;
                   return <button key={layout.id} onClick={function() {
                     updateSlideField(currentSlide, "imageLayout", layout.id);
-                    var mUrls = getMosaicImgs(_allImages, currentSlide);
-                    var keys = Object.keys(_allImages);
-                    while (mUrls.length < layout.count && keys.length > 0) { var k = keys.shift(); if (_allImages[k] && _allImages[k].url && mUrls.indexOf(_allImages[k].url) === -1) mUrls.push(_allImages[k].url); }
+                    // Preserve existing swapped images, only add new ones if needed
+                    var existing = _mosaicSlides[currentSlide] ? _mosaicSlides[currentSlide].filter(function(u) { return typeof u === "string"; }) : [];
+                    var mUrls = existing.length > 0 ? existing.slice() : getMosaicImgs(_allImages, currentSlide);
+                    // Pad with more images if the new layout needs more panels
+                    if (mUrls.length < layout.count) {
+                      var used = {}; mUrls.forEach(function(u) { used[u] = true; });
+                      var keys = Object.keys(_allImages);
+                      for (var ki = 0; ki < keys.length && mUrls.length < layout.count; ki++) {
+                        if (_allImages[keys[ki]] && _allImages[keys[ki]].url && !used[_allImages[keys[ki]].url]) { mUrls.push(_allImages[keys[ki]].url); used[_allImages[keys[ki]].url] = true; }
+                      }
+                    }
                     _mosaicSlides[currentSlide] = mUrls.slice(0, layout.count);
                     _mosaicSlides[currentSlide]._layoutIdx = li;
                     setImages(function(prev) { return Object.assign({}, prev); });
