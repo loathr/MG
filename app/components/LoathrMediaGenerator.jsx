@@ -688,6 +688,50 @@ function BubbleBox({ children, style, accent, accent2, seed }) {
   );
 }
 
+// Glass box — frosted glass blur effect
+function GlassBox({ children, style, accent, accent2, seed }) {
+  var rotation = ((seed || 0) % 3) - 1;
+  return (
+    <div style={Object.assign({}, { position: "relative", background: "rgba(255,255,255,0.08)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 12px", transform: "rotate(" + rotation + "deg)" }, style || {})}>
+      {children}
+    </div>
+  );
+}
+
+// Tape strip — text on diagonal masking tape
+function TapeStrip({ children, style, accent, accent2, seed }) {
+  var rotation = ((seed || 0) % 5) - 2;
+  var bg = accent ? accent + "cc" : "#e8d5a3cc";
+  return (
+    <div style={Object.assign({}, { position: "relative", background: bg, padding: "8px 14px", transform: "rotate(" + rotation + "deg)", boxShadow: "2px 2px 6px rgba(0,0,0,0.3)" }, style || {})}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "rgba(0,0,0,0.1)" }} />
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, background: "rgba(0,0,0,0.1)" }} />
+      {children}
+    </div>
+  );
+}
+
+// Cutout box — torn paper edge effect
+function CutoutBox({ children, style, accent, accent2, seed }) {
+  var rotation = ((seed || 0) % 3) - 1;
+  return (
+    <div style={Object.assign({}, { position: "relative", background: "#ffffffee", padding: "10px 12px", transform: "rotate(" + rotation + "deg)", boxShadow: "3px 3px 8px rgba(0,0,0,0.4)", borderLeft: "3px solid " + (accent || "#000") }, style || {})}>
+      <div style={{ position: "absolute", top: -2, right: 0, width: "30%", height: 3, background: "#ffffffee", transform: "rotate(1deg)" }} />
+      <div style={{ position: "absolute", bottom: -2, left: "20%", width: "40%", height: 3, background: "#ffffffee", transform: "rotate(-1deg)" }} />
+      {children}
+    </div>
+  );
+}
+
+// Minimal box — thin bottom border only
+function MinimalBox({ children, style, accent, accent2, seed }) {
+  return (
+    <div style={Object.assign({}, { position: "relative", background: "rgba(0,0,0,0.6)", padding: "10px 12px", borderBottom: "2px solid " + (accent || "#ffffff") }, style || {})}>
+      {children}
+    </div>
+  );
+}
+
 // Fashion sticky note styles
 function StickyNote({ children, style, accent, accent2, seed }) {
   var variant = seed % 7;
@@ -930,15 +974,16 @@ function S2Arena({ slide, index, category, images }) {
   var useFormal = FORMAL_CATS[category];
   var styled = useBubble || useSticky || useFormal;
   var textContent = <div>
-    <div style={{ ...FN, fontSize: 13, color: useSticky ? "inherit" : "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
-    <div style={{ ...HD, fontSize: 9.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.5, textAlign: "left" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    <div style={{ ...FN, fontSize: 13 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
+    <div style={{ ...HD, fontSize: 9.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.5, textAlign: "left" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
     {slide.specs && <div style={{ marginTop: 8, border: "1px solid " + p.accent + "44", padding: "4px 6px", background: "rgba(255,255,255,0.03)" }}><div style={{ ...WS, fontSize: 5.3, color: useSticky ? "inherit" : "#ffffffaa", textAlign: "left" }}>{slide.specs}</div></div>}
     <MicroCite sources={slide.sources} />
   </div>;
-  var wrappedText = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</BubbleBox>
-    : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</StickyNote>
-    : useFormal ? <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</FormalFrame>
-    : textContent;
+  // Container style — user override via slide.containerStyle, or category default
+  var CONTAINER_MAP = { bubble: BubbleBox, sticky: StickyNote, formal: FormalFrame, glass: GlassBox, tape: TapeStrip, cutout: CutoutBox, minimal: MinimalBox, none: null };
+  var containerOverride = slide.containerStyle && CONTAINER_MAP.hasOwnProperty(slide.containerStyle) ? slide.containerStyle : null;
+  var ContainerComp = containerOverride ? CONTAINER_MAP[containerOverride] : (useBubble ? BubbleBox : useSticky ? StickyNote : useFormal ? FormalFrame : null);
+  var wrappedText = ContainerComp ? <ContainerComp accent={p.accent} accent2={p.accent2} seed={index}>{textContent}</ContainerComp> : textContent;
   var hasSplitPos = slide.textPosition && ["split-corners", "side-left", "side-right", "top-left", "top-right", "l-shape"].indexOf(slide.textPosition) !== -1;
   if (hasSplitPos) {
     return (
@@ -1277,10 +1322,10 @@ function S5Face({ slide, index, category, images }) {
       <div style={{ width: 3, background: p.accent2, flexShrink: 0 }} />
     </div>}
   </div>;
-  var s5Wrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</BubbleBox>
-    : useSticky ? <StickyNote accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</StickyNote>
-    : useFormal ? <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</FormalFrame>
-    : s5Text;
+  var CONTAINER_MAP5 = { bubble: BubbleBox, sticky: StickyNote, formal: FormalFrame, glass: GlassBox, tape: TapeStrip, cutout: CutoutBox, minimal: MinimalBox, none: null };
+  var co5 = slide.containerStyle && CONTAINER_MAP5.hasOwnProperty(slide.containerStyle) ? slide.containerStyle : null;
+  var CC5 = co5 ? CONTAINER_MAP5[co5] : (useBubble ? BubbleBox : useSticky ? StickyNote : useFormal ? FormalFrame : null);
+  var s5Wrapped = CC5 ? <CC5 accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</CC5> : s5Text;
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: M_TOP + 5, background: p.accent, display: "flex", alignItems: "center", padding: "0 " + M_SIDE + "px", zIndex: 4 }}>
@@ -2698,6 +2743,29 @@ export default function LoathrMediaGenerator() {
     });
   }, [selectedOption]);
 
+  var CONTAINER_STYLES = ["bubble", "sticky", "formal", "glass", "tape", "cutout", "minimal", "none"];
+  var CONTAINER_LABELS = { bubble: "Bubble", sticky: "Sticky", formal: "Formal", glass: "Glass", tape: "Tape", cutout: "Cutout", minimal: "Minimal", none: "None" };
+
+  var cycleContainerStyle = _cb(function(slideIdx) {
+    setOptions(function(prev) {
+      if (!prev || !prev[selectedOption]) return prev;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[selectedOption]);
+      var slides = opt.slides.slice();
+      slides[slideIdx] = Object.assign({}, slides[slideIdx]);
+      var cur = slides[slideIdx].containerStyle || "auto";
+      var curIdx = CONTAINER_STYLES.indexOf(cur);
+      slides[slideIdx].containerStyle = CONTAINER_STYLES[(curIdx + 1) % CONTAINER_STYLES.length];
+      opt.slides = slides;
+      newOpts[selectedOption] = opt;
+      return newOpts;
+    });
+  }, [selectedOption]);
+
+  var adjustFontSize = _cb(function(slideIdx, field, delta) {
+    updateSlideField(slideIdx, field + "Size", ((options[selectedOption].slides[slideIdx] || {})[field + "Size"] || 0) + delta);
+  }, [selectedOption, options, updateSlideField]);
+
   var factCheck = _cb(async function() {
     var cur = options ? options[selectedOption] : null;
     if (!cur || !cur.slides) return;
@@ -4105,11 +4173,38 @@ export default function LoathrMediaGenerator() {
               ) : null; })}
             </div>;
           })()}
-          {/* Slide operations */}
-          <div style={{ display: "flex", gap: 3, marginTop: 6, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
+          {/* Style controls */}
+          <div style={{ display: "flex", gap: 3, marginTop: 6, borderTop: "0.5px solid #eee", paddingTop: 4, flexWrap: "wrap" }}>
             <button onClick={function() { cycleTextPosition(currentSlide); }}
               style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
-              {"\u2B12"} Layout: {(cur.slides[currentSlide] || {}).textPosition || "auto"}</button>
+              {"\u2B12"} {(cur.slides[currentSlide] || {}).textPosition || "auto"}</button>
+            <button onClick={function() { cycleContainerStyle(currentSlide); }}
+              style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
+              {"\u25A3"} {CONTAINER_LABELS[(cur.slides[currentSlide] || {}).containerStyle] || "Auto"}</button>
+          </div>
+          {/* Container style picker — full grid */}
+          <div style={{ display: "flex", gap: 2, marginTop: 3, flexWrap: "wrap" }}>
+            <button onClick={function() { updateSlideField(currentSlide, "containerStyle", null); }}
+              style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: !(cur.slides[currentSlide] || {}).containerStyle ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: !(cur.slides[currentSlide] || {}).containerStyle ? uiAccent : "#999" }}>Auto</button>
+            {CONTAINER_STYLES.map(function(cs) { return (
+              <button key={cs} onClick={function() { updateSlideField(currentSlide, "containerStyle", cs); }}
+                style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: (cur.slides[currentSlide] || {}).containerStyle === cs ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: (cur.slides[currentSlide] || {}).containerStyle === cs ? uiAccent : "#999" }}>{CONTAINER_LABELS[cs]}</button>
+            ); })}
+          </div>
+          {/* Font size controls */}
+          {currentSlide > 0 && currentSlide < total - 1 && <div style={{ display: "flex", gap: 4, marginTop: 4, alignItems: "center" }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999" }}>Heading:</div>
+            <button onClick={function() { adjustFontSize(currentSlide, "heading", -1); }} style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>-</button>
+            <div style={{ ...CP, fontSize: 6, color: "#666", minWidth: 12, textAlign: "center" }}>{(cur.slides[currentSlide] || {}).headingSize || 0}</div>
+            <button onClick={function() { adjustFontSize(currentSlide, "heading", 1); }} style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>+</button>
+            <div style={{ width: 1, height: 12, background: "#eee" }} />
+            <div style={{ ...CP, fontSize: 5, color: "#999" }}>Body:</div>
+            <button onClick={function() { adjustFontSize(currentSlide, "body", -1); }} style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>-</button>
+            <div style={{ ...CP, fontSize: 6, color: "#666", minWidth: 12, textAlign: "center" }}>{(cur.slides[currentSlide] || {}).bodySize || 0}</div>
+            <button onClick={function() { adjustFontSize(currentSlide, "body", 1); }} style={{ width: 16, height: 16, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 8, color: "#666", textAlign: "center", lineHeight: "16px" }}>+</button>
+          </div>}
+          {/* Slide operations */}
+          <div style={{ display: "flex", gap: 3, marginTop: 4, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
             <button onClick={function() { duplicateSlide(currentSlide); }}
               style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
               {"\u2398"} Duplicate</button>
@@ -4118,10 +4213,10 @@ export default function LoathrMediaGenerator() {
               {"\u2715"} Delete</button>}
             {currentSlide > 1 && <button onClick={function() { moveSlide(currentSlide, currentSlide - 1); }}
               style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
-              {"\u2191"} Move Up</button>}
+              {"\u2191"}</button>}
             {currentSlide < total - 2 && currentSlide > 0 && <button onClick={function() { moveSlide(currentSlide, currentSlide + 1); }}
               style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
-              {"\u2193"} Move Down</button>}
+              {"\u2193"}</button>}
           </div>
         </div>}
         {/* Fact-check results */}
