@@ -891,17 +891,17 @@ function S1Cover({ slide, category, images, edition, index }) {
   var edLabel = edition ? edition.label : "";
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
-        <div style={{ position: "absolute", top: M_TOP, left: 0, right: 0, textAlign: "center", zIndex: 2 }}>
+        <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: M_SIDE, textAlign: "left", zIndex: 2 }}>
           <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: p.accent + "6B", fontWeight: 700, textDecoration: "line-through", textDecorationColor: p.accent + "6B", textDecorationThickness: 1 }}>LOATHR</div>
           {edLabel && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffffcc", marginTop: 3 }}>{edLabel}</div>}
         </div>
-        <div style={{ position: "absolute", bottom: M_BOT, left: 0, right: 0, zIndex: 3 }}>
-          <div style={{ textAlign: "center", padding: "0 " + M_SIDE + "px" }}>
+        <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
+          <div style={{ textAlign: "left" }}>
             <div style={{ ...FN, fontSize: slide.title && slide.title.length > 35 ? 24 : 30, color: p.text, lineHeight: 1.1, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }}>
               {formatCoverTitle(slide.title, p.accent, slide.titleHighlight)}
             </div>
-            <div style={{ height: 3, background: "linear-gradient(to right, transparent, " + p.accent + ", transparent)", margin: "12px auto", width: "60%" }} />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8 }}>
+            <div style={{ height: 3, background: "linear-gradient(to right, " + p.accent + ", transparent)", margin: "10px 0", width: "50%" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
               <div style={{ width: 8, height: 8, background: p.accent }} />
               <div style={{ ...CP, fontSize: 9, color: "#ffffffcc", letterSpacing: "0.1em", fontWeight: 700 }}>{CAT_LABELS[category]}</div>
               <div style={{ width: 8, height: 8, background: p.accent2 || p.accent }} />
