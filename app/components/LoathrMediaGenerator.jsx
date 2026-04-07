@@ -2171,6 +2171,7 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
     backgroundColor: "#000000",
     logging: false,
     onclone: function(clonedDoc, clonedEl) {
+      // Fix objectFit:cover — convert to background-image
       var imgs = clonedEl.querySelectorAll("img[style*='object-fit']");
       imgs.forEach(function(img) {
         var parent = img.parentElement;
@@ -2179,6 +2180,25 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
           parent.style.backgroundSize = "cover";
           parent.style.backgroundPosition = "center";
           img.style.opacity = "0";
+        }
+      });
+      // Fix text container expansion at export scale
+      var allDivs = clonedEl.querySelectorAll("div");
+      allDivs.forEach(function(div) {
+        // Lock absolutely positioned elements to prevent reflow
+        if (div.style.position === "absolute" && div.style.zIndex) {
+          div.style.overflow = "hidden";
+          // Lock current dimensions if the element has computed size
+          if (div.offsetHeight > 0 && div.offsetHeight < 400) {
+            div.style.maxHeight = div.offsetHeight + "px";
+          }
+        }
+        // Remove backdrop-filter (html2canvas can't render it)
+        if (div.style.backdropFilter || div.style.webkitBackdropFilter) {
+          div.style.backdropFilter = "none";
+          div.style.webkitBackdropFilter = "none";
+          // Replace blur with solid semi-transparent background
+          div.style.background = "rgba(0,0,0,0.7)";
         }
       });
     },
