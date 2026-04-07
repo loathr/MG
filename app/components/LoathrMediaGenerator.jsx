@@ -874,8 +874,8 @@ function SplitTextBox({ slide, position, accent, accent2, category, seed, styleB
     return <FormalFrame accent={accent} accent2={accent2} seed={splitSeed + s} style={splitStyle}>{content}</FormalFrame>;
   }
 
-  var headingEl = <div style={{ ...FN, fontSize: 12, color: useSticky ? "inherit" : "#ffffff", textTransform: "uppercase", letterSpacing: "0.03em" }}>{slide.heading || ""}</div>;
-  var bodyEl = <div style={{ ...HD, fontSize: 8.5, color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45 }}>{styleBody ? styleBody(slide.body || "", accent, accent2) : (slide.body || "")}</div>;
+  var headingEl = <div style={{ ...FN, fontSize: 12 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", textTransform: "uppercase", letterSpacing: "0.03em" }}>{slide.heading || ""}</div>;
+  var bodyEl = <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45 }}>{styleBody ? styleBody(slide.body || "", accent, accent2) : (slide.body || "")}</div>;
   var highlightEl = slide.highlight ? <div style={{ marginTop: 4 }}><span style={{ ...WS, fontSize: 5.3, fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "2px 6px" }}>{slide.highlight}</span></div> : null;
   var citeEl = <MicroCite sources={slide.sources} accent={accent} />;
 
@@ -4366,6 +4366,26 @@ export default function LoathrMediaGenerator() {
                   {s.customPosition && s.customPosition[nudgeTarget] && <button onClick={function() { resetNudge(currentSlide, nudgeTarget); }}
                     style={{ padding: "1px 3px", border: "0.5px solid #ddd", cursor: "pointer", ...CP, fontSize: 4, color: "#999" }}>Reset {nudgeTarget}</button>}
                 </div>
+                {/* Per-block edit — text + size when specific element selected */}
+                {nudgeTarget !== "all" && s[nudgeTarget] !== undefined && <div style={{ marginBottom: 4, padding: 4, border: "0.5px solid " + uiAccent + "33", borderRadius: 2, background: "#fff" }}>
+                  <div style={{ ...CP, fontSize: 4, color: uiAccent, marginBottom: 2 }}>{nudgeTarget.toUpperCase()}</div>
+                  {nudgeTarget === "body" ? (
+                    <textarea value={s[nudgeTarget] || ""} onChange={function(e) { updateSlideField(currentSlide, nudgeTarget, e.target.value); }}
+                      rows={2} style={{ width: "100%", padding: "2px 4px", border: "0.5px solid #ddd", ...CP, fontSize: 7, color: "#333", background: "#fafafa", resize: "vertical" }} />
+                  ) : (
+                    <input value={s[nudgeTarget] || ""} onChange={function(e) { updateSlideField(currentSlide, nudgeTarget, e.target.value); }}
+                      style={{ width: "100%", padding: "2px 4px", border: "0.5px solid #ddd", ...CP, fontSize: 7, color: "#333", background: "#fafafa" }} />
+                  )}
+                  {/* Per-block font size */}
+                  {(nudgeTarget === "heading" || nudgeTarget === "body") && <div style={{ display: "flex", gap: 3, alignItems: "center", marginTop: 2 }}>
+                    <div style={{ ...CP, fontSize: 4, color: "#999" }}>Size:</div>
+                    <button onClick={function() { adjustFontSize(currentSlide, nudgeTarget, -1); }}
+                      style={{ width: 14, height: 14, border: "0.5px solid #ddd", background: "#fafafa", cursor: "pointer", ...CP, fontSize: 7, color: "#666", textAlign: "center", lineHeight: "14px" }}>-</button>
+                    <div style={{ ...CP, fontSize: 5, color: "#666" }}>{(s[nudgeTarget + "Size"] || 0) > 0 ? "+" : ""}{s[nudgeTarget + "Size"] || 0}</div>
+                    <button onClick={function() { adjustFontSize(currentSlide, nudgeTarget, 1); }}
+                      style={{ width: 14, height: 14, border: "0.5px solid #ddd", background: "#fafafa", cursor: "pointer", ...CP, fontSize: 7, color: "#666", textAlign: "center", lineHeight: "14px" }}>+</button>
+                  </div>}
+                </div>}
                 <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
                   <button onClick={function() { updateSlideField(currentSlide, "containerStyle", null); }}
                     style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: !s.containerStyle ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: !s.containerStyle ? uiAccent : "#999" }}>Auto</button>
