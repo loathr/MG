@@ -2460,10 +2460,10 @@ export default function LoathrMediaGenerator() {
   var abortRef = _ref(null);
 
   _ef(function() { selectedOptionRef.current = selectedOption; }, [selectedOption]);
-  // Auto-fetch trending topics when any Enterprise force is selected
+  // Auto-fetch trending topics when Enterprise force or mode changes
   _ef(function() {
     if (category === "enterprise" && enterpriseForce) { fetchTrending(); }
-  }, [enterpriseForce, category, fetchTrending]);
+  }, [enterpriseForce, enterpriseMode, category, fetchTrending]);
 
   // Keep ref in sync so generate() always reads latest locked images
   _ef(function() { lockedRef.current = lockedPersonImages; }, [lockedPersonImages]);
@@ -2571,7 +2571,13 @@ export default function LoathrMediaGenerator() {
     var promptText;
     if (category === "enterprise") {
       var forceCtx = enterpriseForce ? (ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) || {}).label : "business and industry";
-      promptText = "Search for the most impactful trending business and industry stories right now related to: " + forceCtx + ". Focus on how industries are being disrupted, market shifts, policy changes, and emerging opportunities. Find 6 specific timely topics suitable for analytical Instagram carousels. Also suggest 2-3 deeper angles from your own knowledge that people aren't searching for yet. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why this matters for business\"}]";
+      if (enterpriseMode === "news") {
+        promptText = "Search for the latest BREAKING business news related to: " + forceCtx + ". Find 6 current stories from the last 24-48 hours that impact businesses and industries. Include the source publication. Respond ONLY with JSON: [{\"topic\":\"headline\",\"hook\":\"business impact\",\"source\":\"publication\"}]";
+      } else if (enterpriseMode === "tips") {
+        promptText = "Suggest 6 specific industries or business types that need tactical advice right now related to: " + forceCtx + ". Each should be a clear industry + problem pairing. Respond ONLY with JSON: [{\"topic\":\"Industry: specific problem\",\"hook\":\"why they need help now\"}]";
+      } else {
+        promptText = "Search for the most impactful trending business stories right now related to: " + forceCtx + ". Find 6 specific topics suitable for analytical Instagram carousels. Also suggest 2-3 deeper angles from your own knowledge. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why this matters for business\"}]";
+      }
     } else if (category === "newsdesk") {
       var regionCtx = newsRegion !== "global" ? " in " + (NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }) || {}).label : "";
       var countryCtx = newsCountry ? " specifically in " + newsCountry : "";
@@ -2598,7 +2604,7 @@ export default function LoathrMediaGenerator() {
       if (Array.isArray(parsed)) setTrending(parsed);
     } catch (err) { console.error("Trending parse error:", err); }
     finally { setIsFetchingTrending(false); }
-  }, [category, enterpriseForce, newsFilter, newsRegion, newsCountry]);
+  }, [category, enterpriseForce, enterpriseMode, newsFilter, newsRegion, newsCountry]);
 
   // Smart search: Claude suggests angles after 800ms pause
   var fetchSmartAngles = _cb(async function(query) {
@@ -4392,7 +4398,7 @@ export default function LoathrMediaGenerator() {
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
             <button onClick={fetchTrending} disabled={isFetchingTrending}
               style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)" }}>
-              <Flame size={11} />{isFetchingTrending ? "..." : activeSegment === "newsdesk" ? "Top Stories" : "Trending"}</button>
+              <Flame size={11} />{isFetchingTrending ? "..." : activeSegment === "newsdesk" ? "Top Stories" : activeSegment === "enterprise" ? (enterpriseMode === "news" ? "Breaking" : enterpriseMode === "tips" ? "Ideas" : "Trending") : "Trending"}</button>
             {activeSegment === "editorial" && <button onClick={function() { setShuffleKey(function(k) { return k + 1; }); }}
               style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Shuffle size={11} />Shuffle</button>}
             {activeSegment === "editorial" && <button onClick={surpriseMe}
