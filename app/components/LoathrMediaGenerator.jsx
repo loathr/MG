@@ -4136,26 +4136,22 @@ export default function LoathrMediaGenerator() {
             </div>}
           </div>}
 
-          {/* Smart angles from Claude */}
-          {(smartAngles.length > 0 || isSearching) && <div style={{ marginBottom: 6, border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)", padding: 6 }}>
-            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>SMART ANGLES {isSearching && <span style={{ animation: "pulse 1s infinite" }}>...</span>}</div>
+          {/* Smart angles + web trends (merged) */}
+          {(smartAngles.length > 0 || webResults.length > 0 || isSearching) && <div style={{ marginBottom: 6, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#ebe6d6" : "var(--color-background-secondary)", padding: 6 }}>
+            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>ANGLES {isSearching && <span style={{ animation: "pulse 1s infinite" }}>...</span>}</div>
             {smartAngles.map(function(a, i) { return (
-              <div key={i} onClick={function() { setTopic(a.topic); setSmartAngles([]); setWebResults([]); setSuggestions([]); }}
-                style={{ padding: "4px 0", cursor: "pointer", borderBottom: i < smartAngles.length - 1 ? "0.5px solid var(--color-border-tertiary)" : "none" }}>
-                <div style={{ ...CP, fontSize: 9, color: "var(--color-text-primary)" }}>{a.topic}</div>
-                <div style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)", marginTop: 1 }}>{a.hook}</div>
+              <div key={"a" + i} onClick={function() { setTopic(a.topic); setSmartAngles([]); setWebResults([]); setSuggestions([]); }}
+                style={{ padding: "4px 0", cursor: "pointer", borderBottom: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa44" : "var(--color-border-tertiary)") }}>
+                <div style={{ ...CP, fontSize: 9, color: activeSegment === "enterprise" ? "#ddd" : activeSegment === "newsdesk" ? "#1a1a1a" : "var(--color-text-primary)" }}>{a.topic}</div>
+                <div style={{ ...CP, fontSize: 6, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)", marginTop: 1 }}>{a.hook}</div>
               </div>
             ); })}
-          </div>}
-
-          {/* Web trending context */}
-          {webResults.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "33", background: "var(--color-background-secondary)", padding: 6 }}>
-            <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>TRENDING NOW</div>
+            {webResults.length > 0 && smartAngles.length > 0 && <div style={{ height: 0.5, background: uiAccent + "33", margin: "4px 0" }} />}
             {webResults.map(function(w, i) { return (
-              <div key={i} onClick={function() { setTopic(w.topic); setSmartAngles([]); setWebResults([]); setSuggestions([]); }}
-                style={{ padding: "4px 0", cursor: "pointer", borderBottom: i < webResults.length - 1 ? "0.5px solid var(--color-border-tertiary)" : "none" }}>
-                <div style={{ ...CP, fontSize: 9, color: "var(--color-text-primary)" }}>{w.topic}</div>
-                <div style={{ ...CP, fontSize: 6, color: "var(--color-text-tertiary)", marginTop: 1 }}>{w.hook} {w.source && <span style={{ color: uiAccent + "88" }}>{w.source}</span>}</div>
+              <div key={"w" + i} onClick={function() { setTopic(w.topic); setSmartAngles([]); setWebResults([]); setSuggestions([]); }}
+                style={{ padding: "4px 0", cursor: "pointer", borderBottom: i < webResults.length - 1 ? "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa44" : "var(--color-border-tertiary)") : "none" }}>
+                <div style={{ ...CP, fontSize: 9, color: activeSegment === "enterprise" ? "#ddd" : activeSegment === "newsdesk" ? "#1a1a1a" : "var(--color-text-primary)" }}>{w.topic}</div>
+                <div style={{ ...CP, fontSize: 6, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)", marginTop: 1 }}>{w.hook} {w.source && <span style={{ color: uiAccent + "66" }}>{w.source}</span>}</div>
               </div>
             ); })}
           </div>}
@@ -4729,17 +4725,17 @@ export default function LoathrMediaGenerator() {
                 <div style={{ ...CP, fontSize: 5, color: "#666" }}>B{(s.bodySize || 0) > 0 ? "+" : ""}{s.bodySize || 0}</div>
                 <button onClick={function() { adjustFontSize(currentSlide, "body", 1); }} style={{ width: 14, height: 14, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 7, color: "#666", textAlign: "center", lineHeight: "14px" }}>+</button>
               </div>}
-              {/* Position + Container + Color — Editorial only */}
-              {isContent && activeSegment === "editorial" && <div style={{ borderTop: "0.5px solid #eee", paddingTop: 4 }}>
-                {/* Position preset */}
-                <div style={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap", marginBottom: 3 }}>
+              {/* Element movement — all segments */}
+              {isContent && <div style={{ borderTop: "0.5px solid #eee", paddingTop: 4 }}>
+                {/* Position preset — Editorial only */}
+                {activeSegment === "editorial" && <div style={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap", marginBottom: 3 }}>
                   <button onClick={function() { cycleTextPosition(currentSlide); }}
                     style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>
                     {"\u2B12"} {s.textPosition || "auto"}</button>
                   {s.customPosition && <button onClick={function() { resetNudge(currentSlide, "all"); }}
                     style={{ padding: "2px 5px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>Reset</button>}
-                </div>
-                {/* Nudge controls */}
+                </div>}
+                {/* Nudge controls — all segments */}
                 <div style={{ display: "flex", gap: 2, alignItems: "center", marginBottom: 3, flexWrap: "wrap" }}>
                   <div style={{ ...CP, fontSize: 5, color: "#999" }}>Move:</div>
                   {["all", "heading", "body", "highlight"].map(function(t) { return (
@@ -4779,6 +4775,9 @@ export default function LoathrMediaGenerator() {
                       style={{ width: 14, height: 14, border: "0.5px solid #ddd", background: "#fafafa", cursor: "pointer", ...CP, fontSize: 7, color: "#666", textAlign: "center", lineHeight: "14px" }}>+</button>
                   </div>}
                 </div>}
+              </div>}
+              {/* Container + Color — Editorial only */}
+              {isContent && activeSegment === "editorial" && <div style={{ borderTop: "0.5px solid #eee", paddingTop: 4 }}>
                 <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
                   <button onClick={function() { updateSlideField(currentSlide, "containerStyle", null); }}
                     style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: !s.containerStyle ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: !s.containerStyle ? uiAccent : "#999" }}>Auto</button>
