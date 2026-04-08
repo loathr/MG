@@ -45,13 +45,19 @@ export function EnterpriseCover({ slide, images, index }) {
   );
 }
 
+// Render image or mosaic
+function ImgOrMosaic({ url, mosaic, height, width }) {
+  if (mosaic) return <EnterpriseMosaic urls={mosaic} height={height} width={width} />;
+  if (url) return <div style={{ width: width || "100%", height: height || "100%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>;
+  return <div style={{ width: width || "100%", height: height || "100%", background: "#111" }} />;
+}
+
 // Layout 1 — Top Image / Bottom Text
-function Layout1({ slide, url }) {
+function Layout1({ slide, url, mosaic }) {
   var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      {url ? <div style={{ height: sp + "%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
-        : <div style={{ height: sp + "%", background: "#111" }} />}
+      <div style={{ height: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} /></div>
       <div style={Object.assign({}, { height: (100 - sp) + "%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
@@ -65,7 +71,7 @@ function Layout1({ slide, url }) {
 }
 
 // Layout 2 — Bottom Image / Top Text
-function Layout2({ slide, url }) {
+function Layout2({ slide, url, mosaic }) {
   var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -76,20 +82,18 @@ function Layout2({ slide, url }) {
         {highlightBlock(slide.highlight)}
         {srcLine(slide.sources)}
       </div>
-      {url ? <div style={{ height: sp + "%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
-        : <div style={{ height: sp + "%", background: "#111" }} />}
+      <div style={{ height: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} /></div>
       {watermark()}
     </div>
   );
 }
 
 // Layout 3 — Left Image / Right Text
-function Layout3({ slide, url }) {
+function Layout3({ slide, url, mosaic }) {
   var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", overflow: "hidden" }}>
-      {url ? <div style={{ width: sp + "%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
-        : <div style={{ width: sp + "%", background: "#111" }} />}
+      <div style={{ width: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} /></div>
       <div style={Object.assign({}, { width: (100 - sp) + "%", padding: "10px 12px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 13 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
@@ -104,7 +108,7 @@ function Layout3({ slide, url }) {
 }
 
 // Layout 4 — Right Image / Left Text
-function Layout4({ slide, url }) {
+function Layout4({ slide, url, mosaic }) {
   var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", overflow: "hidden" }}>
@@ -116,19 +120,17 @@ function Layout4({ slide, url }) {
         {highlightBlock(slide.highlight)}
         {srcLine(slide.sources)}
       </div>
-      {url ? <div style={{ width: sp + "%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
-        : <div style={{ width: sp + "%", background: "#111" }} />}
+      <div style={{ width: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} /></div>
       {watermark()}
     </div>
   );
 }
 
 // Layout 5 — Image Strip Top + 2-Column Text
-function Layout5({ slide, url }) {
+function Layout5({ slide, url, mosaic }) {
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      {url ? <div style={{ height: "30%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
-        : <div style={{ height: "30%", background: "#111" }} />}
+      <div style={{ height: "30%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} /></div>
       <div style={{ flex: 1, padding: "8px 14px", overflow: "hidden" }}>
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
@@ -161,12 +163,11 @@ function Layout6({ slide }) {
 }
 
 // Layout 7 — Diagonal Split (image top-left, text bottom-right)
-function Layout7({ slide, url }) {
+function Layout7({ slide, url, mosaic }) {
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ display: "flex", height: "45%" }}>
-        {url ? <div style={{ width: "55%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
-          : <div style={{ width: "55%", background: "#111" }} />}
+        <div style={{ width: "55%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} /></div>
         <div style={{ width: "45%", padding: "8px 10px" }}>
           {sectionLabel(slide.role || "")}
           <div style={{ ...FN, fontSize: 12 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15 }}>{slide.heading || ""}</div>
@@ -184,16 +185,14 @@ function Layout7({ slide, url }) {
 }
 
 // Layout 8 — Center Band (text top, image center, text bottom)
-function Layout8({ slide, url }) {
+function Layout8({ slide, url, mosaic }) {
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ padding: "8px 14px", flexShrink: 0 }}>
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15 }}>{slide.heading || ""}</div>
       </div>
-      {url ? <div style={{ height: "30%", overflow: "hidden", flexShrink: 0, borderTop: "0.5px solid #ffffff22", borderBottom: "0.5px solid #ffffff22" }}>
-        <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />
-      </div> : <div style={{ height: "30%", background: "#111", flexShrink: 0 }} />}
+      <div style={{ height: "30%", overflow: "hidden", flexShrink: 0, borderTop: "0.5px solid #ffffff22", borderBottom: "0.5px solid #ffffff22" }}><ImgOrMosaic url={url} mosaic={mosaic} /></div>
       <div style={{ flex: 1, padding: "8px 14px", overflow: "hidden" }}>
         <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }}>{slide.body || ""}</div>
         {highlightBlock(slide.highlight)}
@@ -204,14 +203,31 @@ function Layout8({ slide, url }) {
   );
 }
 
+// Mosaic image renderer for Enterprise — B&W grid
+function EnterpriseMosaic({ urls, height, width }) {
+  if (!urls || urls.length < 2) return null;
+  var count = Math.min(urls.length, 4);
+  var isVertical = height && !width;
+  return (
+    <div style={{ width: width || "100%", height: height || "100%", display: "grid", gridTemplateColumns: count <= 2 ? "1fr 1fr" : "1fr 1fr", gridTemplateRows: count <= 2 ? "1fr" : "1fr 1fr", gap: 2, background: "#ffffff", overflow: "hidden" }}>
+      {urls.slice(0, count).map(function(u, i) { return (
+        <div key={i} style={{ overflow: "hidden" }}>
+          <img src={u} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />
+        </div>
+      ); })}
+    </div>
+  );
+}
+
 // Enterprise Content — picks layout based on index or slide.enterpriseLayout override
 var ENTERPRISE_LAYOUTS = [Layout1, Layout2, Layout3, Layout4, Layout5, Layout6, Layout7, Layout8];
 
-export function EnterpriseContent({ slide, images, index }) {
+export function EnterpriseContent({ slide, images, index, mosaicUrls }) {
   var url = images && images[index] ? images[index].url : null;
+  var mosaic = mosaicUrls && mosaicUrls.length >= 2 ? mosaicUrls : null;
   var layoutIdx = typeof slide.enterpriseLayout === "number" ? slide.enterpriseLayout : ((index - 1) % ENTERPRISE_LAYOUTS.length);
   var LayoutComp = ENTERPRISE_LAYOUTS[layoutIdx] || Layout1;
-  return <LayoutComp slide={slide} url={url} />;
+  return <LayoutComp slide={slide} url={mosaic ? null : url} mosaic={mosaic} />;
 }
 
 // Playbook — numbered steps

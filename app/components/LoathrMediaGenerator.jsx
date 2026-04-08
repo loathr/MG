@@ -1630,7 +1630,7 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
       // Detect enterprise slide role from position or content
       var eRoles = ["THE LANDSCAPE", "THE FORCE", "THE IMPACT", "THE WINNERS", "THE LOSERS", "THE DATA", "THE PLAYBOOK", "THE FORECAST"];
       var eRole = eRoles[(slideIndex - 1) % eRoles.length] || "";
-      slide = <EnterpriseContent slide={Object.assign({}, slideData, { role: eRole })} images={images} index={slideIndex} />;
+      slide = <EnterpriseContent slide={Object.assign({}, slideData, { role: eRole })} images={images} index={slideIndex} mosaicUrls={_mosaicSlides[slideIndex]} />;
     }
   } else if (category === "newsdesk") {
     if (slideIndex === 0) slide = <NewsFrontPage slide={slideData} images={images} index={slideIndex} />;
