@@ -2528,7 +2528,7 @@ export default function LoathrMediaGenerator() {
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 800, messages: [{ role: "user",
           content: "You're a content strategist. Generate 3 sharper angles on \"" + topic + "\" for \"" + cat.label + "\" Instagram carousels. Respond ONLY with JSON: [{\"angle\":\"title\",\"hook\":\"one sentence\"}]" }] }) });
       var d = await r.json();
-      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
       var parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
       if (Array.isArray(parsed)) setRefinedAngles(parsed);
     } catch (err) { console.error(err); }
@@ -2547,7 +2547,7 @@ export default function LoathrMediaGenerator() {
             content: "Rate the viral potential of this topic for a " + segmentCtx + ":\n\"" + query + "\"\n\nScore 1-10 based on: timeliness, emotional hook, debate potential, visual appeal, shareability, audience size.\n\nRespond ONLY with JSON (no markdown):\n{\"score\":N,\"reason\":\"one sentence why\",\"tip\":\"one sentence to improve it\"}" }] }) });
       var d = await r.json();
       if (d.error) return;
-      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
       var cleaned = text.replace(/```json|```/g, "").trim();
       var js = cleaned.indexOf("{"); var je = cleaned.lastIndexOf("}");
       if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
@@ -2580,7 +2580,7 @@ export default function LoathrMediaGenerator() {
           tools: [{ type: "web_search_20250305", name: "web_search" }],
           messages: [{ role: "user", content: promptText }] }) });
       var d = await r.json();
-      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
       var cleaned = text.replace(/```json|```/g, "").trim();
       var js = cleaned.indexOf("["); var je = cleaned.lastIndexOf("]");
       if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
@@ -2600,7 +2600,7 @@ export default function LoathrMediaGenerator() {
           content: "For the topic \"" + query + "\" in " + (cat ? cat.label : category) + ":\n1. Suggest 3 sharp carousel angles\n2. Identify ALL famous people connected to this topic. Resolve nicknames/stage names to full names (e.g. \"Ye\" = Kanye West, \"MJ\" = Michael Jordan, \"Bey\" = Beyoncé, \"Drake\" = Aubrey Drake Graham).\n3. ONLY if the topic explicitly mentions or is ABOUT a specific place, city, venue, or landmark, include it. Do NOT include birthplaces or loosely associated locations — only places that are the SUBJECT of the topic.\n\nRespond ONLY with JSON (no extra text):\n{\"angles\":[{\"topic\":\"title\",\"hook\":\"why\"}],\"persons\":[\"Full Name\"],\"locations\":[\"Place Name\"]}\nUse empty arrays if none: \"persons\":[],\"locations\":[]" }] }) });
       var d = await r.json();
       if (d.error) { console.error("Smart angles API error:", d.error); return; }
-      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
       var cleaned = text.replace(/```json|```/g, "").trim();
       var js = cleaned.indexOf("{"); var je = cleaned.lastIndexOf("}");
       if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
@@ -2647,7 +2647,7 @@ export default function LoathrMediaGenerator() {
           messages: [{ role: "user", content: "Search for recent news and trends about \"" + query + "\" in " + (cat ? cat.label : category) + ". Find 3 timely, specific angles. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why trending now\",\"source\":\"publication\"}]" }] }) });
       var d = await r.json();
       if (d.error) return;
-      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
       var cleaned = text.replace(/```json|```/g, "").trim();
       var js = cleaned.indexOf("["); var je = cleaned.lastIndexOf("]");
       if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
@@ -2702,7 +2702,7 @@ export default function LoathrMediaGenerator() {
         ] }] }) });
       var d = await r.json();
       if (d.error) return;
-      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
       var cleaned = text.replace(/```json|```/g, "").trim();
       var js = cleaned.indexOf("["); var je = cleaned.lastIndexOf("]");
       if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
@@ -2749,7 +2749,7 @@ export default function LoathrMediaGenerator() {
           content: "Based on a carousel about \"" + genTopic + "\" in " + genCategory + " covering: " + headings + ".\n\nSuggest 3 related but DIFFERENT topics the reader should explore next. Each should feel like a natural next chapter. Mix categories.\n\nRespond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why this connects\",\"category\":\"" + genCategory + " or another category\"}]" }] }) });
       var d = await r.json();
       if (d.error) return;
-      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
       var cleaned = text.replace(/```json|```/g, "").trim();
       var js = cleaned.indexOf("["); var je = cleaned.lastIndexOf("]");
       if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
@@ -3038,7 +3038,7 @@ export default function LoathrMediaGenerator() {
           messages: [{ role: "user", content: "You are a fact-checker reviewing an Instagram carousel about \"" + topic + "\".\n\nHere is the content:\n" + slideTexts + "\n\nFor each slide, verify:\n1. Are the facts accurate? Flag anything wrong or unverifiable.\n2. Are statistics real? Flag made-up numbers.\n3. Are quotes attributed correctly?\n4. Is the overall narrative fair or misleading?\n\nRespond ONLY with JSON:\n{\"score\": 1-10, \"summary\": \"one sentence overall\", \"issues\": [{\"slide\": N, \"issue\": \"what's wrong\", \"fix\": \"suggested correction\"}]}\nIf everything checks out, return empty issues array." }] }) });
       var d = await r.json();
       if (d.error) { setFactCheckResult({ score: 0, summary: "Fact-check failed: " + (d.error.message || d.error), issues: [] }); return; }
-      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
       var cleaned = text.replace(/```json|```/g, "").trim();
       var js = cleaned.indexOf("{"); var je = cleaned.lastIndexOf("}");
       if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
@@ -3104,7 +3104,7 @@ export default function LoathrMediaGenerator() {
       var d = await r.json();
       if (d.error) throw new Error(d.error.message || d.error);
       // Extract text — try each text block individually for JSON (web search splits response)
-      var textBlocks = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; });
+      var textBlocks = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); });
       var text = textBlocks.join("");
       var cleaned = "";
       // First: try the concatenated text
@@ -3135,7 +3135,7 @@ export default function LoathrMediaGenerator() {
           var r2 = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify(retryBody) });
           var d2 = await r2.json();
           if (d2.error) throw new Error(d2.error.message || d2.error);
-          text = (d2.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+          text = (d2.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
           cleaned = text.replace(/```json|```/g, "").trim().replace(/,\s*([}\]])/g, "$1");
           jsonStart = cleaned.indexOf("{"); jsonEnd = cleaned.lastIndexOf("}");
           if (jsonStart >= 0 && jsonEnd > jsonStart) cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
@@ -3464,7 +3464,7 @@ export default function LoathrMediaGenerator() {
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: customPrompt }] }) });
       var d = await r.json();
       if (d.error) throw new Error(d.error.message || d.error);
-      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
       var cleaned = text.replace(/```json|```/g, "").trim();
       cleaned = cleaned.replace(/,\s*([}\]])/g, "$1");
       var jsonStart = cleaned.indexOf("{"); var jsonEnd = cleaned.lastIndexOf("}");
@@ -3545,7 +3545,7 @@ export default function LoathrMediaGenerator() {
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 3000, messages: msgs, tools: tools }) });
       var d = await r.json();
       if (d.error) throw new Error(d.error.message || d.error);
-      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
       if (!text.trim()) throw new Error("No text in response");
       var cleaned = text.replace(/```json|```/g, "").trim();
       // Extract JSON — find the object containing "destination" key
