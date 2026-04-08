@@ -2,6 +2,12 @@
 export var ENTERPRISE_ID = "enterprise";
 export var ENTERPRISE_LABEL = "Enterprise";
 
+export var ENTERPRISE_MODES = [
+  { id: "analysis", label: "Analysis" },
+  { id: "news", label: "Business News" },
+  { id: "tips", label: "Industry Tips" },
+];
+
 export var ENTERPRISE_FORCES = [
   { id: "tech", label: "Tech Disruption" },
   { id: "policy", label: "Policy & Regulation" },
@@ -143,4 +149,67 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks) {
     "TEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'.\n\n" +
     "On 2-3 content slides, add '\"mosaic\": true' for photo collage backgrounds.\n\n" +
     "CRITICAL: After searching the web, you MUST respond with valid JSON. Do NOT write commentary, analysis, or explanation outside the JSON. Your ENTIRE text response must be the JSON object.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Enterprise Analysis\",\"slides\":[{...slides...}]}";
+}
+
+// Business News prompt — current events through business lens
+export function buildEnterpriseNewsPrompt(keywords, force, editionSeed, picks) {
+  var forceLabel = force ? force.label : "business";
+  var closerLine = ENTERPRISE_CLOSERS[Math.abs(editionSeed || 0) % ENTERPRISE_CLOSERS.length];
+  var d = new Date();
+  var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var timestamp = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() + " at " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+  var ep = picks || {};
+  var tone = ep.enterpriseTone ? ENTERPRISE_TONES.find(function(t) { return t.id === ep.enterpriseTone; }) : null;
+
+  return "You are a senior business news editor writing for LOATHR ENTERPRISE, a black-and-white editorial Instagram brand.\n\n" +
+    "SEARCH KEYWORDS: \"" + keywords + "\"\n" +
+    "BUSINESS SECTOR: " + forceLabel + "\n" +
+    "TIMESTAMP: " + timestamp + "\n\n" +
+    "Search the web for the MOST RECENT business news matching these keywords. Focus on the business and industry IMPACT of the news.\n\n" +
+    (tone ? "TONE: " + tone.prompt + "\n" : "") +
+    (ep.customVoice ? "CUSTOM VOICE: " + ep.customVoice + "\n" : "") +
+    "\nSLIDE COUNT: 5-6 slides.\n\n" +
+    "RULES:\n" +
+    "- Every fact must be from a real, verifiable source with 'sources' field\n" +
+    "- Focus on BUSINESS IMPACT — not just what happened, but who profits, who loses, what changes\n" +
+    "- NEVER fabricate quotes, statistics, or events\n" +
+    "- Keep body text to 2-3 sentences MAX\n\n" +
+    "SLIDE ROLES:\n" +
+    "- COVER — title (headline), subtitle (\"" + timestamp + "\"), breaking: true, timestamp: \"" + timestamp + "\"\n" +
+    "- \"WHAT HAPPENED\" — heading, body (the news event), sources\n" +
+    "- \"WHO'S AFFECTED\" — heading, body (industries, companies, roles impacted), sources\n" +
+    "- \"THE NUMBERS\" — statFormat \"killer\", stat, caption, sources\n" +
+    "- \"WHAT TO DO\" — heading, body (immediate action items for businesses), sources\n" +
+    "- CLOSER — hashtags, funnyLine: \"" + closerLine + "\", disclaimer: \"For entertainment and educational purposes only.\"\n\n" +
+    "CRITICAL: Your ENTIRE text response must be valid JSON.\n\nRespond ONLY with JSON:\n{\"angle\":\"Business News\",\"slides\":[{...}]}";
+}
+
+// Industry Tips prompt — actionable tactical advice
+export function buildEnterpriseTipsPrompt(topic, force, editionSeed, picks) {
+  var forceLabel = force ? force.label : "business strategy";
+  var closerLine = ENTERPRISE_CLOSERS[Math.abs(editionSeed || 0) % ENTERPRISE_CLOSERS.length];
+  var ep = picks || {};
+  var focus = ep.enterpriseFocus ? ENTERPRISE_FOCUS.find(function(f) { return f.id === ep.enterpriseFocus; }) : null;
+  var tone = ep.enterpriseTone ? ENTERPRISE_TONES.find(function(t) { return t.id === ep.enterpriseTone; }) : null;
+
+  return "You are a senior business strategist writing for LOATHR ENTERPRISE, a black-and-white editorial Instagram brand.\n\n" +
+    "Industry: \"" + topic + "\"\n" +
+    "Focus Area: " + forceLabel + "\n\n" +
+    "Write an ACTIONABLE TIPS carousel for businesses in this industry. Every slide should contain a specific, tactical tip that a business owner could implement this week.\n\n" +
+    (tone ? "TONE: " + tone.prompt + "\n" : "") +
+    (focus ? "FOCUS: " + focus.prompt + "\n" : "") +
+    (ep.customVoice ? "CUSTOM VOICE: " + ep.customVoice + "\n" : "") +
+    "\nSLIDE COUNT: 7-8 slides.\n\n" +
+    "RULES:\n" +
+    "- Each tip must be SPECIFIC — not 'use social media' but 'post LinkedIn carousels 3x/week targeting procurement managers'\n" +
+    "- Include a real tool, platform, or resource name where relevant\n" +
+    "- Include estimated cost, time investment, or expected ROI when possible\n" +
+    "- Use web search to find current best practices and tools\n" +
+    "- Keep body text to 2-3 sentences MAX\n\n" +
+    "SLIDE ROLES:\n" +
+    "- COVER — title (e.g. \"5 Things Every [Industry] Should Do Now\"), subtitle\n" +
+    "- \"TIP 1\" through \"TIP 5\" — each slide: heading (the tip as a command), body (why + how + example), highlight (the tool/resource), sources\n" +
+    "- \"THE WHY\" — heading, body (data/context backing the tips), statFormat \"killer\" with stat and caption, sources\n" +
+    "- CLOSER — hashtags, funnyLine: \"" + closerLine + "\", disclaimer: \"For entertainment and educational purposes only. Not professional advice.\"\n\n" +
+    "CRITICAL: Your ENTIRE text response must be valid JSON.\n\nRespond ONLY with JSON:\n{\"angle\":\"Industry Tips\",\"slides\":[{...}]}";
 }

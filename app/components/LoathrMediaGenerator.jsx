@@ -1,7 +1,7 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
-import { ENTERPRISE_FORCES, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, buildEnterprisePrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
+import { ENTERPRISE_FORCES, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
 import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS } from "./segments/EnterpriseSlides";
 import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
 import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser } from "./segments/NewsDeskSlides";
@@ -2444,6 +2444,7 @@ export default function LoathrMediaGenerator() {
   var ngt = _s("all"), nudgeTarget = ngt[0], setNudgeTarget = ngt[1]; // "all"|"heading"|"body"|"highlight"
   // Enterprise state
   var efc = _s(null), enterpriseForce = efc[0], setEnterpriseForce = efc[1];
+  var emm = _s("analysis"), enterpriseMode = emm[0], setEnterpriseMode = emm[1]; // "analysis"|"news"|"tips"
   // News Desk state
   var ndf = _s(null), newsFilter = ndf[0], setNewsFilter = ndf[1];
   var ndr = _s("global"), newsRegion = ndr[0], setNewsRegion = ndr[1];
@@ -3094,7 +3095,9 @@ export default function LoathrMediaGenerator() {
       var prompt;
       if (category === "enterprise") {
         var force = enterpriseForce ? ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) : null;
-        prompt = buildEnterprisePrompt(topic, force, edition.seed, editionPicks);
+        if (enterpriseMode === "news") { prompt = buildEnterpriseNewsPrompt(topic, force, edition.seed, editionPicks); }
+        else if (enterpriseMode === "tips") { prompt = buildEnterpriseTipsPrompt(topic, force, edition.seed, editionPicks); }
+        else { prompt = buildEnterprisePrompt(topic, force, edition.seed, editionPicks); }
       } else if (category === "newsdesk") {
         var nfObj = newsFilter ? NEWSDESK_FILTERS.find(function(f) { return f.id === newsFilter; }) : null;
         var nrObj = NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }) || null;
@@ -3426,7 +3429,7 @@ export default function LoathrMediaGenerator() {
       }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
-  }, [topic, category, secondaryCategory, secondaryCount, tertiaryCategory, tertiaryCount, apiKeys, editionPicks, lockedPersonImages, genCount, previewLocked, lockedLocationImages, enterpriseForce, newsFilter, newsRegion, newsTimeframe, newsCountry]);
+  }, [topic, category, secondaryCategory, secondaryCount, tertiaryCategory, tertiaryCount, apiKeys, editionPicks, lockedPersonImages, genCount, previewLocked, lockedLocationImages, enterpriseForce, enterpriseMode, newsFilter, newsRegion, newsTimeframe, newsCountry]);
 
   // --- Custom Story generator ---
   var generateCustomStory = _cb(async function() {
@@ -3655,6 +3658,14 @@ export default function LoathrMediaGenerator() {
         })}
       </div>}
 
+      {/* Enterprise mode tabs */}
+      {activeSegment === "enterprise" && <div style={{ display: "flex", gap: 0, marginBottom: 8, justifyContent: "center" }}>
+        {ENTERPRISE_MODES.map(function(m) {
+          var sel = enterpriseMode === m.id;
+          return <button key={m.id} onClick={function() { setEnterpriseMode(m.id); setOptions(null); setTrending([]); }}
+            style={{ padding: "5px 12px", border: "none", borderBottom: "1.5px solid " + (sel ? "#ffffff" : "transparent"), background: sel ? "#ffffff08" : "transparent", cursor: "pointer", ...CP, fontSize: 7, letterSpacing: "0.08em", color: sel ? "#ffffff" : "#666", fontWeight: sel ? 700 : 400 }}>{m.label}</button>;
+        })}
+      </div>}
       {/* Enterprise force selector */}
       {activeSegment === "enterprise" && <div style={{ display: "flex", gap: 3, marginBottom: 12, justifyContent: "center", flexWrap: "wrap" }}>
         {ENTERPRISE_FORCES.map(function(f) {
@@ -3871,7 +3882,7 @@ export default function LoathrMediaGenerator() {
               }
             }}>
             <input value={topic} onChange={function(e) { var v = e.target.value; setTopic(v); setRefinedAngles([]); setSuggestions(filterSuggestions(v, category)); setCrossCatSuggestions(searchAllCategories(v, category)); triggerSearch(v); }}
-              placeholder={category === "newsdesk" ? "Search keywords: oil, election, LeBron..." : category === "enterprise" ? (function() { var hints = { tech: "e.g. Healthcare, Retail, Banking...", policy: "e.g. Pharma, Energy, Cannabis...", ai: "e.g. Legal services, Call centers, Education...", markets: "e.g. Real estate, Crypto, Commodities...", culture: "e.g. Luxury brands, Fast food, Streaming...", media: "e.g. News industry, Podcasting, Social media...", education: "e.g. Universities, EdTech, K-12...", stocks: "e.g. Tesla, Apple, NVIDIA...", lifestyle: "e.g. Fitness, Travel, Housing...", news: "e.g. Oil industry, Tech sector, Airlines..." }; return hints[enterpriseForce] || "Industry or topic to analyze..."; })() : "Topic for " + cat.label + "... (or drop an image)"}
+              placeholder={category === "newsdesk" ? "Search keywords: oil, election, LeBron..." : category === "enterprise" ? (enterpriseMode === "news" ? "Search business news: tariffs, IPO, merger..." : enterpriseMode === "tips" ? "Industry to advise: restaurants, SaaS, retail..." : (function() { var hints = { tech: "e.g. Healthcare, Retail, Banking...", policy: "e.g. Pharma, Energy, Cannabis...", ai: "e.g. Legal services, Call centers, Education...", markets: "e.g. Real estate, Crypto, Commodities...", culture: "e.g. Luxury brands, Fast food, Streaming...", media: "e.g. News industry, Podcasting, Social media...", education: "e.g. Universities, EdTech, K-12...", stocks: "e.g. Tesla, Apple, NVIDIA...", lifestyle: "e.g. Fitness, Travel, Housing...", news: "e.g. Oil industry, Tech sector, Airlines..." }; return hints[enterpriseForce] || "Industry or topic to analyze..."; })()) : "Topic for " + cat.label + "... (or drop an image)"}
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ffffff" : "var(--color-background-primary)", color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : "var(--color-text-primary)", fontSize: 12, ...CP }} />
             {topic && <button onClick={function() { setTopic(""); setOptions(null); setSmartAngles([]); setWebResults([]); setViralScore(null); setTrending([]); setSuggestions([]); setCrossCatSuggestions([]); setRefinedAngles([]); }}
               style={{ padding: "10px 6px", border: "none", background: "transparent", cursor: "pointer", ...CP, fontSize: 12, color: activeSegment === "enterprise" ? "#666" : "#999", display: "flex", alignItems: "center" }}>{"\u2715"}</button>}
@@ -3894,7 +3905,7 @@ export default function LoathrMediaGenerator() {
               <div style={{ display: "flex", gap: 4 }}>
                 <button onClick={function() { setIsRecMode(false); generate(); }} disabled={!topic.trim()}
                   style={{ padding: "10px 14px", background: uiAccent, color: "#ffffff", border: "none", cursor: topic.trim() ? "pointer" : "default", ...CP, fontSize: 9, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() ? 1 : 0.4 }}>
-                  {category === "enterprise" ? "ANALYZE" : category === "newsdesk" ? "SEARCH" : "GENERATE"}
+                  {category === "enterprise" ? (enterpriseMode === "news" ? "SEARCH" : enterpriseMode === "tips" ? "BUILD" : "ANALYZE") : category === "newsdesk" ? "SEARCH" : "GENERATE"}
                 </button>
               </div>
             ) : (

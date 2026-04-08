@@ -5,6 +5,23 @@ var CP = { fontFamily: "'Courier Prime',monospace" };
 var FN = { fontFamily: "'Foun',Georgia,serif" };
 var HD = { fontFamily: "'Maheni',Georgia,serif", fontStyle: "normal" };
 var imgFilter = "grayscale(1) contrast(1.1) brightness(0.6)";
+
+// Enterprise text styling — underline KEY TERMS instead of background highlight
+export function enterpriseStyleBody(text) {
+  if (!text) return "";
+  var parts = text.split(/(\b[A-Z][A-Z\s]{2,}[A-Z]\b)/g);
+  var hitCount = 0;
+  return parts.map(function(part, i) {
+    if (/^[A-Z\s]+$/.test(part) && part.trim().length > 2 && hitCount < 3) {
+      hitCount++;
+      var words = part.trim().split(/\s+/);
+      return words.map(function(word, wi) {
+        return <span key={i + "-" + wi} style={{ borderBottom: "1.5px solid #ffffff", paddingBottom: 1, marginRight: 3, fontWeight: 700, color: "#ffffff" }}>{word}</span>;
+      });
+    }
+    return part;
+  });
+}
 var watermark = function() { return <div style={{ position: "absolute", bottom: 5, left: 8, zIndex: 10, ...CP, fontSize: 4, letterSpacing: "0.12em", color: "#ffffff55" }}>LOATHR</div>; };
 var srcLine = function(s) { return s ? <div style={{ ...CP, fontSize: 4, color: "#ffffff33", textAlign: "right", marginTop: 4 }}>{s}</div> : null; };
 var sectionLabel = function(t) { return <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "#ffffff55", marginBottom: 4, textTransform: "uppercase" }}>{t}</div>; };
@@ -61,7 +78,7 @@ function Layout1({ slide, url, mosaic }) {
       <div style={Object.assign({}, { height: (100 - sp) + "%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
-        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{slide.body || ""}</div>
+        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight)}
         {srcLine(slide.sources)}
       </div>
@@ -78,7 +95,7 @@ function Layout2({ slide, url, mosaic }) {
       <div style={Object.assign({}, { height: (100 - sp) + "%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
-        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{slide.body || ""}</div>
+        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight)}
         {srcLine(slide.sources)}
       </div>
@@ -98,7 +115,7 @@ function Layout3({ slide, url, mosaic }) {
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 13 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
-        <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{slide.body || ""}</div>
+        <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight)}
         {srcLine(slide.sources)}
       </div>
@@ -116,7 +133,7 @@ function Layout4({ slide, url, mosaic }) {
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 13 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
-        <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{slide.body || ""}</div>
+        <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight)}
         {srcLine(slide.sources)}
       </div>
@@ -135,7 +152,7 @@ function Layout5({ slide, url, mosaic }) {
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
-        <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #ffffff11" }}>{slide.body || ""}</div>
+        <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #ffffff11" }}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight)}
         {srcLine(slide.sources)}
       </div>
@@ -153,7 +170,7 @@ function Layout6({ slide }) {
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 18 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.1, marginBottom: 10 }}>{slide.heading || ""}</div>
         <div style={{ height: 1, background: "#ffffff22", marginBottom: 10 }} />
-        <div style={{ ...HD, fontSize: 10 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.6, flex: 1 }}>{slide.body || ""}</div>
+        <div style={{ ...HD, fontSize: 10 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.6, flex: 1 }}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight)}
         {srcLine(slide.sources)}
       </div>
@@ -175,7 +192,7 @@ function Layout7({ slide, url, mosaic }) {
       </div>
       <div style={{ height: 0.5, background: "#ffffff22" }} />
       <div style={{ flex: 1, padding: "8px 14px", overflow: "hidden" }}>
-        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }}>{slide.body || ""}</div>
+        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight)}
         {srcLine(slide.sources)}
       </div>
@@ -194,7 +211,7 @@ function Layout8({ slide, url, mosaic }) {
       </div>
       <div style={{ height: "30%", overflow: "hidden", flexShrink: 0, borderTop: "0.5px solid #ffffff22", borderBottom: "0.5px solid #ffffff22" }}><ImgOrMosaic url={url} mosaic={mosaic} /></div>
       <div style={{ flex: 1, padding: "8px 14px", overflow: "hidden" }}>
-        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }}>{slide.body || ""}</div>
+        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight)}
         {srcLine(slide.sources)}
       </div>
