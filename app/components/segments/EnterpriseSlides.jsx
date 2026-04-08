@@ -31,7 +31,7 @@ export function EnterpriseCover({ slide, images, index }) {
       {isBreaking && <div style={{ background: "#ffffff", padding: "3px 16px", textAlign: "center", flexShrink: 0 }}>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.25em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
       </div>}
-      {url && <div style={{ height: isBreaking ? 70 : 90, overflow: "hidden", flexShrink: 0, borderBottom: "1px solid #ffffff22" }}>
+      {url && <div style={{ height: (function() { var sizes = { small: 60, medium: 90, large: 160, full: "100%" }; return isBreaking ? 70 : (sizes[slide.coverPhotoSize] || 90); })(), overflow: "hidden", flexShrink: slide.coverPhotoSize === "full" ? 1 : 0, flex: slide.coverPhotoSize === "full" ? 1 : undefined, borderBottom: "1px solid #ffffff22" }}>
         <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>}
       <div style={{ flex: 1, padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "center" }}>

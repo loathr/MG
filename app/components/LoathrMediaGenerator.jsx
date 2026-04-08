@@ -4257,6 +4257,17 @@ export default function LoathrMediaGenerator() {
                   ); })}
                 </div>
               </div>
+              <div style={{ marginTop: 8 }}>
+                <div style={{ ...CP, fontSize: 6, color: "#8a8270", letterSpacing: "0.1em", marginBottom: 3 }}>SLIDES</div>
+                <div style={{ display: "flex", gap: 3 }}>
+                  <button onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: 0 }); }); }}
+                    style={{ padding: "3px 6px", border: "0.5px solid " + (!editionPicks.slideCount ? "#1a1a1a" : "#c8c0aa"), background: !editionPicks.slideCount ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: !editionPicks.slideCount ? "#1a1a1a" : "#8a8270" }}>Auto</button>
+                  {[5,6,7,8,10].map(function(n) { return (
+                    <button key={n} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: n }); }); }}
+                      style={{ padding: "3px 6px", border: "0.5px solid " + (editionPicks.slideCount === n ? "#1a1a1a" : "#c8c0aa"), background: editionPicks.slideCount === n ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: editionPicks.slideCount === n ? "#1a1a1a" : "#8a8270" }}>{n}</button>
+                  ); })}
+                </div>
+              </div>
             </div>}
             {/* Editorial settings — original */}
             {activeSegment === "editorial" && <div>
@@ -4615,10 +4626,12 @@ export default function LoathrMediaGenerator() {
           var isCloser = currentSlide === total - 1;
           var fields = [];
           if (isCover) { fields = [["title", s.title], ["subtitle", s.subtitle], ["titleHighlight", s.titleHighlight]]; }
-          else if (isCloser) { fields = [["hashtags", s.hashtags]]; }
+          else if (isCloser) { fields = [["hashtags", s.hashtags], ["funnyLine", s.funnyLine], ["disclaimer", s.disclaimer]]; }
           else if (s.quote) { fields = [["quote", s.quote], ["source", s.source]]; }
           else if (s.stat) { fields = [["heading", s.heading], ["stat", s.stat], ["caption", s.caption || s.statLabel || s.body]]; }
-          else { fields = [["heading", s.heading], ["body", s.body], ["highlight", s.highlight]]; }
+          else { fields = [["heading", s.heading], ["body", s.body]]; }
+          // Highlight as separate section (not mixed with body fields)
+          var hasHighlight = !isCover && !isCloser && !s.quote && !s.stat && s.highlight !== undefined;
           return <div style={{ marginTop: 6, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8, borderRadius: 3 }}>
             {/* Section tabs — CONTENT = text + style merged */}
             <div style={{ display: "flex", gap: 0, marginBottom: 6 }}>
@@ -4653,6 +4666,25 @@ export default function LoathrMediaGenerator() {
                   </button>
                 ) : null; })}
               </div>
+              {/* Highlight / Insight — separate from body */}
+              {hasHighlight && <div style={{ marginBottom: 3 }}>
+                <div style={{ ...CP, fontSize: 4, color: uiAccent + "88", marginBottom: 2 }}>INSIGHT</div>
+                <input value={s.highlight || ""} onChange={function(e) { updateSlideField(currentSlide, "highlight", e.target.value); }}
+                  style={{ width: "100%", padding: "3px 6px", border: "0.5px solid " + uiAccent + "44", ...CP, fontSize: 7, color: "#333", background: "#fff", fontStyle: "italic" }}
+                  placeholder="Key insight or takeaway..." />
+              </div>}
+              {/* Cover photo controls */}
+              {isCover && <div style={{ marginBottom: 3, borderTop: "0.5px solid #eee", paddingTop: 3 }}>
+                <div style={{ ...CP, fontSize: 4, color: "#999", marginBottom: 2 }}>COVER PHOTO</div>
+                <div style={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#999" }}>Size:</div>
+                  {[{ id: "small", label: "Small", val: 80 }, { id: "medium", label: "Medium", val: 120 }, { id: "large", label: "Large", val: 180 }, { id: "full", label: "Full", val: 425 }].map(function(sz) {
+                    var curSize = s.coverPhotoSize || "medium";
+                    return <button key={sz.id} onClick={function() { updateSlideField(currentSlide, "coverPhotoSize", sz.id); }}
+                      style={{ padding: "2px 5px", border: "0.5px solid " + (curSize === sz.id ? uiAccent : "#ddd"), background: curSize === sz.id ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: curSize === sz.id ? uiAccent : "#999" }}>{sz.label}</button>;
+                  })}
+                </div>
+              </div>}
               {/* Font size */}
               {isContent && <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 4 }}>
                 <div style={{ ...CP, fontSize: 5, color: "#999" }}>Size:</div>
