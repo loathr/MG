@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
 import { ENTERPRISE_FORCES, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
-import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS } from "./segments/EnterpriseSlides";
+import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS } from "./segments/EnterpriseSlides";
 import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
 import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser } from "./segments/NewsDeskSlides";
 
@@ -2586,13 +2586,15 @@ export default function LoathrMediaGenerator() {
     // Enterprise and News Desk get segment-specific trending prompts
     var promptText;
     if (category === "enterprise") {
-      var forceCtx = enterpriseForce ? (ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) || {}).label : "business and industry";
+      var forceCtx = enterpriseForce ? (ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) || {}).label : null;
+      var forceDetail = { tech: "technology disruption, software, hardware, digital transformation", policy: "government regulation, compliance, legislation, trade policy, sanctions", ai: "artificial intelligence, machine learning, automation, robotics", markets: "stock market, commodities, real estate, cryptocurrency, interest rates", culture: "cultural shifts, workplace culture, consumer behavior, demographics", media: "media industry, streaming, advertising, journalism, social media platforms", education: "education industry, universities, edtech, training, workforce development", stocks: "public companies, IPOs, earnings, stock performance, market cap", lifestyle: "consumer lifestyle, health, wellness, travel, housing, food industry", news: "breaking business news, mergers, acquisitions, layoffs, launches" };
+      var searchCtx = forceCtx ? forceCtx + " (" + (forceDetail[enterpriseForce] || "") + ")" : "business across ALL sectors — NOT just AI or tech. Cover finance, healthcare, retail, manufacturing, energy, real estate, food, fashion, media";
       if (enterpriseMode === "news") {
-        promptText = "Search for the latest BREAKING business news related to: " + forceCtx + ". Find 6 current stories from the last 24-48 hours that impact businesses and industries. Include the source publication. Respond ONLY with JSON: [{\"topic\":\"headline\",\"hook\":\"business impact\",\"source\":\"publication\"}]";
+        promptText = "Search for the latest BREAKING business news related to: " + searchCtx + ". Find 6 DIVERSE stories from DIFFERENT industries. Do NOT focus only on AI or tech. Include source. Respond ONLY with JSON: [{\"topic\":\"headline\",\"hook\":\"business impact\",\"source\":\"publication\"}]";
       } else if (enterpriseMode === "tips") {
-        promptText = "Suggest 6 specific industries or business types that need tactical advice right now related to: " + forceCtx + ". Each should be a clear industry + problem pairing. Respond ONLY with JSON: [{\"topic\":\"Industry: specific problem\",\"hook\":\"why they need help now\"}]";
+        promptText = "Suggest 6 specific industries needing tactical advice related to: " + searchCtx + ". Cover DIVERSE industries. Respond ONLY with JSON: [{\"topic\":\"Industry: specific problem\",\"hook\":\"why they need help now\"}]";
       } else {
-        promptText = "Search for the most impactful trending business stories right now related to: " + forceCtx + ". Find 6 specific topics suitable for analytical Instagram carousels. Also suggest 2-3 deeper angles from your own knowledge. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why this matters for business\"}]";
+        promptText = "Search for trending business stories related to: " + searchCtx + ". Find 6 DIVERSE topics from DIFFERENT industries. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why this matters\"}]";
       }
     } else if (category === "newsdesk") {
       var regionCtx = newsRegion !== "global" ? " in " + (NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }) || {}).label : "";
@@ -4702,17 +4704,42 @@ export default function LoathrMediaGenerator() {
                   style={{ width: "100%", padding: "3px 6px", border: "0.5px solid " + uiAccent + "44", ...CP, fontSize: 7, color: "#333", background: "#fff", fontStyle: "italic" }}
                   placeholder="Key insight or takeaway..." />
               </div>}
-              {/* Cover photo controls */}
+              {/* Cover layout + photo controls */}
               {isCover && <div style={{ marginBottom: 3, borderTop: "0.5px solid #eee", paddingTop: 3 }}>
-                <div style={{ ...CP, fontSize: 4, color: "#999", marginBottom: 2 }}>COVER PHOTO</div>
-                <div style={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
-                  <div style={{ ...CP, fontSize: 5, color: "#999" }}>Size:</div>
-                  {[{ id: "small", label: "Small", val: 80 }, { id: "medium", label: "Medium", val: 120 }, { id: "large", label: "Large", val: 180 }, { id: "full", label: "Full", val: 425 }].map(function(sz) {
-                    var curSize = s.coverPhotoSize || "medium";
-                    return <button key={sz.id} onClick={function() { updateSlideField(currentSlide, "coverPhotoSize", sz.id); }}
-                      style={{ padding: "2px 5px", border: "0.5px solid " + (curSize === sz.id ? uiAccent : "#ddd"), background: curSize === sz.id ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: curSize === sz.id ? uiAccent : "#999" }}>{sz.label}</button>;
-                  })}
-                </div>
+                {/* Enterprise cover layouts */}
+                {activeSegment === "enterprise" && <div style={{ marginBottom: 4 }}>
+                  <div style={{ ...CP, fontSize: 4, color: "#888", marginBottom: 2 }}>COVER LAYOUT</div>
+                  <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                    {ENTERPRISE_COVER_LABELS.map(function(label, li) {
+                      var sel = (s.enterpriseCoverLayout || 0) === li;
+                      return <button key={li} onClick={function() { updateSlideField(currentSlide, "enterpriseCoverLayout", li); }}
+                        style={{ padding: "2px 5px", border: "0.5px solid " + (sel ? "#fff" : "#444"), background: sel ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: sel ? "#fff" : "#888" }}>{label}</button>;
+                    })}
+                  </div>
+                </div>}
+                {/* Split ratio for cover */}
+                {activeSegment === "enterprise" && (s.enterpriseCoverLayout === 0 || s.enterpriseCoverLayout === 2 || s.enterpriseCoverLayout === 4 || !s.enterpriseCoverLayout) && <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#888" }}>Split:</div>
+                  <button onClick={function() { updateSlideField(currentSlide, "enterpriseSplit", Math.max(20, (s.enterpriseSplit || 30) - 5)); }}
+                    style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2190"}</button>
+                  <div style={{ ...CP, fontSize: 6, color: "#ccc", minWidth: 30, textAlign: "center" }}>{s.enterpriseSplit || 30}%</div>
+                  <button onClick={function() { updateSlideField(currentSlide, "enterpriseSplit", Math.min(70, (s.enterpriseSplit || 30) + 5)); }}
+                    style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
+                  {s.enterpriseSplit && <button onClick={function() { updateSlideField(currentSlide, "enterpriseSplit", null); }}
+                    style={{ padding: "1px 4px", border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 4, color: "#666" }}>Reset</button>}
+                </div>}
+                {/* Text offset for cover */}
+                {activeSegment === "enterprise" && <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#888" }}>Text:</div>
+                  <button onClick={function() { var o = s.enterpriseTextOffset || { top: 0, left: 0 }; updateSlideField(currentSlide, "enterpriseTextOffset", { top: o.top - 10, left: o.left }); }}
+                    style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2191"}</button>
+                  <button onClick={function() { var o = s.enterpriseTextOffset || { top: 0, left: 0 }; updateSlideField(currentSlide, "enterpriseTextOffset", { top: o.top + 10, left: o.left }); }}
+                    style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2193"}</button>
+                  <button onClick={function() { var o = s.enterpriseTextOffset || { top: 0, left: 0 }; updateSlideField(currentSlide, "enterpriseTextOffset", { top: o.top, left: o.left - 10 }); }}
+                    style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2190"}</button>
+                  <button onClick={function() { var o = s.enterpriseTextOffset || { top: 0, left: 0 }; updateSlideField(currentSlide, "enterpriseTextOffset", { top: o.top, left: o.left + 10 }); }}
+                    style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
+                </div>}
               </div>}
               {/* Font size */}
               {isContent && <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 4 }}>

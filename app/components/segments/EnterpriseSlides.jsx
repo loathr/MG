@@ -34,28 +34,117 @@ function offsetStyle(slide) { var o = getTextOffset(slide); return (o.top || o.l
 
 export var ENTERPRISE_LAYOUT_COUNT = 8;
 export var ENTERPRISE_LAYOUT_LABELS = ["Top/Bottom", "Bottom/Top", "Left/Right", "Right/Left", "Strip+2Col", "Text Only", "Diagonal", "Center Band"];
+export var ENTERPRISE_COVER_LABELS = ["Standard", "Full Bleed", "Split L/R", "Text Only", "Center"];
+
+// Masthead component (reused across cover layouts)
+function Masthead({ isBreaking, align }) {
+  return <>
+    <div style={{ padding: "8px 16px 4px", borderBottom: "1px solid #ffffff33", textAlign: align || "right", flexShrink: 0 }}>
+      <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff66" }}>LOATHR</div>
+      <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffff44", marginTop: 1 }}>ENTERPRISE</div>
+    </div>
+    {isBreaking && <div style={{ background: "#ffffff", padding: "3px 16px", textAlign: "center", flexShrink: 0 }}>
+      <div style={{ ...CP, fontSize: 6, letterSpacing: "0.25em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
+    </div>}
+  </>;
+}
+
+function CoverTitle({ slide }) {
+  return <div style={Object.assign({}, offsetStyle(slide))}>
+    <div style={{ ...FN, fontSize: slide.title && slide.title.length > 35 ? 22 : 28, color: "#ffffff", lineHeight: 1.1 }}>{slide.title || ""}</div>
+    <div style={{ height: 1.5, background: "#ffffff44", margin: "10px 0", width: "35%" }} />
+    {slide.subtitle && <div style={{ ...HD, fontSize: 9, color: "#ffffff88" }}>{slide.subtitle}</div>}
+    {slide.timestamp && <div style={{ ...CP, fontSize: 4, color: "#ffffff44", marginTop: 4 }}>{slide.timestamp}</div>}
+  </div>;
+}
 
 // Cover
 export function EnterpriseCover({ slide, images, index }) {
   var url = images && images[0] ? images[0].url : null;
   var isBreaking = slide.breaking;
-  return (
+  var sp = getSplit(slide);
+  var coverLayout = slide.enterpriseCoverLayout || 0; // 0=standard, 1=full bleed, 2=split, 3=text only, 4=center
+
+  // Layout 0 — Standard (masthead → image strip → title)
+  if (coverLayout === 0) return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: "10px 16px 6px", borderBottom: "1px solid #ffffff33", textAlign: "right", flexShrink: 0 }}>
-        <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff66" }}>LOATHR</div>
-        <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffff44", marginTop: 1 }}>ENTERPRISE</div>
-      </div>
-      {isBreaking && <div style={{ background: "#ffffff", padding: "3px 16px", textAlign: "center", flexShrink: 0 }}>
-        <div style={{ ...CP, fontSize: 6, letterSpacing: "0.25em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
-      </div>}
-      {url && <div style={{ height: (function() { var sizes = { small: 60, medium: 90, large: 160, full: "100%" }; return isBreaking ? 70 : (sizes[slide.coverPhotoSize] || 90); })(), overflow: "hidden", flexShrink: slide.coverPhotoSize === "full" ? 1 : 0, flex: slide.coverPhotoSize === "full" ? 1 : undefined, borderBottom: "1px solid #ffffff22" }}>
+      <Masthead isBreaking={isBreaking} />
+      {url && <div style={{ height: sp + "%", overflow: "hidden", flexShrink: 0, borderBottom: "1px solid #ffffff22" }}>
         <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>}
       <div style={{ flex: 1, padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ ...FN, fontSize: slide.title && slide.title.length > 35 ? 22 : 28, color: "#ffffff", lineHeight: 1.1 }}>{slide.title || ""}</div>
-        <div style={{ height: 1.5, background: "#ffffff44", margin: "10px 0", width: "35%" }} />
-        {slide.subtitle && <div style={{ ...HD, fontSize: 9, color: "#ffffff88" }}>{slide.subtitle}</div>}
-        {slide.timestamp && <div style={{ ...CP, fontSize: 4, color: "#ffffff44", marginTop: 4 }}>{slide.timestamp}</div>}
+        <CoverTitle slide={slide} />
+      </div>
+      {watermark()}
+    </div>
+  );
+
+  // Layout 1 — Full Bleed (image background, text overlay at bottom)
+  if (coverLayout === 1) return (
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
+      {url && <img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />}
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.85) 70%, rgba(0,0,0,0.95))" }} />
+      <div style={{ position: "absolute", top: 10, right: 16, zIndex: 2 }}>
+        <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff66", textAlign: "right" }}>LOATHR</div>
+        <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffff44", textAlign: "right" }}>ENTERPRISE</div>
+      </div>
+      {isBreaking && <div style={{ position: "absolute", top: 36, left: 0, right: 0, background: "#ffffff", padding: "3px 16px", textAlign: "center", zIndex: 2 }}>
+        <div style={{ ...CP, fontSize: 6, letterSpacing: "0.25em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
+      </div>}
+      <div style={{ position: "absolute", bottom: 20, left: 16, right: 16, zIndex: 3 }}>
+        <CoverTitle slide={slide} />
+      </div>
+      {watermark()}
+    </div>
+  );
+
+  // Layout 2 — Split (image left, text right)
+  if (coverLayout === 2) return (
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex" }}>
+      {url ? <div style={{ width: sp + "%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        : <div style={{ width: sp + "%", background: "#111" }} />}
+      <div style={{ width: (100 - sp) + "%", padding: "10px 14px", display: "flex", flexDirection: "column" }}>
+        <div style={{ textAlign: "right", marginBottom: 8 }}>
+          <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", color: "#ffffff55" }}>LOATHR</div>
+          <div style={{ ...CP, fontSize: 4, letterSpacing: "0.12em", color: "#ffffff33" }}>ENTERPRISE</div>
+        </div>
+        {isBreaking && <div style={{ background: "#ffffff", padding: "2px 8px", textAlign: "center", marginBottom: 8 }}>
+          <div style={{ ...CP, fontSize: 5, letterSpacing: "0.2em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
+        </div>}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <CoverTitle slide={slide} />
+        </div>
+      </div>
+      {watermark()}
+    </div>
+  );
+
+  // Layout 3 — Text Only
+  if (coverLayout === 3) return (
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
+      <Masthead isBreaking={isBreaking} />
+      <div style={{ flex: 1, padding: "20px 16px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <CoverTitle slide={slide} />
+      </div>
+      {watermark()}
+    </div>
+  );
+
+  // Layout 4 — Center Aligned
+  return (
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ padding: "10px 16px 6px", textAlign: "center", flexShrink: 0 }}>
+        <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff66" }}>LOATHR</div>
+        <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffff44", marginTop: 1 }}>ENTERPRISE</div>
+      </div>
+      {isBreaking && <div style={{ background: "#ffffff", padding: "3px 16px", textAlign: "center", flexShrink: 0, width: "100%" }}>
+        <div style={{ ...CP, fontSize: 6, letterSpacing: "0.25em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
+      </div>}
+      {url && <div style={{ height: sp + "%", width: "100%", overflow: "hidden", flexShrink: 0, borderBottom: "1px solid #ffffff22", borderTop: "1px solid #ffffff22" }}>
+        <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />
+      </div>}
+      <div style={{ flex: 1, padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "center" }}>
+        <CoverTitle slide={slide} />
       </div>
       {watermark()}
     </div>
