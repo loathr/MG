@@ -1626,7 +1626,12 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
     else if (slideIndex === lastIdx) slide = <EnterpriseCloser slide={slideData} images={images} index={slideIndex} category={category} />;
     else if (slideData.heading && slideData.heading.toUpperCase().indexOf("PLAYBOOK") > -1) slide = <EnterprisePlaybook slide={slideData} images={images} index={slideIndex} />;
     else if (slideData.statFormat || slideData.stat || slideData.stats) slide = <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
-    else slide = <EnterpriseContent slide={Object.assign({}, slideData, { role: slideData.heading || "" })} images={images} index={slideIndex} />;
+    else {
+      // Detect enterprise slide role from position or content
+      var eRoles = ["THE LANDSCAPE", "THE FORCE", "THE IMPACT", "THE WINNERS", "THE LOSERS", "THE DATA", "THE PLAYBOOK", "THE FORECAST"];
+      var eRole = eRoles[(slideIndex - 1) % eRoles.length] || "";
+      slide = <EnterpriseContent slide={Object.assign({}, slideData, { role: eRole })} images={images} index={slideIndex} />;
+    }
   } else if (category === "newsdesk") {
     if (slideIndex === 0) slide = <NewsFrontPage slide={slideData} images={images} index={slideIndex} />;
     else if (slideIndex === lastIdx || slideData.fullSources) slide = <NewsSourcesCloser slide={slideData} />;
@@ -4746,6 +4751,32 @@ export default function LoathrMediaGenerator() {
                     <button key={li} onClick={function() { updateSlideField(currentSlide, "enterpriseLayout", li); }}
                       style={{ padding: "2px 6px", border: "0.5px solid " + (s.enterpriseLayout === li ? "#fff" : "#444"), background: s.enterpriseLayout === li ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: s.enterpriseLayout === li ? "#fff" : "#888" }}>{label}</button>
                   ); })}
+                </div>
+                {/* Enterprise split ratio + text offset */}
+                <div style={{ marginTop: 6, borderTop: "0.5px solid #333", paddingTop: 4 }}>
+                  <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                    <div style={{ ...CP, fontSize: 5, color: "#888" }}>Split:</div>
+                    <button onClick={function() { updateSlideField(currentSlide, "enterpriseSplit", Math.max(30, (s.enterpriseSplit || 50) - 5)); }}
+                      style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2190"}</button>
+                    <div style={{ ...CP, fontSize: 6, color: "#ccc", minWidth: 30, textAlign: "center" }}>{s.enterpriseSplit || 50}%</div>
+                    <button onClick={function() { updateSlideField(currentSlide, "enterpriseSplit", Math.min(70, (s.enterpriseSplit || 50) + 5)); }}
+                      style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
+                    {s.enterpriseSplit && s.enterpriseSplit !== 50 && <button onClick={function() { updateSlideField(currentSlide, "enterpriseSplit", null); }}
+                      style={{ padding: "1px 4px", border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 4, color: "#666" }}>Reset</button>}
+                  </div>
+                  <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                    <div style={{ ...CP, fontSize: 5, color: "#888" }}>Text:</div>
+                    <button onClick={function() { var o = s.enterpriseTextOffset || { top: 0, left: 0 }; updateSlideField(currentSlide, "enterpriseTextOffset", { top: o.top - 10, left: o.left }); }}
+                      style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2191"}</button>
+                    <button onClick={function() { var o = s.enterpriseTextOffset || { top: 0, left: 0 }; updateSlideField(currentSlide, "enterpriseTextOffset", { top: o.top + 10, left: o.left }); }}
+                      style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2193"}</button>
+                    <button onClick={function() { var o = s.enterpriseTextOffset || { top: 0, left: 0 }; updateSlideField(currentSlide, "enterpriseTextOffset", { top: o.top, left: o.left - 10 }); }}
+                      style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2190"}</button>
+                    <button onClick={function() { var o = s.enterpriseTextOffset || { top: 0, left: 0 }; updateSlideField(currentSlide, "enterpriseTextOffset", { top: o.top, left: o.left + 10 }); }}
+                      style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
+                    {s.enterpriseTextOffset && (s.enterpriseTextOffset.top || s.enterpriseTextOffset.left) && <button onClick={function() { updateSlideField(currentSlide, "enterpriseTextOffset", null); }}
+                      style={{ padding: "1px 4px", border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 4, color: "#666" }}>Reset</button>}
+                  </div>
                 </div>
               </div>}
               <button onClick={function() { updateSlideField(currentSlide, "imageLayout", "single"); delete _mosaicSlides[currentSlide]; setImages(function(prev) { return Object.assign({}, prev); }); }}

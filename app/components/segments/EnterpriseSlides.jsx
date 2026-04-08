@@ -10,6 +10,11 @@ var srcLine = function(s) { return s ? <div style={{ ...CP, fontSize: 4, color: 
 var sectionLabel = function(t) { return <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "#ffffff55", marginBottom: 4, textTransform: "uppercase" }}>{t}</div>; };
 var highlightBlock = function(t) { return t ? <div style={{ marginTop: 6, borderLeft: "2px solid #ffffff44", paddingLeft: 8 }}><div style={{ ...HD, fontSize: 8, color: "#ffffff88", fontStyle: "italic" }}>{t}</div></div> : null; };
 
+// Split ratio + text offset helpers
+function getSplit(slide) { return (slide.enterpriseSplit || 50); } // 30-70
+function getTextOffset(slide) { return slide.enterpriseTextOffset || { top: 0, left: 0 }; }
+function offsetStyle(slide) { var o = getTextOffset(slide); return (o.top || o.left) ? { transform: "translate(" + (o.left || 0) + "px," + (o.top || 0) + "px)" } : {}; }
+
 export var ENTERPRISE_LAYOUT_COUNT = 8;
 export var ENTERPRISE_LAYOUT_LABELS = ["Top/Bottom", "Bottom/Top", "Left/Right", "Right/Left", "Strip+2Col", "Text Only", "Diagonal", "Center Band"];
 
@@ -42,11 +47,12 @@ export function EnterpriseCover({ slide, images, index }) {
 
 // Layout 1 — Top Image / Bottom Text
 function Layout1({ slide, url }) {
+  var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      {url ? <div style={{ height: "50%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
-        : <div style={{ height: "50%", background: "#111" }} />}
-      <div style={{ height: "50%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {url ? <div style={{ height: sp + "%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        : <div style={{ height: sp + "%", background: "#111" }} />}
+      <div style={Object.assign({}, { height: (100 - sp) + "%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
         <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{slide.body || ""}</div>
@@ -60,17 +66,18 @@ function Layout1({ slide, url }) {
 
 // Layout 2 — Bottom Image / Top Text
 function Layout2({ slide, url }) {
+  var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ height: "50%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={Object.assign({}, { height: (100 - sp) + "%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
         <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{slide.body || ""}</div>
         {highlightBlock(slide.highlight)}
         {srcLine(slide.sources)}
       </div>
-      {url ? <div style={{ height: "50%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
-        : <div style={{ height: "50%", background: "#111" }} />}
+      {url ? <div style={{ height: sp + "%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        : <div style={{ height: sp + "%", background: "#111" }} />}
       {watermark()}
     </div>
   );
@@ -78,11 +85,12 @@ function Layout2({ slide, url }) {
 
 // Layout 3 — Left Image / Right Text
 function Layout3({ slide, url }) {
+  var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", overflow: "hidden" }}>
-      {url ? <div style={{ width: "50%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
-        : <div style={{ width: "50%", background: "#111" }} />}
-      <div style={{ width: "50%", padding: "10px 12px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {url ? <div style={{ width: sp + "%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        : <div style={{ width: sp + "%", background: "#111" }} />}
+      <div style={Object.assign({}, { width: (100 - sp) + "%", padding: "10px 12px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 13 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
@@ -97,9 +105,10 @@ function Layout3({ slide, url }) {
 
 // Layout 4 — Right Image / Left Text
 function Layout4({ slide, url }) {
+  var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", overflow: "hidden" }}>
-      <div style={{ width: "50%", padding: "10px 12px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={Object.assign({}, { width: (100 - sp) + "%", padding: "10px 12px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 13 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
@@ -107,8 +116,8 @@ function Layout4({ slide, url }) {
         {highlightBlock(slide.highlight)}
         {srcLine(slide.sources)}
       </div>
-      {url ? <div style={{ width: "50%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
-        : <div style={{ width: "50%", background: "#111" }} />}
+      {url ? <div style={{ width: sp + "%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        : <div style={{ width: sp + "%", background: "#111" }} />}
       {watermark()}
     </div>
   );
@@ -138,7 +147,7 @@ function Layout6({ slide }) {
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ height: 1.5, background: "#ffffff33", margin: "0 16px" }} />
-      <div style={{ flex: 1, padding: "12px 16px", display: "flex", flexDirection: "column" }}>
+      <div style={Object.assign({}, { flex: 1, padding: "12px 16px", display: "flex", flexDirection: "column" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={{ ...FN, fontSize: 18 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.1, marginBottom: 10 }}>{slide.heading || ""}</div>
         <div style={{ height: 1, background: "#ffffff22", marginBottom: 10 }} />
