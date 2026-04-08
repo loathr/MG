@@ -71,12 +71,27 @@ export var NEWSDESK_SLIDE_ROLES = [
   "THE NUMBERS", "THE PERSPECTIVE", "RELATED", "SOURCES"
 ];
 
-export function buildNewsDeskPrompt(keywords, filter, region, timeframe, country) {
+export var NEWSDESK_ANGLES = [
+  { id: "neutral", label: "Neutral", prompt: "Report objectively. Present all sides without editorial judgment." },
+  { id: "critical", label: "Critical", prompt: "Take a critical editorial stance. Question official narratives and examine power dynamics." },
+  { id: "investigative", label: "Investigative", prompt: "Dig deeper. Follow the money, connections, and hidden motivations behind the story." },
+];
+
+export var NEWSDESK_EMPHASIS = [
+  { id: "facts", label: "Facts-First", prompt: "Lead every slide with verified facts. Minimize analysis, maximize reporting." },
+  { id: "context", label: "Context-Heavy", prompt: "Provide deep historical and political context for every claim. Connect this story to larger patterns." },
+  { id: "quotes", label: "Quote-Driven", prompt: "Build the story around direct quotes from key figures. Every slide should have a voice." },
+];
+
+export function buildNewsDeskPrompt(keywords, filter, region, timeframe, country, picks) {
   var filterLabel = filter ? filter.label : "general news";
   var regionLabel = region ? region.label : "Global";
   var countryLabel = country || "";
   var locationLabel = countryLabel ? countryLabel + " (" + regionLabel + ")" : regionLabel;
   var timeLabel = timeframe ? timeframe.label.toLowerCase() : "today";
+  var np = picks || {};
+  var angle = np.newsdeskAngle ? NEWSDESK_ANGLES.find(function(a) { return a.id === np.newsdeskAngle; }) : null;
+  var emphasis = np.newsdeskEmphasis ? NEWSDESK_EMPHASIS.find(function(e) { return e.id === np.newsdeskEmphasis; }) : null;
   var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var d = new Date();
   var dateline = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
@@ -117,7 +132,9 @@ export function buildNewsDeskPrompt(keywords, filter, region, timeframe, country
       "SLIDE COUNT: 8 slides.\n" +
       "- Use dateline format on the cover: \"CITY — " + dateline + "\"\n\n"
     ) +
-    "RULES:\n" +
+    (angle ? "EDITORIAL ANGLE: " + angle.prompt + "\n" : "") +
+    (emphasis ? "EMPHASIS: " + emphasis.prompt + "\n" : "") +
+    "\nRULES:\n" +
     "- Every fact must be from a real, verifiable source\n" +
     "- Include the publication name, date, and author when available on EVERY slide in a 'sources' field\n" +
     "- NEVER fabricate quotes, statistics, or events\n" +
@@ -131,5 +148,5 @@ export function buildNewsDeskPrompt(keywords, filter, region, timeframe, country
     "- \"THE NUMBERS\" — key statistic. Use statFormat \"killer\" with stat and caption. sources\n" +
     (isUrgent ? "" : "- \"THE PERSPECTIVE\" — heading, body (op-ed analysis), sources\n- \"RELATED\" — heading, body (connected stories), sources\n") +
     "- LAST SLIDE: \"SOURCES\" — fullSources (array: [{publication, title, date, url}]), hashtags" + (isDeveloping ? ", developingNote: \"This is a developing story. Information may change as details emerge.\"" : "") + "\n\n" +
-    "Respond ONLY with valid JSON:\n{\"angle\":\"News Coverage\",\"slides\":[{...slides...}]}";
+    "CRITICAL: After searching the web, you MUST respond with valid JSON. Do NOT write commentary, analysis, or explanation outside the JSON. Your ENTIRE text response must be the JSON object.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"News Coverage\",\"slides\":[{...slides...}]}";
 }

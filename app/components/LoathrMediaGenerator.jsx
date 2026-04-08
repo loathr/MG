@@ -1,9 +1,9 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
-import { ENTERPRISE_FORCES, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, buildEnterprisePrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
+import { ENTERPRISE_FORCES, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, buildEnterprisePrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
 import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook } from "./segments/EnterpriseSlides";
-import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, buildNewsDeskPrompt } from "./segments/newsdesk.config";
+import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
 import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser } from "./segments/NewsDeskSlides";
 
 var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap";
@@ -3090,13 +3090,14 @@ export default function LoathrMediaGenerator() {
         var nfObj = newsFilter ? NEWSDESK_FILTERS.find(function(f) { return f.id === newsFilter; }) : null;
         var nrObj = NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }) || null;
         var ntObj = NEWSDESK_TIMEFRAMES.find(function(t) { return t.id === newsTimeframe; }) || null;
-        prompt = buildNewsDeskPrompt(topic, nfObj, nrObj, ntObj, newsCountry);
+        prompt = buildNewsDeskPrompt(topic, nfObj, nrObj, ntObj, newsCountry, editionPicks);
       } else {
         prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, Object.keys(lockedRef.current || {}).length > 0, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null, secondaryCount, tertiaryCount);
       }
       // Enterprise + News Desk use web search tool for current data
-      var fetchBody = { model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] };
-      if (category === "newsdesk" || category === "enterprise") { fetchBody.tools = [{ type: "web_search_20250305", name: "web_search" }]; }
+      var useWebSearch = category === "newsdesk" || category === "enterprise";
+      var fetchBody = { model: "claude-sonnet-4-20250514", max_tokens: useWebSearch ? 16000 : 8000, messages: [{ role: "user", content: prompt }] };
+      if (useWebSearch) { fetchBody.tools = [{ type: "web_search_20250305", name: "web_search" }]; }
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify(fetchBody) });
@@ -4149,7 +4150,66 @@ export default function LoathrMediaGenerator() {
               {showEditionSettings ? "\u25B2 HIDE EDITION SETTINGS" : "\u25BC EDITION SETTINGS"}
             </button>
           </div>
-          {showEditionSettings && <div style={{ marginBottom: 10, padding: 10, border: "0.5px solid var(--color-border-tertiary)", background: "#fafafa" }}>
+          {showEditionSettings && <div style={{ marginBottom: 10, padding: 10, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#ebe6d6" : "#fafafa" }}>
+            {/* Enterprise settings */}
+            {activeSegment === "enterprise" && <div>
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ ...CP, fontSize: 6, color: "#888", letterSpacing: "0.1em", marginBottom: 3 }}>DEPTH</div>
+                <div style={{ display: "flex", gap: 3 }}>
+                  {ENTERPRISE_DEPTHS.map(function(d) { var sel = editionPicks.enterpriseDepth === d.id; return (
+                    <button key={d.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { enterpriseDepth: d.id }); }); }}
+                      style={{ padding: "3px 8px", border: "0.5px solid " + (sel ? "#fff" : "#444"), background: sel ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#fff" : "#888" }}>{d.label}</button>
+                  ); })}
+                </div>
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ ...CP, fontSize: 6, color: "#888", letterSpacing: "0.1em", marginBottom: 3 }}>TONE</div>
+                <div style={{ display: "flex", gap: 3 }}>
+                  {ENTERPRISE_TONES.map(function(t) { var sel = editionPicks.enterpriseTone === t.id; return (
+                    <button key={t.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { enterpriseTone: t.id }); }); }}
+                      style={{ padding: "3px 8px", border: "0.5px solid " + (sel ? "#fff" : "#444"), background: sel ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#fff" : "#888" }}>{t.label}</button>
+                  ); })}
+                </div>
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ ...CP, fontSize: 6, color: "#888", letterSpacing: "0.1em", marginBottom: 3 }}>FOCUS</div>
+                <div style={{ display: "flex", gap: 3 }}>
+                  {ENTERPRISE_FOCUS.map(function(f) { var sel = editionPicks.enterpriseFocus === f.id; return (
+                    <button key={f.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { enterpriseFocus: f.id }); }); }}
+                      style={{ padding: "3px 8px", border: "0.5px solid " + (sel ? "#fff" : "#444"), background: sel ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#fff" : "#888" }}>{f.label}</button>
+                  ); })}
+                </div>
+              </div>
+              <div>
+                <div style={{ ...CP, fontSize: 6, color: "#888", letterSpacing: "0.1em", marginBottom: 3 }}>CUSTOM VOICE</div>
+                <input value={editionPicks.customVoice || ""} onChange={function(e) { setEditionPicks(function(p) { return Object.assign({}, p, { customVoice: e.target.value }); }); }}
+                  placeholder='"Write like Bloomberg" or "McKinsey briefing style"'
+                  style={{ width: "100%", padding: "4px 8px", border: "0.5px solid #444", ...CP, fontSize: 7, color: "#ddd", background: "#1a1a1a" }} />
+              </div>
+            </div>}
+            {/* News Desk settings */}
+            {activeSegment === "newsdesk" && <div>
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ ...CP, fontSize: 6, color: "#8a8270", letterSpacing: "0.1em", marginBottom: 3 }}>ANGLE</div>
+                <div style={{ display: "flex", gap: 3 }}>
+                  {NEWSDESK_ANGLES.map(function(a) { var sel = editionPicks.newsdeskAngle === a.id; return (
+                    <button key={a.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { newsdeskAngle: a.id }); }); }}
+                      style={{ padding: "3px 8px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#c8c0aa"), background: sel ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270" }}>{a.label}</button>
+                  ); })}
+                </div>
+              </div>
+              <div>
+                <div style={{ ...CP, fontSize: 6, color: "#8a8270", letterSpacing: "0.1em", marginBottom: 3 }}>EMPHASIS</div>
+                <div style={{ display: "flex", gap: 3 }}>
+                  {NEWSDESK_EMPHASIS.map(function(e) { var sel = editionPicks.newsdeskEmphasis === e.id; return (
+                    <button key={e.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { newsdeskEmphasis: e.id }); }); }}
+                      style={{ padding: "3px 8px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#c8c0aa"), background: sel ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270" }}>{e.label}</button>
+                  ); })}
+                </div>
+              </div>
+            </div>}
+            {/* Editorial settings — original */}
+            {activeSegment === "editorial" && <div>
             {/* Presets — one-click curated combos */}
             <div style={{ marginBottom: 10 }}>
               <div style={{ ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>PRESETS</div>
@@ -4253,6 +4313,7 @@ export default function LoathrMediaGenerator() {
                 {!editionPicks.slideCount ? "Claude decides based on topic depth" : editionPicks.slideCount <= 5 ? "Quick — cover + key points + closer" : editionPicks.slideCount <= 8 ? "Standard — full editorial structure" : "Deep — all optional roles included"}
               </div>
             </div>
+          </div>}
           </div>}
           </div>}
 

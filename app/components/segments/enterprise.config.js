@@ -70,11 +70,36 @@ export var ENTERPRISE_CLOSERS = [
   "Past performance does not guarantee we know what we're talking about.",
 ];
 
+export var ENTERPRISE_DEPTHS = [
+  { id: "brief", label: "Quick Brief", slides: 5, desc: "5 slides — key takeaway only" },
+  { id: "standard", label: "Standard", slides: 8, desc: "8 slides — full analysis" },
+  { id: "deep", label: "Deep Dive", slides: 10, desc: "10 slides — comprehensive" },
+];
+
+export var ENTERPRISE_TONES = [
+  { id: "neutral", label: "Neutral", prompt: "Present the analysis objectively. Balance opportunities and risks equally." },
+  { id: "bullish", label: "Bullish", prompt: "Frame the analysis optimistically. Emphasize opportunities, growth, and upside potential." },
+  { id: "bearish", label: "Bearish", prompt: "Frame the analysis cautiously. Emphasize risks, threats, and potential downside." },
+  { id: "cautious", label: "Cautious", prompt: "Present a balanced but risk-aware analysis. Acknowledge opportunities but emphasize due diligence." },
+];
+
+export var ENTERPRISE_FOCUS = [
+  { id: "data", label: "Data-Heavy", prompt: "Lead every slide with specific numbers, percentages, and statistics. Data drives the narrative." },
+  { id: "narrative", label: "Narrative", prompt: "Tell the story behind the data. Use real people, real companies, real decisions as the through-line." },
+  { id: "action", label: "Action-Oriented", prompt: "Every slide should point toward what a business should DO. The Playbook is the centerpiece — expand it with more specific, tactical steps." },
+];
+
 export function buildEnterprisePrompt(topic, force, editionSeed, picks) {
   var forceLabel = force ? force.label : "macro trends";
   var forceId = force ? force.id : null;
   var closerLine = ENTERPRISE_CLOSERS[Math.abs(editionSeed || 0) % ENTERPRISE_CLOSERS.length];
   var isBreaking = forceId === "news";
+  // Enterprise-specific picks
+  var ep = picks || {};
+  var depth = ep.enterpriseDepth ? ENTERPRISE_DEPTHS.find(function(d) { return d.id === ep.enterpriseDepth; }) : null;
+  var tone = ep.enterpriseTone ? ENTERPRISE_TONES.find(function(t) { return t.id === ep.enterpriseTone; }) : null;
+  var focus = ep.enterpriseFocus ? ENTERPRISE_FOCUS.find(function(f) { return f.id === ep.enterpriseFocus; }) : null;
+  var slideCount = depth ? depth.slides : (isBreaking ? 5 : 8);
   var d = new Date();
   var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var timestamp = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() + " at " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
@@ -90,10 +115,13 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks) {
       "The cover title should start with 'JUST IN:' or 'BREAKING:'\n\n"
     :
       "Write a carousel analyzing how " + forceLabel.toLowerCase() + " impacts this industry/topic.\n" +
-      "SLIDE COUNT: 8-10 slides.\n\n"
+      "SLIDE COUNT: " + slideCount + " slides.\n\n"
     ) +
     "Use REAL company names, REAL numbers, REAL market data. Every claim must be specific and citable.\n" +
-    "Use web search to find current data when available.\n\n";
+    "Use web search to find current data when available.\n" +
+    (tone ? "\nTONE: " + tone.prompt + "\n" : "") +
+    (focus ? "\nFOCUS: " + focus.prompt + "\n" : "") +
+    (ep.customVoice ? "\nCUSTOM VOICE: " + ep.customVoice + "\n" : "") + "\n";
     "WRITING RULES:\n" +
     "- Every slide must have a 'sources' field with 1-2 real citations\n" +
     "- Use specific numbers: revenue figures, market share %, growth rates\n" +
@@ -114,5 +142,5 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks) {
     "- LAST SLIDE: \"CLOSER\" — hashtags string. MUST include in the slide data: funnyLine: \"" + closerLine + "\", disclaimer: \"This carousel is for entertainment and educational purposes only. Not professional advice.\"\n\n" +
     "TEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'.\n\n" +
     "On 2-3 content slides, add '\"mosaic\": true' for photo collage backgrounds.\n\n" +
-    "Respond ONLY with valid JSON, no markdown:\n{\"angle\":\"Enterprise Analysis\",\"slides\":[{...slides...}]}";
+    "CRITICAL: After searching the web, you MUST respond with valid JSON. Do NOT write commentary, analysis, or explanation outside the JSON. Your ENTIRE text response must be the JSON object.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Enterprise Analysis\",\"slides\":[{...slides...}]}";
 }
