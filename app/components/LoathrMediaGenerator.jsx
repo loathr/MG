@@ -2457,7 +2457,7 @@ export default function LoathrMediaGenerator() {
   // Auto-fetch trending topics when any Enterprise force is selected
   _ef(function() {
     if (category === "enterprise" && enterpriseForce) { fetchTrending(); }
-  }, [enterpriseForce]);
+  }, [enterpriseForce, category, fetchTrending]);
 
   // Keep ref in sync so generate() always reads latest locked images
   _ef(function() { lockedRef.current = lockedPersonImages; }, [lockedPersonImages]);
@@ -2576,17 +2576,21 @@ export default function LoathrMediaGenerator() {
     }
     try {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000,
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000,
           tools: [{ type: "web_search_20250305", name: "web_search" }],
           messages: [{ role: "user", content: promptText }] }) });
       var d = await r.json();
+      if (d.error) { console.error("Trending error:", d.error); return; }
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
+      if (!text) { console.error("Trending: no text in response"); return; }
       var cleaned = text.replace(/```json|```/g, "").trim();
-      var js = cleaned.indexOf("["); var je = cleaned.lastIndexOf("]");
-      if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
+      // Look for JSON array — try multiple extraction methods
+      var js = cleaned.indexOf("[{"); var je = cleaned.lastIndexOf("}]");
+      if (js >= 0 && je > js) { cleaned = cleaned.slice(js, je + 2); }
+      else { js = cleaned.indexOf("["); je = cleaned.lastIndexOf("]"); if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1); }
       var parsed = JSON.parse(cleaned);
       if (Array.isArray(parsed)) setTrending(parsed);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("Trending parse error:", err); }
     finally { setIsFetchingTrending(false); }
   }, [category, enterpriseForce, newsFilter, newsRegion, newsCountry]);
 
