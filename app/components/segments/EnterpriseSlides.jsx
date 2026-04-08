@@ -1,11 +1,19 @@
 "use client";
-// Enterprise — text-driven B&W editorial, minimal images
+// Enterprise — 8 alternating layouts + cover/playbook/closer
 
 var CP = { fontFamily: "'Courier Prime',monospace" };
 var FN = { fontFamily: "'Foun',Georgia,serif" };
 var HD = { fontFamily: "'Maheni',Georgia,serif", fontStyle: "normal" };
+var imgFilter = "grayscale(1) contrast(1.1) brightness(0.6)";
+var watermark = function() { return <div style={{ position: "absolute", bottom: 5, left: 8, zIndex: 10, ...CP, fontSize: 4, letterSpacing: "0.12em", color: "#ffffff55" }}>LOATHR</div>; };
+var srcLine = function(s) { return s ? <div style={{ ...CP, fontSize: 4, color: "#ffffff33", textAlign: "right", marginTop: 4 }}>{s}</div> : null; };
+var sectionLabel = function(t) { return <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "#ffffff55", marginBottom: 4, textTransform: "uppercase" }}>{t}</div>; };
+var highlightBlock = function(t) { return t ? <div style={{ marginTop: 6, borderLeft: "2px solid #ffffff44", paddingLeft: 8 }}><div style={{ ...HD, fontSize: 8, color: "#ffffff88", fontStyle: "italic" }}>{t}</div></div> : null; };
 
-// Enterprise Cover
+export var ENTERPRISE_LAYOUT_COUNT = 8;
+export var ENTERPRISE_LAYOUT_LABELS = ["Top/Bottom", "Bottom/Top", "Left/Right", "Right/Left", "Strip+2Col", "Text Only", "Diagonal", "Center Band"];
+
+// Cover
 export function EnterpriseCover({ slide, images, index }) {
   var url = images && images[0] ? images[0].url : null;
   var isBreaking = slide.breaking;
@@ -19,44 +27,185 @@ export function EnterpriseCover({ slide, images, index }) {
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.25em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
       </div>}
       {url && <div style={{ height: isBreaking ? 70 : 90, overflow: "hidden", flexShrink: 0, borderBottom: "1px solid #ffffff22" }}>
-        <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(1) contrast(1.1) brightness(0.4)" }} onError={function(e) { e.target.style.display = "none"; }} />
+        <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>}
       <div style={{ flex: 1, padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <div style={{ ...FN, fontSize: slide.title && slide.title.length > 35 ? 22 : 28, color: "#ffffff", lineHeight: 1.1 }}>{slide.title || ""}</div>
         <div style={{ height: 1.5, background: "#ffffff44", margin: "10px 0", width: "35%" }} />
-        {slide.subtitle && <div style={{ ...HD, fontSize: 9, color: "#ffffff88", letterSpacing: "0.03em" }}>{slide.subtitle}</div>}
+        {slide.subtitle && <div style={{ ...HD, fontSize: 9, color: "#ffffff88" }}>{slide.subtitle}</div>}
         {slide.timestamp && <div style={{ ...CP, fontSize: 4, color: "#ffffff44", marginTop: 4 }}>{slide.timestamp}</div>}
       </div>
-      <div style={{ position: "absolute", bottom: 5, left: 8, ...CP, fontSize: 4, letterSpacing: "0.12em", color: "#ffffff55" }}>LOATHR</div>
+      {watermark()}
     </div>
   );
 }
 
-// Enterprise Content — text-driven
+// Layout 1 — Top Image / Bottom Text
+function Layout1({ slide, url }) {
+  return (
+    <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {url ? <div style={{ height: "50%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        : <div style={{ height: "50%", background: "#111" }} />}
+      <div style={{ height: "50%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {sectionLabel(slide.role || "")}
+        <div style={{ ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
+        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{slide.body || ""}</div>
+        {highlightBlock(slide.highlight)}
+        {srcLine(slide.sources)}
+      </div>
+      {watermark()}
+    </div>
+  );
+}
+
+// Layout 2 — Bottom Image / Top Text
+function Layout2({ slide, url }) {
+  return (
+    <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ height: "50%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {sectionLabel(slide.role || "")}
+        <div style={{ ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
+        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{slide.body || ""}</div>
+        {highlightBlock(slide.highlight)}
+        {srcLine(slide.sources)}
+      </div>
+      {url ? <div style={{ height: "50%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        : <div style={{ height: "50%", background: "#111" }} />}
+      {watermark()}
+    </div>
+  );
+}
+
+// Layout 3 — Left Image / Right Text
+function Layout3({ slide, url }) {
+  return (
+    <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", overflow: "hidden" }}>
+      {url ? <div style={{ width: "50%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        : <div style={{ width: "50%", background: "#111" }} />}
+      <div style={{ width: "50%", padding: "10px 12px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {sectionLabel(slide.role || "")}
+        <div style={{ ...FN, fontSize: 13 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
+        <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
+        <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{slide.body || ""}</div>
+        {highlightBlock(slide.highlight)}
+        {srcLine(slide.sources)}
+      </div>
+      {watermark()}
+    </div>
+  );
+}
+
+// Layout 4 — Right Image / Left Text
+function Layout4({ slide, url }) {
+  return (
+    <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", overflow: "hidden" }}>
+      <div style={{ width: "50%", padding: "10px 12px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {sectionLabel(slide.role || "")}
+        <div style={{ ...FN, fontSize: 13 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
+        <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
+        <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }}>{slide.body || ""}</div>
+        {highlightBlock(slide.highlight)}
+        {srcLine(slide.sources)}
+      </div>
+      {url ? <div style={{ width: "50%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        : <div style={{ width: "50%", background: "#111" }} />}
+      {watermark()}
+    </div>
+  );
+}
+
+// Layout 5 — Image Strip Top + 2-Column Text
+function Layout5({ slide, url }) {
+  return (
+    <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {url ? <div style={{ height: "30%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        : <div style={{ height: "30%", background: "#111" }} />}
+      <div style={{ flex: 1, padding: "8px 14px", overflow: "hidden" }}>
+        {sectionLabel(slide.role || "")}
+        <div style={{ ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
+        <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
+        <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #ffffff11" }}>{slide.body || ""}</div>
+        {highlightBlock(slide.highlight)}
+        {srcLine(slide.sources)}
+      </div>
+      {watermark()}
+    </div>
+  );
+}
+
+// Layout 6 — Full Text (no image)
+function Layout6({ slide }) {
+  return (
+    <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ height: 1.5, background: "#ffffff33", margin: "0 16px" }} />
+      <div style={{ flex: 1, padding: "12px 16px", display: "flex", flexDirection: "column" }}>
+        {sectionLabel(slide.role || "")}
+        <div style={{ ...FN, fontSize: 18 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.1, marginBottom: 10 }}>{slide.heading || ""}</div>
+        <div style={{ height: 1, background: "#ffffff22", marginBottom: 10 }} />
+        <div style={{ ...HD, fontSize: 10 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.6, flex: 1 }}>{slide.body || ""}</div>
+        {highlightBlock(slide.highlight)}
+        {srcLine(slide.sources)}
+      </div>
+      {watermark()}
+    </div>
+  );
+}
+
+// Layout 7 — Diagonal Split (image top-left, text bottom-right)
+function Layout7({ slide, url }) {
+  return (
+    <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ display: "flex", height: "45%" }}>
+        {url ? <div style={{ width: "55%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+          : <div style={{ width: "55%", background: "#111" }} />}
+        <div style={{ width: "45%", padding: "8px 10px" }}>
+          {sectionLabel(slide.role || "")}
+          <div style={{ ...FN, fontSize: 12 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15 }}>{slide.heading || ""}</div>
+        </div>
+      </div>
+      <div style={{ height: 0.5, background: "#ffffff22" }} />
+      <div style={{ flex: 1, padding: "8px 14px", overflow: "hidden" }}>
+        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }}>{slide.body || ""}</div>
+        {highlightBlock(slide.highlight)}
+        {srcLine(slide.sources)}
+      </div>
+      {watermark()}
+    </div>
+  );
+}
+
+// Layout 8 — Center Band (text top, image center, text bottom)
+function Layout8({ slide, url }) {
+  return (
+    <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ padding: "8px 14px", flexShrink: 0 }}>
+        {sectionLabel(slide.role || "")}
+        <div style={{ ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15 }}>{slide.heading || ""}</div>
+      </div>
+      {url ? <div style={{ height: "30%", overflow: "hidden", flexShrink: 0, borderTop: "0.5px solid #ffffff22", borderBottom: "0.5px solid #ffffff22" }}>
+        <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />
+      </div> : <div style={{ height: "30%", background: "#111", flexShrink: 0 }} />}
+      <div style={{ flex: 1, padding: "8px 14px", overflow: "hidden" }}>
+        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }}>{slide.body || ""}</div>
+        {highlightBlock(slide.highlight)}
+        {srcLine(slide.sources)}
+      </div>
+      {watermark()}
+    </div>
+  );
+}
+
+// Enterprise Content — picks layout based on index or slide.enterpriseLayout override
+var ENTERPRISE_LAYOUTS = [Layout1, Layout2, Layout3, Layout4, Layout5, Layout6, Layout7, Layout8];
+
 export function EnterpriseContent({ slide, images, index }) {
   var url = images && images[index] ? images[index].url : null;
-  return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
-      <div style={{ height: 1, background: "#ffffff33", margin: "0 16px" }} />
-      <div style={{ padding: "10px 16px", flex: 1, display: "flex", flexDirection: "column" }}>
-        <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "#ffffff55", marginBottom: 4, textTransform: "uppercase" }}>{slide.role || ""}</div>
-        <div style={{ ...FN, fontSize: 16 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 8 }}>{slide.heading || ""}</div>
-        <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 8 }} />
-        {url && <div style={{ width: "40%", height: 65, overflow: "hidden", marginBottom: 6, border: "0.5px solid #ffffff22" }}>
-          <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(1) contrast(1.1) brightness(0.6)" }} onError={function(e) { e.target.style.display = "none"; }} />
-        </div>}
-        <div style={{ ...HD, fontSize: 9.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.6, flex: 1 }}>{slide.body || ""}</div>
-        {slide.highlight && <div style={{ marginTop: 6, borderLeft: "2px solid #ffffff44", paddingLeft: 8 }}>
-          <div style={{ ...HD, fontSize: 8, color: "#ffffff88", fontStyle: "italic" }}>{slide.highlight}</div>
-        </div>}
-      </div>
-      {slide.sources && <div style={{ padding: "0 16px 5px", ...CP, fontSize: 4, color: "#ffffff33", textAlign: "right" }}>{slide.sources}</div>}
-      <div style={{ position: "absolute", bottom: 5, left: 8, ...CP, fontSize: 4, letterSpacing: "0.12em", color: "#ffffff55" }}>LOATHR</div>
-    </div>
-  );
+  var layoutIdx = typeof slide.enterpriseLayout === "number" ? slide.enterpriseLayout : ((index - 1) % ENTERPRISE_LAYOUTS.length);
+  var LayoutComp = ENTERPRISE_LAYOUTS[layoutIdx] || Layout1;
+  return <LayoutComp slide={slide} url={url} />;
 }
 
-// Enterprise Playbook — numbered steps
+// Playbook — numbered steps
 export function EnterprisePlaybook({ slide, images, index }) {
   var steps = (slide.body || "").split(/\d+[\.\)]\s*/g).filter(Boolean);
   return (
@@ -76,13 +225,13 @@ export function EnterprisePlaybook({ slide, images, index }) {
           </div>;
         }) : <div style={{ ...HD, fontSize: 9.5, color: "#ffffffcc", lineHeight: 1.6 }}>{slide.body}</div>}
       </div>
-      {slide.sources && <div style={{ padding: "0 16px 5px", ...CP, fontSize: 4, color: "#ffffff33", textAlign: "right" }}>{slide.sources}</div>}
-      <div style={{ position: "absolute", bottom: 5, left: 8, ...CP, fontSize: 4, letterSpacing: "0.12em", color: "#ffffff55" }}>LOATHR</div>
+      {srcLine(slide.sources)}
+      {watermark()}
     </div>
   );
 }
 
-// Enterprise Closer
+// Closer
 export function EnterpriseCloser({ slide }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
@@ -93,7 +242,7 @@ export function EnterpriseCloser({ slide }) {
         <div style={{ ...CP, fontSize: 5, letterSpacing: "0.12em", color: "#ffffff44", marginTop: 2 }}>ENTERPRISE</div>
         {slide.disclaimer && <div style={{ ...CP, fontSize: 4.5, color: "#ffffff33", marginTop: 12, lineHeight: 1.5 }}>{slide.disclaimer}</div>}
       </div>
-      <div style={{ position: "absolute", bottom: 5, left: 8, ...CP, fontSize: 4, letterSpacing: "0.12em", color: "#ffffff55" }}>LOATHR</div>
+      {watermark()}
     </div>
   );
 }

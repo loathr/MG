@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
 import { ENTERPRISE_FORCES, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, buildEnterprisePrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
-import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook } from "./segments/EnterpriseSlides";
+import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS } from "./segments/EnterpriseSlides";
 import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
 import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser } from "./segments/NewsDeskSlides";
 
@@ -4730,8 +4730,20 @@ export default function LoathrMediaGenerator() {
               </div>}
             </div>}
 
-            {/* === LAYOUT — image arrangement with ratios === */}
+            {/* === LAYOUT === */}
             {editSection === "layout" && isContent && <div>
+              {/* Enterprise layout picker */}
+              {activeSegment === "enterprise" && <div style={{ marginBottom: 6 }}>
+                <div style={{ ...CP, fontSize: 5, color: "#888", marginBottom: 3 }}>SLIDE LAYOUT</div>
+                <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                  <button onClick={function() { updateSlideField(currentSlide, "enterpriseLayout", null); }}
+                    style={{ padding: "2px 6px", border: "0.5px solid " + (s.enterpriseLayout == null ? "#fff" : "#444"), background: s.enterpriseLayout == null ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: s.enterpriseLayout == null ? "#fff" : "#888" }}>Auto</button>
+                  {ENTERPRISE_LAYOUT_LABELS.map(function(label, li) { return (
+                    <button key={li} onClick={function() { updateSlideField(currentSlide, "enterpriseLayout", li); }}
+                      style={{ padding: "2px 6px", border: "0.5px solid " + (s.enterpriseLayout === li ? "#fff" : "#444"), background: s.enterpriseLayout === li ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: s.enterpriseLayout === li ? "#fff" : "#888" }}>{label}</button>
+                  ); })}
+                </div>
+              </div>}
               <button onClick={function() { updateSlideField(currentSlide, "imageLayout", "single"); delete _mosaicSlides[currentSlide]; setImages(function(prev) { return Object.assign({}, prev); }); }}
                 style={{ padding: "3px 8px", border: "0.5px solid " + (!_mosaicSlides[currentSlide] ? uiAccent : "#ddd"), background: !_mosaicSlides[currentSlide] ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: !_mosaicSlides[currentSlide] ? uiAccent : "#999", marginBottom: 4, display: "block" }}>Single Image</button>
               <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>MOSAIC</div>
