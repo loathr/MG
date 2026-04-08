@@ -3814,8 +3814,10 @@ export default function LoathrMediaGenerator() {
             }}>
             <input value={topic} onChange={function(e) { var v = e.target.value; setTopic(v); setRefinedAngles([]); setSuggestions(filterSuggestions(v, category)); setCrossCatSuggestions(searchAllCategories(v, category)); triggerSearch(v); }}
               placeholder={category === "newsdesk" ? "Search keywords: oil, election, LeBron..." : category === "enterprise" ? "Industry or topic to analyze..." : "Topic for " + cat.label + "... (or drop an image)"}
-              style={{ flex: 1, padding: "10px 14px", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontSize: 12, ...CP }} />
-            <label style={{ padding: "10px 8px", border: "0.5px solid var(--color-border-tertiary)", cursor: "pointer", display: "flex", alignItems: "center", background: "transparent" }}>
+              style={{ flex: 1, padding: "10px 14px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ffffff" : "var(--color-background-primary)", color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : "var(--color-text-primary)", fontSize: 12, ...CP }} />
+            {topic && <button onClick={function() { setTopic(""); setOptions(null); setSmartAngles([]); setWebResults([]); setViralScore(null); setTrending([]); setSuggestions([]); setCrossCatSuggestions([]); setRefinedAngles([]); }}
+              style={{ padding: "10px 6px", border: "none", background: "transparent", cursor: "pointer", ...CP, fontSize: 12, color: activeSegment === "enterprise" ? "#666" : "#999", display: "flex", alignItems: "center" }}>{"\u2715"}</button>}
+            <label style={{ padding: "10px 8px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), cursor: "pointer", display: "flex", alignItems: "center", background: "transparent" }}>
               <Camera size={14} style={{ color: "#999" }} />
               <input type="file" accept="image/*" style={{ display: "none" }} onChange={function(e) {
                 var file = e.target.files && e.target.files[0];
