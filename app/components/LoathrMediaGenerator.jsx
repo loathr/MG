@@ -2454,9 +2454,9 @@ export default function LoathrMediaGenerator() {
   var abortRef = _ref(null);
 
   _ef(function() { selectedOptionRef.current = selectedOption; }, [selectedOption]);
-  // Auto-fetch breaking stories when Enterprise "Breaking News" is selected
+  // Auto-fetch trending topics when any Enterprise force is selected
   _ef(function() {
-    if (category === "enterprise" && enterpriseForce === "news") { fetchTrending(); }
+    if (category === "enterprise" && enterpriseForce) { fetchTrending(); }
   }, [enterpriseForce]);
 
   // Keep ref in sync so generate() always reads latest locked images
@@ -3168,6 +3168,15 @@ export default function LoathrMediaGenerator() {
           var secondaryFn = unsplashKey && pexelsKey ? searchPexels : null;
           var secondaryKey = pexelsKey || "";
           var shortTopic = extractKeywords(topic, 3);
+          // Enterprise/News Desk: add context to image search for more relevant results
+          if (category === "enterprise" && enterpriseForce) {
+            var forceImgCtx = { tech: "technology innovation", policy: "government regulation", ai: "artificial intelligence robot", markets: "stock market finance", culture: "culture society", media: "media broadcast", education: "education university", stocks: "wall street trading", lifestyle: "consumer lifestyle", news: "breaking news press" };
+            shortTopic = (forceImgCtx[enterpriseForce] || "business") + " " + shortTopic;
+          }
+          if (category === "newsdesk" && newsFilter) {
+            var filterImgCtx = { breaking: "breaking news urgent", developing: "news press conference", trending: "viral social media", politics: "politics government capitol", sports: "sports athlete stadium", money: "finance economy money", people: "celebrity public figure", tech: "technology digital", culture: "culture arts society", world: "global world map" };
+            shortTopic = (filterImgCtx[newsFilter] || "news") + " " + shortTopic;
+          }
           var imgMap = {};
           var slides = results[0] && results[0].slides ? results[0].slides : [];
           var vintageSlots = [1, 2, 7];
@@ -3821,7 +3830,7 @@ export default function LoathrMediaGenerator() {
               }
             }}>
             <input value={topic} onChange={function(e) { var v = e.target.value; setTopic(v); setRefinedAngles([]); setSuggestions(filterSuggestions(v, category)); setCrossCatSuggestions(searchAllCategories(v, category)); triggerSearch(v); }}
-              placeholder={category === "newsdesk" ? "Search keywords: oil, election, LeBron..." : category === "enterprise" ? "Industry or topic to analyze..." : "Topic for " + cat.label + "... (or drop an image)"}
+              placeholder={category === "newsdesk" ? "Search keywords: oil, election, LeBron..." : category === "enterprise" ? (function() { var hints = { tech: "e.g. Healthcare, Retail, Banking...", policy: "e.g. Pharma, Energy, Cannabis...", ai: "e.g. Legal services, Call centers, Education...", markets: "e.g. Real estate, Crypto, Commodities...", culture: "e.g. Luxury brands, Fast food, Streaming...", media: "e.g. News industry, Podcasting, Social media...", education: "e.g. Universities, EdTech, K-12...", stocks: "e.g. Tesla, Apple, NVIDIA...", lifestyle: "e.g. Fitness, Travel, Housing...", news: "e.g. Oil industry, Tech sector, Airlines..." }; return hints[enterpriseForce] || "Industry or topic to analyze..."; })() : "Topic for " + cat.label + "... (or drop an image)"}
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ffffff" : "var(--color-background-primary)", color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : "var(--color-text-primary)", fontSize: 12, ...CP }} />
             {topic && <button onClick={function() { setTopic(""); setOptions(null); setSmartAngles([]); setWebResults([]); setViralScore(null); setTrending([]); setSuggestions([]); setCrossCatSuggestions([]); setRefinedAngles([]); }}
               style={{ padding: "10px 6px", border: "none", background: "transparent", cursor: "pointer", ...CP, fontSize: 12, color: activeSegment === "enterprise" ? "#666" : "#999", display: "flex", alignItems: "center" }}>{"\u2715"}</button>}
