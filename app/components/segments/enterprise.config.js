@@ -121,7 +121,7 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks) {
     "Use web search to find current data when available.\n" +
     (tone ? "\nTONE: " + tone.prompt + "\n" : "") +
     (focus ? "\nFOCUS: " + focus.prompt + "\n" : "") +
-    (ep.customVoice ? "\nCUSTOM VOICE: " + ep.customVoice + "\n" : "") + "\n";
+    (ep.customVoice ? "\nCUSTOM VOICE: " + ep.customVoice + "\n" : "") + "\n" +
     "WRITING RULES:\n" +
     "- Every slide must have a 'sources' field with 1-2 real citations\n" +
     "- Use specific numbers: revenue figures, market share %, growth rates\n" +
