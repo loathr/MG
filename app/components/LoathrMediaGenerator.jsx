@@ -1027,9 +1027,18 @@ function S2Arena({ slide, index, category, images }) {
   var useSticky = STICKY_CATS[category];
   var useFormal = FORMAL_CATS[category];
   var styled = useBubble || useSticky || useFormal;
+  // Per-element offsets for independent movement
+  var cp = slide.customPosition && typeof slide.customPosition === "object" ? slide.customPosition : {};
+  var hOff = cp.heading || { top: 0, left: 0 };
+  var bOff = cp.body || { top: 0, left: 0 };
+  var hlOff = cp.highlight || { top: 0, left: 0 };
+  var hTransform = (hOff.top || hOff.left) ? { transform: "translate(" + (hOff.left || 0) + "px," + (hOff.top || 0) + "px)" } : {};
+  var bTransform = (bOff.top || bOff.left) ? { transform: "translate(" + (bOff.left || 0) + "px," + (bOff.top || 0) + "px)" } : {};
+  var hlTransform = (hlOff.top || hlOff.left) ? { transform: "translate(" + (hlOff.left || 0) + "px," + (hlOff.top || 0) + "px)" } : {};
   var textContent = <div>
-    <div style={{ ...FN, fontSize: 13 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
-    <div style={{ ...HD, fontSize: 9.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.5, textAlign: "left" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    <div style={Object.assign({}, { ...FN, fontSize: 13 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }, hTransform)}>{slide.heading || "Part " + index}</div>
+    <div style={Object.assign({}, { ...HD, fontSize: 9.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.5, textAlign: "left" }, bTransform)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    {slide.highlight && <div style={Object.assign({}, { marginTop: 8 }, hlTransform)}><div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "2px 6px", display: "inline-block" }}>{slide.highlight}</div></div>}
     {slide.specs && <div style={{ marginTop: 8, border: "1px solid " + p.accent + "44", padding: "4px 6px", background: "rgba(255,255,255,0.03)" }}><div style={{ ...WS, fontSize: 5.3, color: useSticky ? "inherit" : "#ffffffaa", textAlign: "left" }}>{slide.specs}</div></div>}
     <MicroCite sources={slide.sources} />
   </div>;
@@ -1073,13 +1082,17 @@ function S3RayGun({ slide, index, category, images }) {
   var useSticky = STICKY_CATS[category];
   var useFormal = FORMAL_CATS[category];
   var styled = useBubble || useSticky || useFormal;
+  var cp3 = slide.customPosition && typeof slide.customPosition === "object" ? slide.customPosition : {};
+  var h3 = cp3.heading || { top: 0, left: 0 }; var b3 = cp3.body || { top: 0, left: 0 }; var hl3 = cp3.highlight || { top: 0, left: 0 };
+  var h3t = (h3.top || h3.left) ? { transform: "translate(" + (h3.left||0) + "px," + (h3.top||0) + "px)" } : {};
+  var b3t = (b3.top || b3.left) ? { transform: "translate(" + (b3.left||0) + "px," + (b3.top||0) + "px)" } : {};
+  var hl3t = (hl3.top || hl3.left) ? { transform: "translate(" + (hl3.left||0) + "px," + (hl3.top||0) + "px)" } : {};
 
   if (flipped) {
-    // Text left, image right (carousel position 5)
     var flippedText = <div>
-      <div style={{ ...FN, fontSize: 12 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }}>{slide.heading || "Part " + index}</div>
-      <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right", overflow: "hidden" }}>{styleBody(slide.body, p.accent2, p.accent)}</div>
-      {slide.highlight && <div style={{ marginTop: 6, display: "flex", alignItems: "stretch", justifyContent: "flex-end", gap: 0 }}>
+      <div style={Object.assign({}, { ...FN, fontSize: 12 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }, h3t)}>{slide.heading || "Part " + index}</div>
+      <div style={Object.assign({}, { ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right", overflow: "hidden" }, b3t)}>{styleBody(slide.body, p.accent2, p.accent)}</div>
+      {slide.highlight && <div style={Object.assign({}, { marginTop: 6, display: "flex", alignItems: "stretch", justifyContent: "flex-end", gap: 0 }, hl3t)}>
         <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "3px 8px", boxShadow: "2px 2px 0px " + p.accent2 }}>{slide.highlight}</div>
         <div style={{ width: 3, background: p.accent2, flexShrink: 0 }} />
       </div>}
@@ -1109,9 +1122,9 @@ function S3RayGun({ slide, index, category, images }) {
 
   // Image top, text bottom (carousel position 2)
   var normalText = <div>
-    <div style={{ ...FN, fontSize: 12 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }}>{slide.heading || "Part " + index}</div>
-    <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "left", overflow: "hidden" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-    {slide.highlight && <div style={{ marginTop: 6, display: "flex", alignItems: "stretch", justifyContent: "flex-start", gap: 0 }}>
+    <div style={Object.assign({}, { ...FN, fontSize: 12 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }, h3t)}>{slide.heading || "Part " + index}</div>
+    <div style={Object.assign({}, { ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "left", overflow: "hidden" }, b3t)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    {slide.highlight && <div style={Object.assign({}, { marginTop: 6, display: "flex", alignItems: "stretch", justifyContent: "flex-start", gap: 0 }, hl3t)}>
       <div style={{ width: 3, background: p.accent, flexShrink: 0 }} />
       <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "3px 8px", boxShadow: "2px 2px 0px " + p.accent }}>{slide.highlight}</div>
     </div>}
@@ -1372,10 +1385,13 @@ function S5Face({ slide, index, category, images }) {
   var useSticky = STICKY_CATS[category];
   var useFormal = FORMAL_CATS[category];
   var styled = useBubble || useSticky || useFormal;
+  var cp5 = slide.customPosition && typeof slide.customPosition === "object" ? slide.customPosition : {};
+  var b5t = (cp5.body && (cp5.body.top || cp5.body.left)) ? { transform: "translate(" + (cp5.body.left||0) + "px," + (cp5.body.top||0) + "px)" } : {};
+  var hl5t = (cp5.highlight && (cp5.highlight.top || cp5.highlight.left)) ? { transform: "translate(" + (cp5.highlight.left||0) + "px," + (cp5.highlight.top||0) + "px)" } : {};
   var s5Text = <div style={{ overflow: "hidden" }}>
-    <div style={{ ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right" }}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    <div style={Object.assign({}, { ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right" }, b5t)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
     {!styled && <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />}
-    {slide.highlight && <div style={{ marginTop: 6, display: "flex", alignItems: "stretch", justifyContent: "flex-end", gap: 0 }}>
+    {slide.highlight && <div style={Object.assign({}, { marginTop: 6, display: "flex", alignItems: "stretch", justifyContent: "flex-end", gap: 0 }, hl5t)}>
       <div style={{ ...WS, fontSize: 5.3, fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "3px 8px", boxShadow: "2px 2px 0px " + p.accent2 }}>{slide.highlight}</div>
       <div style={{ width: 3, background: p.accent2, flexShrink: 0 }} />
     </div>}
@@ -3720,7 +3736,7 @@ export default function LoathrMediaGenerator() {
       </div>}
 
       {/* Cross-category lens pickers — Level 3, editorial only */}
-      {userLevel >= 3 && activeSegment === "editorial" && category && <div style={{ marginBottom: 12 }}>
+      {activeSegment === "editorial" && category && <div style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 4, justifyContent: "center", flexWrap: "wrap", alignItems: "center", marginBottom: secondaryCategory ? 6 : 0 }}>
           <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.05em" }}>+LENS</div>
           {CATEGORIES.filter(function(c) { return c.id !== category && c.id !== tertiaryCategory; }).map(function(c) {
@@ -3759,7 +3775,7 @@ export default function LoathrMediaGenerator() {
       </div>}
 
       {/* Custom Story toggle — Level 2+, editorial only */}
-      {userLevel >= 2 && activeSegment === "editorial" && category && <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+      {activeSegment === "editorial" && category && <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
         <button onClick={function() { setCustomStoryMode(!customStoryMode); }}
           style={{ padding: "5px 12px", border: "0.5px solid " + (customStoryMode ? uiAccent : "#ccc"), background: customStoryMode ? uiAccent + "15" : "transparent", cursor: "pointer", ...CP, fontSize: 8, color: customStoryMode ? uiAccent : "#999", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 5 }}>
           <Users size={11} />{customStoryMode ? "BACK TO SEARCH" : "CREATE ORIGINAL STORY"}
@@ -3939,7 +3955,7 @@ export default function LoathrMediaGenerator() {
           </div>}
 
           {/* Multi-person image picker — Level 3 */}
-          {userLevel >= 3 && personsDetected.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent, background: "#f8f8f8", padding: 8 }}>
+          {personsDetected.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent, background: "#f8f8f8", padding: 8 }}>
             <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>PEOPLE DETECTED</div>
             {personsDetected.map(function(name) {
               var imgs = personImages[name] || [];
@@ -3987,7 +4003,7 @@ export default function LoathrMediaGenerator() {
           </div>}
 
           {/* Person network — Level 3 */}
-          {userLevel >= 3 && Object.keys(personNetwork).length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8 }}>
+          {Object.keys(personNetwork).length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8 }}>
             <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>CONNECTED PEOPLE</div>
             {Object.keys(personNetwork).map(function(sourceName) {
               var network = personNetwork[sourceName] || [];
@@ -4014,7 +4030,7 @@ export default function LoathrMediaGenerator() {
           </div>}
 
           {/* Location image picker — Level 3 */}
-          {userLevel >= 3 && locationsDetected.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "66", background: "#f8f8f8", padding: 8 }}>
+          {locationsDetected.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid " + uiAccent + "66", background: "#f8f8f8", padding: 8 }}>
             <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>LOCATIONS DETECTED</div>
             {locationsDetected.map(function(place) {
               var imgs = locationImages[place] || [];
@@ -4210,7 +4226,7 @@ export default function LoathrMediaGenerator() {
           </div>}
 
           {/* Edition Settings — Level 2+ */}
-          {userLevel >= 2 && <div>
+          {<div>
           <div style={{ marginBottom: 6, textAlign: "center" }}>
             <button onClick={function() { setShowEditionSettings(!showEditionSettings); }}
               style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 8, color: "var(--color-text-tertiary)", letterSpacing: "0.1em", opacity: 0.6 }}>
@@ -4993,8 +5009,6 @@ export default function LoathrMediaGenerator() {
       <div style={{ textAlign: "center", padding: "18px 0 12px", borderTop: "0.5px solid var(--color-border-tertiary)", marginTop: 16 }}>
         <div style={{ ...CP, fontSize: 8, letterSpacing: "0.3em", color: "var(--color-text-tertiary)", opacity: 0.4 }}>L O A T H R</div>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 2 }}>MEDIA MAKER</div>
-        {userLevel < 3 && <button onClick={function() { setUserLevel(3); try { localStorage.setItem("loathr_gen_count", "10"); } catch (e) {} }}
-          style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 5, color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 4 }}>Show all features</button>}
       </div>
     </div>
   );
