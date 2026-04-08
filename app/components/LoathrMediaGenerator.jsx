@@ -2454,6 +2454,11 @@ export default function LoathrMediaGenerator() {
   var abortRef = _ref(null);
 
   _ef(function() { selectedOptionRef.current = selectedOption; }, [selectedOption]);
+  // Auto-fetch breaking stories when Enterprise "Breaking News" is selected
+  _ef(function() {
+    if (category === "enterprise" && enterpriseForce === "news") { fetchTrending(); }
+  }, [enterpriseForce]);
+
   // Keep ref in sync so generate() always reads latest locked images
   _ef(function() { lockedRef.current = lockedPersonImages; }, [lockedPersonImages]);
 
@@ -3089,21 +3094,23 @@ export default function LoathrMediaGenerator() {
       } else {
         prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, Object.keys(lockedRef.current || {}).length > 0, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null, secondaryCount, tertiaryCount);
       }
-      // News Desk uses web search tool
+      // Enterprise + News Desk use web search tool for current data
       var fetchBody = { model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] };
-      if (category === "newsdesk") { fetchBody.tools = [{ type: "web_search_20250305", name: "web_search" }]; }
+      if (category === "newsdesk" || category === "enterprise") { fetchBody.tools = [{ type: "web_search_20250305", name: "web_search" }]; }
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify(fetchBody) });
       var d = await r.json();
       if (d.error) throw new Error(d.error.message || d.error);
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      if (!text || text.trim().length < 10) throw new Error("No carousel content returned. Web search may have consumed the response. Try a shorter or simpler topic.");
       var cleaned = text.replace(/```json|```/g, "").trim();
       cleaned = cleaned.replace(/,\s*([}\]])/g, "$1");
-      // Extract JSON if Claude adds preamble
+      // Extract JSON if Claude adds preamble or web search commentary
       var jsonStart = cleaned.indexOf("{");
       var jsonEnd = cleaned.lastIndexOf("}");
       if (jsonStart >= 0 && jsonEnd > jsonStart) cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
+      if (jsonStart < 0) throw new Error("No JSON found in response. Claude may have returned commentary instead of carousel data. Try again.");
       // If JSON was truncated (no closing ]), try to close it
       if (cleaned.indexOf('"slides"') !== -1 && !cleaned.endsWith("}")) {
         var lastBrace = cleaned.lastIndexOf("}");
