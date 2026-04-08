@@ -35,12 +35,12 @@ export function EnterpriseContent({ slide, images, index }) {
       <div style={{ height: 1, background: "#ffffff33", margin: "0 16px" }} />
       <div style={{ padding: "10px 16px", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "#ffffff55", marginBottom: 4, textTransform: "uppercase" }}>{slide.role || ""}</div>
-        <div style={{ ...FN, fontSize: 16, color: "#ffffff", lineHeight: 1.15, marginBottom: 8 }}>{slide.heading || ""}</div>
+        <div style={{ ...FN, fontSize: 16 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 8 }}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 8 }} />
         {url && <div style={{ width: "40%", height: 65, overflow: "hidden", marginBottom: 6, border: "0.5px solid #ffffff22" }}>
           <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(1) contrast(1.1) brightness(0.6)" }} onError={function(e) { e.target.style.display = "none"; }} />
         </div>}
-        <div style={{ ...HD, fontSize: 9.5, color: "#ffffffcc", lineHeight: 1.6, flex: 1 }}>{slide.body || ""}</div>
+        <div style={{ ...HD, fontSize: 9.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.6, flex: 1 }}>{slide.body || ""}</div>
         {slide.highlight && <div style={{ marginTop: 6, borderLeft: "2px solid #ffffff44", paddingLeft: 8 }}>
           <div style={{ ...HD, fontSize: 8, color: "#ffffff88", fontStyle: "italic" }}>{slide.highlight}</div>
         </div>}

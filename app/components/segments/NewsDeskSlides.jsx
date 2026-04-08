@@ -49,12 +49,12 @@ export function NewsStory({ slide, images, index }) {
       <div style={{ height: 2, background: "#1a1a1a", margin: "0 14px" }} />
       <div style={{ padding: "8px 14px", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "#c41e1e", marginBottom: 4, textTransform: "uppercase" }}>{slide.role || ""}</div>
-        <div style={{ ...FN, fontSize: 15, color: "#1a1a1a", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
+        <div style={{ ...FN, fontSize: 15 + (slide.headingSize || 0), color: "#1a1a1a", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#1a1a1a22", marginBottom: 6 }} />
         {url && <div style={{ width: "100%", height: 95, overflow: "hidden", border: "0.5px solid #1a1a1a22", marginBottom: 5 }}>
           <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.7)" }} onError={function(e) { e.target.style.display = "none"; }} />
         </div>}
-        <div style={{ ...HD, fontSize: 9, color: "#1a1a1a", lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #1a1a1a11", flex: 1 }}>{slide.body || ""}</div>
+        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#1a1a1a", lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #1a1a1a11", flex: 1 }}>{slide.body || ""}</div>
         {slide.highlight && <div style={{ marginTop: 5, borderTop: "0.5px solid #1a1a1a22", borderBottom: "0.5px solid #1a1a1a22", padding: "3px 0", textAlign: "center" }}>
           <div style={{ ...HD, fontSize: 8, color: "#1a1a1a", fontStyle: "italic" }}>{slide.highlight}</div>
         </div>}

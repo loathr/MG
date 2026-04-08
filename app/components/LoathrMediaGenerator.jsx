@@ -2925,6 +2925,8 @@ export default function LoathrMediaGenerator() {
       var curPos = slides[slideIdx].textPosition || "bottom-left";
       var curIdx = positions.indexOf(curPos);
       slides[slideIdx].textPosition = positions[(curIdx + 1) % positions.length];
+      // Clear custom position when changing presets — preset takes priority
+      slides[slideIdx].customPosition = null;
       opt.slides = slides;
       newOpts[_so] = opt;
       return newOpts;
@@ -4542,8 +4544,8 @@ export default function LoathrMediaGenerator() {
                 <div style={{ ...CP, fontSize: 5, color: "#666" }}>B{(s.bodySize || 0) > 0 ? "+" : ""}{s.bodySize || 0}</div>
                 <button onClick={function() { adjustFontSize(currentSlide, "body", 1); }} style={{ width: 14, height: 14, border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 7, color: "#666", textAlign: "center", lineHeight: "14px" }}>+</button>
               </div>}
-              {/* Position + Container + Color */}
-              {isContent && <div style={{ borderTop: "0.5px solid #eee", paddingTop: 4 }}>
+              {/* Position + Container + Color — Editorial only */}
+              {isContent && activeSegment === "editorial" && <div style={{ borderTop: "0.5px solid #eee", paddingTop: 4 }}>
                 {/* Position preset */}
                 <div style={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap", marginBottom: 3 }}>
                   <button onClick={function() { cycleTextPosition(currentSlide); }}
