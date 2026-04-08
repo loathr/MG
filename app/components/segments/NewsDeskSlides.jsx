@@ -21,6 +21,12 @@ export function NewsFrontPage({ slide, images, index }) {
       {isBreaking && <div style={{ background: "#c41e1e", padding: "3px 14px", textAlign: "center", flexShrink: 0 }}>
         <div style={{ ...CP, fontSize: 7, letterSpacing: "0.3em", color: "#ffffff", fontWeight: 700 }}>BREAKING NEWS</div>
       </div>}
+      {slide.developing && <div style={{ background: "#e67e22", padding: "3px 14px", textAlign: "center", flexShrink: 0 }}>
+        <div style={{ ...CP, fontSize: 7, letterSpacing: "0.3em", color: "#ffffff", fontWeight: 700 }}>DEVELOPING STORY</div>
+      </div>}
+      {slide.timestamp && <div style={{ textAlign: "center", padding: "2px 14px", flexShrink: 0 }}>
+        <div style={{ ...CP, fontSize: 3.5, color: "#1a1a1a55" }}>Generated: {slide.timestamp}</div>
+      </div>}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 14px" }}>
         <div style={{ ...FN, fontSize: slide.title && slide.title.length > 40 ? 18 : 24, color: "#1a1a1a", lineHeight: 1.1, marginBottom: 6 }}>{slide.title || ""}</div>
         <div style={{ height: 1, background: "#1a1a1a33", marginBottom: 6 }} />
@@ -109,7 +115,10 @@ export function NewsSourcesCloser({ slide }) {
             </div>;
           }) : <div style={{ ...HD, fontSize: 7, color: "#1a1a1a66" }}>Sources available upon request.</div>}
         </div>
-        <div style={{ height: 1, background: "#1a1a1a22", marginTop: 10, marginBottom: 10 }} />
+        {slide.developingNote && <div style={{ marginTop: 6, padding: "4px 6px", background: "#e67e2215", border: "0.5px solid #e67e2233" }}>
+          <div style={{ ...CP, fontSize: 5, color: "#e67e22", fontStyle: "italic" }}>{slide.developingNote}</div>
+        </div>}
+        <div style={{ height: 1, background: "#1a1a1a22", marginTop: 8, marginBottom: 8 }} />
         <div style={{ textAlign: "center" }}>
           <div style={{ ...FN, fontSize: 11, color: "#1a1a1a", letterSpacing: "0.08em" }}>LOATHR NEWS DESK</div>
           <div style={{ ...CP, fontSize: 4, color: "#1a1a1a55", marginTop: 2 }}>Reporting. Context. Perspective.</div>

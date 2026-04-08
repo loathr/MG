@@ -72,15 +72,28 @@ export var ENTERPRISE_CLOSERS = [
 
 export function buildEnterprisePrompt(topic, force, editionSeed, picks) {
   var forceLabel = force ? force.label : "macro trends";
+  var forceId = force ? force.id : null;
   var closerLine = ENTERPRISE_CLOSERS[Math.abs(editionSeed || 0) % ENTERPRISE_CLOSERS.length];
+  var isBreaking = forceId === "news";
+  var d = new Date();
+  var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var timestamp = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() + " at " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
 
   return "You are a senior business analyst writing for LOATHR ENTERPRISE, a black-and-white editorial Instagram brand focused on business intelligence.\n\n" +
     "Industry/Topic: \"" + topic + "\"\n" +
-    "Force: \"" + forceLabel + "\"\n\n" +
-    "Write a carousel analyzing how " + forceLabel.toLowerCase() + " impacts this industry/topic.\n" +
+    "Force: \"" + forceLabel + "\"\n" +
+    "Generated: " + timestamp + "\n\n" +
+    (isBreaking ?
+      "BREAKING NEWS MODE: Search for the MOST RECENT breaking story affecting \"" + topic + "\". Find a SPECIFIC current event from today or this week and analyze its immediate industry impact.\n" +
+      "SLIDE COUNT: 5-6 slides (speed over depth).\n" +
+      "Add 'breaking: true' and 'timestamp: \"" + timestamp + "\"' to the cover slide.\n" +
+      "The cover title should start with 'JUST IN:' or 'BREAKING:'\n\n"
+    :
+      "Write a carousel analyzing how " + forceLabel.toLowerCase() + " impacts this industry/topic.\n" +
+      "SLIDE COUNT: 8-10 slides.\n\n"
+    ) +
     "Use REAL company names, REAL numbers, REAL market data. Every claim must be specific and citable.\n" +
-    "Use web search to find current data when available.\n\n" +
-    "SLIDE COUNT: 8-10 slides.\n\n" +
+    "Use web search to find current data when available.\n\n";
     "WRITING RULES:\n" +
     "- Every slide must have a 'sources' field with 1-2 real citations\n" +
     "- Use specific numbers: revenue figures, market share %, growth rates\n" +

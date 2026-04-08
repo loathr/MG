@@ -8,19 +8,24 @@ var HD = { fontFamily: "'Maheni',Georgia,serif", fontStyle: "normal" };
 // Enterprise Cover
 export function EnterpriseCover({ slide, images, index }) {
   var url = images && images[0] ? images[0].url : null;
+  var isBreaking = slide.breaking;
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "10px 16px 6px", borderBottom: "1px solid #ffffff33", textAlign: "right", flexShrink: 0 }}>
         <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff66" }}>LOATHR</div>
         <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffff44", marginTop: 1 }}>ENTERPRISE</div>
       </div>
-      {url && <div style={{ height: 90, overflow: "hidden", flexShrink: 0, borderBottom: "1px solid #ffffff22" }}>
+      {isBreaking && <div style={{ background: "#ffffff", padding: "3px 16px", textAlign: "center", flexShrink: 0 }}>
+        <div style={{ ...CP, fontSize: 6, letterSpacing: "0.25em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
+      </div>}
+      {url && <div style={{ height: isBreaking ? 70 : 90, overflow: "hidden", flexShrink: 0, borderBottom: "1px solid #ffffff22" }}>
         <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(1) contrast(1.1) brightness(0.4)" }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>}
       <div style={{ flex: 1, padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <div style={{ ...FN, fontSize: slide.title && slide.title.length > 35 ? 22 : 28, color: "#ffffff", lineHeight: 1.1 }}>{slide.title || ""}</div>
         <div style={{ height: 1.5, background: "#ffffff44", margin: "10px 0", width: "35%" }} />
         {slide.subtitle && <div style={{ ...HD, fontSize: 9, color: "#ffffff88", letterSpacing: "0.03em" }}>{slide.subtitle}</div>}
+        {slide.timestamp && <div style={{ ...CP, fontSize: 4, color: "#ffffff44", marginTop: 4 }}>{slide.timestamp}</div>}
       </div>
       <div style={{ position: "absolute", bottom: 5, left: 8, ...CP, fontSize: 4, letterSpacing: "0.12em", color: "#ffffff55" }}>LOATHR</div>
     </div>

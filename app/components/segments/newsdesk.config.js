@@ -4,6 +4,7 @@ export var NEWSDESK_LABEL = "News Desk";
 
 export var NEWSDESK_FILTERS = [
   { id: "breaking", label: "Breaking" },
+  { id: "developing", label: "Developing" },
   { id: "trending", label: "Trending" },
   { id: "politics", label: "Politics" },
   { id: "sports", label: "Sports" },
@@ -80,33 +81,55 @@ export function buildNewsDeskPrompt(keywords, filter, region, timeframe, country
   var d = new Date();
   var dateline = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
 
+  var filterId = filter ? filter.id : null;
+  var isBreaking = filterId === "breaking";
+  var isDeveloping = filterId === "developing";
+  var isUrgent = isBreaking || isDeveloping;
+  var timestamp = dateline + " at " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+
+  // Force today for breaking/developing regardless of user timeframe selection
+  var effectiveTime = isUrgent ? "today" : timeLabel;
+
   return "You are a senior news editor writing for LOATHR NEWS DESK, an editorial Instagram brand that presents news in a newspaper-style carousel format.\n\n" +
     "SEARCH KEYWORDS: \"" + keywords + "\"\n" +
     "FILTER: " + filterLabel + "\n" +
     "LOCATION: " + locationLabel + "\n" +
-    "TIMEFRAME: " + timeLabel + "\n" +
-    "DATE: " + dateline + "\n\n" +
+    "TIMEFRAME: " + effectiveTime + "\n" +
+    "TIMESTAMP: " + timestamp + "\n\n" +
     "Use web search to find CURRENT, REAL news matching these keywords. This is a NEWS product — accuracy is critical.\n\n" +
+    (isBreaking ?
+      "BREAKING NEWS MODE:\n" +
+      "- Find the MOST RECENT story matching these keywords — within hours if possible\n" +
+      "- Lead with hard-news urgency: who did what, where, when\n" +
+      "- The leadParagraph MUST be a single factual sentence\n" +
+      "- Use dateline with time: \"CITY — " + timestamp + "\"\n" +
+      "- Add 'breaking: true' and 'timestamp: \"" + timestamp + "\"' to the cover slide\n" +
+      "- SLIDE COUNT: 5-6 slides (speed over depth)\n\n"
+    : isDeveloping ?
+      "DEVELOPING STORY MODE:\n" +
+      "- This story is STILL UNFOLDING — present what is known so far\n" +
+      "- Clearly mark what is confirmed vs what is reported but unverified\n" +
+      "- Use dateline with time: \"CITY — " + timestamp + "\"\n" +
+      "- Add 'developing: true' and 'timestamp: \"" + timestamp + "\"' to the cover slide\n" +
+      "- SLIDE COUNT: 5-6 slides\n" +
+      "- The Sources closer must include: 'This is a developing story. Information may change as details emerge.'\n\n"
+    :
+      "SLIDE COUNT: 8 slides.\n" +
+      "- Use dateline format on the cover: \"CITY — " + dateline + "\"\n\n"
+    ) +
     "RULES:\n" +
     "- Every fact must be from a real, verifiable source\n" +
     "- Include the publication name, date, and author when available on EVERY slide in a 'sources' field\n" +
-    "- Use dateline format on the cover: \"CITY — " + dateline + "\"\n" +
-    "- If the filter is 'Breaking', lead with urgency and recency\n" +
-    "- If the filter is 'Trending', focus on why this is gaining attention now\n" +
     "- NEVER fabricate quotes, statistics, or events\n" +
     "- NEVER use the word 'algorithm'\n" +
     "- Keep body text to 2-3 sentences MAX per slide\n\n" +
-    "SLIDE ROLES (8 slides):\n" +
-    "- FIRST SLIDE: \"FRONT PAGE\" — title (the headline), titleHighlight (key phrase), subtitle (dateline: \"CITY — " + dateline + "\"), leadParagraph (1 sentence summary)\n" +
-    (filter && filter.id === "breaking" ? "- Add 'breaking: true' to the cover slide for a red BREAKING banner\n" : "") +
+    "SLIDE ROLES:\n" +
+    "- FIRST SLIDE: \"FRONT PAGE\" — title (headline), titleHighlight (key phrase), subtitle (dateline), leadParagraph (1 hard-news sentence: who did what where when)\n" +
     "- \"THE STORY\" — heading, body (who, what, when, where, why), sources\n" +
-    "- \"THE BACKGROUND\" — heading, body (history/context that led to this), sources\n" +
-    "- \"THE REACTION\" — heading, body (quotes from key figures), person (quoted person name), sources. Include at least one direct quote.\n" +
+    (isUrgent ? "" : "- \"THE BACKGROUND\" — heading, body (history/context), sources\n") +
+    "- \"THE REACTION\" — heading, body (quotes from key figures), person (name), sources. Include at least one direct quote.\n" +
     "- \"THE NUMBERS\" — key statistic. Use statFormat \"killer\" with stat and caption. sources\n" +
-    "- \"THE PERSPECTIVE\" — heading, body (op-ed analysis, what this means), sources\n" +
-    "- \"RELATED\" — heading, body (connected stories, what else is happening), sources\n" +
-    "- LAST SLIDE: \"SOURCES\" — fullSources (array of objects: [{publication, title, date, url}]), hashtags string\n\n" +
-    "TEXT PLACEMENT: On each content slide, include 'textPosition' field.\n" +
-    "On 1-2 slides, add '\"mosaic\": true' for photo collage.\n\n" +
+    (isUrgent ? "" : "- \"THE PERSPECTIVE\" — heading, body (op-ed analysis), sources\n- \"RELATED\" — heading, body (connected stories), sources\n") +
+    "- LAST SLIDE: \"SOURCES\" — fullSources (array: [{publication, title, date, url}]), hashtags" + (isDeveloping ? ", developingNote: \"This is a developing story. Information may change as details emerge.\"" : "") + "\n\n" +
     "Respond ONLY with valid JSON:\n{\"angle\":\"News Coverage\",\"slides\":[{...slides...}]}";
 }
