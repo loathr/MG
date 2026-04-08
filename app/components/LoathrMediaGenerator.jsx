@@ -3103,15 +3103,47 @@ export default function LoathrMediaGenerator() {
         body: JSON.stringify(fetchBody) });
       var d = await r.json();
       if (d.error) throw new Error(d.error.message || d.error);
-      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
-      if (!text || text.trim().length < 10) throw new Error("No carousel content returned. Web search may have consumed the response. Try a shorter or simpler topic.");
-      var cleaned = text.replace(/```json|```/g, "").trim();
-      cleaned = cleaned.replace(/,\s*([}\]])/g, "$1");
-      // Extract JSON if Claude adds preamble or web search commentary
-      var jsonStart = cleaned.indexOf("{");
+      // Extract text — try each text block individually for JSON (web search splits response)
+      var textBlocks = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; });
+      var text = textBlocks.join("");
+      var cleaned = "";
+      // First: try the concatenated text
+      if (text) {
+        cleaned = text.replace(/```json|```/g, "").trim();
+        cleaned = cleaned.replace(/,\s*([}\]])/g, "$1");
+      }
+      // Find JSON — look for the slides array specifically
+      var jsonStart = cleaned.indexOf('{"angle"');
+      if (jsonStart < 0) jsonStart = cleaned.indexOf('{"slides"');
+      if (jsonStart < 0) jsonStart = cleaned.indexOf("{");
       var jsonEnd = cleaned.lastIndexOf("}");
-      if (jsonStart >= 0 && jsonEnd > jsonStart) cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
-      if (jsonStart < 0) throw new Error("No JSON found in response. Claude may have returned commentary instead of carousel data. Try again.");
+      if (jsonStart >= 0 && jsonEnd > jsonStart) {
+        cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
+      } else {
+        // Fallback: check each text block individually for JSON
+        for (var bi = textBlocks.length - 1; bi >= 0; bi--) {
+          var block = textBlocks[bi].replace(/```json|```/g, "").trim();
+          var bs = block.indexOf("{"); var be = block.lastIndexOf("}");
+          if (bs >= 0 && be > bs && block.indexOf("slides") > -1) { cleaned = block.slice(bs, be + 1); break; }
+        }
+      }
+      if (!cleaned || cleaned.indexOf("slides") < 0) {
+        // Last resort: retry without web search
+        if (useWebSearch) {
+          setImgStatus("Web search failed to produce JSON — retrying without search...");
+          var retryBody = { model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] };
+          var r2 = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify(retryBody) });
+          var d2 = await r2.json();
+          if (d2.error) throw new Error(d2.error.message || d2.error);
+          text = (d2.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+          cleaned = text.replace(/```json|```/g, "").trim().replace(/,\s*([}\]])/g, "$1");
+          jsonStart = cleaned.indexOf("{"); jsonEnd = cleaned.lastIndexOf("}");
+          if (jsonStart >= 0 && jsonEnd > jsonStart) cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
+          else throw new Error("Failed to generate carousel content. Try a simpler topic.");
+        } else {
+          throw new Error("No carousel JSON found in response. Try again.");
+        }
+      }
       // If JSON was truncated (no closing ]), try to close it
       if (cleaned.indexOf('"slides"') !== -1 && !cleaned.endsWith("}")) {
         var lastBrace = cleaned.lastIndexOf("}");
