@@ -106,16 +106,6 @@ var SEASONAL_TOPICS = {
   gossip: { 0: "Awards show drama", 1: "Valentine couple watch", 2: "Spring breakup season", 3: "Festival sighting season", 4: "Met Gala drama decoded", 5: "Summer scandal season", 6: "Celebrity vacation watch", 7: "Back to drama season", 8: "Emmy night gossip", 9: "Halloween costume wars", 10: "Holiday party sightings", 11: "Year end revelations" },
 };
 
-function scoreTopic(topic) {
-  if (!topic || topic.length < 3) return 0;
-  var score = 0;
-  if (topic.length < 40) score++; // concise
-  if (topic.length < 25) score++; // very concise
-  if (/[A-Z]/.test(topic.charAt(0))) score++; // starts with capital
-  if (/\b(why|how|what|who|the)\b/i.test(topic)) score++; // has hook word
-  if (topic.split(" ").length >= 3 && topic.split(" ").length <= 8) score++; // good length
-  return Math.min(score, 5);
-}
 
 function searchAllCategories(query, currentCat) {
   if (!query || query.length < 2) return [];
@@ -2454,6 +2444,10 @@ export default function LoathrMediaGenerator() {
   var ndr = _s("global"), newsRegion = ndr[0], setNewsRegion = ndr[1];
   var ndt = _s("today"), newsTimeframe = ndt[0], setNewsTimeframe = ndt[1];
   var ndc = _s(""), newsCountry = ndc[0], setNewsCountry = ndc[1];
+  // Viral potential score from Claude
+  var vps = _s(null), viralScore = vps[0], setViralScore = vps[1]; // { score: 1-10, reason: "", tips: "" }
+  var vpl = _s(false), viralLoading = vpl[0], setViralLoading = vpl[1];
+  var viralTimer = _ref(null);
   var searchTimer = _ref(null);
   var webTimer = _ref(null);
   var previewTimer = _ref(null);
@@ -2535,6 +2529,28 @@ export default function LoathrMediaGenerator() {
     } catch (err) { console.error(err); }
     finally { setIsRefining(false); }
   }, [topic, category, cat]);
+
+  // Viral potential analysis — real Claude assessment
+  var fetchViralScore = _cb(async function(query) {
+    if (!query || query.length < 4 || !category) return;
+    setViralLoading(true);
+    try {
+      var segmentCtx = activeSegment === "enterprise" ? "business/industry analysis Instagram carousel" : activeSegment === "newsdesk" ? "news media Instagram carousel" : "editorial Instagram carousel in " + (cat ? cat.label : category);
+      var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 200,
+          messages: [{ role: "user",
+            content: "Rate the viral potential of this topic for a " + segmentCtx + ":\n\"" + query + "\"\n\nScore 1-10 based on: timeliness, emotional hook, debate potential, visual appeal, shareability, audience size.\n\nRespond ONLY with JSON (no markdown):\n{\"score\":N,\"reason\":\"one sentence why\",\"tip\":\"one sentence to improve it\"}" }] }) });
+      var d = await r.json();
+      if (d.error) return;
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("");
+      var cleaned = text.replace(/```json|```/g, "").trim();
+      var js = cleaned.indexOf("{"); var je = cleaned.lastIndexOf("}");
+      if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
+      var parsed = JSON.parse(cleaned);
+      if (parsed.score) setViralScore(parsed);
+    } catch (e) {}
+    finally { setViralLoading(false); }
+  }, [category, activeSegment, cat]);
 
   var fetchTrending = _cb(async function() {
     if (!category) return;
@@ -2695,7 +2711,8 @@ export default function LoathrMediaGenerator() {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (webTimer.current) clearTimeout(webTimer.current);
     if (previewTimer.current) clearTimeout(previewTimer.current);
-    setSmartAngles([]); setWebResults([]); setPreviewImages([]); setPersonNetwork({});
+    setSmartAngles([]); setWebResults([]); setPreviewImages([]); setPersonNetwork({}); setViralScore(null);
+    if (viralTimer.current) clearTimeout(viralTimer.current);
     previewPage.current = 1; // reset page counter for new topic
     // Clear person/location locks from previous topic
     setLockedPersonImages({}); setLockedLocationImages({});
@@ -2711,8 +2728,9 @@ export default function LoathrMediaGenerator() {
     searchTimer.current = setTimeout(function() { fetchSmartAngles(query); }, 800);
     // Web search after 1500ms
     webTimer.current = setTimeout(function() { fetchWebContext(query); }, 1500);
-    // Preview images — no longer auto-loaded, triggered by button click
-  }, [fetchSmartAngles, fetchWebContext, fetchPreviewImages]);
+    // Viral score after 2s
+    viralTimer.current = setTimeout(function() { fetchViralScore(query); }, 2000);
+  }, [fetchSmartAngles, fetchWebContext, fetchPreviewImages, fetchViralScore]);
 
   // Person name detection + image fetch
   // detectPerson now handled by Claude in fetchSmartAngles
@@ -4048,12 +4066,20 @@ export default function LoathrMediaGenerator() {
           </div>}
 
 
-          {/* Topic score */}
-          {topic.trim() && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 6 }}>
-            <span style={{ ...CP, fontSize: 7, color: "var(--color-text-tertiary)" }}>Shareability:</span>
-            {[1,2,3,4,5].map(function(n) { return <div key={n} style={{ width: 5, height: 5, borderRadius: "50%", background: n <= scoreTopic(topic) ? uiAccent : "var(--color-border-tertiary)" }} />; })}
-            {topicHistory.some(function(h) { return typeof h === "string" ? h === topic : h.topic === topic; }) && <span style={{ ...CP, fontSize: 6, color: uiAccent, marginLeft: 4 }}>previously generated</span>}
+          {/* Viral potential — Claude analysis */}
+          {(viralScore || viralLoading) && <div style={{ marginBottom: 6, textAlign: "center" }}>
+            {viralLoading && <div style={{ ...CP, fontSize: 6, color: activeSegment === "enterprise" ? "#666" : activeSegment === "newsdesk" ? "#8a8270" : "#999", animation: "pulse 1s infinite" }}>Analyzing potential...</div>}
+            {viralScore && <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginBottom: 2 }}>
+                <div style={{ ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Viral Potential:</div>
+                <div style={{ ...FN, fontSize: 12, color: viralScore.score >= 7 ? "#22c55e" : viralScore.score >= 4 ? uiAccent : "#ef4444", fontWeight: 700 }}>{viralScore.score}/10</div>
+                {[1,2,3,4,5,6,7,8,9,10].map(function(n) { return <div key={n} style={{ width: 3, height: 8, background: n <= viralScore.score ? (viralScore.score >= 7 ? "#22c55e" : viralScore.score >= 4 ? uiAccent : "#ef4444") : (activeSegment === "enterprise" ? "#333" : "#ddd"), borderRadius: 1 }} />; })}
+              </div>
+              {viralScore.reason && <div style={{ ...CP, fontSize: 6, color: activeSegment === "enterprise" ? "#999" : activeSegment === "newsdesk" ? "#1a1a1a88" : "#666" }}>{viralScore.reason}</div>}
+              {viralScore.tip && <div style={{ ...CP, fontSize: 5, color: viralScore.score >= 7 ? "#22c55e88" : uiAccent + "88", marginTop: 1 }}>{"\u2728"} {viralScore.tip}</div>}
+            </div>}
           </div>}
+          {topic.trim() && topicHistory.some(function(h) { return typeof h === "string" ? h === topic : h.topic === topic; }) && <div style={{ ...CP, fontSize: 6, color: uiAccent, textAlign: "center", marginBottom: 4 }}>previously generated</div>}
 
           {/* Recent topics */}
           {recentTopics.length > 0 && !topic.trim() && <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginBottom: 6, justifyContent: "center" }}>
