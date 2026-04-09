@@ -489,25 +489,42 @@ function MosaicBg({ urls, pal, children, category, slideIndex, darken }) {
 }
 
 // Get multiple image URLs for mosaic from the images map
+// _mosaicExtraImages: extra images fetched specifically for mosaic panels
+var _mosaicExtraImages = [];
+
 function getMosaicImgs(images, idx, totalSlides) {
   if (!images) return [];
   var urls = [];
   var used = {};
+  // Track ALL URLs already assigned to any single-image slide
+  var allUsed = {};
+  Object.keys(images).forEach(function(k) {
+    if (images[k] && images[k].url) { allUsed[images[k].url] = true; allUsed[normalizeImgUrl(images[k].url)] = true; }
+  });
+  // Also track URLs already used by other mosaic slides
+  Object.keys(_mosaicSlides).forEach(function(k) {
+    if (parseInt(k) !== idx && _mosaicSlides[k]) {
+      _mosaicSlides[k].forEach(function(u) { if (typeof u === "string") { allUsed[u] = true; allUsed[normalizeImgUrl(u)] = true; } });
+    }
+  });
   // Primary image for this slide
   if (images[idx] && images[idx].url) { urls.push(images[idx].url); used[images[idx].url] = true; }
-  // First pass: non-adjacent images (2+ slides away)
-  var keys = Object.keys(images);
-  for (var k = 0; k < keys.length && urls.length < 4; k++) {
-    var img = images[keys[k]];
-    var ki = parseInt(keys[k]);
-    if (img && img.url && !used[img.url] && Math.abs(ki - idx) > 1) { urls.push(img.url); used[img.url] = true; }
+  // First: pull from extra mosaic images (dedicated, never used by single-image slides)
+  for (var e = 0; e < _mosaicExtraImages.length && urls.length < 4; e++) {
+    var eUrl = _mosaicExtraImages[e];
+    if (eUrl && !used[eUrl] && !allUsed[eUrl] && !allUsed[normalizeImgUrl(eUrl)]) {
+      urls.push(eUrl); used[eUrl] = true; allUsed[eUrl] = true;
+    }
   }
-  // Second pass: if still need more, allow adjacent (but not same slide)
-  if (urls.length < 2) {
-    for (var k2 = 0; k2 < keys.length && urls.length < 4; k2++) {
-      var img2 = images[keys[k2]];
-      var ki2 = parseInt(keys[k2]);
-      if (img2 && img2.url && !used[img2.url] && ki2 !== idx) { urls.push(img2.url); used[img2.url] = true; }
+  // Second: non-adjacent images as fallback (2+ slides away)
+  if (urls.length < 4) {
+    var keys = Object.keys(images);
+    for (var k = 0; k < keys.length && urls.length < 4; k++) {
+      var img = images[keys[k]];
+      var ki = parseInt(keys[k]);
+      if (img && img.url && !used[img.url] && !used[normalizeImgUrl(img.url)] && Math.abs(ki - idx) > 2) {
+        urls.push(img.url); used[img.url] = true;
+      }
     }
   }
   return urls;
@@ -3526,8 +3543,29 @@ export default function LoathrMediaGenerator() {
           // Build mosaic map for slides Claude flagged as mosaic
           _mosaicSlides = {};
           _allImages = imgMap;
+          _mosaicExtraImages = [];
           var mosaicFlagged = slides.filter(function(s) { return s && s.mosaic; }).length;
           console.log("Mosaic: " + mosaicFlagged + " slides flagged, " + totalLoaded + " images available");
+          // Fetch extra images specifically for mosaic panels
+          if (mosaicFlagged > 0 || totalLoaded >= 3) {
+            var mosaicNeed = Math.max(mosaicFlagged, 2) * 3; // ~3 extra per mosaic slide
+            var extraUsed = {};
+            Object.values(imgMap).forEach(function(img) { if (img && img.url) { extraUsed[img.url] = true; extraUsed[normalizeImgUrl(img.url)] = true; } });
+            try {
+              var mosaicQuery = shortTopic + " " + (catInfo ? catInfo.label : category);
+              var mExtra = [];
+              if (primaryKey) { try { var me1 = await primaryFn(mosaicQuery + " editorial", primaryKey); mExtra = mExtra.concat(me1); } catch(e) {} }
+              if (secondaryKey) { try { var me2 = await secondaryFn(mosaicQuery + " industry", secondaryKey); mExtra = mExtra.concat(me2); } catch(e) {} }
+              try { var me3 = await searchWikiCommons(mosaicQuery); mExtra = mExtra.concat(me3); } catch(e) {}
+              try { var me4 = await searchPixabay(mosaicQuery); mExtra = mExtra.concat(me4); } catch(e) {}
+              mExtra.forEach(function(img) {
+                if (img && img.url && !extraUsed[img.url] && !extraUsed[normalizeImgUrl(img.url)] && _mosaicExtraImages.length < mosaicNeed) {
+                  _mosaicExtraImages.push(img.url); extraUsed[img.url] = true; extraUsed[normalizeImgUrl(img.url)] = true;
+                }
+              });
+              console.log("Mosaic extra images fetched: " + _mosaicExtraImages.length);
+            } catch(e) { console.error("Mosaic extra fetch error:", e); }
+          }
           if (totalLoaded >= 3) {
             slides.forEach(function(s, si) {
               if (s && s.mosaic && si > 0 && si < slides.length - 1) {
