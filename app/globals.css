@@ -36,8 +36,8 @@
 
 @font-face {
   font-family: 'Otilito';
-  src: url('/Fonts/Enterprise/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Regular.otf') format('opentype'),
-       url('/Fonts/Enterprise/otilito-sans-font-family-2026-04-07-06-24-36-utc/TTF/TBJOtilito-Regular.ttf') format('truetype');
+  src: url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Regular.otf') format('opentype'),
+       url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/TTF/TBJOtilito-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -45,8 +45,8 @@
 
 @font-face {
   font-family: 'Otilito';
-  src: url('/Fonts/Enterprise/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Bold.otf') format('opentype'),
-       url('/Fonts/Enterprise/otilito-sans-font-family-2026-04-07-06-24-36-utc/TTF/TBJOtilito-Bold.ttf') format('truetype');
+  src: url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Bold.otf') format('opentype'),
+       url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/TTF/TBJOtilito-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -54,8 +54,8 @@
 
 @font-face {
   font-family: 'Otilito';
-  src: url('/Fonts/Enterprise/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Light.otf') format('opentype'),
-       url('/Fonts/Enterprise/otilito-sans-font-family-2026-04-07-06-24-36-utc/TTF/TBJOtilito-Light.ttf') format('truetype');
+  src: url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Light.otf') format('opentype'),
+       url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/TTF/TBJOtilito-Light.ttf') format('truetype');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
@@ -63,8 +63,8 @@
 
 @font-face {
   font-family: 'Qogee';
-  src: url('/Fonts/Enterprise/qogee-font-2026-04-07-06-00-04-utc/Qogee.otf') format('opentype'),
-       url('/Fonts/Enterprise/qogee-font-2026-04-07-06-00-04-utc/Qogee.ttf') format('truetype');
+  src: url('/Fonts/qogee-font-2026-04-07-06-00-04-utc/Qogee.otf') format('opentype'),
+       url('/Fonts/qogee-font-2026-04-07-06-00-04-utc/Qogee.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -72,10 +72,10 @@
 
 @font-face {
   font-family: 'Matina';
-  src: url('/Fonts/Enterprise/Matina/Font/Matina-Regular.woff2') format('woff2'),
-       url('/Fonts/Enterprise/Matina/Font/Matina-Regular.woff') format('woff'),
-       url('/Fonts/Enterprise/Matina/Font/Matina-Regular.otf') format('opentype'),
-       url('/Fonts/Enterprise/Matina/Font/Matina-Regular.ttf') format('truetype');
+  src: url('/Fonts/Matina/Font/Matina-Regular.woff2') format('woff2'),
+       url('/Fonts/Matina/Font/Matina-Regular.woff') format('woff'),
+       url('/Fonts/Matina/Font/Matina-Regular.otf') format('opentype'),
+       url('/Fonts/Matina/Font/Matina-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
