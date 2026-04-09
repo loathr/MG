@@ -27,6 +27,39 @@ function bodyFont(slide) { return FONT_MAP[slide && slide.bodyFont] || HD; }
 function headFont(slide) { return FONT_MAP[slide && slide.headingFont] || FN; }
 function hlFont(slide) { return FONT_MAP[slide && slide.highlightFont] || WS; }
 
+var TEXT_COLORS = {
+  enterprise: [
+    { id: null, label: "Auto", color: null },
+    { id: "#ffffff", label: "White", color: "#ffffff" },
+    { id: "#ffffffcc", label: "Soft", color: "#ffffffcc" },
+    { id: "#ffffff88", label: "Muted", color: "#ffffff88" },
+    { id: "#ffffff55", label: "Faint", color: "#ffffff55" },
+    { id: "#e2e2e2", label: "Silver", color: "#e2e2e2" },
+    { id: "#c41e1e", label: "Red", color: "#c41e1e" },
+    { id: "#f5c518", label: "Gold", color: "#f5c518" },
+    { id: "#00b4d8", label: "Cyan", color: "#00b4d8" },
+  ],
+  newsdesk: [
+    { id: null, label: "Auto", color: null },
+    { id: "#1a1a1a", label: "Black", color: "#1a1a1a" },
+    { id: "#1a1a1acc", label: "Soft", color: "#1a1a1acc" },
+    { id: "#1a1a1a88", label: "Muted", color: "#1a1a1a88" },
+    { id: "#c41e1e", label: "Red", color: "#c41e1e" },
+    { id: "#2d5f2d", label: "Green", color: "#2d5f2d" },
+    { id: "#1a4480", label: "Navy", color: "#1a4480" },
+  ],
+  editorial: [
+    { id: null, label: "Auto", color: null },
+    { id: "#ffffff", label: "White", color: "#ffffff" },
+    { id: "#ffffffe6", label: "Soft", color: "#ffffffe6" },
+    { id: "#ffffffaa", label: "Muted", color: "#ffffffaa" },
+    { id: "#1a1a1a", label: "Black", color: "#1a1a1a" },
+    { id: "#e63946", label: "Red", color: "#e63946" },
+    { id: "#f5c518", label: "Gold", color: "#f5c518" },
+    { id: "#00b4d8", label: "Cyan", color: "#00b4d8" },
+  ],
+};
+
 // --- MAGAZINE EDITION SYSTEM ---
 var PERSONAS = [
   // Original 5
@@ -4939,9 +4972,9 @@ export default function LoathrMediaGenerator() {
             </div>}
 
             {/* === LAYOUT === */}
-            {editSection === "layout" && isContent && <div>
-              {/* Enterprise layout picker */}
-              {activeSegment === "enterprise" && <div style={{ marginBottom: 6 }}>
+            {editSection === "layout" && <div>
+              {/* Enterprise layout picker — content slides only */}
+              {activeSegment === "enterprise" && isContent && <div style={{ marginBottom: 6 }}>
                 <div style={{ ...CP, fontSize: 5, color: "#888", marginBottom: 3 }}>SLIDE LAYOUT</div>
                 <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
                   <button onClick={function() { updateSlideField(currentSlide, "enterpriseLayout", null); }}
@@ -5027,6 +5060,13 @@ export default function LoathrMediaGenerator() {
                     {ALL_FONTS.map(function(f) { var fontKey = nudgeTarget + "Font"; var defaults = { heading: "foun", body: "maheni", highlight: activeSegment === "enterprise" ? "maheni" : activeSegment === "newsdesk" ? "maheni" : "wenssep", sources: "courier" }; var sel = (s[fontKey] || defaults[nudgeTarget] || "maheni") === f.id; return (
                       <button key={f.id} onClick={function() { updateSlideField(currentSlide, fontKey, f.id); }}
                         style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd")), background: sel ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999") }}>{f.label}</button>
+                    ); })}
+                  </div>}
+                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources") && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3, flexWrap: "wrap" }}>
+                    <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Color:</div>
+                    {(TEXT_COLORS[activeSegment] || TEXT_COLORS.editorial).map(function(c) { var colorKey = nudgeTarget + "Color"; var sel = (s[colorKey] || null) === c.id; return (
+                      <button key={c.label} onClick={function() { updateSlideField(currentSlide, colorKey, c.id); }}
+                        style={{ width: c.id ? 14 : "auto", height: 14, padding: c.id ? 0 : "0 4px", border: "1px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : (activeSegment === "enterprise" ? "#444" : "#ddd")), background: c.id || "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : "#999", lineHeight: "14px", textAlign: "center" }} title={c.label}>{c.id ? "" : c.label}</button>
                     ); })}
                   </div>}
                   {nudgeTarget === "highlight" && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>
