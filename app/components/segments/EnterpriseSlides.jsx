@@ -14,7 +14,7 @@ export var ENTERPRISE_FONTS = [
 ];
 function bodyFont(slide) { return FONT_MAP[slide.bodyFont] || HD; }
 function headFont(slide) { return FONT_MAP[slide.headingFont] || FN; }
-var imgFilter = "grayscale(1) contrast(1.1) brightness(0.6)";
+var imgFilter = "none";
 
 // Enterprise text styling — underline KEY TERMS + custom keywords
 export function enterpriseStyleBody(text, keywords, underlineWeight) {

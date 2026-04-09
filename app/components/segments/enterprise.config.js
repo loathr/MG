@@ -46,7 +46,7 @@ export var ENTERPRISE_THEME = {
 };
 
 export var ENTERPRISE_DESIGN = {
-  imageFilter: "grayscale(1) contrast(1.1) brightness(0.85)",
+  imageFilter: "none",
   containers: ["formal", "minimal", "glass"], // only these allowed
   borderColor: "#ffffff",
   borderWidth: 1,
