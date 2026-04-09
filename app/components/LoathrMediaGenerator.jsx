@@ -1642,14 +1642,19 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
     if (slideIndex === 0) slide = <EnterpriseCover slide={slideData} images={images} index={slideIndex} />;
     else if (slideIndex === lastIdx) slide = <EnterpriseCloser slide={slideData} images={images} index={slideIndex} category={category} />;
     else if (slideData.heading && slideData.heading.toUpperCase().indexOf("PLAYBOOK") > -1) slide = <EnterprisePlaybook slide={slideData} images={images} index={slideIndex} />;
-    else if (slideData.statFormat || slideData.stat || slideData.stats) slide = <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
     else {
       // Detect enterprise slide role from position or content
       var eRoles = ["THE LANDSCAPE", "THE FORCE", "THE IMPACT", "THE WINNERS", "THE LOSERS", "THE DATA", "THE PLAYBOOK", "THE FORECAST"];
-      var eRole = eRoles[(slideIndex - 1) % eRoles.length] || "";
+      var eRole = slideData.role || eRoles[(slideIndex - 1) % eRoles.length] || "";
+      // For stat slides (THE DATA), merge stat into body if no body text
+      var eSlideData = Object.assign({}, slideData, { role: eRole });
+      if ((slideData.statFormat || slideData.stat) && !slideData.body) {
+        eSlideData.body = (slideData.stat || "") + (slideData.caption ? " — " + slideData.caption : slideData.statLabel ? " — " + slideData.statLabel : "");
+        if (!eSlideData.heading) eSlideData.heading = "THE DATA";
+      }
       var eMosaic = _mosaicSlides[slideIndex];
       var eMosaicLayout = eMosaic && typeof eMosaic._layoutIdx === "number" ? MOSAIC_LAYOUTS[eMosaic._layoutIdx] : null;
-      slide = <EnterpriseContent slide={Object.assign({}, slideData, { role: eRole })} images={images} index={slideIndex} mosaicUrls={eMosaic} mosaicLayout={eMosaicLayout} />;
+      slide = <EnterpriseContent slide={eSlideData} images={images} index={slideIndex} mosaicUrls={eMosaic} mosaicLayout={eMosaicLayout} />;
     }
   } else if (category === "newsdesk") {
     if (slideIndex === 0) slide = <NewsFrontPage slide={slideData} images={images} index={slideIndex} />;
