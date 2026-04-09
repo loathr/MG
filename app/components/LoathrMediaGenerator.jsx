@@ -3689,13 +3689,13 @@ export default function LoathrMediaGenerator() {
       {activeSegment === "enterprise" && <div style={{ display: "flex", gap: 0, marginBottom: 8, justifyContent: "center" }}>
         {ENTERPRISE_MODES.map(function(m) {
           var sel = enterpriseMode === m.id;
-          return <button key={m.id} onClick={function() { setEnterpriseMode(m.id); setOptions(null); setTrending([]); }}
+          return <button key={m.id} onClick={function() { setEnterpriseMode(m.id); setOptions(null); setTrending([]); if (m.id === "tips" && enterpriseForce === "news") setEnterpriseForce(null); }}
             style={{ padding: "5px 12px", border: "none", borderBottom: "1.5px solid " + (sel ? "#ffffff" : "transparent"), background: sel ? "#ffffff08" : "transparent", cursor: "pointer", ...CP, fontSize: 7, letterSpacing: "0.08em", color: sel ? "#ffffff" : "#666", fontWeight: sel ? 700 : 400 }}>{m.label}</button>;
         })}
       </div>}
       {/* Enterprise force selector */}
       {activeSegment === "enterprise" && <div style={{ display: "flex", gap: 3, marginBottom: 12, justifyContent: "center", flexWrap: "wrap" }}>
-        {ENTERPRISE_FORCES.map(function(f) {
+        {ENTERPRISE_FORCES.filter(function(f) { return enterpriseMode !== "tips" || f.id !== "news"; }).map(function(f) {
           var sel = enterpriseForce === f.id;
           return <button key={f.id} onClick={function() { setEnterpriseForce(sel ? null : f.id); }}
             style={{ padding: "3px 8px", cursor: "pointer", border: sel ? "1px solid #ffffff" : "0.5px solid #444", background: sel ? "#ffffff22" : "transparent", ...CP, fontSize: 7, color: sel ? "#ffffff" : "#888", letterSpacing: "0.03em" }}>{f.label}</button>;
