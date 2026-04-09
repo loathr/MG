@@ -16,8 +16,14 @@ var HD = { fontFamily: "'Maheni',Georgia,serif", fontStyle: "normal" };
 var FN = { fontFamily: "'Foun',Georgia,serif" };
 var WS = { fontFamily: "'Wenssep',Georgia,serif", textTransform: "uppercase" };
 var CP = { fontFamily: "'Courier Prime',monospace" };
-var FONT_MAP = { maheni: HD, foun: FN, courier: CP, wenssep: WS };
+var OT = { fontFamily: "'Otilito','Foun',sans-serif" };
+var QG = { fontFamily: "'Qogee','Maheni',serif", fontStyle: "normal" };
+var MT = { fontFamily: "'Matina','Maheni',serif", fontStyle: "normal" };
+var FONT_MAP = { maheni: HD, foun: FN, courier: CP, wenssep: WS, otilito: OT, qogee: QG, matina: MT };
 var ALL_FONTS = [
+  { id: "otilito", label: "Otilito" },
+  { id: "qogee", label: "Qogee" },
+  { id: "matina", label: "Matina" },
   { id: "maheni", label: "Maheni" },
   { id: "foun", label: "Foun" },
   { id: "courier", label: "Courier" },
@@ -5067,6 +5073,13 @@ export default function LoathrMediaGenerator() {
                     {(TEXT_COLORS[activeSegment] || TEXT_COLORS.editorial).map(function(c) { var colorKey = nudgeTarget + "Color"; var sel = (s[colorKey] || null) === c.id; return (
                       <button key={c.label} onClick={function() { updateSlideField(currentSlide, colorKey, c.id); }}
                         style={{ width: c.id ? 14 : "auto", height: 14, padding: c.id ? 0 : "0 4px", border: "1px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : (activeSegment === "enterprise" ? "#444" : "#ddd")), background: c.id || "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : "#999", lineHeight: "14px", textAlign: "center" }} title={c.label}>{c.id ? "" : c.label}</button>
+                    ); })}
+                  </div>}
+                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources") && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>
+                    <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Align:</div>
+                    {[{ id: "left", label: "\u2190" }, { id: "center", label: "\u2194" }, { id: "right", label: "\u2192" }].map(function(a) { var alignKey = nudgeTarget + "Align"; var sel = (s[alignKey] || "") === a.id; return (
+                      <button key={a.id} onClick={function() { updateSlideField(currentSlide, alignKey, sel ? null : a.id); }}
+                        style={{ width: 18, height: 14, border: "0.5px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd")), background: sel ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999"), textAlign: "center", lineHeight: "14px" }}>{a.label}</button>
                     ); })}
                   </div>}
                   {nudgeTarget === "highlight" && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>

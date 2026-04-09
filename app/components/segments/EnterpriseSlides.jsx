@@ -5,18 +5,28 @@ var CP = { fontFamily: "'Courier Prime',monospace" };
 var FN = { fontFamily: "'Foun',Georgia,serif" };
 var HD = { fontFamily: "'Maheni',Georgia,serif", fontStyle: "normal" };
 var WS = { fontFamily: "'Wenssep',Georgia,serif", textTransform: "uppercase" };
-var FONT_MAP = { maheni: HD, foun: FN, courier: CP, wenssep: WS };
+// Enterprise-specific fonts
+var OT = { fontFamily: "'Otilito','Foun',sans-serif" };
+var QG = { fontFamily: "'Qogee','Maheni',serif", fontStyle: "normal" };
+var MT = { fontFamily: "'Matina','Maheni',serif", fontStyle: "normal" };
+var FONT_MAP = { maheni: HD, foun: FN, courier: CP, wenssep: WS, otilito: OT, qogee: QG, matina: MT };
 export var ENTERPRISE_FONTS = [
+  { id: "otilito", label: "Otilito" },
+  { id: "qogee", label: "Qogee" },
+  { id: "matina", label: "Matina" },
   { id: "maheni", label: "Maheni" },
   { id: "foun", label: "Foun" },
   { id: "courier", label: "Courier" },
   { id: "wenssep", label: "Wenssep" },
 ];
-function bodyFont(slide) { return FONT_MAP[slide.bodyFont] || HD; }
-function headFont(slide) { return FONT_MAP[slide.headingFont] || FN; }
+function bodyFont(slide) { return FONT_MAP[slide.bodyFont] || QG; }
+function headFont(slide) { return FONT_MAP[slide.headingFont] || OT; }
 function headColor(slide, def) { return slide.headingColor || def || "#ffffff"; }
 function bodyColor(slide, def) { return slide.bodyColor || def || "#ffffffcc"; }
 function srcColor(slide, def) { return slide.sourcesColor || def || "#ffffff33"; }
+function headAlign(slide) { return slide.headingAlign ? { textAlign: slide.headingAlign } : {}; }
+function bodyAlign(slide) { return slide.bodyAlign ? { textAlign: slide.bodyAlign } : {}; }
+function srcAlign(slide) { return slide.sourcesAlign ? { textAlign: slide.sourcesAlign } : {}; }
 var IMG_FILTERS = {
   none: "none",
   bw: "grayscale(1) contrast(1.1) brightness(0.85)",
@@ -65,7 +75,7 @@ var srcLine = function(s, slide) {
   if (!s) return null;
   var sz = 4 + (slide && slide.sourcesSize || 0);
   var srcFont = slide && slide.sourcesFont ? (FONT_MAP[slide.sourcesFont] || CP) : CP;
-  return <div style={{ ...srcFont, fontSize: sz, color: srcColor(slide), textAlign: "right", marginTop: 4 }}>{s}</div>;
+  return <div style={Object.assign({}, { ...srcFont, fontSize: sz, color: srcColor(slide), textAlign: "right", marginTop: 4 }, srcAlign(slide))}>{s}</div>;
 };
 var dividerLine = function(slide) {
   if (slide && slide.dividerHidden) return null;
@@ -74,7 +84,7 @@ var dividerLine = function(slide) {
   return <div style={{ height: w, background: c, marginBottom: 6 }} />;
 };
 var sectionLabel = function(t) { return <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "#ffffff55", marginBottom: 4, textTransform: "uppercase" }}>{t}</div>; };
-var highlightFont = function(slide) { return FONT_MAP[slide && slide.highlightFont] || HD; };
+var highlightFont = function(slide) { return FONT_MAP[slide && slide.highlightFont] || MT; };
 
 // Highlight design styles — shared across segments
 export var HIGHLIGHT_STYLES = [
@@ -118,7 +128,11 @@ function offsetStyle(slide) { var o = getTextOffset(slide); return (o.top || o.l
 function elementTransform(slide, element) {
   var cp = slide.customPosition && typeof slide.customPosition === "object" ? slide.customPosition : {};
   var o = cp[element] || { top: 0, left: 0 };
-  return (o.top || o.left) ? { transform: "translate(" + (o.left || 0) + "px," + (o.top || 0) + "px)" } : {};
+  var result = (o.top || o.left) ? { transform: "translate(" + (o.left || 0) + "px," + (o.top || 0) + "px)" } : {};
+  // Text alignment override
+  var alignKey = element + "Align";
+  if (slide[alignKey]) result.textAlign = slide[alignKey];
+  return result;
 }
 
 export var ENTERPRISE_LAYOUT_COUNT = 8;
