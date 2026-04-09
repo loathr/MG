@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
 import { ENTERPRISE_FORCES, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
-import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS, styledHighlight, HIGHLIGHT_STYLES } from "./segments/EnterpriseSlides";
+import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS, styledHighlight, HIGHLIGHT_STYLES, ENTERPRISE_IMG_FILTERS, setGlobalImgFilter } from "./segments/EnterpriseSlides";
 import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
 import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser } from "./segments/NewsDeskSlides";
 
@@ -3166,6 +3166,7 @@ export default function LoathrMediaGenerator() {
     setEditionData(edition);
     _activeImageStyle = category === "enterprise" ? "bw" : (editionPicks.imageStyle || "mixed");
     _activeSegment = category === "enterprise" ? "enterprise" : category === "newsdesk" ? "newsdesk" : null;
+    if (category === "enterprise") setGlobalImgFilter(editionPicks.enterpriseImgFilter || "none");
     try {
       if (controller.signal.aborted) throw new Error("Generation cancelled");
       var secInfo = secondaryCategory ? CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) : null;
@@ -4318,11 +4319,20 @@ export default function LoathrMediaGenerator() {
                   ); })}
                 </div>
               </div>
-              <div>
+              <div style={{ marginBottom: 8 }}>
                 <div style={{ ...CP, fontSize: 6, color: "#888", letterSpacing: "0.1em", marginBottom: 3 }}>CUSTOM VOICE</div>
                 <input value={editionPicks.customVoice || ""} onChange={function(e) { setEditionPicks(function(p) { return Object.assign({}, p, { customVoice: e.target.value }); }); }}
                   placeholder='"Write like Bloomberg" or "McKinsey briefing style"'
                   style={{ width: "100%", padding: "4px 8px", border: "0.5px solid #444", ...CP, fontSize: 7, color: "#ddd", background: "#1a1a1a" }} />
+              </div>
+              <div>
+                <div style={{ ...CP, fontSize: 6, color: "#888", letterSpacing: "0.1em", marginBottom: 3 }}>IMAGE FILTER</div>
+                <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                  {ENTERPRISE_IMG_FILTERS.map(function(f) { var sel = (editionPicks.enterpriseImgFilter || "none") === f.id; return (
+                    <button key={f.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { enterpriseImgFilter: f.id }); }); setGlobalImgFilter(f.id); }}
+                      style={{ padding: "3px 8px", border: "0.5px solid " + (sel ? "#fff" : "#444"), background: sel ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#fff" : "#888" }}>{f.label}</button>
+                  ); })}
+                </div>
               </div>
             </div>}
             {/* News Desk settings */}
@@ -4945,13 +4955,22 @@ export default function LoathrMediaGenerator() {
                     style={{ padding: "1px 3px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), cursor: "pointer", ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#666" : "#999" }}>Reset</button>}
                 </div>
                 {/* Per-block text edit + size + font */}
-                {nudgeTarget !== "all" && s[nudgeTarget] !== undefined && <div style={{ padding: 4, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), borderRadius: 2, background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ebe6d6" : "#fafafa" }}>
-                  <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : "#333", marginBottom: 2 }}>{nudgeTarget.toUpperCase()}</div>
-                  {nudgeTarget === "body" ? (
-                    <textarea value={s[nudgeTarget] || ""} onChange={function(e) { updateSlideField(currentSlide, nudgeTarget, e.target.value); }}
+                {nudgeTarget !== "all" && (function() {
+                  // Map cover fields: heading→title, body→subtitle for cover slides
+                  var isCover = currentSlide === 0;
+                  var coverMap = { heading: "title", body: "subtitle" };
+                  var fieldKey = isCover && coverMap[nudgeTarget] ? coverMap[nudgeTarget] : nudgeTarget;
+                  var hasField = s[fieldKey] !== undefined || s[nudgeTarget] !== undefined;
+                  if (!hasField) return null;
+                  var fieldVal = s[fieldKey] !== undefined ? s[fieldKey] : (s[nudgeTarget] || "");
+                  var updateField = function(val) { updateSlideField(currentSlide, fieldKey, val); };
+                  return <div style={{ padding: 4, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), borderRadius: 2, background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ebe6d6" : "#fafafa" }}>
+                  <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : "#333", marginBottom: 2 }}>{nudgeTarget.toUpperCase()}{isCover && coverMap[nudgeTarget] ? " (" + coverMap[nudgeTarget] + ")" : ""}</div>
+                  {nudgeTarget === "body" || fieldKey === "subtitle" ? (
+                    <textarea value={fieldVal || ""} onChange={function(e) { updateField(e.target.value); }}
                       rows={2} style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fff" : "#fff", resize: "vertical" }} />
                   ) : (
-                    <input value={s[nudgeTarget] || ""} onChange={function(e) { updateSlideField(currentSlide, nudgeTarget, e.target.value); }}
+                    <input value={fieldVal || ""} onChange={function(e) { updateField(e.target.value); }}
                       style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fff" : "#fff" }} />
                   )}
                   {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources") && <div style={{ display: "flex", gap: 3, alignItems: "center", marginTop: 2 }}>
@@ -4990,7 +5009,8 @@ export default function LoathrMediaGenerator() {
                         style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>+</button>
                     </div>
                   </div>}
-                </div>}
+                </div>;
+                })()}
               </div>
               {/* Divider line + Sources controls — Enterprise */}
               {activeSegment === "enterprise" && <div style={{ marginTop: 4, borderTop: "0.5px solid #333", paddingTop: 4 }}>
@@ -5003,6 +5023,15 @@ export default function LoathrMediaGenerator() {
                     style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>+</button>
                   <button onClick={function() { updateSlideField(currentSlide, "dividerHidden", !s.dividerHidden); }}
                     style={{ padding: "1px 4px", border: "0.5px solid #444", background: s.dividerHidden ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: s.dividerHidden ? "#fff" : "#888" }}>{s.dividerHidden ? "Hidden" : "Visible"}</button>
+                </div>
+                <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3, flexWrap: "wrap" }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#888" }}>Filter:</div>
+                  {ENTERPRISE_IMG_FILTERS.map(function(f) { var sel = (s.imgFilter || "") === f.id || (!s.imgFilter && (editionPicks.enterpriseImgFilter || "none") === f.id); return (
+                    <button key={f.id} onClick={function() { updateSlideField(currentSlide, "imgFilter", f.id); }}
+                      style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? "#fff" : "#444"), background: sel ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? "#fff" : "#888" }}>{f.label}</button>
+                  ); })}
+                  {s.imgFilter && <button onClick={function() { updateSlideField(currentSlide, "imgFilter", null); }}
+                    style={{ padding: "1px 3px", border: "0.5px solid #444", cursor: "pointer", ...CP, fontSize: 4, color: "#666" }}>Reset</button>}
                 </div>
               </div>}
               <button onClick={function() { updateSlideField(currentSlide, "imageLayout", "single"); delete _mosaicSlides[currentSlide]; setImages(function(prev) { return Object.assign({}, prev); }); }}
