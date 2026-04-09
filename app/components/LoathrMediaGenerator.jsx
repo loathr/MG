@@ -4869,6 +4869,47 @@ export default function LoathrMediaGenerator() {
                       style={{ padding: "1px 4px", border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 4, color: "#666" }}>Reset</button>}
                   </div>
                 </div>
+                {/* Per-element movement in Enterprise LAYOUT tab */}
+                <div style={{ marginTop: 4, borderTop: "0.5px solid #333", paddingTop: 4 }}>
+                  <div style={{ display: "flex", gap: 2, alignItems: "center", marginBottom: 3, flexWrap: "wrap" }}>
+                    <div style={{ ...CP, fontSize: 5, color: "#888" }}>Element:</div>
+                    {["all", "heading", "body", "highlight"].map(function(t) { return (
+                      <button key={t} onClick={function() { setNudgeTarget(t); }}
+                        style={{ padding: "1px 4px", border: "0.5px solid " + (nudgeTarget === t ? "#fff" : "#444"), background: nudgeTarget === t ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: nudgeTarget === t ? "#fff" : "#888", textTransform: "capitalize" }}>{t}</button>
+                    ); })}
+                    <div style={{ display: "flex", gap: 1, marginLeft: 4 }}>
+                      <button onClick={function() { nudgePosition(currentSlide, nudgeTarget, "up"); }}
+                        style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2191"}</button>
+                      <button onClick={function() { nudgePosition(currentSlide, nudgeTarget, "down"); }}
+                        style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2193"}</button>
+                      <button onClick={function() { nudgePosition(currentSlide, nudgeTarget, "left"); }}
+                        style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2190"}</button>
+                      <button onClick={function() { nudgePosition(currentSlide, nudgeTarget, "right"); }}
+                        style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
+                    </div>
+                    {s.customPosition && s.customPosition[nudgeTarget] && <button onClick={function() { resetNudge(currentSlide, nudgeTarget); }}
+                      style={{ padding: "1px 3px", border: "0.5px solid #444", cursor: "pointer", ...CP, fontSize: 4, color: "#666" }}>Reset</button>}
+                  </div>
+                  {/* Per-block text edit */}
+                  {nudgeTarget !== "all" && s[nudgeTarget] !== undefined && <div style={{ padding: 4, border: "0.5px solid #333", borderRadius: 2, background: "#1a1a1a" }}>
+                    <div style={{ ...CP, fontSize: 4, color: "#fff", marginBottom: 2 }}>{nudgeTarget.toUpperCase()}</div>
+                    {nudgeTarget === "body" ? (
+                      <textarea value={s[nudgeTarget] || ""} onChange={function(e) { updateSlideField(currentSlide, nudgeTarget, e.target.value); }}
+                        rows={2} style={{ width: "100%", padding: "2px 4px", border: "0.5px solid #444", ...CP, fontSize: 7, color: "#ddd", background: "#111", resize: "vertical" }} />
+                    ) : (
+                      <input value={s[nudgeTarget] || ""} onChange={function(e) { updateSlideField(currentSlide, nudgeTarget, e.target.value); }}
+                        style={{ width: "100%", padding: "2px 4px", border: "0.5px solid #444", ...CP, fontSize: 7, color: "#ddd", background: "#111" }} />
+                    )}
+                    {(nudgeTarget === "heading" || nudgeTarget === "body") && <div style={{ display: "flex", gap: 3, alignItems: "center", marginTop: 2 }}>
+                      <div style={{ ...CP, fontSize: 4, color: "#888" }}>Size:</div>
+                      <button onClick={function() { adjustFontSize(currentSlide, nudgeTarget, -1); }}
+                        style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>-</button>
+                      <div style={{ ...CP, fontSize: 5, color: "#ccc" }}>{(s[nudgeTarget + "Size"] || 0) > 0 ? "+" : ""}{s[nudgeTarget + "Size"] || 0}</div>
+                      <button onClick={function() { adjustFontSize(currentSlide, nudgeTarget, 1); }}
+                        style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>+</button>
+                    </div>}
+                  </div>}
+                </div>
               </div>}
               <button onClick={function() { updateSlideField(currentSlide, "imageLayout", "single"); delete _mosaicSlides[currentSlide]; setImages(function(prev) { return Object.assign({}, prev); }); }}
                 style={{ padding: "3px 8px", border: "0.5px solid " + (!_mosaicSlides[currentSlide] ? uiAccent : "#ddd"), background: !_mosaicSlides[currentSlide] ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: !_mosaicSlides[currentSlide] ? uiAccent : "#999", marginBottom: 4, display: "block" }}>Single Image</button>
