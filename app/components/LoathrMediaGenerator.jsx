@@ -1,7 +1,7 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
-import { ENTERPRISE_FORCES, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
+import { ENTERPRISE_FORCES, ENTERPRISE_SECTORS, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
 import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS, styledHighlight, HIGHLIGHT_STYLES, ENTERPRISE_IMG_FILTERS, setGlobalImgFilter } from "./segments/EnterpriseSlides";
 import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
 import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser } from "./segments/NewsDeskSlides";
@@ -2592,6 +2592,8 @@ export default function LoathrMediaGenerator() {
   var ngt = _s("all"), nudgeTarget = ngt[0], setNudgeTarget = ngt[1]; // "all"|"heading"|"body"|"highlight"
   // Enterprise state
   var efc = _s(null), enterpriseForce = efc[0], setEnterpriseForce = efc[1];
+  var esc = _s(null), enterpriseSector = esc[0], setEnterpriseSector = esc[1];
+  var esv = _s(false), showSectors = esv[0], setShowSectors = esv[1];
   var emm = _s("analysis"), enterpriseMode = emm[0], setEnterpriseMode = emm[1]; // "analysis"|"news"|"tips"
   // News Desk state
   var ndf = _s(null), newsFilter = ndf[0], setNewsFilter = ndf[1];
@@ -3271,9 +3273,10 @@ export default function LoathrMediaGenerator() {
       var prompt;
       if (category === "enterprise") {
         var force = enterpriseForce ? ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) : null;
-        if (enterpriseMode === "news") { prompt = buildEnterpriseNewsPrompt(topic, force, edition.seed, editionPicks); }
-        else if (enterpriseMode === "tips") { prompt = buildEnterpriseTipsPrompt(topic, force, edition.seed, editionPicks); }
-        else { prompt = buildEnterprisePrompt(topic, force, edition.seed, editionPicks); }
+        var sectorObj = enterpriseSector ? ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) : null;
+        if (enterpriseMode === "news") { prompt = buildEnterpriseNewsPrompt(topic, force, edition.seed, editionPicks, sectorObj); }
+        else if (enterpriseMode === "tips") { prompt = buildEnterpriseTipsPrompt(topic, force, edition.seed, editionPicks, sectorObj); }
+        else { prompt = buildEnterprisePrompt(topic, force, edition.seed, editionPicks, sectorObj); }
       } else if (category === "newsdesk") {
         var nfObj = newsFilter ? NEWSDESK_FILTERS.find(function(f) { return f.id === newsFilter; }) : null;
         var nrObj = NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }) || null;
@@ -3628,7 +3631,7 @@ export default function LoathrMediaGenerator() {
       }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
     finally { setIsGenerating(false); }
-  }, [topic, category, secondaryCategory, secondaryCount, tertiaryCategory, tertiaryCount, apiKeys, editionPicks, lockedPersonImages, genCount, previewLocked, lockedLocationImages, enterpriseForce, enterpriseMode, newsFilter, newsRegion, newsTimeframe, newsCountry]);
+  }, [topic, category, secondaryCategory, secondaryCount, tertiaryCategory, tertiaryCount, apiKeys, editionPicks, lockedPersonImages, genCount, previewLocked, lockedLocationImages, enterpriseForce, enterpriseMode, enterpriseSector, newsFilter, newsRegion, newsTimeframe, newsCountry]);
 
   // --- Custom Story generator ---
   var generateCustomStory = _cb(async function() {
@@ -3840,7 +3843,7 @@ export default function LoathrMediaGenerator() {
             if (s.id === "enterprise") { setCategory("enterprise"); }
             else if (s.id === "newsdesk") { setCategory("newsdesk"); }
             else { setCategory(null); }
-            setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({}); lockedRef.current = {}; setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({}); setDroppedImage(null); setReverseTopics([]); setEnterpriseForce(null); setNewsFilter(null); setSecondaryCategory(null); setTertiaryCategory(null);
+            setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({}); lockedRef.current = {}; setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({}); setDroppedImage(null); setReverseTopics([]); setEnterpriseForce(null); setEnterpriseSector(null); setNewsFilter(null); setSecondaryCategory(null); setTertiaryCategory(null);
           }}
             style={{ padding: "8px 16px", cursor: "pointer", border: "none", borderBottom: "2px solid " + (sel ? (s.color || uiAccent) : "transparent"), background: sel ? (activeSegment === "enterprise" ? "#ffffff08" : activeSegment === "newsdesk" ? "#c41e1e08" : "transparent") : "transparent", ...CP, fontSize: 9, letterSpacing: "0.12em", color: sel ? (s.color || (category ? (PALETTES[category] || {}).accent : "#666")) : (activeSegment === "enterprise" ? "#666" : "#999"), fontWeight: sel ? 700 : 400, textTransform: "uppercase" }}>{s.label}</button>;
         })}
@@ -3867,12 +3870,27 @@ export default function LoathrMediaGenerator() {
         })}
       </div>}
       {/* Enterprise force selector */}
-      {activeSegment === "enterprise" && <div style={{ display: "flex", gap: 3, marginBottom: 12, justifyContent: "center", flexWrap: "wrap" }}>
-        {ENTERPRISE_FORCES.filter(function(f) { return enterpriseMode !== "tips" || f.id !== "news"; }).map(function(f) {
-          var sel = enterpriseForce === f.id;
-          return <button key={f.id} onClick={function() { setEnterpriseForce(sel ? null : f.id); }}
-            style={{ padding: "3px 8px", cursor: "pointer", border: sel ? "1px solid #ffffff" : "0.5px solid #444", background: sel ? "#ffffff22" : "transparent", ...CP, fontSize: 7, color: sel ? "#ffffff" : "#888", letterSpacing: "0.03em" }}>{f.label}</button>;
-        })}
+      {activeSegment === "enterprise" && <div style={{ marginBottom: 8 }}>
+        <div style={{ display: "flex", gap: 3, marginBottom: 4, justifyContent: "center", flexWrap: "wrap" }}>
+          {ENTERPRISE_FORCES.filter(function(f) { return enterpriseMode !== "tips" || f.id !== "news"; }).map(function(f) {
+            var sel = enterpriseForce === f.id;
+            return <button key={f.id} onClick={function() { setEnterpriseForce(sel ? null : f.id); }}
+              style={{ padding: "3px 8px", cursor: "pointer", border: sel ? "1px solid #ffffff" : "0.5px solid #444", background: sel ? "#ffffff22" : "transparent", ...CP, fontSize: 7, color: sel ? "#ffffff" : "#888", letterSpacing: "0.03em" }}>{f.label}</button>;
+          })}
+        </div>
+        <div style={{ textAlign: "center", marginBottom: 4 }}>
+          <button onClick={function() { setShowSectors(!showSectors); }}
+            style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 6, color: enterpriseSector ? "#ffffff" : "#555", letterSpacing: "0.08em" }}>
+            {showSectors ? "\u25B2 SECTORS" : "\u25BC SECTORS"}{enterpriseSector ? " \u00b7 " + (ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) || {}).label : ""}
+          </button>
+        </div>
+        {showSectors && <div style={{ display: "flex", gap: 3, justifyContent: "center", flexWrap: "wrap", marginBottom: 4 }}>
+          {ENTERPRISE_SECTORS.map(function(s) {
+            var sel = enterpriseSector === s.id;
+            return <button key={s.id} onClick={function() { setEnterpriseSector(sel ? null : s.id); }}
+              style={{ padding: "2px 6px", cursor: "pointer", border: sel ? "1px solid #ffffff" : "0.5px solid #333", background: sel ? "#ffffff15" : "transparent", ...CP, fontSize: 6, color: sel ? "#ffffff" : "#666", letterSpacing: "0.02em" }}>{s.label}</button>;
+          })}
+        </div>}
       </div>}
 
       {/* News Desk filters */}

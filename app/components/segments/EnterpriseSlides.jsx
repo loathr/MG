@@ -516,7 +516,7 @@ export function EnterpriseCloser({ slide }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
       <div style={{ textAlign: "center", padding: "0 24px", maxWidth: "85%" }}>
-        {slide.funnyLine && <div style={{ ...HD, fontSize: 10, color: "#ffffff99", fontStyle: "italic", lineHeight: 1.5, marginBottom: 16 }}>"{slide.funnyLine}"</div>}
+        {slide.funnyLine && <div style={{ ...MT, fontSize: 10, color: "#ffffff99", fontStyle: "italic", lineHeight: 1.5, marginBottom: 16 }}>"{slide.funnyLine}"</div>}
         <div style={{ height: 0.5, background: "#ffffff22", width: "40%", margin: "0 auto 14px" }} />
         <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff66" }}>LOATHR</div>
         <div style={{ ...CP, fontSize: 5, letterSpacing: "0.12em", color: "#ffffff44", marginTop: 2 }}>ENTERPRISE</div>

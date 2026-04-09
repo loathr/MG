@@ -9,16 +9,28 @@ export var ENTERPRISE_MODES = [
 ];
 
 export var ENTERPRISE_FORCES = [
+  { id: "ai", label: "AI & Automation" },
   { id: "tech", label: "Tech Disruption" },
   { id: "policy", label: "Policy & Regulation" },
-  { id: "ai", label: "AI & Automation" },
   { id: "markets", label: "Market Trends" },
   { id: "culture", label: "Culture Shift" },
+  { id: "news", label: "Breaking News" },
+];
+
+export var ENTERPRISE_SECTORS = [
+  { id: "healthcare", label: "Healthcare & Pharma" },
+  { id: "energy", label: "Energy & Climate" },
+  { id: "finance", label: "Finance & Banking" },
+  { id: "realestate", label: "Real Estate" },
+  { id: "defense", label: "Defense & Security" },
+  { id: "supplychain", label: "Supply Chain" },
+  { id: "agriculture", label: "Agriculture & Food" },
+  { id: "space", label: "Space & Aerospace" },
   { id: "media", label: "Media & Entertainment" },
   { id: "education", label: "Education" },
-  { id: "stocks", label: "Stock Market" },
+  { id: "labor", label: "Labor & Workforce" },
+  { id: "crypto", label: "Crypto & Web3" },
   { id: "lifestyle", label: "Lifestyle & Consumer" },
-  { id: "news", label: "Breaking News" },
 ];
 
 export var ENTERPRISE_PALETTE = {
@@ -95,9 +107,10 @@ export var ENTERPRISE_FOCUS = [
   { id: "action", label: "Action-Oriented", prompt: "Every slide should point toward what a business should DO. The Playbook is the centerpiece — expand it with more specific, tactical steps." },
 ];
 
-export function buildEnterprisePrompt(topic, force, editionSeed, picks) {
+export function buildEnterprisePrompt(topic, force, editionSeed, picks, sector) {
   var forceLabel = force ? force.label : "macro trends";
   var forceId = force ? force.id : null;
+  var sectorLabel = sector ? sector.label : null;
   var closerLine = ENTERPRISE_CLOSERS[Math.abs(editionSeed || 0) % ENTERPRISE_CLOSERS.length];
   var isBreaking = forceId === "news";
   // Enterprise-specific picks
@@ -113,6 +126,7 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks) {
   return "You are a senior business analyst writing for LOATHR ENTERPRISE, a black-and-white editorial Instagram brand focused on business intelligence.\n\n" +
     "Industry/Topic: \"" + topic + "\"\n" +
     "Force: \"" + forceLabel + "\"\n" +
+    (sectorLabel ? "Sector: \"" + sectorLabel + "\"\n" : "") +
     "Generated: " + timestamp + "\n\n" +
     (isBreaking ?
       "BREAKING NEWS MODE: Search for the MOST RECENT breaking story affecting \"" + topic + "\". Find a SPECIFIC current event from today or this week and analyze its immediate industry impact.\n" +
@@ -153,7 +167,7 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks) {
 }
 
 // Business News prompt — current events through business lens
-export function buildEnterpriseNewsPrompt(keywords, force, editionSeed, picks) {
+export function buildEnterpriseNewsPrompt(keywords, force, editionSeed, picks, sector) {
   var forceLabel = force ? force.label : "business";
   var closerLine = ENTERPRISE_CLOSERS[Math.abs(editionSeed || 0) % ENTERPRISE_CLOSERS.length];
   var d = new Date();
@@ -164,7 +178,7 @@ export function buildEnterpriseNewsPrompt(keywords, force, editionSeed, picks) {
 
   return "You are a senior business news editor writing for LOATHR ENTERPRISE, a black-and-white editorial Instagram brand.\n\n" +
     "SEARCH KEYWORDS: \"" + keywords + "\"\n" +
-    "BUSINESS SECTOR: " + forceLabel + "\n" +
+    "BUSINESS SECTOR: " + forceLabel + (sector ? " (" + sector.label + ")" : "") + "\n" +
     "TIMESTAMP: " + timestamp + "\n\n" +
     "Search the web for the MOST RECENT business news matching these keywords. Focus on the business and industry IMPACT of the news.\n\n" +
     (tone ? "TONE: " + tone.prompt + "\n" : "") +
@@ -187,7 +201,7 @@ export function buildEnterpriseNewsPrompt(keywords, force, editionSeed, picks) {
 }
 
 // Industry Tips prompt — actionable tactical advice
-export function buildEnterpriseTipsPrompt(topic, force, editionSeed, picks) {
+export function buildEnterpriseTipsPrompt(topic, force, editionSeed, picks, sector) {
   var forceLabel = force ? force.label : "business strategy";
   var closerLine = ENTERPRISE_CLOSERS[Math.abs(editionSeed || 0) % ENTERPRISE_CLOSERS.length];
   var ep = picks || {};
@@ -196,7 +210,7 @@ export function buildEnterpriseTipsPrompt(topic, force, editionSeed, picks) {
 
   return "You are a senior business strategist writing for LOATHR ENTERPRISE, a black-and-white editorial Instagram brand.\n\n" +
     "Industry: \"" + topic + "\"\n" +
-    "Focus Area: " + forceLabel + "\n\n" +
+    "Focus Area: " + forceLabel + (sector ? " (" + sector.label + ")" : "") + "\n\n" +
     "Write an ACTIONABLE TIPS carousel for businesses in this industry. Every slide should contain a specific, tactical tip that a business owner could implement this week.\n\n" +
     (tone ? "TONE: " + tone.prompt + "\n" : "") +
     (focus ? "FOCUS: " + focus.prompt + "\n" : "") +
