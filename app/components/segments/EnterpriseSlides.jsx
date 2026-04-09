@@ -35,7 +35,8 @@ export function enterpriseStyleBody(text) {
 var watermark = function() { return <div style={{ position: "absolute", bottom: 5, left: 8, zIndex: 10, ...CP, fontSize: 4, letterSpacing: "0.12em", color: "#ffffff55" }}>LOATHR</div>; };
 var srcLine = function(s) { return s ? <div style={{ ...CP, fontSize: 4, color: "#ffffff33", textAlign: "right", marginTop: 4 }}>{s}</div> : null; };
 var sectionLabel = function(t) { return <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "#ffffff55", marginBottom: 4, textTransform: "uppercase" }}>{t}</div>; };
-var highlightBlock = function(t, slide) { var ht = slide ? elementTransform(slide, "highlight") : {}; return t ? <div style={Object.assign({}, { marginTop: 6, borderLeft: "2px solid #ffffff44", paddingLeft: 8 }, ht)}><div style={{ ...HD, fontSize: 8, color: "#ffffff88", fontStyle: "italic" }}>{t}</div></div> : null; };
+var highlightFont = function(slide) { return FONT_MAP[slide && slide.highlightFont] || HD; };
+var highlightBlock = function(t, slide) { var ht = slide ? elementTransform(slide, "highlight") : {}; return t ? <div style={Object.assign({}, { marginTop: 6, borderLeft: "2px solid #ffffff44", paddingLeft: 8 }, ht)}><div style={{ ...highlightFont(slide), fontSize: 8 + (slide && slide.highlightSize || 0), color: "#ffffff88", fontStyle: "italic" }}>{t}</div></div> : null; };
 
 // Split ratio + text offset helpers
 function getSplit(slide) { return (slide.enterpriseSplit || 50); }

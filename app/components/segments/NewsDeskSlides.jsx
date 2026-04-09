@@ -4,6 +4,11 @@
 var CP = { fontFamily: "'Courier Prime',monospace" };
 var FN = { fontFamily: "'Foun',Georgia,serif" };
 var HD = { fontFamily: "'Maheni',Georgia,serif", fontStyle: "normal" };
+var WS = { fontFamily: "'Wenssep',Georgia,serif", textTransform: "uppercase" };
+var FONT_MAP = { maheni: HD, foun: FN, courier: CP, wenssep: WS };
+function bodyFont(slide) { return FONT_MAP[slide && slide.bodyFont] || HD; }
+function headFont(slide) { return FONT_MAP[slide && slide.headingFont] || FN; }
+function hlFont(slide) { return FONT_MAP[slide && slide.highlightFont] || HD; }
 
 // Front Page
 export function NewsFrontPage({ slide, images, index }) {
@@ -28,7 +33,7 @@ export function NewsFrontPage({ slide, images, index }) {
         <div style={{ ...CP, fontSize: 3.5, color: "#1a1a1a55" }}>Generated: {slide.timestamp}</div>
       </div>}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "8px 14px" }}>
-        <div style={{ ...FN, fontSize: slide.title && slide.title.length > 40 ? 18 : 24, color: "#1a1a1a", lineHeight: 1.1, marginBottom: 6 }}>{slide.title || ""}</div>
+        <div style={{ ...headFont(slide), fontSize: (slide.title && slide.title.length > 40 ? 18 : 24) + (slide.headingSize || 0), color: "#1a1a1a", lineHeight: 1.1, marginBottom: 6 }}>{slide.title || ""}</div>
         <div style={{ height: 1, background: "#1a1a1a33", marginBottom: 6 }} />
         <div style={{ display: "flex", gap: 8, flex: 1 }}>
           {url && <div style={{ width: "45%", flexShrink: 0 }}>
@@ -38,7 +43,7 @@ export function NewsFrontPage({ slide, images, index }) {
             <div style={{ ...CP, fontSize: 3.5, color: "#1a1a1a44", marginTop: 1 }}>Photo: Wire Services</div>
           </div>}
           <div style={{ flex: 1 }}>
-            {slide.leadParagraph && <div style={{ ...HD, fontSize: 9, color: "#1a1a1a", lineHeight: 1.55 }}>{slide.leadParagraph}</div>}
+            {slide.leadParagraph && <div style={{ ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#1a1a1a", lineHeight: 1.55 }}>{slide.leadParagraph}</div>}
           </div>
         </div>
       </div>
@@ -55,14 +60,14 @@ export function NewsStory({ slide, images, index }) {
       <div style={{ height: 2, background: "#1a1a1a", margin: "0 14px" }} />
       <div style={{ padding: "8px 14px", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "#c41e1e", marginBottom: 4, textTransform: "uppercase" }}>{slide.role || ""}</div>
-        <div style={{ ...FN, fontSize: 15 + (slide.headingSize || 0), color: "#1a1a1a", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
+        <div style={{ ...headFont(slide), fontSize: 15 + (slide.headingSize || 0), color: "#1a1a1a", lineHeight: 1.15, marginBottom: 6 }}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#1a1a1a22", marginBottom: 6 }} />
         {url && <div style={{ width: "100%", height: 95, overflow: "hidden", border: "0.5px solid #1a1a1a22", marginBottom: 5 }}>
           <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.7)" }} onError={function(e) { e.target.style.display = "none"; }} />
         </div>}
-        <div style={{ ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#1a1a1a", lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #1a1a1a11", flex: 1 }}>{slide.body || ""}</div>
+        <div style={{ ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#1a1a1a", lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #1a1a1a11", flex: 1 }}>{slide.body || ""}</div>
         {slide.highlight && <div style={{ marginTop: 5, borderTop: "0.5px solid #1a1a1a22", borderBottom: "0.5px solid #1a1a1a22", padding: "3px 0", textAlign: "center" }}>
-          <div style={{ ...HD, fontSize: 8, color: "#1a1a1a", fontStyle: "italic" }}>{slide.highlight}</div>
+          <div style={{ ...hlFont(slide), fontSize: 8 + (slide.highlightSize || 0), color: "#1a1a1a", fontStyle: "italic" }}>{slide.highlight}</div>
         </div>}
       </div>
       {slide.sources && <div style={{ padding: "0 14px 4px", ...CP, fontSize: 4, color: "#1a1a1a44", textAlign: "right" }}>{slide.sources}</div>}
@@ -79,18 +84,18 @@ export function NewsReaction({ slide, images, index }) {
       <div style={{ height: 2, background: "#1a1a1a", margin: "0 14px" }} />
       <div style={{ padding: "8px 14px", flex: 1 }}>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "#c41e1e", marginBottom: 4 }}>THE REACTION</div>
-        <div style={{ ...FN, fontSize: 14, color: "#1a1a1a", lineHeight: 1.15, marginBottom: 10 }}>{slide.heading || ""}</div>
+        <div style={{ ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: "#1a1a1a", lineHeight: 1.15, marginBottom: 10 }}>{slide.heading || ""}</div>
         <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
           {url && <div style={{ width: 55, height: 55, borderRadius: "50%", overflow: "hidden", border: "1px solid #1a1a1a22", flexShrink: 0 }}>
             <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.7)" }} onError={function(e) { e.target.style.display = "none"; }} />
           </div>}
           <div style={{ flex: 1 }}>
-            {slide.quote && <div style={{ ...HD, fontSize: 11, color: "#1a1a1a", lineHeight: 1.4, fontStyle: "italic" }}>"{slide.quote}"</div>}
+            {slide.quote && <div style={{ ...hlFont(slide), fontSize: 11 + (slide.highlightSize || 0), color: "#1a1a1a", lineHeight: 1.4, fontStyle: "italic" }}>"{slide.quote}"</div>}
             <div style={{ ...CP, fontSize: 6, color: "#1a1a1a88", marginTop: 3 }}>— {slide.source || slide.person || ""}</div>
           </div>
         </div>
         <div style={{ height: 0.5, background: "#1a1a1a22" }} />
-        {slide.body && <div style={{ ...HD, fontSize: 8.5, color: "#1a1a1a", lineHeight: 1.5, marginTop: 6, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #1a1a1a11" }}>{slide.body}</div>}
+        {slide.body && <div style={{ ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: "#1a1a1a", lineHeight: 1.5, marginTop: 6, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #1a1a1a11" }}>{slide.body}</div>}
       </div>
       {slide.sources && <div style={{ padding: "0 14px 4px", ...CP, fontSize: 4, color: "#1a1a1a44", textAlign: "right" }}>{slide.sources}</div>}
       <div style={{ position: "absolute", bottom: 4, left: 8, ...CP, fontSize: 4, letterSpacing: "0.1em", color: "#1a1a1a33" }}>LOATHR</div>
