@@ -319,14 +319,43 @@ function Layout8({ slide, url, mosaic }) {
 function EnterpriseMosaic({ urls, height, width }) {
   if (!urls || urls.length < 2) return null;
   var count = Math.min(urls.length, 4);
-  var isVertical = height && !width;
-  return (
-    <div style={{ width: width || "100%", height: height || "100%", display: "grid", gridTemplateColumns: count <= 2 ? "1fr 1fr" : "1fr 1fr", gridTemplateRows: count <= 2 ? "1fr" : "1fr 1fr", gap: 2, background: "#ffffff", overflow: "hidden" }}>
-      {urls.slice(0, count).map(function(u, i) { return (
+  // 2 images: side by side, left taller
+  if (count === 2) return (
+    <div style={{ width: width || "100%", height: height || "100%", display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 2, background: "#ffffff", overflow: "hidden" }}>
+      {urls.slice(0, 2).map(function(u, i) { return (
         <div key={i} style={{ overflow: "hidden" }}>
           <img src={u} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />
         </div>
       ); })}
+    </div>
+  );
+  // 3 images: one large left, two stacked right
+  if (count === 3) return (
+    <div style={{ width: width || "100%", height: height || "100%", display: "grid", gridTemplateColumns: "1.6fr 1fr", gridTemplateRows: "1fr 1fr", gap: 2, background: "#ffffff", overflow: "hidden" }}>
+      <div style={{ gridRow: "1 / 3", overflow: "hidden" }}>
+        <img src={urls[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />
+      </div>
+      <div style={{ overflow: "hidden" }}>
+        <img src={urls[1]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />
+      </div>
+      <div style={{ overflow: "hidden" }}>
+        <img src={urls[2]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />
+      </div>
+    </div>
+  );
+  // 4 images: large top-left, tall right, wide bottom-left
+  return (
+    <div style={{ width: width || "100%", height: height || "100%", display: "grid", gridTemplateColumns: "1.5fr 1fr", gridTemplateRows: "1.3fr 1fr", gap: 2, background: "#ffffff", overflow: "hidden" }}>
+      <div style={{ overflow: "hidden" }}>
+        <img src={urls[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />
+      </div>
+      <div style={{ gridRow: "1 / 3", overflow: "hidden" }}>
+        <img src={urls[1]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} />
+      </div>
+      <div style={{ overflow: "hidden", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+        <div style={{ overflow: "hidden" }}><img src={urls[2]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        <div style={{ overflow: "hidden" }}><img src={urls[3]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgFilter }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+      </div>
     </div>
   );
 }
