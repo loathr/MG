@@ -16,18 +16,24 @@ function bodyFont(slide) { return FONT_MAP[slide.bodyFont] || HD; }
 function headFont(slide) { return FONT_MAP[slide.headingFont] || FN; }
 var imgFilter = "grayscale(1) contrast(1.1) brightness(0.6)";
 
-// Enterprise text styling — underline KEY TERMS instead of background highlight
-export function enterpriseStyleBody(text) {
+// Enterprise text styling — underline KEY TERMS + custom keywords
+export function enterpriseStyleBody(text, keywords) {
   if (!text) return "";
-  var parts = text.split(/(\b[A-Z][A-Z\s]{2,}[A-Z]\b)/g);
+  // Build a regex that matches ALL-CAPS phrases OR any user-specified keyword
+  var kwList = (keywords && keywords.length > 0) ? keywords.filter(function(k) { return k && k.trim().length > 1; }) : [];
+  var kwPattern = kwList.length > 0 ? kwList.map(function(k) { return k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }).join("|") : null;
+  var capsPattern = "\\b[A-Z][A-Z\\s]{2,}[A-Z]\\b";
+  var fullPattern = kwPattern ? "(" + capsPattern + "|" + kwPattern + ")" : "(" + capsPattern + ")";
+  var regex = new RegExp(fullPattern, "gi");
+  var parts = text.split(regex);
   var hitCount = 0;
   return parts.map(function(part, i) {
-    if (/^[A-Z\s]+$/.test(part) && part.trim().length > 2 && hitCount < 3) {
+    if (!part) return null;
+    var isCaps = /^[A-Z\s]+$/.test(part) && part.trim().length > 2;
+    var isKw = kwPattern && kwList.some(function(k) { return part.toLowerCase() === k.toLowerCase(); });
+    if ((isCaps || isKw) && hitCount < 5) {
       hitCount++;
-      var words = part.trim().split(/\s+/);
-      return words.map(function(word, wi) {
-        return <span key={i + "-" + wi} style={{ borderBottom: "1.5px solid #ffffff", paddingBottom: 1, marginRight: 3, fontWeight: 700, color: "#ffffff" }}>{word}</span>;
-      });
+      return <span key={i} style={{ borderBottom: "1.5px solid #ffffff", paddingBottom: 1, fontWeight: 700, color: "#ffffff" }}>{part}</span>;
     }
     return part;
   });
@@ -36,7 +42,40 @@ var watermark = function() { return <div style={{ position: "absolute", bottom: 
 var srcLine = function(s) { return s ? <div style={{ ...CP, fontSize: 4, color: "#ffffff33", textAlign: "right", marginTop: 4 }}>{s}</div> : null; };
 var sectionLabel = function(t) { return <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "#ffffff55", marginBottom: 4, textTransform: "uppercase" }}>{t}</div>; };
 var highlightFont = function(slide) { return FONT_MAP[slide && slide.highlightFont] || HD; };
-var highlightBlock = function(t, slide) { var ht = slide ? elementTransform(slide, "highlight") : {}; return t ? <div style={Object.assign({}, { marginTop: 6, borderLeft: "2px solid #ffffff44", paddingLeft: 8 }, ht)}><div style={{ ...highlightFont(slide), fontSize: 8 + (slide && slide.highlightSize || 0), color: "#ffffff88", fontStyle: "italic" }}>{t}</div></div> : null; };
+
+// Highlight design styles — shared across segments
+export var HIGHLIGHT_STYLES = [
+  { id: "bar", label: "Bar" },
+  { id: "pill", label: "Pill" },
+  { id: "underline", label: "Underline" },
+  { id: "box", label: "Box" },
+  { id: "quote", label: "Quote" },
+  { id: "tag", label: "Tag" },
+];
+
+// Render highlight with style variants — used by Enterprise directly, exported for others
+export function styledHighlight(t, slide, opts) {
+  if (!t) return null;
+  var o = opts || {};
+  var style = (slide && slide.highlightStyle) || o.defaultStyle || "bar";
+  var fg = o.fg || "#ffffff88";
+  var accent = o.accent || "#ffffff";
+  var bg = o.bg || "transparent";
+  var font = highlightFont(slide);
+  var sz = 8 + (slide && slide.highlightSize || 0);
+  var ht = slide ? elementTransform(slide, "highlight") : {};
+  var textStyle = Object.assign({}, font, { fontSize: sz, color: fg, lineHeight: 1.4 });
+
+  if (style === "pill") return <div style={Object.assign({}, { marginTop: 6 }, ht)}><span style={Object.assign({}, textStyle, { background: accent, color: o.pillText || "#0a0a0a", padding: "2px 8px", fontWeight: 700, fontStyle: "italic", display: "inline-block" })}>{t}</span></div>;
+  if (style === "underline") return <div style={Object.assign({}, { marginTop: 6 }, ht)}><div style={Object.assign({}, textStyle, { borderBottom: "2px solid " + accent, paddingBottom: 2, fontStyle: "italic", display: "inline" })}>{t}</div></div>;
+  if (style === "box") return <div style={Object.assign({}, { marginTop: 6, border: "1px solid " + accent + "44", padding: "4px 8px" }, ht)}><div style={Object.assign({}, textStyle, { fontStyle: "italic" })}>{t}</div></div>;
+  if (style === "quote") return <div style={Object.assign({}, { marginTop: 6, paddingLeft: 4 }, ht)}><span style={Object.assign({}, font, { fontSize: sz + 6, color: accent + "44", lineHeight: 0.8, verticalAlign: "top" })}>{"\u201C"}</span><span style={Object.assign({}, textStyle, { fontStyle: "italic" })}>{t}</span><span style={Object.assign({}, font, { fontSize: sz + 6, color: accent + "44", lineHeight: 0.8, verticalAlign: "bottom" })}>{"\u201D"}</span></div>;
+  if (style === "tag") return <div style={Object.assign({}, { marginTop: 6, display: "flex", alignItems: "center", gap: 4 }, ht)}><div style={{ width: 2, height: 14, background: accent, flexShrink: 0 }} /><div style={Object.assign({}, textStyle, { textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700, fontSize: sz - 1 })}>{t}</div></div>;
+  // default: bar
+  return <div style={Object.assign({}, { marginTop: 6, borderLeft: "2px solid " + accent + "44", paddingLeft: 8 }, ht)}><div style={Object.assign({}, textStyle, { fontStyle: "italic" })}>{t}</div></div>;
+}
+
+var highlightBlock = function(t, slide) { return styledHighlight(t, slide, { fg: "#ffffff88", accent: "#ffffff", pillText: "#0a0a0a", defaultStyle: "bar" }); };
 
 // Split ratio + text offset helpers
 function getSplit(slide) { return (slide.enterpriseSplit || 50); }
@@ -184,7 +223,7 @@ function Layout1({ slide, url, mosaic, mosaicLayout }) {
       <div style={Object.assign({}, { height: (100 - sp) + "%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body, slide.keywords)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -201,7 +240,7 @@ function Layout2({ slide, url, mosaic, mosaicLayout }) {
       <div style={Object.assign({}, { height: (100 - sp) + "%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body, slide.keywords)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -221,7 +260,7 @@ function Layout3({ slide, url, mosaic, mosaicLayout }) {
         {sectionLabel(slide.role || "")}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 13 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body, slide.keywords)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -239,7 +278,7 @@ function Layout4({ slide, url, mosaic, mosaicLayout }) {
         {sectionLabel(slide.role || "")}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 13 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body, slide.keywords)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -258,7 +297,7 @@ function Layout5({ slide, url, mosaic, mosaicLayout }) {
         {sectionLabel(slide.role || "")}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #ffffff11" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #ffffff11" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body, slide.keywords)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -276,7 +315,7 @@ function Layout6({ slide }) {
         {sectionLabel(slide.role || "")}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 18 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.1, marginBottom: 10 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
         <div style={{ height: 1, background: "#ffffff22", marginBottom: 10 }} />
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 10 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.6, flex: 1 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 10 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.6, flex: 1 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body, slide.keywords)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -298,7 +337,7 @@ function Layout7({ slide, url, mosaic, mosaicLayout }) {
       </div>
       <div style={{ height: 0.5, background: "#ffffff22" }} />
       <div style={{ flex: 1, padding: "8px 14px", overflow: "hidden" }}>
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body, slide.keywords)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -317,7 +356,7 @@ function Layout8({ slide, url, mosaic, mosaicLayout }) {
       </div>
       <div style={{ height: "30%", overflow: "hidden", flexShrink: 0, borderTop: "0.5px solid #ffffff22", borderBottom: "0.5px solid #ffffff22" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} /></div>
       <div style={{ flex: 1, padding: "8px 14px", overflow: "hidden" }}>
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body, slide.keywords)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>

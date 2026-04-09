@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
 import { ENTERPRISE_FORCES, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
-import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS } from "./segments/EnterpriseSlides";
+import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS, styledHighlight, HIGHLIGHT_STYLES } from "./segments/EnterpriseSlides";
 import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
 import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser } from "./segments/NewsDeskSlides";
 
@@ -891,7 +891,7 @@ function SplitTextBox({ slide, position, accent, accent2, category, seed, styleB
 
   var headingEl = <div style={{ ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", textTransform: "uppercase", letterSpacing: "0.03em" }}>{slide.heading || ""}</div>;
   var bodyEl = <div style={{ ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45 }}>{styleBody ? styleBody(slide.body || "", accent, accent2) : (slide.body || "")}</div>;
-  var highlightEl = slide.highlight ? <div style={{ marginTop: 4 }}><span style={{ ...hlFont(slide), fontSize: 5.3 + (slide.highlightSize || 0), fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "2px 6px" }}>{slide.highlight}</span></div> : null;
+  var highlightEl = styledHighlight(slide.highlight, slide, { fg: useSticky ? "inherit" : "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", bg: "transparent", defaultStyle: "pill" });
   var citeEl = <MicroCite sources={slide.sources} accent={accent} />;
 
   // Per-element position offsets from customPosition
@@ -1048,7 +1048,7 @@ function S2Arena({ slide, index, category, images }) {
   var textContent = <div>
     <div style={Object.assign({}, { ...headFont(slide), fontSize: 13 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }, hTransform)}>{slide.heading || "Part " + index}</div>
     <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.5, textAlign: "left" }, bTransform)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-    {slide.highlight && <div style={Object.assign({}, { marginTop: 8 }, hlTransform)}><div style={{ ...hlFont(slide), fontSize: 5.3 + (slide.highlightSize || 0), fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "2px 6px", display: "inline-block" }}>{slide.highlight}</div></div>}
+    {styledHighlight(slide.highlight, slide, { fg: useSticky ? "inherit" : "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "pill" })}
     {slide.specs && <div style={{ marginTop: 8, border: "1px solid " + p.accent + "44", padding: "4px 6px", background: "rgba(255,255,255,0.03)" }}><div style={{ ...WS, fontSize: 5.3, color: useSticky ? "inherit" : "#ffffffaa", textAlign: "left" }}>{slide.specs}</div></div>}
     <MicroCite sources={slide.sources} />
   </div>;
@@ -1102,10 +1102,7 @@ function S3RayGun({ slide, index, category, images }) {
     var flippedText = <div>
       <div style={Object.assign({}, { ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }, h3t)}>{slide.heading || "Part " + index}</div>
       <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right", overflow: "hidden" }, b3t)}>{styleBody(slide.body, p.accent2, p.accent)}</div>
-      {slide.highlight && <div style={Object.assign({}, { marginTop: 6, display: "flex", alignItems: "stretch", justifyContent: "flex-end", gap: 0 }, hl3t)}>
-        <div style={{ ...hlFont(slide), fontSize: 5.3 + (slide.highlightSize || 0), fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "3px 8px", boxShadow: "2px 2px 0px " + p.accent2 }}>{slide.highlight}</div>
-        <div style={{ width: 3, background: p.accent2, flexShrink: 0 }} />
-      </div>}
+      {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "pill" })}
       <MicroCite sources={slide.sources} />
     </div>;
     var flippedWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</BubbleBox>
@@ -1134,10 +1131,7 @@ function S3RayGun({ slide, index, category, images }) {
   var normalText = <div>
     <div style={Object.assign({}, { ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }, h3t)}>{slide.heading || "Part " + index}</div>
     <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "left", overflow: "hidden" }, b3t)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-    {slide.highlight && <div style={Object.assign({}, { marginTop: 6, display: "flex", alignItems: "stretch", justifyContent: "flex-start", gap: 0 }, hl3t)}>
-      <div style={{ width: 3, background: p.accent, flexShrink: 0 }} />
-      <div style={{ ...hlFont(slide), fontSize: 5.3 + (slide.highlightSize || 0), fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "3px 8px", boxShadow: "2px 2px 0px " + p.accent }}>{slide.highlight}</div>
-    </div>}
+    {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "pill" })}
     <MicroCite sources={slide.sources} />
   </div>;
   var normalWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</BubbleBox>
@@ -1401,10 +1395,7 @@ function S5Face({ slide, index, category, images }) {
   var s5Text = <div style={{ overflow: "hidden" }}>
     <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right" }, b5t)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
     {!styled && <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />}
-    {slide.highlight && <div style={Object.assign({}, { marginTop: 6, display: "flex", alignItems: "stretch", justifyContent: "flex-end", gap: 0 }, hl5t)}>
-      <div style={{ ...hlFont(slide), fontSize: 5.3 + (slide.highlightSize || 0), fontStyle: "italic", fontWeight: 700, color: "#1a1a1a", background: "#ffffff", padding: "3px 8px", boxShadow: "2px 2px 0px " + p.accent2 }}>{slide.highlight}</div>
-      <div style={{ width: 3, background: p.accent2, flexShrink: 0 }} />
-    </div>}
+    {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "pill" })}
   </div>;
   var CONTAINER_MAP5 = { bubble: BubbleBox, sticky: StickyNote, formal: FormalFrame, glass: GlassBox, tape: TapeStrip, cutout: CutoutBox, minimal: MinimalBox, none: null };
   var co5 = slide.containerStyle && CONTAINER_MAP5.hasOwnProperty(slide.containerStyle) ? slide.containerStyle : null;
@@ -4923,6 +4914,19 @@ export default function LoathrMediaGenerator() {
                       <button key={f.id} onClick={function() { updateSlideField(currentSlide, fontKey, f.id); }}
                         style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd")), background: sel ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999") }}>{f.label}</button>
                     ); })}
+                  </div>}
+                  {nudgeTarget === "highlight" && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>
+                    <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Style:</div>
+                    {HIGHLIGHT_STYLES.map(function(hs) { var sel = (s.highlightStyle || (activeSegment === "enterprise" ? "bar" : activeSegment === "newsdesk" ? "bar" : "pill")) === hs.id; return (
+                      <button key={hs.id} onClick={function() { updateSlideField(currentSlide, "highlightStyle", hs.id); }}
+                        style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd")), background: sel ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999") }}>{hs.label}</button>
+                    ); })}
+                  </div>}
+                  {nudgeTarget === "body" && activeSegment === "enterprise" && <div style={{ marginTop: 3 }}>
+                    <div style={{ ...CP, fontSize: 4, color: "#888", marginBottom: 2 }}>Keywords <span style={{ color: "#666" }}>(comma-separated, emphasized in body)</span></div>
+                    <input value={(s.keywords || []).join(", ")} onChange={function(e) { var kw = e.target.value.split(",").map(function(k) { return k.trim(); }).filter(Boolean); updateSlideField(currentSlide, "keywords", kw); }}
+                      placeholder="e.g. Tesla, market share, disruption"
+                      style={{ width: "100%", padding: "2px 4px", border: "0.5px solid #444", ...CP, fontSize: 6, color: "#ddd", background: "#111" }} />
                   </div>}
                 </div>}
               </div>

@@ -134,10 +134,11 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks) {
     "- Name real companies, real executives, real products\n" +
     "- NEVER use the word 'algorithm' or cliché phrases\n" +
     "- Keep body text to 2-3 sentences MAX per slide\n" +
-    "- If you mention a person's full name, add a 'person' field\n\n" +
+    "- If you mention a person's full name, add a 'person' field\n" +
+    "- On each content slide, include a 'keywords' array with 2-3 key terms from the body text to emphasize (company names, metrics, key concepts). Example: \"keywords\": [\"Tesla\", \"market share\", \"$4.2B\"]\n\n" +
     "SLIDE ROLES (in order):\n" +
     "- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring to emphasize), subtitle\n" +
-    "- \"THE LANDSCAPE\" — current state of the industry. heading, body, highlight, sources\n" +
+    "- \"THE LANDSCAPE\" — current state of the industry. heading, body, highlight, keywords, sources\n" +
     "- \"THE FORCE\" — what's disrupting/changing it. heading, body, highlight, sources\n" +
     "- \"THE IMPACT\" — what's already changed, evidence. heading, body, highlight, sources\n" +
     "- \"THE WINNERS\" — who's benefiting, adapting. heading, body, highlight, sources\n" +
@@ -173,11 +174,12 @@ export function buildEnterpriseNewsPrompt(keywords, force, editionSeed, picks) {
     "- Every fact must be from a real, verifiable source with 'sources' field\n" +
     "- Focus on BUSINESS IMPACT — not just what happened, but who profits, who loses, what changes\n" +
     "- NEVER fabricate quotes, statistics, or events\n" +
-    "- Keep body text to 2-3 sentences MAX\n\n" +
+    "- Keep body text to 2-3 sentences MAX\n" +
+    "- On each content slide, include a 'keywords' array with 2-3 key terms to emphasize in the body\n\n" +
     "SLIDE ROLES:\n" +
     "- COVER — title (headline), subtitle (\"" + timestamp + "\"), breaking: true, timestamp: \"" + timestamp + "\"\n" +
-    "- \"WHAT HAPPENED\" — heading, body (the news event), sources\n" +
-    "- \"WHO'S AFFECTED\" — heading, body (industries, companies, roles impacted), sources\n" +
+    "- \"WHAT HAPPENED\" — heading, body (the news event), keywords, sources\n" +
+    "- \"WHO'S AFFECTED\" — heading, body (industries, companies, roles impacted), keywords, sources\n" +
     "- \"THE NUMBERS\" — statFormat \"killer\", stat, caption, sources\n" +
     "- \"WHAT TO DO\" — heading, body (immediate action items for businesses), sources\n" +
     "- CLOSER — hashtags, funnyLine: \"" + closerLine + "\", disclaimer: \"For entertainment and educational purposes only.\"\n\n" +
@@ -205,10 +207,11 @@ export function buildEnterpriseTipsPrompt(topic, force, editionSeed, picks) {
     "- Include a real tool, platform, or resource name where relevant\n" +
     "- Include estimated cost, time investment, or expected ROI when possible\n" +
     "- Use web search to find current best practices and tools\n" +
-    "- Keep body text to 2-3 sentences MAX\n\n" +
+    "- Keep body text to 2-3 sentences MAX\n" +
+    "- On each content slide, include a 'keywords' array with 2-3 key terms to emphasize in the body\n\n" +
     "SLIDE ROLES:\n" +
     "- COVER — title (e.g. \"5 Things Every [Industry] Should Do Now\"), subtitle\n" +
-    "- \"TIP 1\" through \"TIP 5\" — each slide: heading (the tip as a command), body (why + how + example), highlight (the tool/resource), sources\n" +
+    "- \"TIP 1\" through \"TIP 5\" — each slide: heading (the tip as a command), body (why + how + example), highlight (the tool/resource), keywords, sources\n" +
     "- \"THE WHY\" — heading, body (data/context backing the tips), statFormat \"killer\" with stat and caption, sources\n" +
     "- CLOSER — hashtags, funnyLine: \"" + closerLine + "\", disclaimer: \"For entertainment and educational purposes only. Not professional advice.\"\n\n" +
     "CRITICAL: Your ENTIRE text response must be valid JSON.\n\nRespond ONLY with JSON:\n{\"angle\":\"Industry Tips\",\"slides\":[{...}]}";

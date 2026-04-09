@@ -1,6 +1,8 @@
 "use client";
 // News Desk — newspaper column format, larger readable text
 
+import { styledHighlight } from "./EnterpriseSlides";
+
 var CP = { fontFamily: "'Courier Prime',monospace" };
 var FN = { fontFamily: "'Foun',Georgia,serif" };
 var HD = { fontFamily: "'Maheni',Georgia,serif", fontStyle: "normal" };
@@ -66,9 +68,7 @@ export function NewsStory({ slide, images, index }) {
           <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.7)" }} onError={function(e) { e.target.style.display = "none"; }} />
         </div>}
         <div style={{ ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#1a1a1a", lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #1a1a1a11", flex: 1 }}>{slide.body || ""}</div>
-        {slide.highlight && <div style={{ marginTop: 5, borderTop: "0.5px solid #1a1a1a22", borderBottom: "0.5px solid #1a1a1a22", padding: "3px 0", textAlign: "center" }}>
-          <div style={{ ...hlFont(slide), fontSize: 8 + (slide.highlightSize || 0), color: "#1a1a1a", fontStyle: "italic" }}>{slide.highlight}</div>
-        </div>}
+        {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#c41e1e", pillText: "#ffffff", defaultStyle: "bar" })}
       </div>
       {slide.sources && <div style={{ padding: "0 14px 4px", ...CP, fontSize: 4, color: "#1a1a1a44", textAlign: "right" }}>{slide.sources}</div>}
       <div style={{ position: "absolute", bottom: 4, left: 8, ...CP, fontSize: 4, letterSpacing: "0.1em", color: "#1a1a1a33" }}>LOATHR</div>
@@ -90,7 +90,7 @@ export function NewsReaction({ slide, images, index }) {
             <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.7)" }} onError={function(e) { e.target.style.display = "none"; }} />
           </div>}
           <div style={{ flex: 1 }}>
-            {slide.quote && <div style={{ ...hlFont(slide), fontSize: 11 + (slide.highlightSize || 0), color: "#1a1a1a", lineHeight: 1.4, fontStyle: "italic" }}>"{slide.quote}"</div>}
+            {slide.quote && <div style={{ ...hlFont(slide), fontSize: 11 + (slide.highlightSize || 0), color: "#1a1a1a", lineHeight: 1.4, fontStyle: "italic" }}>{"\u201C"}{slide.quote}{"\u201D"}</div>}
             <div style={{ ...CP, fontSize: 6, color: "#1a1a1a88", marginTop: 3 }}>— {slide.source || slide.person || ""}</div>
           </div>
         </div>
