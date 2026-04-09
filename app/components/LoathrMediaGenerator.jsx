@@ -978,22 +978,53 @@ function SplitTextBox({ slide, position, accent, accent2, category, seed, styleB
   </div>;
 }
 
+// Normalize URL for cross-source dedup — strips size params, CDN prefixes
+function normalizeImgUrl(url) {
+  if (!url) return "";
+  // Strip common resize/quality params
+  var u = url.split("?")[0].split("#")[0];
+  // Normalize upload.wikimedia.org thumb paths → base filename
+  var wikiThumb = u.match(/\/thumb\/(.+?)\/\d+px-/);
+  if (wikiThumb) return wikiThumb[1];
+  // Normalize Unsplash photo IDs
+  var unsplashId = u.match(/unsplash\.com\/photos?\/([\w-]+)/);
+  if (unsplashId) return "unsplash:" + unsplashId[1];
+  // Normalize Pexels photo IDs
+  var pexelsId = u.match(/pexels\.com\/photo[s]?\/(?:.*?[-/])(\d+)/);
+  if (pexelsId) return "pexels:" + pexelsId[1];
+  return u;
+}
+
+// Deduplicate image results across sources
+function dedupeImages(results) {
+  var seen = {};
+  return results.filter(function(r) {
+    if (!r || !r.url) return false;
+    var norm = normalizeImgUrl(r.url);
+    var normThumb = r.thumb ? normalizeImgUrl(r.thumb) : "";
+    if (seen[r.url] || seen[norm] || (normThumb && seen[normThumb])) return false;
+    seen[r.url] = true;
+    seen[norm] = true;
+    if (r.thumb) seen[r.thumb] = true;
+    if (normThumb) seen[normThumb] = true;
+    return true;
+  });
+}
+
 function getImg(images, idx) {
   if (!images) return null;
   // Direct match — always preferred
   if (images[idx] && images[idx].url) return images[idx].url;
-  // Fallback: find an image not adjacent to this slide
+  // Fallback: find an image not used by ANY other slide
   var keys = Object.keys(images);
   if (keys.length === 0) return null;
-  // Build set of URLs used by neighboring slides (avoid visual repeats with neighbors)
-  var adjUrls = {};
-  if (images[idx - 1] && images[idx - 1].url) adjUrls[images[idx - 1].url] = true;
-  if (images[idx + 1] && images[idx + 1].url) adjUrls[images[idx + 1].url] = true;
+  var usedUrls = {};
+  keys.forEach(function(k) { if (parseInt(k) !== idx && images[k] && images[k].url) usedUrls[images[k].url] = true; });
   // Try to find a unique image: prioritize images far from this slide index
   var sorted = keys.slice().sort(function(a, b) { return Math.abs(parseInt(b) - idx) - Math.abs(parseInt(a) - idx); });
   for (var ki = 0; ki < sorted.length; ki++) {
     var img = images[sorted[ki]];
-    if (img && img.url && !adjUrls[img.url]) return img.url;
+    if (img && img.url && !usedUrls[img.url]) return img.url;
   }
   // Last resort: any image
   var first = images[keys[0]];
@@ -1873,9 +1904,8 @@ var searchPersonImages = async function(personName) {
     var unsplashKey = typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_UNSPLASH_KEY : "";
     if (unsplashKey) { try { var us = await searchUnsplash(personName + " portrait", unsplashKey); results = results.concat(us.slice(0, 2)); } catch (e) {} }
   }
-  // Deduplicate by URL
-  var seen = {};
-  results = results.filter(function(r) { if (!r.url || seen[r.url]) return false; seen[r.url] = true; return true; });
+  // Deduplicate across sources
+  results = dedupeImages(results);
   return results.slice(0, 6);
 };
 
@@ -2822,7 +2852,7 @@ export default function LoathrMediaGenerator() {
   }, []);
 
   // Image swap: fetch replacement candidates for a specific slide
-  var fetchSwapImages = _cb(async function(slideIdx, query) {
+  async function fetchSwapImages(slideIdx, query) {
     setSwapLoading(true); setSwapImages([]);
     try {
       var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
@@ -2830,20 +2860,36 @@ export default function LoathrMediaGenerator() {
       var catLabel = cat ? cat.label : category;
       var searchQ = query || (catLabel + " " + extractKeywords(topic, 3));
       var results = [];
+      // Primary sources
       if (unsplashKey) { try { var us = await searchUnsplash(searchQ, unsplashKey); results = results.concat(us.slice(0, 6)); } catch (e) {} }
       if (pexelsKey) { try { var px = await searchPexels(searchQ, pexelsKey); results = results.concat(px.slice(0, 4)); } catch (e) {} }
+      // Wikipedia — always try for better editorial images
+      try { var wr = await searchWikiRest(searchQ); results = results.concat(wr); } catch (e) {}
+      try { var wm = await searchWikimedia(searchQ); results = results.concat(wm.slice(0, 3)); } catch (e) {}
+      // Vintage / archival
       try { var vi = await searchVintage(category, extractKeywords(query || topic, 2)); results = results.concat(vi.slice(0, 3)); } catch (e) {}
-      // Also try Wikipedia if the slide has a person field
-      var cur = options ? options[selectedOption] : null;
-      if (cur && cur.slides && cur.slides[slideIdx] && cur.slides[slideIdx].person) {
-        try { var wr = await searchWikiRest(cur.slides[slideIdx].person); results = results.concat(wr); } catch (e) {}
+      // Person-specific: TMDb + iTunes if query looks like a name
+      var _so = selectedOptionRef.current;
+      var cur = options ? options[_so] : null;
+      var personName = cur && cur.slides && cur.slides[slideIdx] ? cur.slides[slideIdx].person : null;
+      if (personName || (searchQ.split(" ").length <= 3 && /^[A-Z]/.test(searchQ))) {
+        var pName = personName || searchQ;
+        try { var tm = await searchTMDb(pName); results = results.concat(tm.slice(0, 3)); } catch (e) {}
+        try { var it = await searchITunes(pName); results = results.concat(it.slice(0, 2)); } catch (e) {}
       }
-      var seen = {};
-      results = results.filter(function(r) { if (!r.url || seen[r.url]) return false; seen[r.url] = true; return true; });
-      setSwapImages(results.slice(0, 12));
+      // Deduplicate across sources
+      results = dedupeImages(results);
+      // If too few results, retry with broader query
+      if (results.length < 4 && query) {
+        var broaderQ = catLabel + " " + extractKeywords(query, 2);
+        if (unsplashKey) { try { var us2 = await searchUnsplash(broaderQ, unsplashKey); results = results.concat(us2.slice(0, 4)); } catch (e) {} }
+        if (pexelsKey) { try { var px2 = await searchPexels(broaderQ, pexelsKey); results = results.concat(px2.slice(0, 3)); } catch (e) {} }
+        results = dedupeImages(results);
+      }
+      setSwapImages(results.slice(0, 16));
     } catch (e) { console.error("Swap image search error:", e); }
     finally { setSwapLoading(false); }
-  }, [category, cat, topic, apiKeys, options, selectedOption]);
+  }
 
   var swpn = _s(-1), swapPanel = swpn[0], setSwapPanel = swpn[1]; // -1 = full slide, 0-3 = mosaic panel
 
@@ -3322,20 +3368,22 @@ export default function LoathrMediaGenerator() {
 
           // Track used image URLs to prevent duplicates (including locked person images)
           var usedUrls = {};
-          Object.values(imgMap).forEach(function(img) {
-            if (img && img.url) usedUrls[img.url] = true;
-            if (img && img.thumb) usedUrls[img.thumb] = true;
-          });
+          function markUsed(img) {
+            if (!img) return;
+            if (img.url) { usedUrls[img.url] = true; usedUrls[normalizeImgUrl(img.url)] = true; }
+            if (img.thumb) { usedUrls[img.thumb] = true; usedUrls[normalizeImgUrl(img.thumb)] = true; }
+          }
+          Object.values(imgMap).forEach(markUsed);
           function pickUnique(results) {
             for (var u = 0; u < results.length; u++) {
               var img = results[u];
-              if (img && img.url && !usedUrls[img.url] && (!img.thumb || !usedUrls[img.thumb])) {
-                usedUrls[img.url] = true;
-                if (img.thumb) usedUrls[img.thumb] = true;
-                return img;
-              }
+              if (!img || !img.url) continue;
+              var norm = normalizeImgUrl(img.url);
+              var normThumb = img.thumb ? normalizeImgUrl(img.thumb) : "";
+              if (usedUrls[img.url] || usedUrls[norm] || (img.thumb && usedUrls[img.thumb]) || (normThumb && usedUrls[normThumb])) continue;
+              markUsed(img);
+              return img;
             }
-            // Return null instead of a duplicate — slide will show editorial fill pattern
             return null;
           }
 
@@ -3546,13 +3594,14 @@ export default function LoathrMediaGenerator() {
         var catLabel = catInfo.label;
         try {
           var stockImgs = await searchFn(catLabel + " " + keywords, searchKey);
-          var usedUrls = {};
-          Object.values(imgMap).forEach(function(img) { if (img && img.url) usedUrls[img.url] = true; });
+          var usedUrls2 = {};
+          Object.values(imgMap).forEach(function(img) { if (img && img.url) { usedUrls2[img.url] = true; usedUrls2[normalizeImgUrl(img.url)] = true; } });
           for (var fi = 0; fi < slides.length; fi++) {
             if (imgMap[fi]) continue;
             for (var si = 0; si < stockImgs.length; si++) {
-              if (stockImgs[si] && stockImgs[si].url && !usedUrls[stockImgs[si].url]) {
-                imgMap[fi] = stockImgs[si]; usedUrls[stockImgs[si].url] = true; break;
+              var simg = stockImgs[si];
+              if (simg && simg.url && !usedUrls2[simg.url] && !usedUrls2[normalizeImgUrl(simg.url)]) {
+                imgMap[fi] = simg; usedUrls2[simg.url] = true; usedUrls2[normalizeImgUrl(simg.url)] = true; break;
               }
             }
           }
@@ -4882,7 +4931,7 @@ export default function LoathrMediaGenerator() {
               <div style={{ marginTop: 4, borderTop: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#eee"), paddingTop: 4 }}>
                 <div style={{ display: "flex", gap: 2, alignItems: "center", marginBottom: 3, flexWrap: "wrap" }}>
                   <div style={{ ...CP, fontSize: 5, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Element:</div>
-                  {["all", "heading", "body", "highlight"].map(function(t) { return (
+                  {["all", "heading", "body", "highlight", "sources"].map(function(t) { return (
                     <button key={t} onClick={function() { setNudgeTarget(t); }}
                       style={{ padding: "1px 4px", border: "0.5px solid " + (nudgeTarget === t ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd")), background: nudgeTarget === t ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: nudgeTarget === t ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999"), textTransform: "capitalize" }}>{t}</button>
                   ); })}
@@ -4905,7 +4954,7 @@ export default function LoathrMediaGenerator() {
                     <input value={s[nudgeTarget] || ""} onChange={function(e) { updateSlideField(currentSlide, nudgeTarget, e.target.value); }}
                       style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fff" : "#fff" }} />
                   )}
-                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight") && <div style={{ display: "flex", gap: 3, alignItems: "center", marginTop: 2 }}>
+                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources") && <div style={{ display: "flex", gap: 3, alignItems: "center", marginTop: 2 }}>
                     <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Size:</div>
                     <button onClick={function() { adjustFontSize(currentSlide, nudgeTarget, -1); }}
                       style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999", textAlign: "center", lineHeight: "14px" }}>-</button>
@@ -4913,9 +4962,9 @@ export default function LoathrMediaGenerator() {
                     <button onClick={function() { adjustFontSize(currentSlide, nudgeTarget, 1); }}
                       style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999", textAlign: "center", lineHeight: "14px" }}>+</button>
                   </div>}
-                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight") && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>
+                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources") && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>
                     <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Font:</div>
-                    {ALL_FONTS.map(function(f) { var fontKey = nudgeTarget + "Font"; var defaults = { heading: "foun", body: "maheni", highlight: activeSegment === "enterprise" ? "maheni" : activeSegment === "newsdesk" ? "maheni" : "wenssep" }; var sel = (s[fontKey] || defaults[nudgeTarget] || "maheni") === f.id; return (
+                    {ALL_FONTS.map(function(f) { var fontKey = nudgeTarget + "Font"; var defaults = { heading: "foun", body: "maheni", highlight: activeSegment === "enterprise" ? "maheni" : activeSegment === "newsdesk" ? "maheni" : "wenssep", sources: "courier" }; var sel = (s[fontKey] || defaults[nudgeTarget] || "maheni") === f.id; return (
                       <button key={f.id} onClick={function() { updateSlideField(currentSlide, fontKey, f.id); }}
                         style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd")), background: sel ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999") }}>{f.label}</button>
                     ); })}
@@ -4954,14 +5003,6 @@ export default function LoathrMediaGenerator() {
                     style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>+</button>
                   <button onClick={function() { updateSlideField(currentSlide, "dividerHidden", !s.dividerHidden); }}
                     style={{ padding: "1px 4px", border: "0.5px solid #444", background: s.dividerHidden ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: s.dividerHidden ? "#fff" : "#888" }}>{s.dividerHidden ? "Hidden" : "Visible"}</button>
-                </div>
-                <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
-                  <div style={{ ...CP, fontSize: 5, color: "#888" }}>Sources:</div>
-                  <button onClick={function() { adjustFontSize(currentSlide, "sources", -0.5); }}
-                    style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>-</button>
-                  <div style={{ ...CP, fontSize: 5, color: "#ccc" }}>{(s.sourcesSize || 0) > 0 ? "+" : ""}{s.sourcesSize || 0}</div>
-                  <button onClick={function() { adjustFontSize(currentSlide, "sources", 0.5); }}
-                    style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>+</button>
                 </div>
               </div>}
               <button onClick={function() { updateSlideField(currentSlide, "imageLayout", "single"); delete _mosaicSlides[currentSlide]; setImages(function(prev) { return Object.assign({}, prev); }); }}
