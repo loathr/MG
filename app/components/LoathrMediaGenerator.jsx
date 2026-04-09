@@ -1796,10 +1796,11 @@ var searchNASA = async function(query) {
 
 var searchEuropeana = async function(query) {
   try {
-    var r = await fetchWithTimeout("https://api.europeana.eu/record/v2/search.json?query=" + encodeURIComponent(query) + "&rows=6&media=true&thumbnail=true&wskey=apidemo");
+    var euroKey = (typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_EUROPEANA_KEY : "") || "apidemo";
+    var r = await fetchWithTimeout("https://api.europeana.eu/record/v2/search.json?query=" + encodeURIComponent(query) + "&rows=8&media=true&thumbnail=true&wskey=" + euroKey);
     if (!r.ok) return [];
     var d = await r.json();
-    return (d.items || []).filter(function(item) { return item.edmIsShownBy && item.edmIsShownBy[0]; }).slice(0, 4).map(function(item) {
+    return (d.items || []).filter(function(item) { return item.edmIsShownBy && item.edmIsShownBy[0]; }).slice(0, 5).map(function(item) {
       return { url: item.edmIsShownBy[0], thumb: item.edmPreview ? item.edmPreview[0] : item.edmIsShownBy[0], alt: item.title ? item.title[0] : query, credit: item.dataProvider ? item.dataProvider[0] : "Europeana", source: "Europeana" };
     });
   } catch (e) { return []; }
@@ -1843,27 +1844,62 @@ var searchWikiRest = async function(personName) {
 var searchWikimedia = async function(personName) {
   if (!personName || personName.length < 2) return [];
   try {
-    var sr = await fetchWithTimeout("https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=" + encodeURIComponent(personName) + "&gsrlimit=3&prop=pageimages&format=json&pithumbsize=800&origin=*", 5000);
+    var sr = await fetchWithTimeout("https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=" + encodeURIComponent(personName) + "&gsrlimit=5&prop=pageimages&format=json&pithumbsize=1200&origin=*", 5000);
     if (!sr.ok) return [];
     var sd = await sr.json();
     var sp = sd.query && sd.query.pages ? sd.query.pages : {};
     var results = [];
     Object.values(sp).forEach(function(page) {
       if (page.thumbnail && page.thumbnail.source) {
-        results.push({ url: page.thumbnail.source, thumb: page.thumbnail.source, alt: personName, credit: "Wikipedia", source: "Wiki Search" });
+        results.push({ url: page.thumbnail.source, thumb: page.thumbnail.source, alt: page.title || personName, credit: "Wikipedia", source: "Wiki Search" });
       }
     });
     return results;
   } catch (e) { return []; }
 };
 
+// Wikimedia Commons — massive free image library
+var searchWikiCommons = async function(query) {
+  try {
+    var r = await fetchWithTimeout("https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=" + encodeURIComponent(query) + "&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1000&format=json&origin=*", 6000);
+    if (!r.ok) return [];
+    var d = await r.json();
+    var pages = d.query && d.query.pages ? d.query.pages : {};
+    var results = [];
+    Object.values(pages).forEach(function(page) {
+      var info = page.imageinfo && page.imageinfo[0];
+      if (info && info.thumburl && /\.(jpg|jpeg|png|webp)/i.test(info.thumburl)) {
+        var meta = info.extmetadata || {};
+        results.push({ url: info.thumburl, thumb: info.thumburl, alt: meta.ObjectName ? meta.ObjectName.value : query, credit: meta.Artist ? meta.Artist.value.replace(/<[^>]*>/g, "").slice(0, 40) : "Wikimedia Commons", source: "Commons" });
+      }
+    });
+    return results.slice(0, 5);
+  } catch (e) { return []; }
+};
+
+// Pixabay — free high-quality stock photos
+var searchPixabay = async function(query) {
+  try {
+    var pixKey = (typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_PIXABAY_KEY : "") || "";
+    if (!pixKey) return [];
+    var r = await fetchWithTimeout("https://pixabay.com/api/?key=" + pixKey + "&q=" + encodeURIComponent(query) + "&image_type=photo&orientation=vertical&per_page=8&safesearch=true", 5000);
+    if (!r.ok) return [];
+    var d = await r.json();
+    return (d.hits || []).slice(0, 5).map(function(img) {
+      return { url: img.largeImageURL || img.webformatURL, thumb: img.previewURL || img.webformatURL, alt: img.tags || query, credit: img.user || "Pixabay", source: "Pixabay" };
+    });
+  } catch (e) { return []; }
+};
+
 // TMDb (The Movie Database) — great for actors, directors, TV personalities
 var searchTMDb = async function(personName) {
   try {
-    var r = await fetchWithTimeout("https://api.themoviedb.org/3/search/person?query=" + encodeURIComponent(personName) + "&include_adult=false&language=en-US&page=1&api_key=eyJhbGciOiJIUzI1NiJ9", 5000);
+    var tmdbKey = (typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_TMDB_KEY : "") || "";
+    if (!tmdbKey) return [];
+    var r = await fetchWithTimeout("https://api.themoviedb.org/3/search/person?query=" + encodeURIComponent(personName) + "&include_adult=false&language=en-US&page=1&api_key=" + tmdbKey, 5000);
     if (!r.ok) return [];
     var d = await r.json();
-    return (d.results || []).slice(0, 2).filter(function(p) { return p.profile_path; }).map(function(p) {
+    return (d.results || []).slice(0, 3).filter(function(p) { return p.profile_path; }).map(function(p) {
       return { url: "https://image.tmdb.org/t/p/w780" + p.profile_path, thumb: "https://image.tmdb.org/t/p/w185" + p.profile_path, alt: p.name || personName, credit: "TMDb", source: "TMDb" };
     });
   } catch (e) { return []; }
@@ -1894,13 +1930,15 @@ var searchPersonImages = async function(personName) {
   if (results.length < 3) { try { var tm = await searchTMDb(personName); results = results.concat(tm); } catch (e) {} }
   // 4. iTunes — musicians, artists
   if (results.length < 3) { try { var it = await searchITunes(personName); results = results.concat(it); } catch (e) {} }
-  // 5. Pexels — editorial portraits
-  if (results.length < 2) {
+  // 5. Wikimedia Commons — high-quality portraits
+  if (results.length < 4) { try { var wc = await searchWikiCommons(personName + " portrait"); results = results.concat(wc.slice(0, 3)); } catch (e) {} }
+  // 6. Pexels — editorial portraits
+  if (results.length < 3) {
     var pexelsKey = typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_PEXELS_KEY : "";
     if (pexelsKey) { try { var px = await searchPexels(personName + " portrait", pexelsKey); results = results.concat(px.slice(0, 2)); } catch (e) {} }
   }
-  // 6. Unsplash — last resort
-  if (results.length < 2) {
+  // 7. Unsplash — last resort
+  if (results.length < 3) {
     var unsplashKey = typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_UNSPLASH_KEY : "";
     if (unsplashKey) { try { var us = await searchUnsplash(personName + " portrait", unsplashKey); results = results.concat(us.slice(0, 2)); } catch (e) {} }
   }
@@ -2177,17 +2215,17 @@ var searchLocationImages = async function(placeName) {
 
 // Category-to-vintage-API mapping
 var VINTAGE_APIS = {
-  film: [searchLibCongress, searchMetMuseum],
-  photo: [searchMetMuseum, searchArtChicago],
-  sports: [searchLibCongress, searchEuropeana],
-  trivia: [searchLibCongress, searchNASA],
-  art: [searchMetMuseum, searchArtChicago],
-  fashion: [searchMetMuseum, searchEuropeana],
-  food: [searchEuropeana, searchLibCongress],
-  nightlife: [searchLibCongress, searchEuropeana],
-  gossip: [searchLibCongress, searchMetMuseum],
-  enterprise: [searchLibCongress, searchMetMuseum],
-  newsdesk: [searchLibCongress, searchMetMuseum],
+  film: [searchWikiCommons, searchLibCongress, searchMetMuseum],
+  photo: [searchWikiCommons, searchMetMuseum, searchArtChicago],
+  sports: [searchWikiCommons, searchLibCongress, searchEuropeana],
+  trivia: [searchWikiCommons, searchLibCongress, searchNASA],
+  art: [searchWikiCommons, searchMetMuseum, searchArtChicago],
+  fashion: [searchWikiCommons, searchMetMuseum, searchEuropeana],
+  food: [searchWikiCommons, searchEuropeana, searchLibCongress],
+  nightlife: [searchWikiCommons, searchLibCongress, searchEuropeana],
+  gossip: [searchWikiCommons, searchLibCongress, searchMetMuseum],
+  enterprise: [searchWikiCommons, searchLibCongress, searchMetMuseum],
+  newsdesk: [searchWikiCommons, searchLibCongress, searchMetMuseum],
 };
 
 // Search vintage APIs for a category
@@ -2863,9 +2901,12 @@ export default function LoathrMediaGenerator() {
       // Primary sources
       if (unsplashKey) { try { var us = await searchUnsplash(searchQ, unsplashKey); results = results.concat(us.slice(0, 6)); } catch (e) {} }
       if (pexelsKey) { try { var px = await searchPexels(searchQ, pexelsKey); results = results.concat(px.slice(0, 4)); } catch (e) {} }
-      // Wikipedia — always try for better editorial images
+      // Wikipedia + Wikimedia Commons
       try { var wr = await searchWikiRest(searchQ); results = results.concat(wr); } catch (e) {}
       try { var wm = await searchWikimedia(searchQ); results = results.concat(wm.slice(0, 3)); } catch (e) {}
+      try { var wc = await searchWikiCommons(searchQ); results = results.concat(wc.slice(0, 4)); } catch (e) {}
+      // Pixabay
+      try { var pb = await searchPixabay(searchQ); results = results.concat(pb.slice(0, 4)); } catch (e) {}
       // Vintage / archival
       try { var vi = await searchVintage(category, extractKeywords(query || topic, 2)); results = results.concat(vi.slice(0, 3)); } catch (e) {}
       // Person-specific: TMDb + iTunes if query looks like a name
