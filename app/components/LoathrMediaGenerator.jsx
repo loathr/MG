@@ -2479,7 +2479,7 @@ export default function LoathrMediaGenerator() {
   // Auto-fetch trending topics when Enterprise force or mode changes
   _ef(function() {
     if (category === "enterprise" && enterpriseForce) { fetchTrending(); }
-  }, [enterpriseForce, enterpriseMode, category, fetchTrending]);
+  }, [enterpriseForce, enterpriseMode, category]);
 
   // Keep ref in sync so generate() always reads latest locked images
   _ef(function() { lockedRef.current = lockedPersonImages; }, [lockedPersonImages]);
@@ -2579,7 +2579,7 @@ export default function LoathrMediaGenerator() {
     finally { setViralLoading(false); }
   }, [category, activeSegment, cat]);
 
-  var fetchTrending = _cb(async function() {
+  async function fetchTrending() {
     if (!category) return;
     setIsFetchingTrending(true); setTrending([]);
     var catContext = { film: "film, TV, cinema, streaming, directing", photo: "photography, cameras, visual storytelling", sports: "sports with music, fashion, art, culture", trivia: "surprising facts, science discoveries, cultural oddities", art: "music, visual arts, album releases, art history", fashion: "fashion, luxury brands, streetwear, designers, runway, style trends", food: "food, restaurants, chefs, cocktails, dining culture, culinary trends", nightlife: "nightlife, clubs, DJs, bars, parties, after-dark culture", gossip: "celebrity gossip, entertainment news, scandals, Hollywood drama, influencer culture" };
@@ -2622,7 +2622,7 @@ export default function LoathrMediaGenerator() {
       if (Array.isArray(parsed)) setTrending(parsed);
     } catch (err) { console.error("Trending parse error:", err); }
     finally { setIsFetchingTrending(false); }
-  }, [category, enterpriseForce, enterpriseMode, newsFilter, newsRegion, newsCountry]);
+  }
 
   // Smart search: Claude suggests angles after 800ms pause
   var fetchSmartAngles = _cb(async function(query) {
@@ -4411,8 +4411,8 @@ export default function LoathrMediaGenerator() {
 
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
             <button onClick={fetchTrending} disabled={isFetchingTrending}
-              style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)" }}>
-              <Flame size={11} />{isFetchingTrending ? "..." : activeSegment === "newsdesk" ? "Top Stories" : activeSegment === "enterprise" ? (enterpriseMode === "news" ? "Breaking" : enterpriseMode === "tips" ? "Ideas" : "Trending") : "Trending"}</button>
+              style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#555") : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? (isFetchingTrending ? "#ffffff11" : trending.length > 0 ? "#ffffff08" : "transparent") : "transparent", cursor: isFetchingTrending ? "wait" : "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#aaa") : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)" }}>
+              <Flame size={11} />{isFetchingTrending ? "Searching..." : activeSegment === "newsdesk" ? "Top Stories" : activeSegment === "enterprise" ? (enterpriseMode === "news" ? "Breaking" : enterpriseMode === "tips" ? "Ideas" : "Trending") + (enterpriseForce ? " \u00b7 " + (ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) || {}).label : "") : "Trending"}</button>
             {activeSegment === "editorial" && <button onClick={function() { setShuffleKey(function(k) { return k + 1; }); }}
               style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Shuffle size={11} />Shuffle</button>}
             {activeSegment === "editorial" && <button onClick={surpriseMe}
