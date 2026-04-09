@@ -302,9 +302,10 @@ function Layout4({ slide, url, mosaic, mosaicLayout }) {
 
 // Layout 5 — Image Strip Top + 2-Column Text
 function Layout5({ slide, url, mosaic, mosaicLayout }) {
+  var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ height: "30%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} /></div>
+      <div style={{ height: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} /></div>
       <div style={Object.assign({}, { flex: 1, padding: "8px 14px", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
@@ -338,11 +339,12 @@ function Layout6({ slide }) {
 
 // Layout 7 — Diagonal Split (image top-left, text bottom-right)
 function Layout7({ slide, url, mosaic, mosaicLayout }) {
+  var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ display: "flex", height: "45%" }}>
-        <div style={{ width: "55%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} /></div>
-        <div style={Object.assign({}, { width: "45%", padding: "8px 10px" }, offsetStyle(slide))}>
+      <div style={{ display: "flex", height: sp + "%" }}>
+        <div style={{ width: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} /></div>
+        <div style={Object.assign({}, { width: (100 - sp) + "%", padding: "8px 10px" }, offsetStyle(slide))}>
           {sectionLabel(slide.role || "")}
           <div style={Object.assign({}, { ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
         </div>
@@ -360,13 +362,14 @@ function Layout7({ slide, url, mosaic, mosaicLayout }) {
 
 // Layout 8 — Center Band (text top, image center, text bottom)
 function Layout8({ slide, url, mosaic, mosaicLayout }) {
+  var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={Object.assign({}, { padding: "8px 14px", flexShrink: 0 }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
       </div>
-      <div style={{ height: "30%", overflow: "hidden", flexShrink: 0, borderTop: "0.5px solid #ffffff22", borderBottom: "0.5px solid #ffffff22" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} /></div>
+      <div style={{ height: sp + "%", overflow: "hidden", flexShrink: 0, borderTop: "0.5px solid #ffffff22", borderBottom: "0.5px solid #ffffff22" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} /></div>
       <div style={Object.assign({}, { flex: 1, padding: "8px 14px", overflow: "hidden" }, offsetStyle(slide))}>
         <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body, slide.keywords, slide.underlineWeight)}</div>
         {highlightBlock(slide.highlight, slide)}
