@@ -2610,10 +2610,10 @@ export default function LoathrMediaGenerator() {
   var abortRef = _ref(null);
 
   _ef(function() { selectedOptionRef.current = selectedOption; }, [selectedOption]);
-  // Auto-fetch trending topics when Enterprise force or mode changes
+  // Auto-fetch trending topics when Enterprise force, mode, or sector changes
   _ef(function() {
-    if (category === "enterprise" && enterpriseForce) { fetchTrending(); }
-  }, [enterpriseForce, enterpriseMode, category]);
+    if (category === "enterprise" && (enterpriseForce || enterpriseSector)) { fetchTrending(); }
+  }, [enterpriseForce, enterpriseMode, enterpriseSector, category]);
 
   // Keep ref in sync so generate() always reads latest locked images
   _ef(function() { lockedRef.current = lockedPersonImages; }, [lockedPersonImages]);
@@ -2721,14 +2721,19 @@ export default function LoathrMediaGenerator() {
     var promptText;
     if (category === "enterprise") {
       var forceCtx = enterpriseForce ? (ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) || {}).label : null;
-      var forceDetail = { tech: "technology disruption, software, hardware, digital transformation", policy: "government regulation, compliance, legislation, trade policy, sanctions", ai: "artificial intelligence, machine learning, automation, robotics", markets: "stock market, commodities, real estate, cryptocurrency, interest rates", culture: "cultural shifts, workplace culture, consumer behavior, demographics", media: "media industry, streaming, advertising, journalism, social media platforms", education: "education industry, universities, edtech, training, workforce development", stocks: "public companies, IPOs, earnings, stock performance, market cap", lifestyle: "consumer lifestyle, health, wellness, travel, housing, food industry", news: "breaking business news, mergers, acquisitions, layoffs, launches" };
-      var searchCtx = forceCtx ? forceCtx + " (" + (forceDetail[enterpriseForce] || "") + ")" : "business across ALL sectors — NOT just AI or tech. Cover finance, healthcare, retail, manufacturing, energy, real estate, food, fashion, media";
+      var sectorCtx = enterpriseSector ? (ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) || {}).label : null;
+      var forceDetail = { tech: "technology disruption, software, hardware, digital transformation", policy: "government regulation, compliance, legislation, trade policy, sanctions", ai: "artificial intelligence, machine learning, automation, robotics", markets: "stock market, commodities, real estate, cryptocurrency, interest rates", culture: "cultural shifts, workplace culture, consumer behavior, demographics", news: "breaking business news, mergers, acquisitions, layoffs, launches" };
+      var searchCtx = "";
+      if (forceCtx && sectorCtx) { searchCtx = forceCtx + " in " + sectorCtx; }
+      else if (sectorCtx) { searchCtx = sectorCtx; }
+      else if (forceCtx) { searchCtx = forceCtx + " (" + (forceDetail[enterpriseForce] || "") + ")"; }
+      else { searchCtx = "business across ALL sectors — NOT just AI or tech. Cover finance, healthcare, retail, manufacturing, energy, real estate, food, fashion, media"; }
       if (enterpriseMode === "news") {
-        promptText = "Search for the latest BREAKING business news related to: " + searchCtx + ". Find 6 DIVERSE stories from DIFFERENT industries. Do NOT focus only on AI or tech. Include source. Respond ONLY with JSON: [{\"topic\":\"headline\",\"hook\":\"business impact\",\"source\":\"publication\"}]";
+        promptText = "Search for the latest BREAKING business news related to: " + searchCtx + ". Find 6 DIVERSE stories. Include source. Respond ONLY with JSON: [{\"topic\":\"headline\",\"hook\":\"business impact\",\"source\":\"publication\"}]";
       } else if (enterpriseMode === "tips") {
-        promptText = "Suggest 6 specific industries needing tactical advice related to: " + searchCtx + ". Cover DIVERSE industries. Respond ONLY with JSON: [{\"topic\":\"Industry: specific problem\",\"hook\":\"why they need help now\"}]";
+        promptText = "Suggest 6 specific businesses or sub-industries needing tactical advice in: " + searchCtx + ". Be SPECIFIC to this sector. Respond ONLY with JSON: [{\"topic\":\"Industry: specific problem\",\"hook\":\"why they need help now\"}]";
       } else {
-        promptText = "Search for trending business stories related to: " + searchCtx + ". Find 6 DIVERSE topics from DIFFERENT industries. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why this matters\"}]";
+        promptText = "Search for trending business stories related to: " + searchCtx + ". Find 6 DIVERSE topics. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why this matters\"}]";
       }
     } else if (category === "newsdesk") {
       var regionCtx = newsRegion !== "global" ? " in " + (NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }) || {}).label : "";
@@ -4131,7 +4136,7 @@ export default function LoathrMediaGenerator() {
               }
             }}>
             <input value={topic} onChange={function(e) { var v = e.target.value; setTopic(v); setRefinedAngles([]); setSuggestions(filterSuggestions(v, category)); setCrossCatSuggestions(searchAllCategories(v, category)); triggerSearch(v); }}
-              placeholder={category === "newsdesk" ? "Search keywords: oil, election, LeBron..." : category === "enterprise" ? (enterpriseMode === "news" ? "Search business news: tariffs, IPO, merger..." : enterpriseMode === "tips" ? "Industry to advise: restaurants, SaaS, retail..." : (function() { var hints = { tech: "e.g. Healthcare, Retail, Banking...", policy: "e.g. Pharma, Energy, Cannabis...", ai: "e.g. Legal services, Call centers, Education...", markets: "e.g. Real estate, Crypto, Commodities...", culture: "e.g. Luxury brands, Fast food, Streaming...", media: "e.g. News industry, Podcasting, Social media...", education: "e.g. Universities, EdTech, K-12...", stocks: "e.g. Tesla, Apple, NVIDIA...", lifestyle: "e.g. Fitness, Travel, Housing...", news: "e.g. Oil industry, Tech sector, Airlines..." }; return hints[enterpriseForce] || "Industry or topic to analyze..."; })()) : "Topic for " + cat.label + "... (or drop an image)"}
+              placeholder={category === "newsdesk" ? "Search keywords: oil, election, LeBron..." : category === "enterprise" ? (function() { var sLabel = enterpriseSector ? (ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) || {}).label : null; if (enterpriseMode === "news") return sLabel ? "Search " + sLabel + " news..." : "Search business news: tariffs, IPO, merger..."; if (enterpriseMode === "tips") return sLabel ? "Advise " + sLabel + " businesses on..." : "Industry to advise: restaurants, SaaS, retail..."; if (sLabel) return "Topic in " + sLabel + "..."; var hints = { tech: "e.g. Healthcare, Retail, Banking...", policy: "e.g. Pharma, Energy, Cannabis...", ai: "e.g. Legal services, Call centers, Education...", markets: "e.g. Real estate, Crypto, Commodities...", culture: "e.g. Luxury brands, Fast food, Streaming..." }; return hints[enterpriseForce] || "Industry or topic to analyze..."; })() : "Topic for " + cat.label + "... (or drop an image)"}
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ffffff" : "var(--color-background-primary)", color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : "var(--color-text-primary)", fontSize: 12, ...CP }} />
             {topic && <button onClick={function() { setTopic(""); setOptions(null); setSmartAngles([]); setWebResults([]); setViralScore(null); setTrending([]); setSuggestions([]); setCrossCatSuggestions([]); setRefinedAngles([]); }}
               style={{ padding: "10px 6px", border: "none", background: "transparent", cursor: "pointer", ...CP, fontSize: 12, color: activeSegment === "enterprise" ? "#666" : "#999", display: "flex", alignItems: "center" }}>{"\u2715"}</button>}
@@ -4646,7 +4651,7 @@ export default function LoathrMediaGenerator() {
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
             <button onClick={fetchTrending} disabled={isFetchingTrending}
               style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#555") : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? (isFetchingTrending ? "#ffffff11" : trending.length > 0 ? "#ffffff08" : "transparent") : "transparent", cursor: isFetchingTrending ? "wait" : "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#aaa") : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)" }}>
-              <Flame size={11} />{isFetchingTrending ? "Searching..." : activeSegment === "newsdesk" ? "Top Stories" : activeSegment === "enterprise" ? (enterpriseMode === "news" ? "Breaking" : enterpriseMode === "tips" ? "Ideas" : "Trending") + (enterpriseForce ? " \u00b7 " + (ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) || {}).label : "") : "Trending"}</button>
+              <Flame size={11} />{isFetchingTrending ? "Searching..." : activeSegment === "newsdesk" ? "Top Stories" : activeSegment === "enterprise" ? (enterpriseMode === "news" ? "Breaking" : enterpriseMode === "tips" ? "Ideas" : "Trending") + (enterpriseForce ? " \u00b7 " + (ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) || {}).label : "") + (enterpriseSector ? " \u00b7 " + (ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) || {}).label : "") : "Trending"}</button>
             {activeSegment === "editorial" && <button onClick={function() { setShuffleKey(function(k) { return k + 1; }); }}
               style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Shuffle size={11} />Shuffle</button>}
             {activeSegment === "editorial" && <button onClick={surpriseMe}
