@@ -28,6 +28,9 @@ export default function RootLayout({
         <link rel="preload" href="/Fonts/Foun/OpenType-TT/Foun.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
         <link rel="preload" href="/Fonts/Wenssep/Wenssep.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
         <link rel="preload" href="/Fonts/Maheni/Maheni-Regular.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
+        <link rel="preload" href="/Fonts/Enterprise/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Regular.otf" as="font" type="font/otf" crossOrigin="anonymous" />
+        <link rel="preload" href="/Fonts/Enterprise/qogee-font-2026-04-07-06-00-04-utc/Qogee.otf" as="font" type="font/otf" crossOrigin="anonymous" />
+        <link rel="preload" href="/Fonts/Enterprise/Matina/Font/Matina-Regular.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
       <body>{children}</body>
     </html>

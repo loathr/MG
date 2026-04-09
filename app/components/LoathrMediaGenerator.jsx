@@ -3555,12 +3555,18 @@ export default function LoathrMediaGenerator() {
             var extraUsed = {};
             Object.values(imgMap).forEach(function(img) { if (img && img.url) { extraUsed[img.url] = true; extraUsed[normalizeImgUrl(img.url)] = true; } });
             try {
-              var mosaicQuery = shortTopic + " " + (catInfo ? catInfo.label : category);
+              var mosaicBase = shortTopic + " " + (catInfo ? catInfo.label : category);
               var mExtra = [];
-              if (primaryKey) { try { var me1 = await primaryFn(mosaicQuery + " editorial", primaryKey); mExtra = mExtra.concat(me1); } catch(e) {} }
-              if (secondaryKey) { try { var me2 = await secondaryFn(mosaicQuery + " industry", secondaryKey); mExtra = mExtra.concat(me2); } catch(e) {} }
-              try { var me3 = await searchWikiCommons(mosaicQuery); mExtra = mExtra.concat(me3); } catch(e) {}
-              try { var me4 = await searchPixabay(mosaicQuery); mExtra = mExtra.concat(me4); } catch(e) {}
+              // Use varied queries to get diverse images
+              if (primaryKey) { try { var me1 = await primaryFn(mosaicBase + " abstract editorial", primaryKey); mExtra = mExtra.concat(me1); } catch(e) {} }
+              if (secondaryKey) { try { var me2 = await secondaryFn(shortTopic + " industry workplace", secondaryKey); mExtra = mExtra.concat(me2); } catch(e) {} }
+              try { var me3 = await searchWikiCommons(shortTopic + " business"); mExtra = mExtra.concat(me3); } catch(e) {}
+              try { var me4 = await searchPixabay(mosaicBase); mExtra = mExtra.concat(me4); } catch(e) {}
+              // Additional variety pass with different terms
+              if (mExtra.length < mosaicNeed) {
+                if (primaryKey) { try { var me5 = await primaryFn(shortTopic + " technology modern", primaryKey); mExtra = mExtra.concat(me5); } catch(e) {} }
+                try { var me6 = await searchWikiCommons(mosaicBase + " industry"); mExtra = mExtra.concat(me6); } catch(e) {}
+              }
               mExtra.forEach(function(img) {
                 if (img && img.url && !extraUsed[img.url] && !extraUsed[normalizeImgUrl(img.url)] && _mosaicExtraImages.length < mosaicNeed) {
                   _mosaicExtraImages.push(img.url); extraUsed[img.url] = true; extraUsed[normalizeImgUrl(img.url)] = true;
@@ -3570,11 +3576,36 @@ export default function LoathrMediaGenerator() {
             } catch(e) { console.error("Mosaic extra fetch error:", e); }
           }
           if (totalLoaded >= 3) {
+            // Assign mosaic images sequentially so each mosaic knows what previous ones used
+            var mosaicGlobalUsed = {};
+            Object.values(imgMap).forEach(function(img) { if (img && img.url) { mosaicGlobalUsed[img.url] = true; mosaicGlobalUsed[normalizeImgUrl(img.url)] = true; } });
             slides.forEach(function(s, si) {
               if (s && s.mosaic && si > 0 && si < slides.length - 1) {
-                var mUrls = getMosaicImgs(imgMap, si, slides.length);
+                var mUrls = [];
+                var mUsed = Object.assign({}, mosaicGlobalUsed);
+                // Primary image for this slide
+                if (imgMap[si] && imgMap[si].url && !mUsed[imgMap[si].url]) { mUrls.push(imgMap[si].url); mUsed[imgMap[si].url] = true; }
+                // Pull from extra pool first
+                for (var me = 0; me < _mosaicExtraImages.length && mUrls.length < 4; me++) {
+                  var eu = _mosaicExtraImages[me];
+                  if (eu && !mUsed[eu] && !mUsed[normalizeImgUrl(eu)]) { mUrls.push(eu); mUsed[eu] = true; mUsed[normalizeImgUrl(eu)] = true; }
+                }
+                // Fallback: non-adjacent slides (3+ away)
+                if (mUrls.length < 4) {
+                  var keys = Object.keys(imgMap);
+                  for (var mk = 0; mk < keys.length && mUrls.length < 4; mk++) {
+                    var mimg = imgMap[keys[mk]];
+                    if (mimg && mimg.url && !mUsed[mimg.url] && !mUsed[normalizeImgUrl(mimg.url)] && Math.abs(parseInt(keys[mk]) - si) > 2) {
+                      mUrls.push(mimg.url); mUsed[mimg.url] = true;
+                    }
+                  }
+                }
                 console.log("Mosaic slide " + si + ": " + mUrls.length + " images found");
-                if (mUrls.length >= 2) _mosaicSlides[si] = mUrls;
+                if (mUrls.length >= 2) {
+                  _mosaicSlides[si] = mUrls;
+                  // Mark these as globally used so next mosaic won't reuse them
+                  mUrls.forEach(function(u) { mosaicGlobalUsed[u] = true; mosaicGlobalUsed[normalizeImgUrl(u)] = true; });
+                }
               }
             });
           }
@@ -3821,7 +3852,7 @@ export default function LoathrMediaGenerator() {
 
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px", background: activeSegment === "enterprise" ? "#0a0a0a" : activeSegment === "newsdesk" ? "#f5f0e4" : undefined, color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : undefined, minHeight: activeSegment !== "editorial" ? "100vh" : undefined, transition: "background 0.3s, color 0.3s" }}>
-      <style>{"@font-face{font-family:'Foun';src:url('/Fonts/Foun/OpenType-PS/Foun.otf') format('opentype'),url('/Fonts/Foun/OpenType-TT/Foun.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Wenssep';src:url('/Fonts/Wenssep/Wenssep.otf') format('opentype'),url('/Fonts/Wenssep/Wenssep.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Regular.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:block}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}@keyframes walk{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}@keyframes hammer{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-45deg)}}@keyframes sweep{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}@keyframes paint{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}@keyframes carry{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-3px) rotate(-2deg)}75%{transform:translateY(-3px) rotate(2deg)}}@keyframes figfade{0%{opacity:1}45%{opacity:1}50%{opacity:0}95%{opacity:0}100%{opacity:1}}"}</style>
+      <style>{"@font-face{font-family:'Foun';src:url('/Fonts/Foun/OpenType-PS/Foun.otf') format('opentype'),url('/Fonts/Foun/OpenType-TT/Foun.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Wenssep';src:url('/Fonts/Wenssep/Wenssep.otf') format('opentype'),url('/Fonts/Wenssep/Wenssep.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Regular.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Otilito';src:url('/Fonts/Enterprise/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Regular.otf') format('opentype'),url('/Fonts/Enterprise/otilito-sans-font-family-2026-04-07-06-24-36-utc/TTF/TBJOtilito-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Otilito';src:url('/Fonts/Enterprise/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Bold.otf') format('opentype'),url('/Fonts/Enterprise/otilito-sans-font-family-2026-04-07-06-24-36-utc/TTF/TBJOtilito-Bold.ttf') format('truetype');font-weight:700;font-style:normal;font-display:swap}@font-face{font-family:'Qogee';src:url('/Fonts/Enterprise/qogee-font-2026-04-07-06-00-04-utc/Qogee.otf') format('opentype'),url('/Fonts/Enterprise/qogee-font-2026-04-07-06-00-04-utc/Qogee.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Matina';src:url('/Fonts/Enterprise/Matina/Font/Matina-Regular.woff2') format('woff2'),url('/Fonts/Enterprise/Matina/Font/Matina-Regular.woff') format('woff'),url('/Fonts/Enterprise/Matina/Font/Matina-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}@keyframes walk{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}@keyframes hammer{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-45deg)}}@keyframes sweep{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}@keyframes paint{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}@keyframes carry{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-3px) rotate(-2deg)}75%{transform:translateY(-3px) rotate(2deg)}}@keyframes figfade{0%{opacity:1}45%{opacity:1}50%{opacity:0}95%{opacity:0}100%{opacity:1}}"}</style>
 
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         <div style={{ ...CP, fontSize: 14, letterSpacing: "0.4em", color: "var(--color-text-primary)", fontWeight: 700, lineHeight: 1.1 }}>L O A T H R</div>
