@@ -4,6 +4,16 @@
 var CP = { fontFamily: "'Courier Prime',monospace" };
 var FN = { fontFamily: "'Foun',Georgia,serif" };
 var HD = { fontFamily: "'Maheni',Georgia,serif", fontStyle: "normal" };
+var WS = { fontFamily: "'Wenssep',Georgia,serif", textTransform: "uppercase" };
+var FONT_MAP = { maheni: HD, foun: FN, courier: CP, wenssep: WS };
+export var ENTERPRISE_FONTS = [
+  { id: "maheni", label: "Maheni" },
+  { id: "foun", label: "Foun" },
+  { id: "courier", label: "Courier" },
+  { id: "wenssep", label: "Wenssep" },
+];
+function bodyFont(slide) { return FONT_MAP[slide.bodyFont] || HD; }
+function headFont(slide) { return FONT_MAP[slide.headingFont] || FN; }
 var imgFilter = "grayscale(1) contrast(1.1) brightness(0.6)";
 
 // Enterprise text styling — underline KEY TERMS instead of background highlight
@@ -57,9 +67,9 @@ function Masthead({ isBreaking, align }) {
 
 function CoverTitle({ slide }) {
   return <div style={Object.assign({}, offsetStyle(slide))}>
-    <div style={{ ...FN, fontSize: slide.title && slide.title.length > 35 ? 22 : 28, color: "#ffffff", lineHeight: 1.1 }}>{slide.title || ""}</div>
+    <div style={{ ...headFont(slide), fontSize: slide.title && slide.title.length > 35 ? 22 : 28, color: "#ffffff", lineHeight: 1.1 }}>{slide.title || ""}</div>
     <div style={{ height: 1.5, background: "#ffffff44", margin: "10px 0", width: "35%" }} />
-    {slide.subtitle && <div style={{ ...HD, fontSize: 9, color: "#ffffff88" }}>{slide.subtitle}</div>}
+    {slide.subtitle && <div style={{ ...bodyFont(slide), fontSize: 9, color: "#ffffff88" }}>{slide.subtitle}</div>}
     {slide.timestamp && <div style={{ ...CP, fontSize: 4, color: "#ffffff44", marginTop: 4 }}>{slide.timestamp}</div>}
   </div>;
 }
@@ -172,8 +182,8 @@ function Layout1({ slide, url, mosaic }) {
       <div style={{ height: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} /></div>
       <div style={Object.assign({}, { height: (100 - sp) + "%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
-        <div style={Object.assign({}, { ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
-        <div style={Object.assign({}, { ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -189,8 +199,8 @@ function Layout2({ slide, url, mosaic }) {
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={Object.assign({}, { height: (100 - sp) + "%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
-        <div style={Object.assign({}, { ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
-        <div style={Object.assign({}, { ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -208,9 +218,9 @@ function Layout3({ slide, url, mosaic }) {
       <div style={{ width: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} /></div>
       <div style={Object.assign({}, { width: (100 - sp) + "%", padding: "10px 12px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
-        <div style={Object.assign({}, { ...FN, fontSize: 13 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
+        <div style={Object.assign({}, { ...headFont(slide), fontSize: 13 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
-        <div style={Object.assign({}, { ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -226,9 +236,9 @@ function Layout4({ slide, url, mosaic }) {
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", overflow: "hidden" }}>
       <div style={Object.assign({}, { width: (100 - sp) + "%", padding: "10px 12px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
-        <div style={Object.assign({}, { ...FN, fontSize: 13 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
+        <div style={Object.assign({}, { ...headFont(slide), fontSize: 13 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
-        <div style={Object.assign({}, { ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -245,9 +255,9 @@ function Layout5({ slide, url, mosaic }) {
       <div style={{ height: "30%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} /></div>
       <div style={{ flex: 1, padding: "8px 14px", overflow: "hidden" }}>
         {sectionLabel(slide.role || "")}
-        <div style={Object.assign({}, { ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
+        <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
         <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 6 }} />
-        <div style={Object.assign({}, { ...HD, fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #ffffff11" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #ffffff11" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -263,9 +273,9 @@ function Layout6({ slide }) {
       <div style={{ height: 1.5, background: "#ffffff33", margin: "0 16px" }} />
       <div style={Object.assign({}, { flex: 1, padding: "12px 16px", display: "flex", flexDirection: "column" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
-        <div style={Object.assign({}, { ...FN, fontSize: 18 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.1, marginBottom: 10 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
+        <div style={Object.assign({}, { ...headFont(slide), fontSize: 18 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.1, marginBottom: 10 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
         <div style={{ height: 1, background: "#ffffff22", marginBottom: 10 }} />
-        <div style={Object.assign({}, { ...HD, fontSize: 10 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.6, flex: 1 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 10 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.6, flex: 1 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -282,12 +292,12 @@ function Layout7({ slide, url, mosaic }) {
         <div style={{ width: "55%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} /></div>
         <div style={{ width: "45%", padding: "8px 10px" }}>
           {sectionLabel(slide.role || "")}
-          <div style={Object.assign({}, { ...FN, fontSize: 12 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
+          <div style={Object.assign({}, { ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
         </div>
       </div>
       <div style={{ height: 0.5, background: "#ffffff22" }} />
       <div style={{ flex: 1, padding: "8px 14px", overflow: "hidden" }}>
-        <div style={Object.assign({}, { ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -302,11 +312,11 @@ function Layout8({ slide, url, mosaic }) {
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ padding: "8px 14px", flexShrink: 0 }}>
         {sectionLabel(slide.role || "")}
-        <div style={{ ...FN, fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15 }}>{slide.heading || ""}</div>
+        <div style={{ ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: "#ffffff", lineHeight: 1.15 }}>{slide.heading || ""}</div>
       </div>
       <div style={{ height: "30%", overflow: "hidden", flexShrink: 0, borderTop: "0.5px solid #ffffff22", borderBottom: "0.5px solid #ffffff22" }}><ImgOrMosaic url={url} mosaic={mosaic} /></div>
       <div style={{ flex: 1, padding: "8px 14px", overflow: "hidden" }}>
-        <div style={Object.assign({}, { ...HD, fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: "#ffffffcc", lineHeight: 1.55 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources)}
       </div>
@@ -379,17 +389,17 @@ export function EnterprisePlaybook({ slide, images, index }) {
       <div style={{ height: 1, background: "#ffffff33", margin: "0 16px" }} />
       <div style={{ padding: "10px 16px", flex: 1 }}>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "#ffffff55", marginBottom: 4 }}>THE PLAYBOOK</div>
-        <div style={{ ...FN, fontSize: 14, color: "#ffffff", marginBottom: 10, lineHeight: 1.15 }}>{slide.heading || "Action Steps"}</div>
+        <div style={{ ...headFont(slide), fontSize: 14, color: "#ffffff", marginBottom: 10, lineHeight: 1.15 }}>{slide.heading || "Action Steps"}</div>
         <div style={{ height: 0.5, background: "#ffffff22", marginBottom: 10 }} />
         {steps.length > 1 ? steps.map(function(step, i) {
           return <div key={i} style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "flex-start" }}>
             <div style={{ ...CP, fontSize: 20, color: "#ffffff22", fontWeight: 700, lineHeight: 0.85, flexShrink: 0, width: 18, textAlign: "right" }}>{i + 1}</div>
             <div style={{ flex: 1 }}>
-              <div style={{ ...HD, fontSize: 9, color: "#ffffffcc", lineHeight: 1.5 }}>{step.trim()}</div>
+              <div style={{ ...bodyFont(slide), fontSize: 9, color: "#ffffffcc", lineHeight: 1.5 }}>{step.trim()}</div>
               {i < steps.length - 1 && <div style={{ height: 0.5, background: "#ffffff11", marginTop: 8 }} />}
             </div>
           </div>;
-        }) : <div style={{ ...HD, fontSize: 9.5, color: "#ffffffcc", lineHeight: 1.6 }}>{slide.body}</div>}
+        }) : <div style={{ ...bodyFont(slide), fontSize: 9.5, color: "#ffffffcc", lineHeight: 1.6 }}>{slide.body}</div>}
       </div>
       {srcLine(slide.sources)}
       {watermark()}

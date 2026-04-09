@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
 import { ENTERPRISE_FORCES, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
-import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS } from "./segments/EnterpriseSlides";
+import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS, ENTERPRISE_FONTS } from "./segments/EnterpriseSlides";
 import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
 import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser } from "./segments/NewsDeskSlides";
 
@@ -4907,6 +4907,13 @@ export default function LoathrMediaGenerator() {
                       <div style={{ ...CP, fontSize: 5, color: "#ccc" }}>{(s[nudgeTarget + "Size"] || 0) > 0 ? "+" : ""}{s[nudgeTarget + "Size"] || 0}</div>
                       <button onClick={function() { adjustFontSize(currentSlide, nudgeTarget, 1); }}
                         style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>+</button>
+                    </div>}
+                    {(nudgeTarget === "heading" || nudgeTarget === "body") && activeSegment === "enterprise" && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>
+                      <div style={{ ...CP, fontSize: 4, color: "#888" }}>Font:</div>
+                      {ENTERPRISE_FONTS.map(function(f) { var fontKey = nudgeTarget + "Font"; var sel = (s[fontKey] || (nudgeTarget === "body" ? "maheni" : "foun")) === f.id; return (
+                        <button key={f.id} onClick={function() { updateSlideField(currentSlide, fontKey, f.id); }}
+                          style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? "#fff" : "#444"), background: sel ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? "#fff" : "#888" }}>{f.label}</button>
+                      ); })}
                     </div>}
                   </div>}
                 </div>
