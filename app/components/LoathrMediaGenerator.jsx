@@ -4927,9 +4927,38 @@ export default function LoathrMediaGenerator() {
                     <input value={(s.keywords || []).join(", ")} onChange={function(e) { var kw = e.target.value.split(",").map(function(k) { return k.trim(); }).filter(Boolean); updateSlideField(currentSlide, "keywords", kw); }}
                       placeholder="e.g. Tesla, market share, disruption"
                       style={{ width: "100%", padding: "2px 4px", border: "0.5px solid #444", ...CP, fontSize: 6, color: "#ddd", background: "#111" }} />
+                    <div style={{ display: "flex", gap: 3, alignItems: "center", marginTop: 3 }}>
+                      <div style={{ ...CP, fontSize: 4, color: "#888" }}>Underline:</div>
+                      <button onClick={function() { updateSlideField(currentSlide, "underlineWeight", Math.max(0.5, (s.underlineWeight || 1.5) - 0.5)); }}
+                        style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>-</button>
+                      <div style={{ ...CP, fontSize: 5, color: "#ccc" }}>{s.underlineWeight || 1.5}px</div>
+                      <button onClick={function() { updateSlideField(currentSlide, "underlineWeight", Math.min(4, (s.underlineWeight || 1.5) + 0.5)); }}
+                        style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>+</button>
+                    </div>
                   </div>}
                 </div>}
               </div>
+              {/* Divider line + Sources controls — Enterprise */}
+              {activeSegment === "enterprise" && <div style={{ marginTop: 4, borderTop: "0.5px solid #333", paddingTop: 4 }}>
+                <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#888" }}>Divider:</div>
+                  <button onClick={function() { updateSlideField(currentSlide, "dividerWeight", Math.max(0, (s.dividerWeight || 0.5) - 0.5)); }}
+                    style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>-</button>
+                  <div style={{ ...CP, fontSize: 5, color: "#ccc" }}>{typeof s.dividerWeight === "number" ? s.dividerWeight : 0.5}px</div>
+                  <button onClick={function() { updateSlideField(currentSlide, "dividerWeight", Math.min(4, (s.dividerWeight || 0.5) + 0.5)); }}
+                    style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>+</button>
+                  <button onClick={function() { updateSlideField(currentSlide, "dividerHidden", !s.dividerHidden); }}
+                    style={{ padding: "1px 4px", border: "0.5px solid #444", background: s.dividerHidden ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: s.dividerHidden ? "#fff" : "#888" }}>{s.dividerHidden ? "Hidden" : "Visible"}</button>
+                </div>
+                <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#888" }}>Sources:</div>
+                  <button onClick={function() { adjustFontSize(currentSlide, "sources", -0.5); }}
+                    style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>-</button>
+                  <div style={{ ...CP, fontSize: 5, color: "#ccc" }}>{(s.sourcesSize || 0) > 0 ? "+" : ""}{s.sourcesSize || 0}</div>
+                  <button onClick={function() { adjustFontSize(currentSlide, "sources", 0.5); }}
+                    style={{ width: 14, height: 14, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#888", textAlign: "center", lineHeight: "14px" }}>+</button>
+                </div>
+              </div>}
               <button onClick={function() { updateSlideField(currentSlide, "imageLayout", "single"); delete _mosaicSlides[currentSlide]; setImages(function(prev) { return Object.assign({}, prev); }); }}
                 style={{ padding: "3px 8px", border: "0.5px solid " + (!_mosaicSlides[currentSlide] ? uiAccent : "#ddd"), background: !_mosaicSlides[currentSlide] ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: !_mosaicSlides[currentSlide] ? uiAccent : "#999", marginBottom: 4, display: "block" }}>Single Image</button>
               <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>MOSAIC</div>
