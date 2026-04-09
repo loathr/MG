@@ -34,6 +34,22 @@
   font-display: block;
 }
 
+:root {
+  /* Text */
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #4a4a4a;
+  --color-text-tertiary: #777777;
+  --color-text-success: #16a34a;
+  --color-text-warning: #d97706;
+
+  /* Backgrounds */
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f5f5f5;
+
+  /* Borders */
+  --color-border-tertiary: #d4d4d4;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
