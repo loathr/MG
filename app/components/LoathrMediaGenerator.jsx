@@ -928,8 +928,8 @@ function SplitTextBox({ slide, position, accent, accent2, category, seed, styleB
     return <FormalFrame accent={accent} accent2={accent2} seed={splitSeed + s} style={splitStyle}>{content}</FormalFrame>;
   }
 
-  var headingEl = <div style={{ ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", textTransform: "uppercase", letterSpacing: "0.03em" }}>{slide.heading || ""}</div>;
-  var bodyEl = <div style={{ ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45 }}>{styleBody ? styleBody(slide.body || "", accent, accent2) : (slide.body || "")}</div>;
+  var headingEl = <div style={Object.assign({}, { ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: slide.headingColor || (useSticky ? "inherit" : "#ffffff"), textTransform: "uppercase", letterSpacing: "0.03em" }, slide.headingAlign ? { textAlign: slide.headingAlign } : {})}>{slide.heading || ""}</div>;
+  var bodyEl = <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: slide.bodyColor || (useSticky ? "inherit" : "#ffffffe6"), lineHeight: 1.45 }, slide.bodyAlign ? { textAlign: slide.bodyAlign } : {})}>{styleBody ? styleBody(slide.body || "", accent, accent2) : (slide.body || "")}</div>;
   var highlightEl = styledHighlight(slide.highlight, slide, { fg: useSticky ? "inherit" : "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", bg: "transparent", defaultStyle: "pill" });
   var citeEl = <MicroCite sources={slide.sources} accent={accent} />;
 
@@ -1082,8 +1082,8 @@ function S1Cover({ slide, category, images, edition, index }) {
           {edLabel && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffffcc", marginTop: 3, marginRight: 9 }}>{edLabel}</div>}
         </div>
         <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
-          <div style={{ textAlign: "left" }}>
-            <div style={{ ...FN, fontSize: slide.title && slide.title.length > 35 ? 24 : 30, color: p.text, lineHeight: 1.1, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }}>
+          <div style={Object.assign({}, { textAlign: "left" }, slide.headingAlign ? { textAlign: slide.headingAlign } : {})}>
+            <div style={Object.assign({}, { ...headFont(slide), fontSize: (slide.title && slide.title.length > 35 ? 24 : 30) + (slide.headingSize || 0), color: slide.headingColor || p.text, lineHeight: 1.1, textShadow: "0 3px 20px rgba(0,0,0,0.9)" }, slide.headingAlign ? { textAlign: slide.headingAlign } : {})}>
               {formatCoverTitle(slide.title, p.accent, slide.titleHighlight)}
             </div>
             <div style={{ height: 3, background: "linear-gradient(to right, " + p.accent + ", transparent)", margin: "10px 0", width: "50%" }} />
@@ -1092,7 +1092,7 @@ function S1Cover({ slide, category, images, edition, index }) {
               <div style={{ ...CP, fontSize: 9, color: "#ffffffcc", letterSpacing: "0.1em", fontWeight: 700 }}>{CAT_LABELS[category]}</div>
               <div style={{ width: 8, height: 8, background: p.accent2 || p.accent }} />
             </div>
-            {slide.subtitle && <div style={{ ...HD, fontSize: 8.5, marginTop: 8, color: "#ffffffcc", textTransform: "uppercase", letterSpacing: "0.05em" }}>{slide.subtitle}</div>}
+            {slide.subtitle && <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), marginTop: 8, color: slide.bodyColor || "#ffffffcc", textTransform: "uppercase", letterSpacing: "0.05em" }, slide.bodyAlign ? { textAlign: slide.bodyAlign } : {})}>{slide.subtitle}</div>}
           </div>
         </div>
       </ImgBg>
@@ -1116,8 +1116,8 @@ function S2Arena({ slide, index, category, images }) {
   var bTransform = (bOff.top || bOff.left) ? { transform: "translate(" + (bOff.left || 0) + "px," + (bOff.top || 0) + "px)" } : {};
   var hlTransform = (hlOff.top || hlOff.left) ? { transform: "translate(" + (hlOff.left || 0) + "px," + (hlOff.top || 0) + "px)" } : {};
   var textContent = <div>
-    <div style={Object.assign({}, { ...headFont(slide), fontSize: 13 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }, hTransform)}>{slide.heading || "Part " + index}</div>
-    <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.5, textAlign: "left" }, bTransform)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    <div style={Object.assign({}, { ...headFont(slide), fontSize: 13 + (slide.headingSize || 0), color: slide.headingColor || (useSticky ? "inherit" : "#ffffff"), marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: slide.headingAlign || "right" }, hTransform)}>{slide.heading || "Part " + index}</div>
+    <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9.5 + (slide.bodySize || 0), color: slide.bodyColor || (useSticky ? "inherit" : "#ffffffe6"), lineHeight: 1.5, textAlign: slide.bodyAlign || "left" }, bTransform)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
     {styledHighlight(slide.highlight, slide, { fg: useSticky ? "inherit" : "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "pill" })}
     {slide.specs && <div style={{ marginTop: 8, border: "1px solid " + p.accent + "44", padding: "4px 6px", background: "rgba(255,255,255,0.03)" }}><div style={{ ...WS, fontSize: 5.3, color: useSticky ? "inherit" : "#ffffffaa", textAlign: "left" }}>{slide.specs}</div></div>}
     <MicroCite sources={slide.sources} />
@@ -1170,8 +1170,8 @@ function S3RayGun({ slide, index, category, images }) {
 
   if (flipped) {
     var flippedText = <div>
-      <div style={Object.assign({}, { ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "left" }, h3t)}>{slide.heading || "Part " + index}</div>
-      <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right", overflow: "hidden" }, b3t)}>{styleBody(slide.body, p.accent2, p.accent)}</div>
+      <div style={Object.assign({}, { ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: slide.headingColor || (useSticky ? "inherit" : "#ffffff"), marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: slide.headingAlign || "left" }, h3t)}>{slide.heading || "Part " + index}</div>
+      <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: slide.bodyColor || (useSticky ? "inherit" : "#ffffffe6"), lineHeight: 1.45, textAlign: slide.bodyAlign || "right", overflow: "hidden" }, b3t)}>{styleBody(slide.body, p.accent2, p.accent)}</div>
       {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "pill" })}
       <MicroCite sources={slide.sources} />
     </div>;
@@ -1199,8 +1199,8 @@ function S3RayGun({ slide, index, category, images }) {
 
   // Image top, text bottom (carousel position 2)
   var normalText = <div>
-    <div style={Object.assign({}, { ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: useSticky ? "inherit" : "#ffffff", marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: "right" }, h3t)}>{slide.heading || "Part " + index}</div>
-    <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "left", overflow: "hidden" }, b3t)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    <div style={Object.assign({}, { ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: slide.headingColor || (useSticky ? "inherit" : "#ffffff"), marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: slide.headingAlign || "right" }, h3t)}>{slide.heading || "Part " + index}</div>
+    <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: slide.bodyColor || (useSticky ? "inherit" : "#ffffffe6"), lineHeight: 1.45, textAlign: slide.bodyAlign || "left", overflow: "hidden" }, b3t)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
     {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "pill" })}
     <MicroCite sources={slide.sources} />
   </div>;
@@ -1463,7 +1463,7 @@ function S5Face({ slide, index, category, images }) {
   var b5t = (cp5.body && (cp5.body.top || cp5.body.left)) ? { transform: "translate(" + (cp5.body.left||0) + "px," + (cp5.body.top||0) + "px)" } : {};
   var hl5t = (cp5.highlight && (cp5.highlight.top || cp5.highlight.left)) ? { transform: "translate(" + (cp5.highlight.left||0) + "px," + (cp5.highlight.top||0) + "px)" } : {};
   var s5Text = <div style={{ overflow: "hidden" }}>
-    <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: useSticky ? "inherit" : "#ffffffe6", lineHeight: 1.45, textAlign: "right" }, b5t)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
+    <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: slide.bodyColor || (useSticky ? "inherit" : "#ffffffe6"), lineHeight: 1.45, textAlign: slide.bodyAlign || "right" }, b5t)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
     {!styled && <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />}
     {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "pill" })}
   </div>;
