@@ -2626,6 +2626,7 @@ export default function LoathrMediaGenerator() {
   var webTimer = _ref(null);
   var previewTimer = _ref(null);
   var abortRef = _ref(null);
+  var trendingAbortRef = _ref(null);
 
   _ef(function() { selectedOptionRef.current = selectedOption; }, [selectedOption]);
   // When Enterprise force/sector/mode changes, clear trending so preset topics show instead
@@ -2732,8 +2733,16 @@ export default function LoathrMediaGenerator() {
     finally { setViralLoading(false); }
   }, [category, activeSegment, cat]);
 
+  function cancelTrending() {
+    if (trendingAbortRef.current) { trendingAbortRef.current.abort(); trendingAbortRef.current = null; }
+    setIsFetchingTrending(false);
+  }
+
   async function fetchTrending() {
     if (!category) return;
+    if (trendingAbortRef.current) trendingAbortRef.current.abort();
+    var controller = new AbortController();
+    trendingAbortRef.current = controller;
     setIsFetchingTrending(true); setTrending([]);
     var catContext = { film: "film, TV, cinema, streaming, directing", photo: "photography, cameras, visual storytelling", sports: "sports with music, fashion, art, culture", trivia: "surprising facts, science discoveries, cultural oddities", art: "music, visual arts, album releases, art history", fashion: "fashion, luxury brands, streetwear, designers, runway, style trends", food: "food, restaurants, chefs, cocktails, dining culture, culinary trends", nightlife: "nightlife, clubs, DJs, bars, parties, after-dark culture", gossip: "celebrity gossip, entertainment news, scandals, Hollywood drama, influencer culture" };
     // Enterprise and News Desk get segment-specific trending prompts
@@ -2764,6 +2773,7 @@ export default function LoathrMediaGenerator() {
     }
     try {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000,
           tools: [{ type: "web_search_20250305", name: "web_search" }],
           messages: [{ role: "user", content: promptText }] }) });
@@ -2772,14 +2782,13 @@ export default function LoathrMediaGenerator() {
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
       if (!text) { console.error("Trending: no text in response"); return; }
       var cleaned = text.replace(/```json|```/g, "").trim();
-      // Look for JSON array — try multiple extraction methods
       var js = cleaned.indexOf("[{"); var je = cleaned.lastIndexOf("}]");
       if (js >= 0 && je > js) { cleaned = cleaned.slice(js, je + 2); }
       else { js = cleaned.indexOf("["); je = cleaned.lastIndexOf("]"); if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1); }
       var parsed = JSON.parse(cleaned);
       if (Array.isArray(parsed)) setTrending(parsed);
-    } catch (err) { console.error("Trending parse error:", err); }
-    finally { setIsFetchingTrending(false); }
+    } catch (err) { if (err.name !== "AbortError") console.error("Trending parse error:", err); }
+    finally { setIsFetchingTrending(false); trendingAbortRef.current = null; }
   }
 
   // Smart search: Claude suggests angles after 800ms pause
@@ -4667,9 +4676,9 @@ export default function LoathrMediaGenerator() {
           </div>}
 
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
-            <button onClick={fetchTrending} disabled={isFetchingTrending}
-              style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#555") : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? (isFetchingTrending ? "#ffffff11" : trending.length > 0 ? "#ffffff08" : "transparent") : "transparent", cursor: isFetchingTrending ? "wait" : "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#aaa") : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)" }}>
-              <Flame size={11} />{isFetchingTrending ? "Searching..." : activeSegment === "newsdesk" ? "Top Stories" : activeSegment === "enterprise" ? (enterpriseMode === "news" ? "Breaking" : enterpriseMode === "tips" ? "Ideas" : "Trending") + (enterpriseForce ? " \u00b7 " + (ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) || {}).label : "") + (enterpriseSector ? " \u00b7 " + (ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) || {}).label : "") : "Trending"}</button>
+            <button onClick={isFetchingTrending ? cancelTrending : fetchTrending}
+              style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#555") : activeSegment === "newsdesk" ? (isFetchingTrending ? "#c41e1e" : "#c8c0aa") : isFetchingTrending ? "#e63946" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? (isFetchingTrending ? "#ffffff11" : trending.length > 0 ? "#ffffff08" : "transparent") : isFetchingTrending ? "#e6394611" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#aaa") : activeSegment === "newsdesk" ? (isFetchingTrending ? "#c41e1e" : "#8a8270") : isFetchingTrending ? "#e63946" : "var(--color-text-tertiary)" }}>
+              <Flame size={11} />{isFetchingTrending ? "Stop" : activeSegment === "newsdesk" ? "Top Stories" : activeSegment === "enterprise" ? (enterpriseMode === "news" ? "Breaking" : enterpriseMode === "tips" ? "Ideas" : "Trending") + (enterpriseForce ? " \u00b7 " + (ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) || {}).label : "") + (enterpriseSector ? " \u00b7 " + (ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) || {}).label : "") : "Trending"}</button>
             {activeSegment === "editorial" && <button onClick={function() { setShuffleKey(function(k) { return k + 1; }); }}
               style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Shuffle size={11} />Shuffle</button>}
             {activeSegment === "editorial" && <button onClick={surpriseMe}
