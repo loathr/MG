@@ -4,7 +4,7 @@ import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Pal
 import { ENTERPRISE_FORCES, ENTERPRISE_SECTORS, ENTERPRISE_TOPICS, ENTERPRISE_GENERAL_TOPICS, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
 import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS, styledHighlight, HIGHLIGHT_STYLES, ENTERPRISE_IMG_FILTERS, setGlobalImgFilter } from "./segments/EnterpriseSlides";
 import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
-import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser } from "./segments/NewsDeskSlides";
+import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser, NEWS_COVER_LABELS, NEWS_LAYOUT_LABELS, NEWS_COVER_COUNT, NEWS_LAYOUT_COUNT } from "./segments/NewsDeskSlides";
 
 var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap";
 // Margins from inside the accent border frame
@@ -5122,6 +5122,41 @@ export default function LoathrMediaGenerator() {
                     {s.enterpriseTextOffset && (s.enterpriseTextOffset.top || s.enterpriseTextOffset.left) && <button onClick={function() { updateSlideField(currentSlide, "enterpriseTextOffset", null); }}
                       style={{ padding: "1px 4px", border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 4, color: "#666" }}>Reset</button>}
                   </div>
+                </div>
+              </div>}
+              {/* News Desk layout picker */}
+              {activeSegment === "newsdesk" && isContent && <div style={{ marginBottom: 6 }}>
+                <div style={{ ...CP, fontSize: 5, color: "#8a8270", marginBottom: 3 }}>SLIDE LAYOUT</div>
+                <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                  <button onClick={function() { updateSlideField(currentSlide, "newsLayout", null); }}
+                    style={{ padding: "2px 6px", border: "0.5px solid " + (s.newsLayout == null ? "#1a1a1a" : "#c8c0aa"), background: s.newsLayout == null ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: s.newsLayout == null ? "#1a1a1a" : "#8a8270" }}>Auto</button>
+                  {NEWS_LAYOUT_LABELS.map(function(label, li) { return (
+                    <button key={li} onClick={function() { updateSlideField(currentSlide, "newsLayout", li); }}
+                      style={{ padding: "2px 6px", border: "0.5px solid " + (s.newsLayout === li ? "#1a1a1a" : "#c8c0aa"), background: s.newsLayout === li ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: s.newsLayout === li ? "#1a1a1a" : "#8a8270" }}>{label}</button>
+                  ); })}
+                </div>
+                <div style={{ marginTop: 4, display: "flex", gap: 3, alignItems: "center" }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Split:</div>
+                  <button onClick={function() { updateSlideField(currentSlide, "newsSplit", Math.max(25, (s.newsSplit || 45) - 5)); }}
+                    style={{ width: 16, height: 16, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#8a8270", textAlign: "center", lineHeight: "16px" }}>{"\u2190"}</button>
+                  <div style={{ ...CP, fontSize: 6, color: "#1a1a1a", minWidth: 30, textAlign: "center" }}>{s.newsSplit || 45}%</div>
+                  <button onClick={function() { updateSlideField(currentSlide, "newsSplit", Math.min(70, (s.newsSplit || 45) + 5)); }}
+                    style={{ width: 16, height: 16, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#8a8270", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
+                  <div style={{ ...CP, fontSize: 5, color: "#8a8270", marginLeft: 8 }}>Cols:</div>
+                  {[1,2,3].map(function(n) { return (
+                    <button key={n} onClick={function() { updateSlideField(currentSlide, "columnCount", n); }}
+                      style={{ width: 16, height: 16, border: "0.5px solid " + ((s.columnCount || 2) === n ? "#1a1a1a" : "#c8c0aa"), background: (s.columnCount || 2) === n ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: (s.columnCount || 2) === n ? "#1a1a1a" : "#8a8270", textAlign: "center", lineHeight: "16px" }}>{n}</button>
+                  ); })}
+                </div>
+              </div>}
+              {/* News Desk cover layout picker */}
+              {activeSegment === "newsdesk" && isCover && <div style={{ marginBottom: 6 }}>
+                <div style={{ ...CP, fontSize: 5, color: "#8a8270", marginBottom: 3 }}>COVER LAYOUT</div>
+                <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                  {NEWS_COVER_LABELS.map(function(label, li) { return (
+                    <button key={li} onClick={function() { updateSlideField(currentSlide, "newsCoverLayout", li); }}
+                      style={{ padding: "2px 6px", border: "0.5px solid " + (s.newsCoverLayout === li ? "#1a1a1a" : "#c8c0aa"), background: s.newsCoverLayout === li ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: s.newsCoverLayout === li ? "#1a1a1a" : "#8a8270" }}>{label}</button>
+                  ); })}
                 </div>
               </div>}
               {/* Per-element text controls — all segments */}
