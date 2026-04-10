@@ -33,6 +33,30 @@ export var ENTERPRISE_SECTORS = [
   { id: "lifestyle", label: "Lifestyle & Consumer" },
 ];
 
+export var ENTERPRISE_TOPICS = {
+  healthcare: ["Telehealth adoption post-pandemic", "AI drug discovery pipelines", "Hospital staffing crisis", "GLP-1 drug market explosion", "Medical device regulation", "Mental health tech startups"],
+  energy: ["Grid modernization challenges", "EV charging infrastructure race", "Carbon credit market evolution", "Nuclear energy comeback", "Oil price volatility impacts", "Green hydrogen economics"],
+  finance: ["Open banking disruption", "BNPL regulation wave", "Central bank digital currencies", "Insurance tech transformation", "Private credit boom", "Neo-bank profitability challenge"],
+  realestate: ["Commercial real estate downturn", "PropTech valuation reset", "Housing affordability crisis", "Data center real estate boom", "Co-living market growth", "Climate risk in property"],
+  defense: ["Cybersecurity spending surge", "Drone warfare economics", "Defense AI procurement", "Space militarization", "Critical infrastructure protection", "Private military tech"],
+  supplychain: ["Nearshoring acceleration", "Port automation revolution", "Last-mile delivery economics", "Cold chain logistics growth", "Supply chain AI adoption", "Trade route disruptions"],
+  agriculture: ["Precision agriculture ROI", "Vertical farming viability", "Food waste tech solutions", "Agricultural drone adoption", "Plant-based protein economics", "Water scarcity technology"],
+  space: ["Satellite internet competition", "Space tourism economics", "Orbital manufacturing potential", "Space debris management", "Launch cost economics", "Earth observation data market"],
+  media: ["Streaming profitability crisis", "AI-generated content impact", "Local news collapse", "Podcast monetization models", "Social media regulation", "Creator economy maturation"],
+  education: ["EdTech post-pandemic reality", "AI tutoring disruption", "Student debt crisis solutions", "Corporate upskilling market", "University enrollment decline", "Micro-credential adoption"],
+  labor: ["Remote work policy shifts", "Gig economy regulation", "AI job displacement timeline", "Union resurgence in tech", "Immigration and talent gaps", "Four-day work week adoption"],
+  crypto: ["Bitcoin ETF market impact", "Stablecoin regulation", "DeFi institutional adoption", "CBDC competition with crypto", "NFT market evolution", "Blockchain in supply chain"],
+  lifestyle: ["Wellness industry consolidation", "Luxury resale market growth", "Travel industry recovery", "Subscription fatigue", "Gen Z consumer behavior", "Longevity economy emergence"],
+};
+
+// General topics when no sector selected
+export var ENTERPRISE_GENERAL_TOPICS = [
+  "The AI talent war", "Interest rate impacts on startups", "Supply chain reshoring trend",
+  "Remote work productivity debate", "Cybersecurity spending surge", "Creator economy maturation",
+  "Healthcare cost disruption", "EV market competition", "Social media regulation wave",
+  "Private equity in consumer brands", "Climate tech investment boom", "Gig economy legislation",
+];
+
 export var ENTERPRISE_PALETTE = {
   bg: "#0a0a0a",
   accent: "#ffffff",

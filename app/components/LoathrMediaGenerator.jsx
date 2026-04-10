@@ -1,7 +1,7 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
-import { ENTERPRISE_FORCES, ENTERPRISE_SECTORS, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
+import { ENTERPRISE_FORCES, ENTERPRISE_SECTORS, ENTERPRISE_TOPICS, ENTERPRISE_GENERAL_TOPICS, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
 import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS, styledHighlight, HIGHLIGHT_STYLES, ENTERPRISE_IMG_FILTERS, setGlobalImgFilter } from "./segments/EnterpriseSlides";
 import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
 import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser } from "./segments/NewsDeskSlides";
@@ -2593,7 +2593,6 @@ export default function LoathrMediaGenerator() {
   // Enterprise state
   var efc = _s(null), enterpriseForce = efc[0], setEnterpriseForce = efc[1];
   var esc = _s(null), enterpriseSector = esc[0], setEnterpriseSector = esc[1];
-  var esv = _s(false), showSectors = esv[0], setShowSectors = esv[1];
   var emm = _s("analysis"), enterpriseMode = emm[0], setEnterpriseMode = emm[1]; // "analysis"|"news"|"tips"
   // News Desk state
   var ndf = _s(null), newsFilter = ndf[0], setNewsFilter = ndf[1];
@@ -2610,9 +2609,10 @@ export default function LoathrMediaGenerator() {
   var abortRef = _ref(null);
 
   _ef(function() { selectedOptionRef.current = selectedOption; }, [selectedOption]);
-  // Auto-fetch trending topics when Enterprise force, mode, or sector changes
+  // When Enterprise force/sector/mode changes, clear trending so preset topics show instead
+  // User must click Trending deliberately to fetch fresh ideas
   _ef(function() {
-    if (category === "enterprise" && (enterpriseForce || enterpriseSector)) { fetchTrending(); }
+    if (category === "enterprise") { setTrending([]); }
   }, [enterpriseForce, enterpriseMode, enterpriseSector, category]);
 
   // Keep ref in sync so generate() always reads latest locked images
@@ -3905,28 +3905,24 @@ export default function LoathrMediaGenerator() {
             style={{ padding: "5px 12px", border: "none", borderBottom: "1.5px solid " + (sel ? "#ffffff" : "transparent"), background: sel ? "#ffffff08" : "transparent", cursor: "pointer", ...CP, fontSize: 7, letterSpacing: "0.08em", color: sel ? "#ffffff" : "#666", fontWeight: sel ? 700 : 400 }}>{m.label}</button>;
         })}
       </div>}
-      {/* Enterprise force selector */}
-      {activeSegment === "enterprise" && <div style={{ marginBottom: 8 }}>
-        <div style={{ display: "flex", gap: 3, marginBottom: 4, justifyContent: "center", flexWrap: "wrap" }}>
+      {/* Enterprise force + sector selector */}
+      {activeSegment === "enterprise" && <div style={{ marginBottom: 10 }}>
+        <div style={{ ...CP, fontSize: 5, color: "#666", letterSpacing: "0.12em", marginBottom: 3, textAlign: "center" }}>FORCE</div>
+        <div style={{ display: "flex", gap: 3, marginBottom: 6, justifyContent: "center", flexWrap: "wrap" }}>
           {ENTERPRISE_FORCES.filter(function(f) { return enterpriseMode !== "tips" || f.id !== "news"; }).map(function(f) {
             var sel = enterpriseForce === f.id;
             return <button key={f.id} onClick={function() { setEnterpriseForce(sel ? null : f.id); }}
               style={{ padding: "3px 8px", cursor: "pointer", border: sel ? "1px solid #ffffff" : "0.5px solid #444", background: sel ? "#ffffff22" : "transparent", ...CP, fontSize: 7, color: sel ? "#ffffff" : "#888", letterSpacing: "0.03em" }}>{f.label}</button>;
           })}
         </div>
-        <div style={{ textAlign: "center", marginBottom: 4 }}>
-          <button onClick={function() { setShowSectors(!showSectors); }}
-            style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 6, color: enterpriseSector ? "#ffffff" : "#555", letterSpacing: "0.08em" }}>
-            {showSectors ? "\u25B2 SECTORS" : "\u25BC SECTORS"}{enterpriseSector ? " \u00b7 " + (ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) || {}).label : ""}
-          </button>
-        </div>
-        {showSectors && <div style={{ display: "flex", gap: 3, justifyContent: "center", flexWrap: "wrap", marginBottom: 4 }}>
+        <div style={{ ...CP, fontSize: 5, color: "#666", letterSpacing: "0.12em", marginBottom: 3, textAlign: "center" }}>SECTOR</div>
+        <div style={{ display: "flex", gap: 2, justifyContent: "center", flexWrap: "wrap" }}>
           {ENTERPRISE_SECTORS.map(function(s) {
             var sel = enterpriseSector === s.id;
             return <button key={s.id} onClick={function() { setEnterpriseSector(sel ? null : s.id); }}
               style={{ padding: "2px 6px", cursor: "pointer", border: sel ? "1px solid #ffffff" : "0.5px solid #333", background: sel ? "#ffffff15" : "transparent", ...CP, fontSize: 6, color: sel ? "#ffffff" : "#666", letterSpacing: "0.02em" }}>{s.label}</button>;
           })}
-        </div>}
+        </div>
       </div>}
 
       {/* News Desk filters */}
@@ -4695,6 +4691,14 @@ export default function LoathrMediaGenerator() {
               {getVisibleTopics().map(function(t) { return (
                 <button key={t + "-" + shuffleKey} onClick={function() { setTopic(t); setRefinedAngles([]); }}
                   style={{ padding: "6px 12px", cursor: "pointer", fontSize: 10, border: "0.5px solid var(--color-border-tertiary)", background: topic === t ? uiAccent + "12" : "transparent", color: topic === t ? uiAccent : "var(--color-text-tertiary)", ...CP }}>{t}</button>); })}
+            </div>
+          </div>}
+          {/* Enterprise preset topics — show when no trending results */}
+          {trending.length === 0 && category === "enterprise" && <div>
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
+              {(enterpriseSector && ENTERPRISE_TOPICS[enterpriseSector] ? ENTERPRISE_TOPICS[enterpriseSector] : ENTERPRISE_GENERAL_TOPICS).map(function(t) { return (
+                <button key={t} onClick={function() { setTopic(t); setRefinedAngles([]); }}
+                  style={{ padding: "5px 10px", cursor: "pointer", fontSize: 9, border: "0.5px solid " + (topic === t ? "#ffffff" : "#333"), background: topic === t ? "#ffffff15" : "transparent", color: topic === t ? "#ffffff" : "#888", ...CP }}>{t}</button>); })}
             </div>
           </div>}
         </div>
