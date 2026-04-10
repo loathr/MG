@@ -3164,7 +3164,7 @@ export default function LoathrMediaGenerator() {
       // Get or create customPosition object with named sub-positions
       var cp = s.customPosition && typeof s.customPosition === "object" ? Object.assign({}, s.customPosition) : {};
       // Determine which sub-positions to nudge
-      var targets = target === "all" ? ["heading", "body", "highlight"] : [target];
+      var targets = target === "all" ? ["heading", "body", "highlight", "sources"] : [target];
       targets.forEach(function(t) {
         var pos = cp[t] || { top: 0, left: 0 };
         if (direction === "up") pos = { top: (pos.top || 0) - NUDGE_STEP, left: pos.left || 0 };

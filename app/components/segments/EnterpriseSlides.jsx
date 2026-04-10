@@ -75,7 +75,7 @@ var srcLine = function(s, slide) {
   if (!s) return null;
   var sz = 4 + (slide && slide.sourcesSize || 0);
   var srcFont = slide && slide.sourcesFont ? (FONT_MAP[slide.sourcesFont] || CP) : CP;
-  return <div style={Object.assign({}, { ...srcFont, fontSize: sz, color: srcColor(slide), textAlign: "right", marginTop: 4 }, srcAlign(slide))}>{s}</div>;
+  return <div style={Object.assign({}, { ...srcFont, fontSize: sz, color: srcColor(slide), textAlign: "right", marginTop: 4 }, srcAlign(slide), elementTransform(slide, "sources"))}>{s}</div>;
 };
 var dividerLine = function(slide) {
   if (slide && slide.dividerHidden) return null;
