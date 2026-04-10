@@ -5166,6 +5166,39 @@ export default function LoathrMediaGenerator() {
                       style={{ padding: "2px 6px", border: "0.5px solid " + (s.newsCoverLayout === li ? "#1a1a1a" : "#c8c0aa"), background: s.newsCoverLayout === li ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: s.newsCoverLayout === li ? "#1a1a1a" : "#8a8270" }}>{label}</button>
                   ); })}
                 </div>
+                <div style={{ marginTop: 4, display: "flex", gap: 3, alignItems: "center" }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Split:</div>
+                  <button onClick={function() { updateSlideField(currentSlide, "newsSplit", Math.max(25, (s.newsSplit || 45) - 5)); }}
+                    style={{ width: 16, height: 16, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#8a8270", textAlign: "center", lineHeight: "16px" }}>{"\u2190"}</button>
+                  <div style={{ ...CP, fontSize: 6, color: "#1a1a1a", minWidth: 30, textAlign: "center" }}>{s.newsSplit || 45}%</div>
+                  <button onClick={function() { updateSlideField(currentSlide, "newsSplit", Math.min(70, (s.newsSplit || 45) + 5)); }}
+                    style={{ width: 16, height: 16, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#8a8270", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
+                </div>
+              </div>}
+              {/* News Desk stat + divider controls */}
+              {activeSegment === "newsdesk" && isContent && s.stat && <div style={{ marginBottom: 4, borderTop: "0.5px solid #c8c0aa", paddingTop: 3 }}>
+                <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Stat:</div>
+                  <button onClick={function() { adjustFontSize(currentSlide, "stat", -2); }}
+                    style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
+                  <div style={{ ...CP, fontSize: 5, color: "#1a1a1a" }}>{s.statSize || 0}</div>
+                  <button onClick={function() { adjustFontSize(currentSlide, "stat", 2); }}
+                    style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
+                  <button onClick={function() { updateSlideField(currentSlide, "statHidden", !s.statHidden); }}
+                    style={{ padding: "1px 4px", border: "0.5px solid #c8c0aa", background: s.statHidden ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: s.statHidden ? "#1a1a1a" : "#8a8270" }}>{s.statHidden ? "Hidden" : "Visible"}</button>
+                </div>
+              </div>}
+              {activeSegment === "newsdesk" && <div style={{ marginBottom: 4 }}>
+                <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Divider:</div>
+                  <button onClick={function() { updateSlideField(currentSlide, "dividerWeight", Math.max(0, (s.dividerWeight || 1) - 0.5)); }}
+                    style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
+                  <div style={{ ...CP, fontSize: 5, color: "#1a1a1a" }}>{typeof s.dividerWeight === "number" ? s.dividerWeight : 1}px</div>
+                  <button onClick={function() { updateSlideField(currentSlide, "dividerWeight", Math.min(4, (s.dividerWeight || 1) + 0.5)); }}
+                    style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
+                  <button onClick={function() { updateSlideField(currentSlide, "dividerHidden", !s.dividerHidden); }}
+                    style={{ padding: "1px 4px", border: "0.5px solid #c8c0aa", background: s.dividerHidden ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: s.dividerHidden ? "#1a1a1a" : "#8a8270" }}>{s.dividerHidden ? "Hidden" : "Visible"}</button>
+                </div>
               </div>}
               {/* Per-element text controls — all segments */}
               <div style={{ marginTop: 4, borderTop: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#eee"), paddingTop: 4 }}>
