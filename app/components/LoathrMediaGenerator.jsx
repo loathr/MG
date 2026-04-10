@@ -4940,7 +4940,7 @@ export default function LoathrMediaGenerator() {
           return <div style={{ marginTop: 6, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8, borderRadius: 3 }}>
             {/* Section tabs — CONTENT = text + style merged */}
             <div style={{ display: "flex", gap: 0, marginBottom: 6 }}>
-              {(isContent ? ["content", "layout", "slide"] : ["content", "slide"]).map(function(sec) {
+              {["content", "layout", "slide"].map(function(sec) {
                 var labels = { content: "CONTENT", layout: "LAYOUT", slide: "SLIDE" };
                 return <button key={sec} onClick={function() { setEditSection(sec); }}
                   style={{ flex: 1, padding: "4px 0", border: "none", borderBottom: "2px solid " + (editSection === sec ? uiAccent : "transparent"), background: editSection === sec ? uiAccent + "08" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: editSection === sec ? uiAccent : "#999", letterSpacing: "0.08em" }}>{labels[sec]}</button>;
@@ -5234,7 +5234,7 @@ export default function LoathrMediaGenerator() {
               <div style={{ marginTop: 4, borderTop: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#eee"), paddingTop: 4 }}>
                 <div style={{ display: "flex", gap: 2, alignItems: "center", marginBottom: 3, flexWrap: "wrap" }}>
                   <div style={{ ...CP, fontSize: 5, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Element:</div>
-                  {["all", "heading", "body", "highlight", "sources"].map(function(t) { return (
+                  {["all", "heading", "body", "highlight", "sources"].concat(s.stat ? ["stat"] : []).map(function(t) { return (
                     <button key={t} onClick={function() { setNudgeTarget(t); }}
                       style={{ padding: "1px 4px", border: "0.5px solid " + (nudgeTarget === t ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd")), background: nudgeTarget === t ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: nudgeTarget === t ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999"), textTransform: "capitalize" }}>{t}</button>
                   ); })}
@@ -5258,9 +5258,35 @@ export default function LoathrMediaGenerator() {
                   if (!hasField) return null;
                   var fieldVal = s[fieldKey] !== undefined ? s[fieldKey] : (s[nudgeTarget] || "");
                   var updateField = function(val) { updateSlideField(currentSlide, fieldKey, val); };
+                  // Stat element — special controls
+                  if (nudgeTarget === "stat") return <div style={{ padding: 4, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), borderRadius: 2, background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ebe6d6" : "#fafafa" }}>
+                    <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : "#333", marginBottom: 2 }}>STAT</div>
+                    <input value={s.stat || ""} onChange={function(e) { updateSlideField(currentSlide, "stat", e.target.value); }}
+                      style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), ...CP, fontSize: 8, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : "#fff", fontWeight: 700, marginBottom: 3 }} />
+                    <input value={s.statCaption || s.caption || ""} onChange={function(e) { updateSlideField(currentSlide, "statCaption", e.target.value); }}
+                      placeholder="Caption..."
+                      style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), ...CP, fontSize: 6, color: activeSegment === "enterprise" ? "#aaa" : "#666", background: activeSegment === "enterprise" ? "#111" : "#fff", marginBottom: 3 }} />
+                    <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 2 }}>
+                      <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : "#8a8270" }}>Size:</div>
+                      <button onClick={function() { adjustFontSize(currentSlide, "stat", -2); }}
+                        style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
+                      <div style={{ ...CP, fontSize: 5, color: activeSegment === "enterprise" ? "#ccc" : "#1a1a1a" }}>{s.statSize || 0}</div>
+                      <button onClick={function() { adjustFontSize(currentSlide, "stat", 2); }}
+                        style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
+                      <button onClick={function() { updateSlideField(currentSlide, "statHidden", !s.statHidden); }}
+                        style={{ padding: "1px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), background: s.statHidden ? (activeSegment === "enterprise" ? "#ffffff22" : "#1a1a1a11") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: s.statHidden ? (activeSegment === "enterprise" ? "#fff" : "#1a1a1a") : (activeSegment === "enterprise" ? "#888" : "#8a8270") }}>{s.statHidden ? "Hidden" : "Visible"}</button>
+                    </div>
+                    <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+                      <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : "#8a8270" }}>Color:</div>
+                      {[{ id: "#c41e1e", l: "Red" }, { id: "#1a1a1a", l: "Black" }, { id: "#ffffff", l: "White" }, { id: null, l: "Auto" }].map(function(c) {
+                        var sel = (s.statColor || null) === c.id; return <button key={c.l} onClick={function() { updateSlideField(currentSlide, "statColor", c.id); }}
+                          style={{ width: c.id ? 14 : "auto", height: 14, padding: c.id ? 0 : "0 4px", border: "1px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : "#ddd"), background: c.id || "transparent", cursor: "pointer", ...CP, fontSize: 4, color: "#999", lineHeight: "14px", textAlign: "center" }} title={c.l}>{c.id ? "" : c.l}</button>;
+                      })}
+                    </div>
+                  </div>;
                   return <div style={{ padding: 4, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), borderRadius: 2, background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ebe6d6" : "#fafafa" }}>
                   <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : "#333", marginBottom: 2 }}>{nudgeTarget.toUpperCase()}{isCover && coverMap[nudgeTarget] ? " (" + coverMap[nudgeTarget] + ")" : ""}</div>
-                  {nudgeTarget === "body" || fieldKey === "subtitle" ? (
+                  {nudgeTarget === "body" || fieldKey === "subtitle" || fieldKey === "leadParagraph" ? (
                     <textarea value={fieldVal || ""} onChange={function(e) { updateField(e.target.value); }}
                       rows={2} style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fff" : "#fff", resize: "vertical" }} />
                   ) : (
