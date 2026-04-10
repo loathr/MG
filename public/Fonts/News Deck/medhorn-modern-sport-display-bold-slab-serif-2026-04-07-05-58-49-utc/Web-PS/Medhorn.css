@@ -1,0 +1,9 @@
+/* Webfont: Medhorn-Regular */@font-face {
+    font-family: 'Medhorn';
+    src: url('Medhorn.woff2') format('woff2'), /* Modern Browsers */
+         url('Medhorn.otf') format('opentype'); /* Safari, Android, iOS */
+             font-style: normal;
+    font-weight: normal;
+    text-rendering: optimizeLegibility;
+}
+

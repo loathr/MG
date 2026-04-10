@@ -81,6 +81,44 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'QuickZip';
+  src: url('/Fonts/News%20Deck/FONT/QUICK-ZIP.woff') format('woff'),
+       url('/Fonts/News%20Deck/FONT/QUICK-ZIP.otf') format('opentype'),
+       url('/Fonts/News%20Deck/FONT/QUICK-ZIP.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GrandHalva';
+  src: url('/Fonts/News%20Deck/GRAND%20HALVA.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'CarbonText';
+  src: url('/Fonts/News%20Deck/carbon-modern-typeface-webfonts-2026-04-07-06-00-24-utc/fonts/CarbonText-Regular.woff2') format('woff2'),
+       url('/Fonts/News%20Deck/carbon-modern-typeface-webfonts-2026-04-07-06-00-24-utc/fonts/CarbonText-Regular.woff') format('woff'),
+       url('/Fonts/News%20Deck/carbon-modern-typeface-webfonts-2026-04-07-06-00-24-utc/fonts/CarbonText-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Medhorn';
+  src: url('/Fonts/News%20Deck/medhorn-modern-sport-display-bold-slab-serif-2026-04-07-05-58-49-utc/Web-PS/Medhorn.woff2') format('woff2'),
+       url('/Fonts/News%20Deck/medhorn-modern-sport-display-bold-slab-serif-2026-04-07-05-58-49-utc/Web-TT/Medhorn.woff2') format('woff2'),
+       url('/Fonts/News%20Deck/medhorn-modern-sport-display-bold-slab-serif-2026-04-07-05-58-49-utc/OpenType-PS/Medhorn.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* Text */
   --color-text-primary: #1a1a1a;

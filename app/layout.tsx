@@ -31,6 +31,10 @@ export default function RootLayout({
         <link rel="preload" href="/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Regular.otf" as="font" type="font/otf" crossOrigin="anonymous" />
         <link rel="preload" href="/Fonts/qogee-font-2026-04-07-06-00-04-utc/Qogee.otf" as="font" type="font/otf" crossOrigin="anonymous" />
         <link rel="preload" href="/Fonts/Matina/Font/Matina-Regular.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/Fonts/News%20Deck/FONT/QUICK-ZIP.woff" as="font" type="font/woff" crossOrigin="anonymous" />
+        <link rel="preload" href="/Fonts/News%20Deck/GRAND%20HALVA.otf" as="font" type="font/otf" crossOrigin="anonymous" />
+        <link rel="preload" href="/Fonts/News%20Deck/carbon-modern-typeface-webfonts-2026-04-07-06-00-24-utc/fonts/CarbonText-Regular.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/Fonts/News%20Deck/medhorn-modern-sport-display-bold-slab-serif-2026-04-07-05-58-49-utc/Web-PS/Medhorn.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
       <body>{children}</body>
     </html>
