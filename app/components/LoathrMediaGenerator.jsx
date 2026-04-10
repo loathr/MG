@@ -3614,19 +3614,22 @@ export default function LoathrMediaGenerator() {
               }
             });
           }
-          // Auto-assign mosaic to reach ~40% of content slides if Claude didn't flag enough
-          var contentSlideCount = Math.max(slides.length - 2, 1); // exclude cover + closer
-          var targetMosaic = Math.max(Math.round(contentSlideCount * 0.4), 1);
-          var currentMosaic = Object.keys(_mosaicSlides).length;
-          if (currentMosaic < targetMosaic && totalLoaded >= 3) {
-            slides.forEach(function(s, si) {
-              if (Object.keys(_mosaicSlides).length >= targetMosaic) return;
-              if (si <= 0 || si >= slides.length - 1) return; // skip cover/closer
-              if (_mosaicSlides[si]) return; // already mosaic
-              if (s.statFormat || s.stat || s.stats || s.before || s.leftStat || s.quote) return; // skip stat/quote
-              var mUrls = getMosaicImgs(imgMap, si, slides.length);
-              if (mUrls.length >= 2) _mosaicSlides[si] = mUrls;
-            });
+          // Auto-assign mosaic — Enterprise only (B&W layouts benefit from collage variety)
+          // Editorial and News Desk respect Claude's mosaic flags only
+          if (category === "enterprise") {
+            var contentSlideCount = Math.max(slides.length - 2, 1);
+            var targetMosaic = Math.max(Math.round(contentSlideCount * 0.3), 1);
+            var currentMosaic = Object.keys(_mosaicSlides).length;
+            if (currentMosaic < targetMosaic && totalLoaded >= 3) {
+              slides.forEach(function(s, si) {
+                if (Object.keys(_mosaicSlides).length >= targetMosaic) return;
+                if (si <= 0 || si >= slides.length - 1) return;
+                if (_mosaicSlides[si]) return;
+                if (s.statFormat || s.stat || s.stats || s.before || s.leftStat || s.quote) return;
+                var mUrls = getMosaicImgs(imgMap, si, slides.length);
+                if (mUrls.length >= 2) _mosaicSlides[si] = mUrls;
+              });
+            }
           }
           if (totalLoaded > 0) {
             setImages(imgMap);
