@@ -1755,8 +1755,16 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
     if (slideIndex === 0) slide = <NewsFrontPage slide={slideData} images={images} index={slideIndex} />;
     else if (slideIndex === lastIdx || slideData.fullSources) slide = <NewsSourcesCloser slide={slideData} />;
     else if (slideData.quote || (slideData.heading && slideData.heading.toUpperCase().indexOf("REACTION") > -1)) slide = <NewsReaction slide={slideData} images={images} index={slideIndex} />;
-    else if (slideData.statFormat || slideData.stat || slideData.stats) slide = <S4Emigre slide={slideData} index={slideIndex} category={category} images={images} />;
-    else slide = <NewsStory slide={Object.assign({}, slideData, { role: slideData.heading || "" })} images={images} index={slideIndex} />;
+    else {
+      // News Desk: all content goes through NewsStory — stats rendered inline, not via S4Emigre
+      var nSlideData = Object.assign({}, slideData, { role: slideData.role || slideData.heading || "" });
+      // Merge stat into body if it's a stat-only slide
+      if ((slideData.statFormat || slideData.stat) && !slideData.body) {
+        nSlideData.body = (slideData.stat || "") + (slideData.caption || slideData.statLabel ? " \u2014 " + (slideData.caption || slideData.statLabel) : "");
+        if (!nSlideData.heading) nSlideData.heading = "THE NUMBERS";
+      }
+      slide = <NewsStory slide={nSlideData} images={images} index={slideIndex} />;
+    }
   } else {
     if (slideIndex === lastIdx) slide = <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} index={slideIndex} />;
     else if (slideIndex === 0) slide = <S1Cover slide={slideData} category={category} images={images} edition={edition} index={slideIndex} />;
