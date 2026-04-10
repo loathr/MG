@@ -281,10 +281,13 @@ function getSlideImageQuery(slide, categoryLabel, topic) {
   // Person field gets priority — search for their name directly
   if (slide.person) return slide.person;
   var heading = slide.heading || slide.title || slide.name || slide.headline || "";
-  var caps = (slide.body || "").split(" ").filter(function(w) { return w.length > 4 && w === w.toUpperCase(); }).slice(0, 2).join(" ");
-  if (heading && heading.length > 3) return categoryLabel + " " + extractKeywords(heading, 3);
-  if (caps) return categoryLabel + " " + caps;
-  return categoryLabel + " " + extractKeywords(topic, 3);
+  var body = slide.body || slide.leadParagraph || "";
+  // Extract meaningful keywords from heading + body, NOT category label (which gives generic results)
+  var headKw = heading.length > 3 ? extractKeywords(heading, 3) : "";
+  var bodyKw = body.length > 10 ? extractKeywords(body, 2) : "";
+  var combined = (headKw + " " + bodyKw).trim();
+  if (combined.length > 5) return topic + " " + combined;
+  return topic + " " + extractKeywords(heading || categoryLabel, 3);
 }
 
 var PALETTES = {
@@ -5132,6 +5135,24 @@ export default function LoathrMediaGenerator() {
                   </div>
                 </div>
               </div>}
+              {/* Enterprise cover layout picker */}
+              {activeSegment === "enterprise" && isCover && <div style={{ marginBottom: 6 }}>
+                <div style={{ ...CP, fontSize: 5, color: "#888", marginBottom: 3 }}>COVER LAYOUT</div>
+                <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                  {ENTERPRISE_COVER_LABELS.map(function(label, li) { return (
+                    <button key={li} onClick={function() { updateSlideField(currentSlide, "enterpriseCoverLayout", li); }}
+                      style={{ padding: "2px 6px", border: "0.5px solid " + ((s.enterpriseCoverLayout || 0) === li ? "#fff" : "#444"), background: (s.enterpriseCoverLayout || 0) === li ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: (s.enterpriseCoverLayout || 0) === li ? "#fff" : "#888" }}>{label}</button>
+                  ); })}
+                </div>
+                <div style={{ marginTop: 4, display: "flex", gap: 3, alignItems: "center" }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#888" }}>Split:</div>
+                  <button onClick={function() { updateSlideField(currentSlide, "enterpriseSplit", Math.max(25, (s.enterpriseSplit || 50) - 5)); }}
+                    style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2190"}</button>
+                  <div style={{ ...CP, fontSize: 6, color: "#ccc", minWidth: 30, textAlign: "center" }}>{s.enterpriseSplit || 50}%</div>
+                  <button onClick={function() { updateSlideField(currentSlide, "enterpriseSplit", Math.min(70, (s.enterpriseSplit || 50) + 5)); }}
+                    style={{ width: 16, height: 16, border: "0.5px solid #444", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#888", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
+                </div>
+              </div>}
               {/* News Desk layout picker */}
               {activeSegment === "newsdesk" && isContent && <div style={{ marginBottom: 6 }}>
                 <div style={{ ...CP, fontSize: 5, color: "#8a8270", marginBottom: 3 }}>SLIDE LAYOUT</div>
@@ -5219,11 +5240,12 @@ export default function LoathrMediaGenerator() {
                 </div>
                 {/* Per-block text edit + size + font */}
                 {nudgeTarget !== "all" && (function() {
-                  // Map cover fields: heading→title, body→subtitle for cover slides
+                  // Map cover fields: heading→title, body→subtitle/leadParagraph for cover slides
                   var isCover = currentSlide === 0;
-                  var coverMap = { heading: "title", body: "subtitle" };
+                  var coverMap = { heading: "title", body: s.subtitle !== undefined ? "subtitle" : s.leadParagraph !== undefined ? "leadParagraph" : "subtitle", highlight: "titleHighlight", sources: "sources" };
                   var fieldKey = isCover && coverMap[nudgeTarget] ? coverMap[nudgeTarget] : nudgeTarget;
-                  var hasField = s[fieldKey] !== undefined || s[nudgeTarget] !== undefined;
+                  // For covers, always show heading (title) and body (subtitle) even if empty
+                  var hasField = s[fieldKey] !== undefined || s[nudgeTarget] !== undefined || (isCover && (nudgeTarget === "heading" || nudgeTarget === "body"));
                   if (!hasField) return null;
                   var fieldVal = s[fieldKey] !== undefined ? s[fieldKey] : (s[nudgeTarget] || "");
                   var updateField = function(val) { updateSlideField(currentSlide, fieldKey, val); };
