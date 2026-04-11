@@ -3192,7 +3192,7 @@ export default function LoathrMediaGenerator() {
       // Get or create customPosition object with named sub-positions
       var cp = s.customPosition && typeof s.customPosition === "object" ? Object.assign({}, s.customPosition) : {};
       // Determine which sub-positions to nudge
-      var targets = target === "all" ? ["heading", "body", "highlight", "sources"] : [target];
+      var targets = target === "all" ? ["heading", "body", "highlight", "sources", "stat"] : [target];
       targets.forEach(function(t) {
         var pos = cp[t] || { top: 0, left: 0 };
         if (direction === "up") pos = { top: (pos.top || 0) - NUDGE_STEP, left: pos.left || 0 };
@@ -5282,6 +5282,15 @@ export default function LoathrMediaGenerator() {
                         var sel = (s.statColor || null) === c.id; return <button key={c.l} onClick={function() { updateSlideField(currentSlide, "statColor", c.id); }}
                           style={{ width: c.id ? 14 : "auto", height: 14, padding: c.id ? 0 : "0 4px", border: "1px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : "#ddd"), background: c.id || "transparent", cursor: "pointer", ...CP, fontSize: 4, color: "#999", lineHeight: "14px", textAlign: "center" }} title={c.l}>{c.id ? "" : c.l}</button>;
                       })}
+                    </div>
+                    <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 2 }}>
+                      <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : "#8a8270" }}>Box:</div>
+                      {[{ id: "#1a1a1a", l: "Dark" }, { id: "#c41e1e", l: "Red" }, { id: "#f5f0e4", l: "Light" }].map(function(b) {
+                        var sel = (s.statBoxBg || "#1a1a1a") === b.id; return <button key={b.l} onClick={function() { updateSlideField(currentSlide, "statBoxBg", b.id); }}
+                          style={{ padding: "0 4px", height: 14, border: "1px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : "#ddd"), background: b.id, cursor: "pointer", ...CP, fontSize: 4, color: b.id === "#1a1a1a" ? "#fff" : "#333", lineHeight: "14px" }}>{b.l}</button>;
+                      })}
+                      <button onClick={function() { updateSlideField(currentSlide, "statBoxHidden", !s.statBoxHidden); }}
+                        style={{ padding: "0 4px", height: 14, border: "1px solid " + (activeSegment === "enterprise" ? "#444" : "#ddd"), background: s.statBoxHidden ? (activeSegment === "enterprise" ? "#ffffff22" : "#1a1a1a11") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : "#8a8270", lineHeight: "14px" }}>{s.statBoxHidden ? "No Box" : "Boxed"}</button>
                     </div>
                   </div>;
                   return <div style={{ padding: 4, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), borderRadius: 2, background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ebe6d6" : "#fafafa" }}>
