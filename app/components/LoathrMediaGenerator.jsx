@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
 import { ENTERPRISE_FORCES, ENTERPRISE_SECTORS, ENTERPRISE_TOPICS, ENTERPRISE_GENERAL_TOPICS, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
 import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS, styledHighlight, HIGHLIGHT_STYLES, ENTERPRISE_IMG_FILTERS, setGlobalImgFilter } from "./segments/EnterpriseSlides";
-import { NEWSDESK_FILTERS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
+import { NEWSDESK_FILTERS, NEWSDESK_URGENCY, NEWSDESK_DESKS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
 import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser, NEWS_COVER_LABELS, NEWS_LAYOUT_LABELS, NEWS_COVER_COUNT, NEWS_LAYOUT_COUNT } from "./segments/NewsDeskSlides";
 
 var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap";
@@ -2615,6 +2615,8 @@ export default function LoathrMediaGenerator() {
   var emm = _s("analysis"), enterpriseMode = emm[0], setEnterpriseMode = emm[1]; // "analysis"|"news"|"tips"
   // News Desk state
   var ndf = _s(null), newsFilter = ndf[0], setNewsFilter = ndf[1];
+  var ndu = _s(null), newsUrgency = ndu[0], setNewsUrgency = ndu[1];
+  var ndd = _s(null), newsDesk = ndd[0], setNewsDesk = ndd[1];
   var ndr = _s("global"), newsRegion = ndr[0], setNewsRegion = ndr[1];
   var ndt = _s("today"), newsTimeframe = ndt[0], setNewsTimeframe = ndt[1];
   var ndc = _s(""), newsCountry = ndc[0], setNewsCountry = ndc[1];
@@ -2766,8 +2768,10 @@ export default function LoathrMediaGenerator() {
     } else if (category === "newsdesk") {
       var regionCtx = newsRegion !== "global" ? " in " + (NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }) || {}).label : "";
       var countryCtx = newsCountry ? " specifically in " + newsCountry : "";
-      var filterCtx = newsFilter ? " focusing on " + (NEWSDESK_FILTERS.find(function(f) { return f.id === newsFilter; }) || {}).label + " news" : "";
-      promptText = "Search for the top trending news stories right now" + regionCtx + countryCtx + filterCtx + ". Find 6 specific current stories that are making headlines. Include the publication source for each. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why trending now\",\"source\":\"publication\"}]";
+      var deskCtx = newsDesk ? (NEWSDESK_DESKS.find(function(d) { return d.id === newsDesk; }) || {}).label : null;
+      var urgencyCtx = newsUrgency === "breaking" ? " BREAKING" : newsUrgency === "developing" ? " DEVELOPING" : "";
+      var searchFocus = deskCtx ? " covering " + deskCtx : (newsFilter && !newsUrgency ? " focusing on " + (NEWSDESK_FILTERS.find(function(f) { return f.id === newsFilter; }) || {}).label + " news" : "");
+      promptText = "Search for the top" + urgencyCtx + " news stories right now" + regionCtx + countryCtx + searchFocus + ". Find 6 specific current stories that are making headlines. Include the publication source for each. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why trending now\",\"source\":\"publication\"}]";
     } else {
       promptText = "Search for trending topics in: " + (catContext[category] || category) + ". Find 6 specific timely topics for Instagram carousels. Also add 2 deeper angles from your own knowledge that aren't trending yet but should be. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why trending now\"}]";
     }
@@ -3910,7 +3914,7 @@ export default function LoathrMediaGenerator() {
             if (s.id === "enterprise") { setCategory("enterprise"); }
             else if (s.id === "newsdesk") { setCategory("newsdesk"); }
             else { setCategory(null); }
-            setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({}); lockedRef.current = {}; setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({}); setDroppedImage(null); setReverseTopics([]); setEnterpriseForce(null); setEnterpriseSector(null); setNewsFilter(null); setSecondaryCategory(null); setTertiaryCategory(null);
+            setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({}); lockedRef.current = {}; setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({}); setDroppedImage(null); setReverseTopics([]); setEnterpriseForce(null); setEnterpriseSector(null); setNewsFilter(null); setNewsUrgency(null); setNewsDesk(null); setSecondaryCategory(null); setTertiaryCategory(null);
           }}
             style={{ padding: "8px 16px", cursor: "pointer", border: "none", borderBottom: "2px solid " + (sel ? (s.color || uiAccent) : "transparent"), background: sel ? (activeSegment === "enterprise" ? "#ffffff08" : activeSegment === "newsdesk" ? "#c41e1e08" : "transparent") : "transparent", ...CP, fontSize: 9, letterSpacing: "0.12em", color: sel ? (s.color || (category ? (PALETTES[category] || {}).accent : "#666")) : (activeSegment === "enterprise" ? "#666" : "#999"), fontWeight: sel ? 700 : 400, textTransform: "uppercase" }}>{s.label}</button>;
         })}
@@ -3956,41 +3960,47 @@ export default function LoathrMediaGenerator() {
         </div>
       </div>}
 
-      {/* News Desk filters */}
-      {activeSegment === "newsdesk" && <div style={{ marginBottom: 12 }}>
-        <div style={{ display: "flex", gap: 3, marginBottom: 6, justifyContent: "center", flexWrap: "wrap" }}>
-          {NEWSDESK_FILTERS.map(function(f) {
-            var sel = newsFilter === f.id;
-            return <button key={f.id} onClick={function() { setNewsFilter(sel ? null : f.id); }}
-              style={{ padding: "3px 8px", cursor: "pointer", border: sel ? "1px solid " + (f.id === "breaking" ? "#c41e1e" : "#1a1a1a") : "0.5px solid #c8c0aa", background: sel ? (f.id === "breaking" ? "#c41e1e22" : "#1a1a1a11") : "transparent", ...CP, fontSize: 7, color: sel ? (f.id === "breaking" ? "#c41e1e" : "#1a1a1a") : "#8a8270", letterSpacing: "0.03em" }}>{f.label}</button>;
+      {/* News Desk — urgency + desk + region/time */}
+      {activeSegment === "newsdesk" && <div style={{ marginBottom: 10 }}>
+        {/* Urgency row */}
+        <div style={{ display: "flex", gap: 3, marginBottom: 6, justifyContent: "center" }}>
+          {NEWSDESK_URGENCY.map(function(u) {
+            var sel = newsUrgency === u.id;
+            return <button key={u.id} onClick={function() { setNewsUrgency(sel ? null : u.id); setNewsFilter(sel ? null : u.id); }}
+              style={{ padding: "3px 10px", cursor: "pointer", border: sel ? "1px solid " + u.color : "0.5px solid #c8c0aa", background: sel ? u.color + "18" : "transparent", ...CP, fontSize: 8, color: sel ? u.color : "#8a8270", letterSpacing: "0.05em", fontWeight: sel ? 700 : 400 }}>{u.label}</button>;
           })}
         </div>
+        {/* Desk row */}
+        <div style={{ ...CP, fontSize: 5, color: "#8a8270", letterSpacing: "0.12em", marginBottom: 3, textAlign: "center" }}>DESK</div>
+        <div style={{ display: "flex", gap: 2, marginBottom: 6, justifyContent: "center", flexWrap: "wrap" }}>
+          {NEWSDESK_DESKS.map(function(d) {
+            var sel = newsDesk === d.id;
+            return <button key={d.id} onClick={function() { setNewsDesk(sel ? null : d.id); if (!sel) setNewsFilter(d.id); else if (!newsUrgency) setNewsFilter(null); }}
+              style={{ padding: "2px 7px", cursor: "pointer", border: sel ? "1px solid #1a1a1a" : "0.5px solid #c8c0aa", background: sel ? "#1a1a1a0d" : "transparent", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270", letterSpacing: "0.02em" }}>{d.label}</button>;
+          })}
+        </div>
+        {/* Desk description */}
+        {newsDesk && <div style={{ ...CP, fontSize: 5, color: "#8a8270", textAlign: "center", marginBottom: 6, fontStyle: "italic" }}>{(NEWSDESK_DESKS.find(function(d) { return d.id === newsDesk; }) || {}).desc || ""}</div>}
+        {/* Region + Time — compact line */}
         <div style={{ display: "flex", gap: 6, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-            <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Region:</div>
             <select value={newsRegion} onChange={function(e) { setNewsRegion(e.target.value); setNewsCountry(""); }}
               style={{ padding: "2px 4px", border: "0.5px solid #c8c0aa", background: "#ffffff", ...CP, fontSize: 6, color: "#1a1a1a" }}>
               {NEWSDESK_REGIONS.map(function(r) { return <option key={r.id} value={r.id}>{r.label}</option>; })}
             </select>
           </div>
           {(function() { var reg = NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }); return reg && reg.countries && reg.countries.length > 0 ? (
-            <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-              <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Country:</div>
-              <select value={newsCountry} onChange={function(e) { setNewsCountry(e.target.value); }}
-                style={{ padding: "2px 4px", border: "0.5px solid #c8c0aa", background: "#ffffff", ...CP, fontSize: 6, color: "#1a1a1a" }}>
-                <option value="">All {reg.label}</option>
-                {reg.countries.map(function(c) { return <option key={c} value={c}>{c}</option>; })}
-              </select>
-            </div>
+            <select value={newsCountry} onChange={function(e) { setNewsCountry(e.target.value); }}
+              style={{ padding: "2px 4px", border: "0.5px solid #c8c0aa", background: "#ffffff", ...CP, fontSize: 6, color: "#1a1a1a" }}>
+              <option value="">All {reg.label}</option>
+              {reg.countries.map(function(c) { return <option key={c} value={c}>{c}</option>; })}
+            </select>
           ) : null; })()}
-          <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-            <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Time:</div>
-            {NEWSDESK_TIMEFRAMES.map(function(t) {
-              var sel = newsTimeframe === t.id;
-              return <button key={t.id} onClick={function() { setNewsTimeframe(t.id); }}
-                style={{ padding: "2px 6px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#c8c0aa"), background: sel ? "#1a1a1a11" : "transparent", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270", cursor: "pointer" }}>{t.label}</button>;
-            })}
-          </div>
+          {NEWSDESK_TIMEFRAMES.map(function(t) {
+            var sel = newsTimeframe === t.id;
+            return <button key={t.id} onClick={function() { setNewsTimeframe(t.id); }}
+              style={{ padding: "2px 6px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#c8c0aa"), background: sel ? "#1a1a1a11" : "transparent", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270", cursor: "pointer" }}>{t.label}</button>;
+          })}
         </div>
       </div>}
 
@@ -4678,7 +4688,7 @@ export default function LoathrMediaGenerator() {
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
             <button onClick={isFetchingTrending ? cancelTrending : fetchTrending}
               style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#555") : activeSegment === "newsdesk" ? (isFetchingTrending ? "#c41e1e" : "#c8c0aa") : isFetchingTrending ? "#e63946" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? (isFetchingTrending ? "#ffffff11" : trending.length > 0 ? "#ffffff08" : "transparent") : isFetchingTrending ? "#e6394611" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#aaa") : activeSegment === "newsdesk" ? (isFetchingTrending ? "#c41e1e" : "#8a8270") : isFetchingTrending ? "#e63946" : "var(--color-text-tertiary)" }}>
-              <Flame size={11} />{isFetchingTrending ? "Stop" : activeSegment === "newsdesk" ? "Top Stories" : activeSegment === "enterprise" ? (enterpriseMode === "news" ? "Breaking" : enterpriseMode === "tips" ? "Ideas" : "Trending") + (enterpriseForce ? " \u00b7 " + (ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) || {}).label : "") + (enterpriseSector ? " \u00b7 " + (ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) || {}).label : "") : "Trending"}</button>
+              <Flame size={11} />{isFetchingTrending ? "Stop" : activeSegment === "newsdesk" ? "Top Stories" + (newsDesk ? " \u00b7 " + (NEWSDESK_DESKS.find(function(d) { return d.id === newsDesk; }) || {}).label : "") : activeSegment === "enterprise" ? (enterpriseMode === "news" ? "Breaking" : enterpriseMode === "tips" ? "Ideas" : "Trending") + (enterpriseForce ? " \u00b7 " + (ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) || {}).label : "") + (enterpriseSector ? " \u00b7 " + (ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) || {}).label : "") : "Trending"}</button>
             {activeSegment === "editorial" && <button onClick={function() { setShuffleKey(function(k) { return k + 1; }); }}
               style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Shuffle size={11} />Shuffle</button>}
             {activeSegment === "editorial" && <button onClick={surpriseMe}

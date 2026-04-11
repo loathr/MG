@@ -2,6 +2,28 @@
 export var NEWSDESK_ID = "newsdesk";
 export var NEWSDESK_LABEL = "News Desk";
 
+// Urgency — how urgent is the story
+export var NEWSDESK_URGENCY = [
+  { id: "breaking", label: "Breaking", color: "#c41e1e" },
+  { id: "developing", label: "Developing", color: "#e67e22" },
+  { id: "trending", label: "Trending", color: "#1a1a1a" },
+];
+
+// Desks — newsroom beats
+export var NEWSDESK_DESKS = [
+  { id: "politics", label: "Politics", desc: "Elections, legislation, diplomacy, courts" },
+  { id: "business", label: "Business", desc: "Markets, corporate, trade, employment" },
+  { id: "crime", label: "Crime & Justice", desc: "Investigations, policing, trials, prisons" },
+  { id: "health", label: "Health & Science", desc: "Pandemic, research, FDA, climate data" },
+  { id: "tech", label: "Technology", desc: "Big tech, AI policy, cybersecurity, privacy" },
+  { id: "sports", label: "Sports", desc: "Leagues, transfers, scandals, Olympics" },
+  { id: "culture", label: "Arts & Culture", desc: "Film, music, fashion, social trends" },
+  { id: "conflict", label: "Conflict & Defense", desc: "Wars, military, refugees, geopolitics" },
+  { id: "environment", label: "Environment", desc: "Climate, disasters, conservation, energy" },
+  { id: "education", label: "Education", desc: "Schools, universities, policy, student issues" },
+];
+
+// Legacy filters — kept for backward compatibility with existing code
 export var NEWSDESK_FILTERS = [
   { id: "breaking", label: "Breaking" },
   { id: "developing", label: "Developing" },
