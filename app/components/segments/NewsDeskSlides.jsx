@@ -688,7 +688,7 @@ export function NewsReaction({ slide, images, index }) {
   </>;
 
   // Portrait element
-  var portrait = url ? <div style={{ width: imgSize, flexShrink: 0, alignSelf: "start" }}>
+  var portrait = url ? <div style={Object.assign({}, { width: imgSize, flexShrink: 0, alignSelf: "start" }, elT(slide, "portrait"))}>
     <div style={{ width: imgSize, height: imgSize, borderRadius: "50%", overflow: "hidden", border: "1.5px solid #1a1a1a22" }}>
       <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
     </div>

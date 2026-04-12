@@ -5241,22 +5241,28 @@ export default function LoathrMediaGenerator() {
                     style={{ width: 16, height: 16, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#8a8270", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
                 </div>
               </div>}
-              {/* News Desk portrait controls (Reaction slides) */}
+              {/* News Desk portrait + reaction layout controls */}
               {activeSegment === "newsdesk" && s.quote && <div style={{ marginBottom: 4, borderTop: "0.5px solid #c8c0aa", paddingTop: 3 }}>
-                <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 2 }}>
+                <div style={{ ...CP, fontSize: 5, color: "#8a8270", letterSpacing: "0.1em", marginBottom: 3 }}>REACTION LAYOUT</div>
+                <div style={{ display: "flex", gap: 2, alignItems: "center", marginBottom: 3 }}>
+                  {[{ id: null, l: "Center" }, { id: "left", l: "Left" }].map(function(lo) {
+                    var sel = (s.reactionLayout || null) === lo.id; return <button key={lo.l} onClick={function() { updateSlideField(currentSlide, "reactionLayout", lo.id); }}
+                      style={{ padding: "2px 8px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#c8c0aa"), background: sel ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270" }}>{lo.l}</button>;
+                  })}
+                </div>
+                <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
                   <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Portrait:</div>
                   <button onClick={function() { updateSlideField(currentSlide, "portraitSize", Math.max(40, (s.portraitSize || 80) - 10)); }}
                     style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
                   <div style={{ ...CP, fontSize: 5, color: "#1a1a1a" }}>{s.portraitSize || 80}px</div>
                   <button onClick={function() { updateSlideField(currentSlide, "portraitSize", Math.min(120, (s.portraitSize || 80) + 10)); }}
                     style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
-                </div>
-                <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-                  <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Layout:</div>
-                  {[{ id: null, l: "Center" }, { id: "left", l: "Left" }].map(function(lo) {
-                    var sel = (s.reactionLayout || null) === lo.id; return <button key={lo.l} onClick={function() { updateSlideField(currentSlide, "reactionLayout", lo.id); }}
-                      style={{ padding: "1px 6px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#c8c0aa"), background: sel ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: sel ? "#1a1a1a" : "#8a8270" }}>{lo.l}</button>;
-                  })}
+                  <div style={{ display: "flex", gap: 1, marginLeft: 4 }}>
+                    {["up","down","left","right"].map(function(dir) { var arrows = { up: "\u2191", down: "\u2193", left: "\u2190", right: "\u2192" }; return (
+                      <button key={dir} onClick={function() { nudgePosition(currentSlide, "portrait", dir); }}
+                        style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>{arrows[dir]}</button>
+                    ); })}
+                  </div>
                 </div>
               </div>}
               {/* News Desk stat + divider controls */}
