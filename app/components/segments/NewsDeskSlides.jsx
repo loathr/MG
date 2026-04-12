@@ -665,36 +665,54 @@ export function NewsStory({ slide, images, index }) {
   return <L slide={slide} url={url} />;
 }
 
-// ===== REACTION (quote top + circle floated in auto-balanced columns) =====
+// ===== REACTION (Option A: center column, Option C: portrait left) =====
 export function NewsReaction({ slide, images, index }) {
   var url = images && images[index] ? images[index].url : null;
   var bs = autoBodySize(slide, 8);
-  var cols = getCols(slide, slide.body);
+  var imgSize = slide.portraitSize || 80;
+  var usePortraitLeft = slide.reactionLayout === "left";
+
+  // Quote block — shared between both layouts
+  var quoteBlock = <>
+    {roleLabel(slide)}
+    <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.12, marginBottom: 4 }, elT(slide, "heading"))}>{slide.heading || ""}</div>
+    <div style={{ padding: "4px 0", borderTop: "0.5px dotted #1a1a1a22", borderBottom: "0.5px dotted #1a1a1a22", marginBottom: 3 }}>
+      {slide.quote && <div style={Object.assign({}, { ...(FONT_MAP[slide.quoteFont] || hlFont(slide)), fontSize: 10 + (slide.quoteSize || 0), color: slide.quoteColor || "#1a1a1a", lineHeight: 1.35, fontStyle: "italic", textAlign: "center" }, elT(slide, "quote"))}>{"\u201C"}{slide.quote}{"\u201D"}</div>}
+      <div style={{ ...CP, fontSize: 6, color: "#1a1a1a88", marginTop: 2, textAlign: "center" }}>{"\u2014"} {slide.source || slide.person || ""}</div>
+    </div>
+  </>;
+
+  // Portrait element
+  var portrait = url ? <div style={{ width: imgSize, flexShrink: 0, alignSelf: "start" }}>
+    <div style={{ width: imgSize, height: imgSize, borderRadius: "50%", overflow: "hidden", border: "1.5px solid #1a1a1a22" }}>
+      <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
+    </div>
+    {slide.person && <div style={{ ...CP, fontSize: 4, color: "#1a1a1a55", marginTop: 2, textAlign: "center" }}>{slide.person}</div>}
+  </div> : null;
+
   return (
     <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }, newsBg(slide))}>
       {doubleRule()}
       {editionBar(slide)}
       <div style={{ padding: "4px 14px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", overflow: "hidden" }}>
         <div>
-          {roleLabel(slide)}
-          <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.12, marginBottom: 4 }, elT(slide, "heading"))}>{slide.heading || ""}</div>
-          {/* Quote block */}
-          <div style={{ padding: "4px 0", borderTop: "0.5px dotted #1a1a1a22", borderBottom: "0.5px dotted #1a1a1a22", marginBottom: 3 }}>
-            {slide.quote && <div style={Object.assign({}, { ...(FONT_MAP[slide.quoteFont] || hlFont(slide)), fontSize: 10 + (slide.quoteSize || 0), color: slide.quoteColor || "#1a1a1a", lineHeight: 1.35, fontStyle: "italic", textAlign: "center" }, elT(slide, "quote"))}>{"\u201C"}{slide.quote}{"\u201D"}</div>}
-            <div style={{ ...CP, fontSize: 6, color: "#1a1a1a88", marginTop: 2, textAlign: "center" }}>{"\u2014"} {slide.source || slide.person || ""}</div>
-          </div>
-          {/* Body with circle floated right */}
-          <div style={Object.assign({}, { ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: cols, columnGap: 10, columnRule: "none" }, elT(slide, "body"))}>
-            {url && <div style={{ float: "right", width: 55, margin: "0 0 6px 8px", shapeOutside: "circle(50%)" }}>
-              <div style={{ width: 55, height: 55, borderRadius: "50%", overflow: "hidden", border: "1.5px solid #1a1a1a22" }}>
-                <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
-              </div>
-            </div>}
-            {leadBody(slide.body, slide)}
-          </div>
+          {quoteBlock}
+          {usePortraitLeft ? (
+            /* Option C: portrait left, text right */
+            <div style={{ display: "grid", gridTemplateColumns: imgSize + "px 1fr", gap: 10, marginTop: 2 }}>
+              {portrait}
+              <div style={Object.assign({}, { ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", overflow: "hidden" }, elT(slide, "body"))}>{leadBody(slide.body, slide)}</div>
+            </div>
+          ) : (
+            /* Option A: center column — text | portrait | text */
+            <div style={{ display: "grid", gridTemplateColumns: "1fr " + imgSize + "px 1fr", gap: 8, marginTop: 2 }}>
+              <div style={Object.assign({}, { ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", overflow: "hidden" }, elT(slide, "body"))}>{leadBody(splitText(slide.body, 0.55)[0], slide)}</div>
+              {portrait || <div style={{ width: 1, background: "#1a1a1a11" }} />}
+              <div style={{ ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", overflow: "hidden" }}>{splitText(slide.body, 0.55)[1]}</div>
+            </div>
+          )}
           {inlineStat(slide)}
         </div>
-        {/* Related pushed to bottom */}
         {relatedBlock(slide)}
       </div>
       {srcLine(slide.sources, slide)}
