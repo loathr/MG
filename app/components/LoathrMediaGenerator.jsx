@@ -3088,6 +3088,87 @@ export default function LoathrMediaGenerator() {
     });
   };
 
+  // Override keys per element
+  var ELEMENT_OVERRIDES = {
+    heading: ["headingFont", "headingSize", "headingColor", "headingAlign"],
+    body: ["bodyFont", "bodySize", "bodyColor", "bodyAlign"],
+    highlight: ["highlightFont", "highlightSize", "highlightColor", "highlightAlign", "highlightStyle"],
+    sources: ["sourcesFont", "sourcesSize", "sourcesColor", "sourcesAlign"],
+    quote: ["quoteFont", "quoteSize", "quoteColor", "quoteAlign"],
+    stat: ["statSize", "statColor", "statBoxBg", "statBoxHidden", "statLayout", "statCaptionSize"],
+    portrait: ["portraitSize", "reactionLayout"],
+  };
+  var LAYOUT_OVERRIDES = ["newsLayout", "newsCoverLayout", "newsSplit", "columnCount", "dividerWeight", "dividerHidden", "dividerColor", "imgFilter", "enterpriseLayout", "enterpriseCoverLayout", "enterpriseSplit", "enterpriseTextOffset", "containerStyle", "containerVariant", "containerBg", "containerOpacity", "bgColor", "bgTextureHidden", "editionBarHidden", "underlineWeight"];
+
+  var resetElement = function(slideIdx, element) {
+    setOptions(function(prev) {
+      var so = selectedOptionRef.current;
+      if (!prev || !prev[so]) return prev;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[so]);
+      var slides = opt.slides.slice();
+      var s = Object.assign({}, slides[slideIdx]);
+      // Delete element override keys
+      var keys = ELEMENT_OVERRIDES[element] || [];
+      keys.forEach(function(k) { delete s[k]; });
+      // Delete customPosition for this element
+      if (s.customPosition) {
+        var cp = Object.assign({}, s.customPosition);
+        delete cp[element];
+        s.customPosition = Object.keys(cp).length > 0 ? cp : undefined;
+      }
+      slides[slideIdx] = s;
+      opt.slides = slides;
+      newOpts[so] = opt;
+      return newOpts;
+    });
+  };
+
+  var resetSlideLayout = function(slideIdx) {
+    setOptions(function(prev) {
+      var so = selectedOptionRef.current;
+      if (!prev || !prev[so]) return prev;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[so]);
+      var slides = opt.slides.slice();
+      var s = Object.assign({}, slides[slideIdx]);
+      // Delete all element overrides
+      Object.keys(ELEMENT_OVERRIDES).forEach(function(el) {
+        ELEMENT_OVERRIDES[el].forEach(function(k) { delete s[k]; });
+      });
+      // Delete layout overrides
+      LAYOUT_OVERRIDES.forEach(function(k) { delete s[k]; });
+      // Delete all custom positions
+      delete s.customPosition;
+      slides[slideIdx] = s;
+      opt.slides = slides;
+      newOpts[so] = opt;
+      return newOpts;
+    });
+  };
+
+  var resetAllSlides = function() {
+    setOptions(function(prev) {
+      var so = selectedOptionRef.current;
+      if (!prev || !prev[so]) return prev;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[so]);
+      var slides = opt.slides.slice();
+      for (var i = 0; i < slides.length; i++) {
+        var s = Object.assign({}, slides[i]);
+        Object.keys(ELEMENT_OVERRIDES).forEach(function(el) {
+          ELEMENT_OVERRIDES[el].forEach(function(k) { delete s[k]; });
+        });
+        LAYOUT_OVERRIDES.forEach(function(k) { delete s[k]; });
+        delete s.customPosition;
+        slides[i] = s;
+      }
+      opt.slides = slides;
+      newOpts[so] = opt;
+      return newOpts;
+    });
+  };
+
   var commitEdit = function() {
     if (editField) { updateSlideField(editField.slide, editField.field, editValue); }
     setEditField(null); setEditValue("");
@@ -5304,8 +5385,8 @@ export default function LoathrMediaGenerator() {
                         style={{ width: 16, height: 16, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999", textAlign: "center", lineHeight: "16px" }}>{arrows[dir]}</button>
                     ); })}
                   </div>
-                  {s.customPosition && s.customPosition[nudgeTarget] && <button onClick={function() { resetNudge(currentSlide, nudgeTarget); }}
-                    style={{ padding: "1px 3px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), cursor: "pointer", ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#666" : "#999" }}>Reset</button>}
+                  {nudgeTarget !== "all" && <button onClick={function() { resetElement(currentSlide, nudgeTarget); }}
+                    style={{ padding: "1px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), cursor: "pointer", ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#e63946" : "#c41e1e", marginLeft: 2 }}>{"\u21BA"} Reset {nudgeTarget}</button>}
                 </div>
                 {/* Per-block text edit + size + font */}
                 {nudgeTarget !== "all" && (function() {
@@ -5481,6 +5562,11 @@ export default function LoathrMediaGenerator() {
               </div></>}
             </div>}
 
+            {editSection === "layout" && <div style={{ marginTop: 4, textAlign: "center" }}>
+              <button onClick={function() { resetSlideLayout(currentSlide); }}
+                style={{ padding: "3px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: activeSegment === "enterprise" ? "#e63946" : "#c41e1e", letterSpacing: "0.05em" }}>{"\u21BA"} Reset Slide Layout</button>
+            </div>}
+
             {/* === SLIDE === */}
             {editSection === "slide" && <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
               <button onClick={function() { duplicateSlide(currentSlide); }}
@@ -5492,6 +5578,10 @@ export default function LoathrMediaGenerator() {
               <div style={{ flex: 1 }} />
               {isContent && <button onClick={function() { deleteSlide(currentSlide); }}
                 style={{ padding: "2px 5px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>{"\u2715"} Delete</button>}
+            </div>
+            <div style={{ marginTop: 4, textAlign: "center" }}>
+              <button onClick={resetAllSlides}
+                style={{ padding: "3px 10px", border: "0.5px solid #ef444444", background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#ef4444", letterSpacing: "0.05em" }}>{"\u21BA"} Reset All Slides</button>
             </div>}
           </div>;
         })()}
