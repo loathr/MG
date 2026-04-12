@@ -5273,9 +5273,17 @@ export default function LoathrMediaGenerator() {
                     <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : "#333", marginBottom: 2 }}>STAT</div>
                     <input value={s.stat || ""} onChange={function(e) { updateSlideField(currentSlide, "stat", e.target.value); }}
                       style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), ...CP, fontSize: 8, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : "#fff", fontWeight: 700, marginBottom: 3 }} />
-                    <input value={s.statCaption || s.caption || ""} onChange={function(e) { updateSlideField(currentSlide, "statCaption", e.target.value); }}
-                      placeholder="Caption..."
+                    <input value={s.statCaption || s.caption || s.statLabel || ""} onChange={function(e) { updateSlideField(currentSlide, "statCaption", e.target.value); }}
+                      placeholder="Stat caption text..."
                       style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), ...CP, fontSize: 6, color: activeSegment === "enterprise" ? "#aaa" : "#666", background: activeSegment === "enterprise" ? "#111" : "#fff", marginBottom: 3 }} />
+                    <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+                      <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : "#8a8270" }}>Caption size:</div>
+                      <button onClick={function() { adjustFontSize(currentSlide, "statCaption", -0.5); }}
+                        style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
+                      <div style={{ ...CP, fontSize: 5, color: activeSegment === "enterprise" ? "#ccc" : "#1a1a1a" }}>{s.statCaptionSize || 0}</div>
+                      <button onClick={function() { adjustFontSize(currentSlide, "statCaption", 0.5); }}
+                        style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
+                    </div>
                     <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 2 }}>
                       <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : "#8a8270" }}>Size:</div>
                       <button onClick={function() { adjustFontSize(currentSlide, "stat", -2); }}

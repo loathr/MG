@@ -49,9 +49,9 @@ function newsBg(s) {
 function divider(s, opts) {
   if (s && s.dividerHidden) return null;
   var o = opts || {};
-  var w = s && typeof s.dividerWeight === "number" ? s.dividerWeight : (o.w || 1);
-  var c = s && s.dividerColor ? s.dividerColor : (o.c || "#1a1a1a33");
-  return <div style={{ height: w, background: c, margin: o.m || "0 0 6px 0" }} />;
+  var w = s && typeof s.dividerWeight === "number" ? s.dividerWeight : (o.w || 0.5);
+  var c = s && s.dividerColor ? s.dividerColor : (o.c || "#1a1a1a22");
+  return <div style={{ height: w, background: c, margin: o.m || "0 0 4px 0" }} />;
 }
 
 // Sources
@@ -156,9 +156,9 @@ function relatedBlock(s) {
 }
 
 // Layout labels
-export var NEWS_COVER_LABELS = ["Broadsheet", "Tabloid", "Modern Split", "Breaking Banner"];
+export var NEWS_COVER_LABELS = ["Broadsheet", "Tabloid", "Modern Split", "Breaking Banner", "Full Bleed"];
 export var NEWS_LAYOUT_LABELS = ["Standard", "Feature", "Sidebar", "Wire Report", "Torn Edge", "Center Wrap", "Split", "L-Shape", "Reverse L"];
-export var NEWS_COVER_COUNT = 4;
+export var NEWS_COVER_COUNT = 5;
 export var NEWS_LAYOUT_COUNT = 9;
 
 // ===== MASTHEAD =====
@@ -295,8 +295,34 @@ function CoverBreakingBanner({ slide, url }) {
   );
 }
 
+// ===== COVER 4: FULL BLEED (image background + text overlay) =====
+function CoverFullBleed({ slide, url }) {
+  return (
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#1a1a1a" }}>
+      {url && <img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />}
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.7) 65%, rgba(0,0,0,0.92))" }} />
+      {/* Top: masthead + date */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 2, padding: "8px 14px 0", textAlign: "center" }}>
+        <div style={{ ...(FONT_MAP[slide.mastheadFont] || GH), fontSize: 16 + (slide.mastheadSize || 0), color: "#ffffffcc", letterSpacing: "0.03em" }}>{slide.mastheadText || "NEWS DESK"}</div>
+        <div style={{ ...CP, fontSize: 3, color: "#ffffff44", letterSpacing: "0.12em", marginTop: 1 }}>by LOATHR</div>
+      </div>
+      {/* Breaking banner */}
+      {slide.breaking && <div style={{ position: "absolute", top: 36, left: 0, right: 0, background: "#c41e1e", padding: "3px 14px", textAlign: "center", zIndex: 2 }}>
+        <div style={{ ...QZ, fontSize: 8, letterSpacing: "0.25em", color: "#ffffff" }}>BREAKING NEWS</div>
+      </div>}
+      {/* Bottom: headline + lead */}
+      <div style={{ position: "absolute", bottom: 20, left: 14, right: 14, zIndex: 3 }}>
+        <div style={Object.assign({}, { ...headFont(slide), fontSize: (slide.title && slide.title.length > 40 ? 20 : 28) + (slide.headingSize || 0), color: slide.headingColor || "#ffffff", lineHeight: 1.08, marginBottom: 6, textShadow: "0 2px 12px rgba(0,0,0,0.8)" }, elT(slide, "heading"))}>{slide.title || ""}</div>
+        {divider(slide, { w: 2, c: "#c41e1e", m: "0 0 6px 0" })}
+        {slide.leadParagraph && <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8 + (slide.bodySize || 0), color: slide.bodyColor || "#ffffffcc", lineHeight: 1.5, textShadow: "0 1px 6px rgba(0,0,0,0.6)" }, elT(slide, "body"))}>{leadBody(slide.leadParagraph, slide)}</div>}
+        {editionBar(Object.assign({}, slide, { editionBarColor: "#ffffff66" }))}
+      </div>
+    </div>
+  );
+}
+
 // ===== COVER ROUTER =====
-var COVERS = [CoverBroadsheet, CoverTabloid, CoverModernSplit, CoverBreakingBanner];
+var COVERS = [CoverBroadsheet, CoverTabloid, CoverModernSplit, CoverBreakingBanner, CoverFullBleed];
 export function NewsFrontPage({ slide, images, index }) {
   var url = images && images[0] ? images[0].url : null;
   var li = typeof slide.newsCoverLayout === "number" ? slide.newsCoverLayout : 0;
