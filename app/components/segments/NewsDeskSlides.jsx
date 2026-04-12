@@ -152,12 +152,23 @@ function inlineStat(s) {
   var statSize = 24 + (s.statSize || 0);
   var boxBg = s.statBoxBg || "#1a1a1a";
   var boxHidden = s.statBoxHidden;
-  var captionColor = boxBg === "#1a1a1a" ? "#f5f0e4cc" : "#1a1a1a99";
+  var captionText = s.statCaption || s.caption || s.statLabel;
+  var beside = s.statLayout === "beside";
+  // Beside layout: number in box + caption to the right
+  if (beside && captionText) {
+    return <div style={Object.assign({}, { margin: "4px 0", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }, elT(s, "stat"))}>
+      <div style={Object.assign({}, boxHidden ? {} : { background: boxBg, padding: "4px 12px" })}>
+        <div style={{ ...MH, fontSize: statSize, color: s.statColor || "#c41e1e", lineHeight: 1 }}>{s.stat}</div>
+      </div>
+      <div style={{ ...CT, fontSize: 6.5 + (s.statCaptionSize || 0), color: "#1a1a1a99", lineHeight: 1.3, textAlign: "left", maxWidth: "55%" }}>{captionText}</div>
+    </div>;
+  }
+  // Below layout (default): number in box, caption below unboxed
   return <div style={Object.assign({}, { margin: "4px 0", textAlign: "center" }, elT(s, "stat"))}>
-    <div style={Object.assign({}, boxHidden ? { display: "inline-block" } : { background: boxBg, padding: "5px 16px", display: "inline-block" })}>
+    <div style={Object.assign({}, boxHidden ? { display: "inline-block" } : { background: boxBg, padding: "4px 14px", display: "inline-block" })}>
       <div style={{ ...MH, fontSize: statSize, color: s.statColor || "#c41e1e", lineHeight: 1 }}>{s.stat}</div>
-      {(s.statCaption || s.caption || s.statLabel) && <div style={{ ...CT, fontSize: 6 + (s.statCaptionSize || 0), color: boxHidden ? "#1a1a1a99" : captionColor, marginTop: 2, lineHeight: 1.3 }}>{s.statCaption || s.caption || s.statLabel}</div>}
     </div>
+    {captionText && <div style={{ ...CT, fontSize: 6 + (s.statCaptionSize || 0), color: "#1a1a1a99", marginTop: 3, lineHeight: 1.3 }}>{captionText}</div>}
   </div>;
 }
 

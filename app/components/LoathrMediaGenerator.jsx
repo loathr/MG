@@ -5330,6 +5330,13 @@ export default function LoathrMediaGenerator() {
                       <button onClick={function() { updateSlideField(currentSlide, "statBoxHidden", !s.statBoxHidden); }}
                         style={{ padding: "0 4px", height: 14, border: "1px solid " + (activeSegment === "enterprise" ? "#444" : "#ddd"), background: s.statBoxHidden ? (activeSegment === "enterprise" ? "#ffffff22" : "#1a1a1a11") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : "#8a8270", lineHeight: "14px" }}>{s.statBoxHidden ? "No Box" : "Boxed"}</button>
                     </div>
+                    <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 2 }}>
+                      <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : "#8a8270" }}>Caption:</div>
+                      {[{ id: null, l: "Below" }, { id: "beside", l: "Beside" }].map(function(lo) {
+                        var sel = (s.statLayout || null) === lo.id; return <button key={lo.l} onClick={function() { updateSlideField(currentSlide, "statLayout", lo.id); }}
+                          style={{ padding: "0 4px", height: 14, border: "1px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : "#ddd"), background: sel ? (activeSegment === "enterprise" ? "#ffffff22" : "#1a1a1a11") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : "#999", lineHeight: "14px" }}>{lo.l}</button>;
+                      })}
+                    </div>
                   </div>;
                   return <div style={{ padding: 4, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), borderRadius: 2, background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ebe6d6" : "#fafafa" }}>
                   <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : "#333", marginBottom: 2 }}>{nudgeTarget.toUpperCase()}{isCover && coverMap[nudgeTarget] ? " (" + coverMap[nudgeTarget] + ")" : ""}</div>
