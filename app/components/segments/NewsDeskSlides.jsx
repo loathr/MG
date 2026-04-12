@@ -138,9 +138,11 @@ function inlineStat(s) {
   var boxBg = s.statBoxBg || "#1a1a1a";
   var boxHidden = s.statBoxHidden;
   var captionColor = boxBg === "#1a1a1a" ? "#f5f0e4cc" : "#1a1a1a99";
-  return <div style={Object.assign({}, boxHidden ? { margin: "4px 0", textAlign: "center" } : { background: boxBg, padding: "8px 10px", margin: "4px 0", textAlign: "center" }, elT(s, "stat"))}>
-    <div style={{ ...MH, fontSize: statSize, color: s.statColor || "#c41e1e", lineHeight: 0.9 }}>{s.stat}</div>
-    {(s.statCaption || s.caption || s.statLabel) && <div style={{ ...CT, fontSize: 6.5 + (s.statCaptionSize || 0), color: boxHidden ? "#1a1a1a99" : captionColor, marginTop: 3, lineHeight: 1.3 }}>{s.statCaption || s.caption || s.statLabel}</div>}
+  return <div style={Object.assign({}, { margin: "4px 0", textAlign: "center" }, elT(s, "stat"))}>
+    <span style={Object.assign({}, boxHidden ? {} : { background: boxBg, padding: "5px 14px", display: "inline-block" })}>
+      <span style={{ ...MH, fontSize: statSize, color: s.statColor || "#c41e1e", lineHeight: 0.9 }}>{s.stat}</span>
+      {(s.statCaption || s.caption || s.statLabel) && <span style={{ ...CT, fontSize: 6.5 + (s.statCaptionSize || 0), color: boxHidden ? "#1a1a1a99" : captionColor, marginLeft: 6, lineHeight: 1.3 }}>{s.statCaption || s.caption || s.statLabel}</span>}
+    </span>
   </div>;
 }
 
@@ -155,9 +157,9 @@ function relatedBlock(s) {
 
 // Layout labels
 export var NEWS_COVER_LABELS = ["Broadsheet", "Tabloid", "Modern Split", "Breaking Banner"];
-export var NEWS_LAYOUT_LABELS = ["Standard", "Feature", "Sidebar", "Wire Report", "Torn Edge", "Center Wrap", "Split"];
+export var NEWS_LAYOUT_LABELS = ["Standard", "Feature", "Sidebar", "Wire Report", "Torn Edge", "Center Wrap", "Split", "L-Shape", "Reverse L"];
 export var NEWS_COVER_COUNT = 4;
-export var NEWS_LAYOUT_COUNT = 7;
+export var NEWS_LAYOUT_COUNT = 9;
 
 // ===== MASTHEAD =====
 function Masthead({ slide, size }) {
@@ -206,22 +208,27 @@ function CoverBroadsheet({ slide, url, images }) {
   );
 }
 
-// ===== COVER 1: TABLOID (giant headline + full-width image) =====
+// ===== COVER 1: TABLOID (headline top + image-left text-right grid) =====
 function CoverTabloid({ slide, url }) {
   var sp = getSplit(slide);
   return (
     <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }, newsBg(slide))}>
       <Masthead slide={slide} size={32} />
-      <div style={{ flex: 1, padding: "4px 14px", display: "flex", flexDirection: "column" }}>
-        <div style={Object.assign({}, { ...headFont(slide), fontSize: (slide.title && slide.title.length > 30 ? 24 : 32) + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.02, marginBottom: 4 }, elT(slide, "heading"))}>{slide.title || ""}</div>
-        {doubleRule()}
-        {url && <div style={{ width: "100%", maxHeight: sp + "%", overflow: "hidden", border: "0.5px solid #1a1a1a22", marginTop: 3, marginBottom: 2, flexShrink: 0 }}>
+      <div style={{ padding: "4px 14px", flexShrink: 0 }}>
+        <div style={Object.assign({}, { ...headFont(slide), fontSize: (slide.title && slide.title.length > 30 ? 22 : 28) + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.02, marginBottom: 4 }, elT(slide, "heading"))}>{slide.title || ""}</div>
+        {divider(slide, { w: 1, c: "#1a1a1a" })}
+      </div>
+      {/* Image left + text right grid */}
+      <div style={{ flex: 1, padding: "0 14px", display: "grid", gridTemplateColumns: sp + "% 1fr", gap: 10, overflow: "hidden" }}>
+        {url ? <div style={{ overflow: "hidden", border: "0.5px solid #1a1a1a22" }}>
           <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
-        </div>}
-        {url && caption(slide)}
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8), color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: getCols(slide, slide.leadParagraph), columnGap: 10, columnRule: getCols(slide, slide.leadParagraph) > 1 ? "0.5px solid #1a1a1a11" : "none", flex: 1, overflow: "hidden" }, elT(slide, "body"))}>
-          {leadBody(slide.leadParagraph || slide.body, slide)}
-          {slide.leadParagraph && slide.body && <span> {slide.body}</span>}
+        </div> : <div style={{ background: "#e8e3d4" }} />}
+        <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8.5), color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", flex: 1, overflow: "hidden" }, elT(slide, "body"))}>
+            {leadBody(slide.leadParagraph || slide.body, slide)}
+            {slide.leadParagraph && slide.body && <span> {slide.body}</span>}
+          </div>
+          {url && caption(slide)}
         </div>
       </div>
       {pageFooter(slide, 1)}
@@ -299,7 +306,12 @@ export function NewsFrontPage({ slide, images, index }) {
 
 // ===== ROLE LABEL =====
 function roleLabel(s) {
-  return <div style={Object.assign({}, { ...QZ, fontSize: 6, letterSpacing: "0.15em", color: "#c41e1e", marginBottom: 3 }, elT(s, "sources"))}>{s.role || ""}</div>;
+  // Hide role label if heading matches role (Claude echoed the role as heading)
+  var role = s.role || "";
+  var heading = s.heading || "";
+  if (role && heading && heading.toLowerCase().replace(/[^a-z]/g, "").indexOf(role.toLowerCase().replace(/[^a-z]/g, "")) === 0) return null;
+  if (!role) return null;
+  return <div style={Object.assign({}, { ...QZ, fontSize: 5, letterSpacing: "0.12em", color: "#c41e1e", marginBottom: 2 }, elT(s, "sources"))}>{role}</div>;
 }
 
 // ===== CONTENT 0: STANDARD (image block + dense columns) =====
@@ -507,8 +519,86 @@ function LayoutSplit({ slide, url }) {
   );
 }
 
+// ===== CONTENT 7: L-SHAPE (image top-left + text right + text below full width) =====
+function LayoutLShape({ slide, url }) {
+  var sp = getSplit(slide);
+  var bs = autoBodySize(slide, 8);
+  var bodyText = slide.body || "";
+  var splitAt = Math.floor(bodyText.length * 0.4);
+  var breakAt = bodyText.indexOf(". ", splitAt);
+  if (breakAt < 0) breakAt = splitAt;
+  var topText = bodyText.slice(0, breakAt + 1).trim();
+  var bottomText = bodyText.slice(breakAt + 1).trim();
+  return (
+    <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }, newsBg(slide))}>
+      {doubleRule()}
+      {editionBar(slide)}
+      <div style={{ padding: "4px 14px", flexShrink: 0 }}>
+        {roleLabel(slide)}
+        <div style={Object.assign({}, { ...headFont(slide), fontSize: 16 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.1, marginBottom: 4 }, elT(slide, "heading"))}>{slide.heading || ""}</div>
+        {divider(slide, { w: 0.5, c: "#1a1a1a33" })}
+      </div>
+      {/* Top section: image left + text right */}
+      <div style={{ display: "grid", gridTemplateColumns: sp + "% 1fr", gap: 8, padding: "0 14px", marginBottom: 4 }}>
+        {url ? <div style={{ overflow: "hidden", border: "0.5px solid #1a1a1a22", maxHeight: 180 }}>
+          <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
+        </div> : <div style={{ background: "#e8e3d4", minHeight: 100 }} />}
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", overflow: "hidden" }, elT(slide, "body"))}>{leadBody(topText, slide)}</div>
+      </div>
+      {/* Bottom section: full width text */}
+      <div style={{ padding: "0 14px", flex: 1, overflow: "hidden" }}>
+        <div style={{ ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: getCols(slide, bottomText), columnGap: 10, columnRule: getCols(slide, bottomText) > 1 ? "0.5px solid #1a1a1a11" : "none" }}>{bottomText}</div>
+        {inlineStat(slide)}
+        {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#c41e1e", pillText: "#ffffff", defaultStyle: "bar" })}
+        {relatedBlock(slide)}
+      </div>
+      {srcLine(slide.sources, slide)}
+      {pageFooter(slide)}
+    </div>
+  );
+}
+
+// ===== CONTENT 8: REVERSE L-SHAPE (image top-right + text left + text below) =====
+function LayoutReverseLShape({ slide, url }) {
+  var sp = getSplit(slide);
+  var bs = autoBodySize(slide, 8);
+  var bodyText = slide.body || "";
+  var splitAt = Math.floor(bodyText.length * 0.4);
+  var breakAt = bodyText.indexOf(". ", splitAt);
+  if (breakAt < 0) breakAt = splitAt;
+  var topText = bodyText.slice(0, breakAt + 1).trim();
+  var bottomText = bodyText.slice(breakAt + 1).trim();
+  return (
+    <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }, newsBg(slide))}>
+      {doubleRule()}
+      {editionBar(slide)}
+      <div style={{ padding: "4px 14px", flexShrink: 0 }}>
+        {roleLabel(slide)}
+        <div style={Object.assign({}, { ...headFont(slide), fontSize: 16 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.1, marginBottom: 4 }, elT(slide, "heading"))}>{slide.heading || ""}</div>
+        {divider(slide, { w: 0.5, c: "#1a1a1a33" })}
+      </div>
+      {/* Top section: text left + image right */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr " + sp + "%", gap: 8, padding: "0 14px", marginBottom: 4 }}>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", overflow: "hidden" }, elT(slide, "body"))}>{leadBody(topText, slide)}</div>
+        {url ? <div style={{ overflow: "hidden", border: "0.5px solid #1a1a1a22", maxHeight: 180 }}>
+          <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
+        </div> : <div style={{ background: "#e8e3d4", minHeight: 100 }} />}
+      </div>
+      {/* Bottom section: full width text */}
+      <div style={{ padding: "0 14px", flex: 1, overflow: "hidden" }}>
+        <div style={{ ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: getCols(slide, bottomText), columnGap: 10, columnRule: getCols(slide, bottomText) > 1 ? "0.5px solid #1a1a1a11" : "none" }}>{bottomText}</div>
+        {inlineStat(slide)}
+        {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#c41e1e", pillText: "#ffffff", defaultStyle: "bar" })}
+        {relatedBlock(slide)}
+      </div>
+      {srcLine(slide.sources, slide)}
+      {pageFooter(slide)}
+    </div>
+  );
+}
+
 // ===== CONTENT ROUTER =====
-var LAYOUTS = [LayoutStandard, LayoutFeature, LayoutSidebar, LayoutWireReport, LayoutTornEdge, LayoutCenterWrap, LayoutSplit];
+var LAYOUTS = [LayoutStandard, LayoutFeature, LayoutSidebar, LayoutWireReport, LayoutTornEdge, LayoutCenterWrap, LayoutSplit, LayoutLShape, LayoutReverseLShape];
 export function NewsStory({ slide, images, index }) {
   var url = images && images[index] ? images[index].url : null;
   var li = typeof slide.newsLayout === "number" ? slide.newsLayout : ((index - 1) % LAYOUTS.length);
@@ -516,28 +606,38 @@ export function NewsStory({ slide, images, index }) {
   return <L slide={slide} url={url} />;
 }
 
-// ===== REACTION (quote-focused — fills full height) =====
+// ===== REACTION (quote top + circle in center column with text wrapping) =====
 export function NewsReaction({ slide, images, index }) {
   var url = images && images[index] ? images[index].url : null;
+  var bodyText = slide.body || "";
+  var midPoint = Math.floor(bodyText.length / 2);
+  var breakAt = bodyText.indexOf(". ", midPoint);
+  if (breakAt < 0 || breakAt > bodyText.length * 0.7) breakAt = midPoint;
+  var leftText = bodyText.slice(0, breakAt + 1).trim();
+  var rightText = bodyText.slice(breakAt + 1).trim();
+  var bs = autoBodySize(slide, 8);
   return (
     <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }, newsBg(slide))}>
       {doubleRule()}
       {editionBar(slide)}
-      <div style={{ padding: "6px 14px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ padding: "4px 14px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {roleLabel(slide)}
-        <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.12, marginBottom: 6, flexShrink: 0 }, elT(slide, "heading"))}>{slide.heading || ""}</div>
-        {/* Quote block with image */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 4, flexShrink: 0, padding: "6px 0", borderTop: "1px solid #1a1a1a22", borderBottom: "1px solid #1a1a1a22" }}>
-          {url && <div style={{ width: 60, height: 60, borderRadius: "50%", overflow: "hidden", border: "1.5px solid #1a1a1a22", flexShrink: 0 }}>
-            <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
-          </div>}
-          <div style={{ flex: 1 }}>
-            {slide.quote && <div style={{ ...hlFont(slide), fontSize: 11 + (slide.highlightSize || 0), color: "#1a1a1a", lineHeight: 1.35, fontStyle: "italic" }}>{"\u201C"}{slide.quote}{"\u201D"}</div>}
-            <div style={{ ...CP, fontSize: 6, color: "#1a1a1a88", marginTop: 3 }}>{"\u2014"} {slide.source || slide.person || ""}</div>
-          </div>
+        <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.12, marginBottom: 4, flexShrink: 0 }, elT(slide, "heading"))}>{slide.heading || ""}</div>
+        {/* Quote block */}
+        <div style={{ padding: "6px 0", borderTop: "1px solid #1a1a1a22", borderBottom: "1px solid #1a1a1a22", marginBottom: 4, flexShrink: 0 }}>
+          {slide.quote && <div style={{ ...hlFont(slide), fontSize: 10 + (slide.highlightSize || 0), color: "#1a1a1a", lineHeight: 1.35, fontStyle: "italic", textAlign: "center" }}>{"\u201C"}{slide.quote}{"\u201D"}</div>}
+          <div style={{ ...CP, fontSize: 6, color: "#1a1a1a88", marginTop: 2, textAlign: "center" }}>{"\u2014"} {slide.source || slide.person || ""}</div>
         </div>
-        {/* Body fills remaining space */}
-        {slide.body && <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8), color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: getCols(slide, slide.body), columnGap: 10, columnRule: getCols(slide, slide.body) > 1 ? "0.5px solid #1a1a1a11" : "none", flex: 1, overflow: "hidden" }, elT(slide, "body"))}>{leadBody(slide.body, slide)}</div>}
+        {/* 3-column grid: text | circle image | text */}
+        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, overflow: "hidden" }}>
+          <div style={{ ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", overflow: "hidden" }}>{leadBody(leftText, slide)}</div>
+          {url ? <div style={{ width: 70, alignSelf: "start", paddingTop: 4 }}>
+            <div style={{ width: 70, height: 70, borderRadius: "50%", overflow: "hidden", border: "1.5px solid #1a1a1a22" }}>
+              <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
+            </div>
+          </div> : <div style={{ width: 1, background: "#1a1a1a22" }} />}
+          <div style={{ ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", overflow: "hidden" }}>{rightText}</div>
+        </div>
         {inlineStat(slide)}
         {relatedBlock(slide)}
       </div>

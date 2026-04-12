@@ -165,12 +165,19 @@ export function buildNewsDeskPrompt(keywords, filter, region, timeframe, country
     "- Include specific numbers, names, dates, and places in every body field\n\n" +
     "SLIDE STRUCTURE:\n" +
     "This is a NEWSPAPER. Pack information densely. Some slides COMBINE multiple segments.\n\n" +
+    "HEADING RULE: Every slide's 'heading' field MUST be a SPECIFIC editorial headline — NOT the role name. Write it like a real newspaper sub-headline that summarizes the slide's content. Examples:\n" +
+    "- BAD: \"The Story\" — this is just the role name\n" +
+    "- GOOD: \"Jassy Doubles Down on AI Bet Despite Wall Street Skepticism\"\n" +
+    "- BAD: \"The Background + Numbers\" — this is the role name\n" +
+    "- GOOD: \"From Cloud Giant to AI Powerhouse: The $200B Gamble\"\n" +
+    "- BAD: \"The Reaction\" — generic\n" +
+    "- GOOD: \"'We Won't Be Conservative' — Industry Leaders Push Back\"\n\n" +
     "SLIDE ROLES:\n" +
-    "- FIRST SLIDE: \"FRONT PAGE\" — title (headline), titleHighlight (key phrase), subtitle (dateline), leadParagraph (2-3 hard-news sentences), body (additional context paragraph)\n" +
-    "- \"THE STORY\" — heading, body (who, what, when, where, why — 5-6 sentences), highlight (key quote or pull-out fact), stat (inline number if relevant), statCaption (what the number means), sources\n" +
-    (isUrgent ? "" : "- \"THE BACKGROUND + NUMBERS\" — heading, body (history/context — 4-5 sentences), stat (key number), statCaption (explanation), highlight (important context quote), sources. This slide COMBINES background context with the key statistic.\n") +
-    "- \"THE REACTION\" — heading, body (analysis around the quotes — 4-5 sentences), quote (direct quote), person (who said it), relatedBody (brief related development), sources\n" +
-    (isUrgent ? "" : "- \"THE PERSPECTIVE + RELATED\" — heading, body (op-ed analysis — 5-6 sentences), highlight (editorial pull quote), relatedBody (connected story summary — 2-3 sentences), sources. This slide COMBINES perspective with related stories.\n") +
+    "- FIRST SLIDE: \"FRONT PAGE\" — title (main headline), titleHighlight (key phrase), subtitle (dateline), leadParagraph (2-3 hard-news sentences), body (additional context paragraph)\n" +
+    "- \"THE STORY\" — heading (specific editorial headline), body (who, what, when, where, why — 5-6 sentences), highlight (key quote or pull-out fact), stat (inline number if relevant), statCaption (what the number means), sources\n" +
+    (isUrgent ? "" : "- \"THE BACKGROUND + NUMBERS\" — heading (specific headline about the context), body (history/context — 4-5 sentences), stat (key number), statCaption (explanation), highlight (important context quote), sources. This slide COMBINES background context with the key statistic.\n") +
+    "- \"THE REACTION\" — heading (headline about the response/reaction), body (analysis around the quotes — 4-5 sentences), quote (direct quote), person (who said it), relatedBody (brief related development), sources\n" +
+    (isUrgent ? "" : "- \"THE PERSPECTIVE + RELATED\" — heading (editorial angle headline), body (op-ed analysis — 5-6 sentences), highlight (editorial pull quote), relatedBody (connected story summary — 2-3 sentences), sources. This slide COMBINES perspective with related stories.\n") +
     "- LAST SLIDE: \"SOURCES\" — fullSources (array: [{publication, title, date, url}]), hashtags" + (isDeveloping ? ", developingNote: \"This is a developing story. Information may change as details emerge.\"" : "") + "\n\n" +
     "IMPORTANT: Do NOT use statFormat field. Stats should be inline as 'stat' and 'statCaption' fields within content slides, not separate stat-only slides.\n\n" +
     "CRITICAL: After searching the web, you MUST respond with valid JSON. Do NOT write commentary, analysis, or explanation outside the JSON. Your ENTIRE text response must be the JSON object.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"News Coverage\",\"slides\":[{...slides...}]}";
