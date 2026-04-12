@@ -3391,7 +3391,21 @@ export default function LoathrMediaGenerator() {
           if (!cleaned.endsWith("]}")) cleaned += "]}";
           parsed = JSON.parse(cleaned);
         } catch (je2) {
-          throw new Error("Failed to parse carousel JSON. Try generating again.");
+          // Last attempt: retry without web search (truncation likely caused by search tokens)
+          if (useWebSearch) {
+            setImgStatus("JSON truncated — retrying without web search...");
+            var retryBody3 = { model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] };
+            var r3 = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify(retryBody3) });
+            var d3 = await r3.json();
+            if (d3.error) throw new Error(d3.error.message || d3.error);
+            var t3 = (d3.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
+            var c3 = t3.replace(/```json|```/g, "").trim().replace(/,\s*([}\]])/g, "$1");
+            var s3 = c3.indexOf("{"); var e3 = c3.lastIndexOf("}");
+            if (s3 >= 0 && e3 > s3) c3 = c3.slice(s3, e3 + 1);
+            parsed = JSON.parse(c3);
+          } else {
+            throw new Error("Failed to parse carousel JSON. Try generating again.");
+          }
         }
       }
       var results = [];
