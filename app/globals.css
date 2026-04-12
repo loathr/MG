@@ -119,6 +119,30 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Eroded';
+  src: url('/Fonts/News%20Deck/eroded-personal-use/ERODED%20PERSONAL%20USE.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'VintageTypist';
+  src: url('/Fonts/News%20Deck/vintage-typist/VintageTypist.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Bramos';
+  src: url('/Fonts/News%20Deck/bramos/Bramos.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* Text */
   --color-text-primary: #1a1a1a;

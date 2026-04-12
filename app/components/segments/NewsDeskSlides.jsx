@@ -11,13 +11,16 @@ var QZ = { fontFamily: "'QuickZip','Otilito',sans-serif", textTransform: "upperc
 var GH = { fontFamily: "'GrandHalva','Foun',serif" };
 var CT = { fontFamily: "'CarbonText','Maheni',sans-serif", fontStyle: "normal" };
 var MH = { fontFamily: "'Medhorn','Foun',serif" };
+var ER = { fontFamily: "'Eroded','Medhorn',serif" };
+var VT = { fontFamily: "'VintageTypist','CarbonText',serif", fontWeight: 700 };
+var BR = { fontFamily: "'Bramos','QuickZip',sans-serif" };
 
-var FONT_MAP = { maheni: HD, foun: FN, courier: CP, wenssep: { fontFamily: "'Wenssep',Georgia,serif", textTransform: "uppercase" }, otilito: { fontFamily: "'Otilito','Foun',sans-serif" }, qogee: { fontFamily: "'Qogee','Maheni',serif", fontStyle: "normal" }, matina: { fontFamily: "'Matina','Maheni',serif", fontStyle: "normal" }, quickzip: QZ, grandhalva: GH, carbon: CT, medhorn: MH };
+var FONT_MAP = { maheni: HD, foun: FN, courier: CP, wenssep: { fontFamily: "'Wenssep',Georgia,serif", textTransform: "uppercase" }, otilito: { fontFamily: "'Otilito','Foun',sans-serif" }, qogee: { fontFamily: "'Qogee','Maheni',serif", fontStyle: "normal" }, matina: { fontFamily: "'Matina','Maheni',serif", fontStyle: "normal" }, quickzip: QZ, grandhalva: GH, carbon: CT, medhorn: MH, eroded: ER, vintage: VT, bramos: BR };
 
-// Defaults: Grand Halva masthead, Medhorn headlines, Carbon Text body
-function headFont(s) { return FONT_MAP[s && s.headingFont] || MH; }
-function bodyFont(s) { return FONT_MAP[s && s.bodyFont] || CT; }
-function hlFont(s) { return FONT_MAP[s && s.highlightFont] || GH; }
+// Defaults: Grand Halva masthead, Eroded headlines, VintageTypist body, Bramos banners, Medhorn quotes
+function headFont(s) { return FONT_MAP[s && s.headingFont] || ER; }
+function bodyFont(s) { return FONT_MAP[s && s.bodyFont] || VT; }
+function hlFont(s) { return FONT_MAP[s && s.highlightFont] || MH; }
 function headColor(s, d) { return s && s.headingColor || d || "#1a1a1a"; }
 function bodyColor(s, d) { return s && s.bodyColor || d || "#1a1a1a"; }
 
@@ -150,7 +153,7 @@ function inlineStat(s) {
 function relatedBlock(s) {
   if (!s || !s.relatedBody) return null;
   return <div style={{ borderTop: "1px dashed #1a1a1a33", marginTop: 6, paddingTop: 4 }}>
-    <div style={{ ...QZ, fontSize: 5, letterSpacing: "0.1em", color: "#c41e1e", marginBottom: 2 }}>RELATED</div>
+    <div style={{ ...BR, fontSize: 5, letterSpacing: "0.1em", color: "#c41e1e", marginBottom: 2 }}>RELATED</div>
     <div style={{ ...CT, fontSize: 7, color: "#1a1a1a99", lineHeight: 1.45, textAlign: "justify" }}>{s.relatedBody}</div>
   </div>;
 }
@@ -174,10 +177,10 @@ function Masthead({ slide, size }) {
     </div>
     {editionBar(slide)}
     {isBreaking && <div style={{ background: "#c41e1e", padding: "5px 14px", textAlign: "center", flexShrink: 0 }}>
-      <div style={{ ...QZ, fontSize: 12, letterSpacing: "0.35em", color: "#ffffff", fontWeight: 700 }}>BREAKING NEWS</div>
+      <div style={{ ...BR, fontSize: 12, letterSpacing: "0.35em", color: "#ffffff", fontWeight: 700 }}>BREAKING NEWS</div>
     </div>}
     {isDev && <div style={{ background: "#e67e22", padding: "5px 14px", textAlign: "center", flexShrink: 0 }}>
-      <div style={{ ...QZ, fontSize: 12, letterSpacing: "0.35em", color: "#ffffff", fontWeight: 700 }}>DEVELOPING STORY</div>
+      <div style={{ ...BR, fontSize: 12, letterSpacing: "0.35em", color: "#ffffff", fontWeight: 700 }}>DEVELOPING STORY</div>
     </div>}
     {(isBreaking || isDev) && doubleRule()}
   </>;
@@ -250,7 +253,7 @@ function CoverModernSplit({ slide, url }) {
         </div>
         {editionBar(slide)}
         {slide.breaking && <div style={{ background: "#c41e1e", padding: "3px 8px", textAlign: "center" }}>
-          <div style={{ ...QZ, fontSize: 7, letterSpacing: "0.25em", color: "#ffffff" }}>BREAKING</div>
+          <div style={{ ...BR, fontSize: 7, letterSpacing: "0.25em", color: "#ffffff" }}>BREAKING</div>
         </div>}
         <div style={{ flex: 1, padding: "8px 10px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={Object.assign({}, { ...headFont(slide), fontSize: 19 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.08, marginBottom: 6 }, elT(slide, "heading"))}>{slide.title || ""}</div>
@@ -273,7 +276,7 @@ function CoverBreakingBanner({ slide, url }) {
       </div>
       {doubleRule()}
       <div style={{ background: slide.breaking ? "#c41e1e" : "#1a1a1a", padding: "8px 14px", textAlign: "center", flexShrink: 0 }}>
-        <div style={{ ...QZ, fontSize: 18, letterSpacing: "0.35em", color: "#ffffff", fontWeight: 700 }}>{slide.breaking ? "BREAKING NEWS" : slide.developing ? "DEVELOPING" : "LATEST"}</div>
+        <div style={{ ...BR, fontSize: 18, letterSpacing: "0.35em", color: "#ffffff", fontWeight: 700 }}>{slide.breaking ? "BREAKING NEWS" : slide.developing ? "DEVELOPING" : "LATEST"}</div>
       </div>
       {doubleRule()}
       {editionBar(slide)}
@@ -308,7 +311,7 @@ function CoverFullBleed({ slide, url }) {
       </div>
       {/* Breaking banner */}
       {slide.breaking && <div style={{ position: "absolute", top: 36, left: 0, right: 0, background: "#c41e1e", padding: "3px 14px", textAlign: "center", zIndex: 2 }}>
-        <div style={{ ...QZ, fontSize: 8, letterSpacing: "0.25em", color: "#ffffff" }}>BREAKING NEWS</div>
+        <div style={{ ...BR, fontSize: 8, letterSpacing: "0.25em", color: "#ffffff" }}>BREAKING NEWS</div>
       </div>}
       {/* Bottom: headline + lead */}
       <div style={{ position: "absolute", bottom: 20, left: 14, right: 14, zIndex: 3 }}>
@@ -337,7 +340,7 @@ function roleLabel(s) {
   var heading = s.heading || "";
   if (role && heading && heading.toLowerCase().replace(/[^a-z]/g, "").indexOf(role.toLowerCase().replace(/[^a-z]/g, "")) === 0) return null;
   if (!role) return null;
-  return <div style={Object.assign({}, { ...QZ, fontSize: 5, letterSpacing: "0.12em", color: "#c41e1e", marginBottom: 2 }, elT(s, "sources"))}>{role}</div>;
+  return <div style={Object.assign({}, { ...BR, fontSize: 5, letterSpacing: "0.12em", color: "#c41e1e", marginBottom: 2 }, elT(s, "sources"))}>{role}</div>;
 }
 
 // ===== CONTENT 0: STANDARD (image block + dense columns) =====
@@ -443,7 +446,7 @@ function LayoutWireReport({ slide }) {
         <div style={{ height: 1.5, background: "#1a1a1a", marginBottom: 6 }} />
         {/* Dark call-out box */}
         {slide.highlight && <div style={{ background: "#1a1a1a", padding: "5px 8px", marginBottom: 6 }}>
-          <div style={{ ...QZ, fontSize: 7, letterSpacing: "0.1em", color: "#f5f0e4", fontWeight: 700 }}>{slide.highlight}</div>
+          <div style={{ ...BR, fontSize: 7, letterSpacing: "0.1em", color: "#f5f0e4", fontWeight: 700 }}>{slide.highlight}</div>
         </div>}
         {inlineStat(slide)}
         <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8.5), color: bodyColor(slide), lineHeight: 1.55, textAlign: "justify", columnCount: cols, columnGap: 8, columnRule: "0.5px solid #1a1a1a22", flex: 1 }, elT(slide, "body"))}>{leadBody(slide.body, slide)}</div>
@@ -678,7 +681,7 @@ export function NewsSourcesCloser({ slide }) {
   return (
     <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }, newsBg(slide))}>
       <div style={{ padding: "6px 14px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div style={{ ...QZ, fontSize: 8, letterSpacing: "0.12em", color: "#c41e1e", marginBottom: 3, textAlign: "center" }}>SOURCES & REFERENCES</div>
+        <div style={{ ...BR, fontSize: 8, letterSpacing: "0.12em", color: "#c41e1e", marginBottom: 3, textAlign: "center" }}>SOURCES & REFERENCES</div>
         {doubleRule()}
         <div style={{ columnCount: sources.length > 3 ? 3 : sources.length > 1 ? 2 : 1, columnGap: 8, columnRule: "0.5px solid #1a1a1a22", margin: "6px 0" }}>
           {sources.length > 0 ? sources.map(function(src, i) {
