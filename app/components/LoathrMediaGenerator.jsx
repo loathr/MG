@@ -5371,10 +5371,10 @@ export default function LoathrMediaGenerator() {
                   return <div style={{ padding: 4, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), borderRadius: 2, background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ebe6d6" : "#fafafa" }}>
                   <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : "#333", marginBottom: 2 }}>{nudgeTarget.toUpperCase()}{isCover && coverMap[nudgeTarget] ? " (" + coverMap[nudgeTarget] + ")" : ""}</div>
                   {nudgeTarget === "body" || fieldKey === "subtitle" || fieldKey === "leadParagraph" ? (
-                    <textarea value={fieldVal || ""} onChange={function(e) { updateField(e.target.value); }}
-                      rows={2} style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fff" : "#fff", resize: "vertical" }} />
+                    <textarea key={fieldKey + "-" + currentSlide} defaultValue={fieldVal || ""} onBlur={function(e) { updateField(e.target.value); }} onChange={function(e) { updateField(e.target.value); }}
+                      rows={3} style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fff" : "#fff", resize: "vertical" }} />
                   ) : (
-                    <input value={fieldVal || ""} onChange={function(e) { updateField(e.target.value); }}
+                    <input key={fieldKey + "-" + currentSlide} defaultValue={fieldVal || ""} onBlur={function(e) { updateField(e.target.value); }} onChange={function(e) { updateField(e.target.value); }}
                       style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fff" : "#fff" }} />
                   )}
                   {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources" || nudgeTarget === "quote") && <div style={{ display: "flex", gap: 3, alignItems: "center", marginTop: 2 }}>
@@ -5501,10 +5501,12 @@ export default function LoathrMediaGenerator() {
             <div style={{ ...CP, fontSize: 6, color: factCheckResult.score >= 7 ? "#22c55e" : "#ef4444" }}>{factCheckResult.summary}</div>
             {factCheckResult.issues.some(function(is) { return is.fix; }) && <button onClick={function() {
               // Auto-apply all fixes that have a suggested correction
+              var _fso = selectedOptionRef.current;
               factCheckResult.issues.forEach(function(issue) {
                 if (!issue.fix || !issue.slide) return;
                 var slideIdx = issue.slide - 1; // fact checker uses 1-indexed
-                var curSlide = cur.slides[slideIdx];
+                var _fcur = options && options[_fso];
+                var curSlide = _fcur && _fcur.slides ? _fcur.slides[slideIdx] : null;
                 if (!curSlide) return;
                 // Find which field the fix applies to — check body first, then heading, then stat
                 var fixText = issue.fix;
