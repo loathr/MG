@@ -5446,7 +5446,7 @@ export default function LoathrMediaGenerator() {
                     style={{ padding: "1px 3px", border: "0.5px solid #444", cursor: "pointer", ...CP, fontSize: 4, color: "#666" }}>Reset</button>}
                 </div>
               </div>}
-              <button onClick={function() { updateSlideField(currentSlide, "imageLayout", "single"); delete _mosaicSlides[currentSlide]; setImages(function(prev) { return Object.assign({}, prev); }); }}
+              {activeSegment !== "newsdesk" && <><button onClick={function() { updateSlideField(currentSlide, "imageLayout", "single"); delete _mosaicSlides[currentSlide]; setImages(function(prev) { return Object.assign({}, prev); }); }}
                 style={{ padding: "3px 8px", border: "0.5px solid " + (!_mosaicSlides[currentSlide] ? uiAccent : "#ddd"), background: !_mosaicSlides[currentSlide] ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: !_mosaicSlides[currentSlide] ? uiAccent : "#999", marginBottom: 4, display: "block" }}>Single Image</button>
               <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>MOSAIC</div>
               <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
@@ -5472,7 +5472,7 @@ export default function LoathrMediaGenerator() {
                   }}
                     style={{ padding: "2px 5px", border: "0.5px solid " + (active ? uiAccent : "#ddd"), background: active ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: active ? uiAccent : "#999" }}>{layout.label}</button>;
                 })}
-              </div>
+              </div></>}
             </div>}
 
             {/* === SLIDE === */}

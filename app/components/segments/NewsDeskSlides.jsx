@@ -151,7 +151,7 @@ function autoBodySize(s, baseSize) {
 
 // Inline stat block — newspaper-style call-out box (hideable + moveable)
 function inlineStat(s) {
-  if (!s || !s.stat || s.statHidden) return null;
+  if (!s || !s.stat || s.statHidden || !s.stat.trim()) return null;
   var statSize = 24 + (s.statSize || 0);
   var boxBg = s.statBoxBg || "#1a1a1a";
   var boxHidden = s.statBoxHidden;
@@ -361,11 +361,15 @@ export function NewsFrontPage({ slide, images, index }) {
 
 // ===== ROLE LABEL =====
 function roleLabel(s) {
-  // Hide role label if heading matches role (Claude echoed the role as heading)
   var role = s.role || "";
   var heading = s.heading || "";
-  if (role && heading && heading.toLowerCase().replace(/[^a-z]/g, "").indexOf(role.toLowerCase().replace(/[^a-z]/g, "")) === 0) return null;
   if (!role) return null;
+  // Hide when heading is a real editorial headline (long enough to be specific)
+  if (heading.length > 25) return null;
+  // Hide when heading matches role name
+  var roleClean = role.toLowerCase().replace(/[^a-z]/g, "");
+  var headClean = heading.toLowerCase().replace(/[^a-z]/g, "");
+  if (roleClean && headClean && headClean.indexOf(roleClean) === 0) return null;
   return <div style={Object.assign({}, { ...BR, fontSize: 5, letterSpacing: "0.12em", color: "#c41e1e", marginBottom: 2 }, elT(s, "sources"))}>{role}</div>;
 }
 
@@ -603,7 +607,7 @@ function LayoutLShape({ slide, url }) {
       </div>
       {/* Top section: image left + text right */}
       <div style={{ display: "grid", gridTemplateColumns: sp + "% 1fr", gap: 8, padding: "0 14px", marginBottom: 4 }}>
-        {url ? <div style={{ overflow: "hidden", border: "0.5px solid #1a1a1a22", maxHeight: 180 }}>
+        {url ? <div style={{ overflow: "hidden", border: "0.5px solid #1a1a1a22", maxHeight: 130 }}>
           <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
         </div> : <div style={{ background: "#e8e3d4", minHeight: 100 }} />}
         <div style={Object.assign({}, { ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", overflow: "hidden" }, elT(slide, "body"))}>{leadBody(topText, slide)}</div>
@@ -640,7 +644,7 @@ function LayoutReverseLShape({ slide, url }) {
       {/* Top section: text left + image right */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr " + sp + "%", gap: 8, padding: "0 14px", marginBottom: 4 }}>
         <div style={Object.assign({}, { ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", overflow: "hidden" }, elT(slide, "body"))}>{leadBody(topText, slide)}</div>
-        {url ? <div style={{ overflow: "hidden", border: "0.5px solid #1a1a1a22", maxHeight: 180 }}>
+        {url ? <div style={{ overflow: "hidden", border: "0.5px solid #1a1a1a22", maxHeight: 130 }}>
           <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
         </div> : <div style={{ background: "#e8e3d4", minHeight: 100 }} />}
       </div>
