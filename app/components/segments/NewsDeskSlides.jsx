@@ -454,14 +454,25 @@ function LayoutTornEdge({ slide, url }) {
 
 }
 
+// Smart text splitter — splits by word count for visual balance
+function splitText(text, ratio) {
+  if (!text) return ["", ""];
+  var words = text.split(/\s+/);
+  var splitIdx = Math.floor(words.length * (ratio || 0.55));
+  // Find sentence boundary near the split point
+  var joined = words.slice(0, splitIdx).join(" ");
+  var lastDot = joined.lastIndexOf(". ");
+  if (lastDot > joined.length * 0.3) {
+    return [joined.slice(0, lastDot + 1).trim(), text.slice(lastDot + 2).trim()];
+  }
+  return [joined.trim(), words.slice(splitIdx).join(" ").trim()];
+}
+
 // ===== CONTENT 5: CENTER WRAP (3-col grid: text | image | text) =====
 function LayoutCenterWrap({ slide, url }) {
-  var bodyText = slide.body || "";
-  var midPoint = Math.floor(bodyText.length / 2);
-  var breakAt = bodyText.indexOf(". ", midPoint);
-  if (breakAt < 0 || breakAt > bodyText.length * 0.7) breakAt = midPoint;
-  var leftText = bodyText.slice(0, breakAt + 1).trim();
-  var rightText = bodyText.slice(breakAt + 1).trim();
+  var parts = splitText(slide.body, 0.55);
+  var leftText = parts[0];
+  var rightText = parts[1];
   var bs = autoBodySize(slide, 8);
   return (
     <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }, newsBg(slide))}>
@@ -523,12 +534,9 @@ function LayoutSplit({ slide, url }) {
 function LayoutLShape({ slide, url }) {
   var sp = getSplit(slide);
   var bs = autoBodySize(slide, 8);
-  var bodyText = slide.body || "";
-  var splitAt = Math.floor(bodyText.length * 0.4);
-  var breakAt = bodyText.indexOf(". ", splitAt);
-  if (breakAt < 0) breakAt = splitAt;
-  var topText = bodyText.slice(0, breakAt + 1).trim();
-  var bottomText = bodyText.slice(breakAt + 1).trim();
+  var parts = splitText(slide.body, 0.4);
+  var topText = parts[0];
+  var bottomText = parts[1];
   return (
     <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }, newsBg(slide))}>
       {doubleRule()}
@@ -562,12 +570,9 @@ function LayoutLShape({ slide, url }) {
 function LayoutReverseLShape({ slide, url }) {
   var sp = getSplit(slide);
   var bs = autoBodySize(slide, 8);
-  var bodyText = slide.body || "";
-  var splitAt = Math.floor(bodyText.length * 0.4);
-  var breakAt = bodyText.indexOf(". ", splitAt);
-  if (breakAt < 0) breakAt = splitAt;
-  var topText = bodyText.slice(0, breakAt + 1).trim();
-  var bottomText = bodyText.slice(breakAt + 1).trim();
+  var parts = splitText(slide.body, 0.4);
+  var topText = parts[0];
+  var bottomText = parts[1];
   return (
     <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }, newsBg(slide))}>
       {doubleRule()}
@@ -606,16 +611,11 @@ export function NewsStory({ slide, images, index }) {
   return <L slide={slide} url={url} />;
 }
 
-// ===== REACTION (quote top + circle in center column with text wrapping) =====
+// ===== REACTION (quote top + circle floated in auto-balanced columns) =====
 export function NewsReaction({ slide, images, index }) {
   var url = images && images[index] ? images[index].url : null;
-  var bodyText = slide.body || "";
-  var midPoint = Math.floor(bodyText.length / 2);
-  var breakAt = bodyText.indexOf(". ", midPoint);
-  if (breakAt < 0 || breakAt > bodyText.length * 0.7) breakAt = midPoint;
-  var leftText = bodyText.slice(0, breakAt + 1).trim();
-  var rightText = bodyText.slice(breakAt + 1).trim();
   var bs = autoBodySize(slide, 8);
+  var cols = getCols(slide, slide.body);
   return (
     <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }, newsBg(slide))}>
       {doubleRule()}
@@ -628,15 +628,14 @@ export function NewsReaction({ slide, images, index }) {
           {slide.quote && <div style={{ ...hlFont(slide), fontSize: 10 + (slide.highlightSize || 0), color: "#1a1a1a", lineHeight: 1.35, fontStyle: "italic", textAlign: "center" }}>{"\u201C"}{slide.quote}{"\u201D"}</div>}
           <div style={{ ...CP, fontSize: 6, color: "#1a1a1a88", marginTop: 2, textAlign: "center" }}>{"\u2014"} {slide.source || slide.person || ""}</div>
         </div>
-        {/* 3-column grid: text | circle image | text */}
-        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, overflow: "hidden" }}>
-          <div style={{ ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", overflow: "hidden" }}>{leadBody(leftText, slide)}</div>
-          {url ? <div style={{ width: 70, alignSelf: "start", paddingTop: 4 }}>
-            <div style={{ width: 70, height: 70, borderRadius: "50%", overflow: "hidden", border: "1.5px solid #1a1a1a22" }}>
+        {/* Body with circle floated right — CSS column-count auto-balances */}
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: cols, columnGap: 10, columnRule: cols > 1 ? "0.5px solid #1a1a1a11" : "none", flex: 1, overflow: "hidden" }, elT(slide, "body"))}>
+          {url && <div style={{ float: "right", width: 55, margin: "0 0 6px 8px", shapeOutside: "circle(50%)" }}>
+            <div style={{ width: 55, height: 55, borderRadius: "50%", overflow: "hidden", border: "1.5px solid #1a1a1a22" }}>
               <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
             </div>
-          </div> : <div style={{ width: 1, background: "#1a1a1a22" }} />}
-          <div style={{ ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", overflow: "hidden" }}>{rightText}</div>
+          </div>}
+          {leadBody(slide.body, slide)}
         </div>
         {inlineStat(slide)}
         {relatedBlock(slide)}
