@@ -649,24 +649,27 @@ export function NewsReaction({ slide, images, index }) {
     <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }, newsBg(slide))}>
       {doubleRule()}
       {editionBar(slide)}
-      <div style={{ padding: "4px 14px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {roleLabel(slide)}
-        <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.12, marginBottom: 4, flexShrink: 0 }, elT(slide, "heading"))}>{slide.heading || ""}</div>
-        {/* Quote block */}
-        <div style={{ padding: "6px 0", borderTop: "1px solid #1a1a1a22", borderBottom: "1px solid #1a1a1a22", marginBottom: 4, flexShrink: 0 }}>
-          {slide.quote && <div style={{ ...hlFont(slide), fontSize: 10 + (slide.highlightSize || 0), color: "#1a1a1a", lineHeight: 1.35, fontStyle: "italic", textAlign: "center" }}>{"\u201C"}{slide.quote}{"\u201D"}</div>}
-          <div style={{ ...CP, fontSize: 6, color: "#1a1a1a88", marginTop: 2, textAlign: "center" }}>{"\u2014"} {slide.source || slide.person || ""}</div>
+      <div style={{ padding: "4px 14px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", overflow: "hidden" }}>
+        <div>
+          {roleLabel(slide)}
+          <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.12, marginBottom: 4 }, elT(slide, "heading"))}>{slide.heading || ""}</div>
+          {/* Quote block */}
+          <div style={{ padding: "6px 0", borderTop: "1px solid #1a1a1a22", borderBottom: "1px solid #1a1a1a22", marginBottom: 4 }}>
+            {slide.quote && <div style={{ ...hlFont(slide), fontSize: 10 + (slide.highlightSize || 0), color: "#1a1a1a", lineHeight: 1.35, fontStyle: "italic", textAlign: "center" }}>{"\u201C"}{slide.quote}{"\u201D"}</div>}
+            <div style={{ ...CP, fontSize: 6, color: "#1a1a1a88", marginTop: 2, textAlign: "center" }}>{"\u2014"} {slide.source || slide.person || ""}</div>
+          </div>
+          {/* Body with circle floated right */}
+          <div style={Object.assign({}, { ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: cols, columnGap: 10, columnRule: cols > 1 ? "0.5px solid #1a1a1a11" : "none" }, elT(slide, "body"))}>
+            {url && <div style={{ float: "right", width: 55, margin: "0 0 6px 8px", shapeOutside: "circle(50%)" }}>
+              <div style={{ width: 55, height: 55, borderRadius: "50%", overflow: "hidden", border: "1.5px solid #1a1a1a22" }}>
+                <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
+              </div>
+            </div>}
+            {leadBody(slide.body, slide)}
+          </div>
+          {inlineStat(slide)}
         </div>
-        {/* Body with circle floated right — CSS column-count auto-balances */}
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: cols, columnGap: 10, columnRule: cols > 1 ? "0.5px solid #1a1a1a11" : "none", flex: 1, overflow: "hidden" }, elT(slide, "body"))}>
-          {url && <div style={{ float: "right", width: 55, margin: "0 0 6px 8px", shapeOutside: "circle(50%)" }}>
-            <div style={{ width: 55, height: 55, borderRadius: "50%", overflow: "hidden", border: "1.5px solid #1a1a1a22" }}>
-              <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
-            </div>
-          </div>}
-          {leadBody(slide.body, slide)}
-        </div>
-        {inlineStat(slide)}
+        {/* Related pushed to bottom */}
         {relatedBlock(slide)}
       </div>
       {srcLine(slide.sources, slide)}

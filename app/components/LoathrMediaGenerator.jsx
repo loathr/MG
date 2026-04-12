@@ -1763,7 +1763,7 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
   } else if (category === "newsdesk") {
     if (slideIndex === 0) slide = <NewsFrontPage slide={slideData} images={images} index={slideIndex} />;
     else if (slideIndex === lastIdx || slideData.fullSources) slide = <NewsSourcesCloser slide={slideData} />;
-    else if (slideData.quote || (slideData.heading && slideData.heading.toUpperCase().indexOf("REACTION") > -1)) slide = <NewsReaction slide={slideData} images={images} index={slideIndex} />;
+    else if ((slideData.quote || (slideData.heading && slideData.heading.toUpperCase().indexOf("REACTION") > -1)) && typeof slideData.newsLayout !== "number") slide = <NewsReaction slide={slideData} images={images} index={slideIndex} />;
     else {
       // News Desk: all content goes through NewsStory — stats rendered inline, not via S4Emigre
       var nSlideData = Object.assign({}, slideData, { role: slideData.role || slideData.heading || "" });
