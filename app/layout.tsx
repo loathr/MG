@@ -38,6 +38,8 @@ export default function RootLayout({
         <link rel="preload" href="/Fonts/News%20Deck/eroded-personal-use/ERODED%20PERSONAL%20USE.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
         <link rel="preload" href="/Fonts/News%20Deck/vintage-typist/VintageTypist.otf" as="font" type="font/otf" crossOrigin="anonymous" />
         <link rel="preload" href="/Fonts/News%20Deck/bramos/Bramos.otf" as="font" type="font/otf" crossOrigin="anonymous" />
+        <link rel="preload" href="/Fonts/News%20Deck/the-cheelaved/TheCheelaved-Regular.otf" as="font" type="font/otf" crossOrigin="anonymous" />
+        <link rel="preload" href="/Fonts/News%20Deck/reality-stone-personal-use/Reality%20Stone.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
       </head>
       <body>{children}</body>
     </html>

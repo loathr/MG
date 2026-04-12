@@ -143,6 +143,23 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Cheelaved';
+  src: url('/Fonts/News%20Deck/the-cheelaved/TheCheelaved-Regular.otf') format('opentype'),
+       url('/Fonts/News%20Deck/the-cheelaved/TheCheelaved-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RealityStone';
+  src: url('/Fonts/News%20Deck/reality-stone-personal-use/Reality%20Stone.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* Text */
   --color-text-primary: #1a1a1a;
