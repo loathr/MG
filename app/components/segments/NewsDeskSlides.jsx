@@ -19,8 +19,8 @@ var RS = { fontFamily: "'RealityStone','Medhorn',serif" };
 
 var FONT_MAP = { maheni: HD, foun: FN, courier: CP, wenssep: { fontFamily: "'Wenssep',Georgia,serif", textTransform: "uppercase" }, otilito: { fontFamily: "'Otilito','Foun',sans-serif" }, qogee: { fontFamily: "'Qogee','Maheni',serif", fontStyle: "normal" }, matina: { fontFamily: "'Matina','Maheni',serif", fontStyle: "normal" }, quickzip: QZ, grandhalva: GH, carbon: CT, medhorn: MH, eroded: ER, vintage: VT, bramos: BR, cheelaved: CL, realitystone: RS };
 
-// Defaults: Cheelaved masthead, Reality Stone headlines, VintageTypist body, Bramos banners, Medhorn quotes
-function headFont(s) { return FONT_MAP[s && s.headingFont] || RS; }
+// Defaults: Eroded masthead, Cheelaved headlines, VintageTypist body, Bramos banners, Medhorn quotes
+function headFont(s) { return FONT_MAP[s && s.headingFont] || CL; }
 function bodyFont(s) { return FONT_MAP[s && s.bodyFont] || VT; }
 function hlFont(s) { return FONT_MAP[s && s.highlightFont] || MH; }
 function headColor(s, d) { return s && s.headingColor || d || "#1a1a1a"; }
@@ -197,7 +197,7 @@ function Masthead({ slide, size }) {
   return <>
     {tripleRule()}
     <div style={Object.assign({}, { padding: "6px 14px 4px", textAlign: "center", flexShrink: 0 }, elT(slide, "heading"))}>
-      <div style={{ ...(FONT_MAP[slide.mastheadFont] || CL), fontSize: mSize, color: headColor(slide), letterSpacing: "0.03em", lineHeight: 1 }}>{slide.mastheadText || "NEWS DESK"}</div>
+      <div style={{ ...(FONT_MAP[slide.mastheadFont] || ER), fontSize: mSize, color: headColor(slide), letterSpacing: "0.03em", lineHeight: 1 }}>{slide.mastheadText || "NEWS DESK"}</div>
       <div style={{ ...CP, fontSize: 3.5, color: "#1a1a1a33", letterSpacing: "0.15em", marginTop: 2 }}>by LOATHR</div>
     </div>
     {editionBar(slide)}
@@ -274,7 +274,7 @@ function CoverModernSplit({ slide, url }) {
       </div> : <div style={{ width: sp + "%", background: "#e8e3d4", borderRight: "2px solid #1a1a1a" }} />}
       <div style={{ width: (100 - sp) + "%", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "6px 10px", textAlign: "right", borderBottom: "1px solid #1a1a1a22" }}>
-          <div style={{ ...(FONT_MAP[slide.mastheadFont] || CL), fontSize: 13 + (slide.mastheadSize || 0), color: "#1a1a1a", letterSpacing: "0.04em" }}>{slide.mastheadText || "NEWS DESK"}</div>
+          <div style={{ ...(FONT_MAP[slide.mastheadFont] || ER), fontSize: 13 + (slide.mastheadSize || 0), color: "#1a1a1a", letterSpacing: "0.04em" }}>{slide.mastheadText || "NEWS DESK"}</div>
         </div>
         {editionBar(slide)}
         {slide.breaking && <div style={{ background: "#c41e1e", padding: "3px 8px", textAlign: "center" }}>
@@ -297,7 +297,7 @@ function CoverBreakingBanner({ slide, url }) {
     <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }, newsBg(slide))}>
       {tripleRule()}
       <div style={{ padding: "4px 14px", textAlign: "center", flexShrink: 0 }}>
-        <div style={{ ...(FONT_MAP[slide.mastheadFont] || CL), fontSize: 18 + (slide.mastheadSize || 0), color: "#1a1a1a", letterSpacing: "0.03em" }}>{slide.mastheadText || "NEWS DESK"}</div>
+        <div style={{ ...(FONT_MAP[slide.mastheadFont] || ER), fontSize: 18 + (slide.mastheadSize || 0), color: "#1a1a1a", letterSpacing: "0.03em" }}>{slide.mastheadText || "NEWS DESK"}</div>
       </div>
       {doubleRule()}
       <div style={{ background: slide.breaking ? "#c41e1e" : "#1a1a1a", padding: "8px 14px", textAlign: "center", flexShrink: 0 }}>
@@ -331,7 +331,7 @@ function CoverFullBleed({ slide, url }) {
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.7) 65%, rgba(0,0,0,0.92))" }} />
       {/* Top: masthead + date */}
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 2, padding: "8px 14px 0", textAlign: "center" }}>
-        <div style={{ ...(FONT_MAP[slide.mastheadFont] || CL), fontSize: 16 + (slide.mastheadSize || 0), color: "#ffffffcc", letterSpacing: "0.03em" }}>{slide.mastheadText || "NEWS DESK"}</div>
+        <div style={{ ...(FONT_MAP[slide.mastheadFont] || ER), fontSize: 16 + (slide.mastheadSize || 0), color: "#ffffffcc", letterSpacing: "0.03em" }}>{slide.mastheadText || "NEWS DESK"}</div>
         <div style={{ ...CP, fontSize: 3, color: "#ffffff44", letterSpacing: "0.12em", marginTop: 1 }}>by LOATHR</div>
       </div>
       {/* Breaking banner */}
@@ -725,7 +725,7 @@ export function NewsSourcesCloser({ slide }) {
         </div>}
         {tripleRule("#1a1a1a33")}
         <div style={{ textAlign: "center", marginTop: 8 }}>
-          <div style={{ ...(FONT_MAP[slide.mastheadFont] || CL), fontSize: 18, color: "#1a1a1a", letterSpacing: "0.03em" }}>{slide.mastheadText || "NEWS DESK"}</div>
+          <div style={{ ...(FONT_MAP[slide.mastheadFont] || ER), fontSize: 18, color: "#1a1a1a", letterSpacing: "0.03em" }}>{slide.mastheadText || "NEWS DESK"}</div>
           <div style={{ ...CP, fontSize: 4.5, color: "#1a1a1a55", marginTop: 3 }}>Reporting. Context. Perspective.</div>
           {slide.hashtags && <div style={{ ...CP, fontSize: 5, color: "#c41e1e66", marginTop: 6, lineHeight: 1.5 }}>{slide.hashtags}</div>}
         </div>
