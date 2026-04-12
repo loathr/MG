@@ -16,11 +16,12 @@ var VT = { fontFamily: "'VintageTypist','CarbonText',serif", fontWeight: 700 };
 var BR = { fontFamily: "'Bramos','QuickZip',sans-serif" };
 var CL = { fontFamily: "'Cheelaved','GrandHalva',serif" };
 var RS = { fontFamily: "'RealityStone','Medhorn',serif" };
+var CH = { fontFamily: "'CrownHeritage','Cheelaved',serif" };
 
-var FONT_MAP = { maheni: HD, foun: FN, courier: CP, wenssep: { fontFamily: "'Wenssep',Georgia,serif", textTransform: "uppercase" }, otilito: { fontFamily: "'Otilito','Foun',sans-serif" }, qogee: { fontFamily: "'Qogee','Maheni',serif", fontStyle: "normal" }, matina: { fontFamily: "'Matina','Maheni',serif", fontStyle: "normal" }, quickzip: QZ, grandhalva: GH, carbon: CT, medhorn: MH, eroded: ER, vintage: VT, bramos: BR, cheelaved: CL, realitystone: RS };
+var FONT_MAP = { maheni: HD, foun: FN, courier: CP, wenssep: { fontFamily: "'Wenssep',Georgia,serif", textTransform: "uppercase" }, otilito: { fontFamily: "'Otilito','Foun',sans-serif" }, qogee: { fontFamily: "'Qogee','Maheni',serif", fontStyle: "normal" }, matina: { fontFamily: "'Matina','Maheni',serif", fontStyle: "normal" }, quickzip: QZ, grandhalva: GH, carbon: CT, medhorn: MH, eroded: ER, vintage: VT, bramos: BR, cheelaved: CL, realitystone: RS, crownheritage: CH };
 
-// Defaults: Eroded masthead, Cheelaved headlines, VintageTypist body, Bramos banners, Medhorn quotes
-function headFont(s) { return FONT_MAP[s && s.headingFont] || CL; }
+// Defaults: Eroded masthead, Crown Heritage headlines, VintageTypist body, Bramos banners, Medhorn quotes
+function headFont(s) { return FONT_MAP[s && s.headingFont] || CH; }
 function bodyFont(s) { return FONT_MAP[s && s.bodyFont] || VT; }
 function hlFont(s) { return FONT_MAP[s && s.highlightFont] || MH; }
 function headColor(s, d) { return s && s.headingColor || d || "#1a1a1a"; }
