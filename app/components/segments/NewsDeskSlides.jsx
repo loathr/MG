@@ -680,7 +680,7 @@ export function NewsReaction({ slide, images, index }) {
           <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.12, marginBottom: 4 }, elT(slide, "heading"))}>{slide.heading || ""}</div>
           {/* Quote block */}
           <div style={{ padding: "4px 0", borderTop: "0.5px dotted #1a1a1a22", borderBottom: "0.5px dotted #1a1a1a22", marginBottom: 3 }}>
-            {slide.quote && <div style={{ ...hlFont(slide), fontSize: 10 + (slide.highlightSize || 0), color: "#1a1a1a", lineHeight: 1.35, fontStyle: "italic", textAlign: "center" }}>{"\u201C"}{slide.quote}{"\u201D"}</div>}
+            {slide.quote && <div style={Object.assign({}, { ...(FONT_MAP[slide.quoteFont] || hlFont(slide)), fontSize: 10 + (slide.quoteSize || 0), color: slide.quoteColor || "#1a1a1a", lineHeight: 1.35, fontStyle: "italic", textAlign: "center" }, elT(slide, "quote"))}>{"\u201C"}{slide.quote}{"\u201D"}</div>}
             <div style={{ ...CP, fontSize: 6, color: "#1a1a1a88", marginTop: 2, textAlign: "center" }}>{"\u2014"} {slide.source || slide.person || ""}</div>
           </div>
           {/* Body with circle floated right */}

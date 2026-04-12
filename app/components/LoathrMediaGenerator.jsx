@@ -3206,7 +3206,7 @@ export default function LoathrMediaGenerator() {
       // Get or create customPosition object with named sub-positions
       var cp = s.customPosition && typeof s.customPosition === "object" ? Object.assign({}, s.customPosition) : {};
       // Determine which sub-positions to nudge
-      var targets = target === "all" ? ["heading", "body", "highlight", "sources", "stat"] : [target];
+      var targets = target === "all" ? ["heading", "body", "highlight", "sources", "quote", "stat"] : [target];
       targets.forEach(function(t) {
         var pos = cp[t] || { top: 0, left: 0 };
         if (direction === "up") pos = { top: (pos.top || 0) - NUDGE_STEP, left: pos.left || 0 };
@@ -5268,7 +5268,7 @@ export default function LoathrMediaGenerator() {
               <div style={{ marginTop: 4, borderTop: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#eee"), paddingTop: 4 }}>
                 <div style={{ display: "flex", gap: 2, alignItems: "center", marginBottom: 3, flexWrap: "wrap" }}>
                   <div style={{ ...CP, fontSize: 5, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Element:</div>
-                  {["all", "heading", "body", "highlight", "sources"].concat(s.stat ? ["stat"] : []).map(function(t) { return (
+                  {["all", "heading", "body", "highlight", "sources"].concat(s.quote ? ["quote"] : []).concat(s.stat ? ["stat"] : []).map(function(t) { return (
                     <button key={t} onClick={function() { setNudgeTarget(t); }}
                       style={{ padding: "1px 4px", border: "0.5px solid " + (nudgeTarget === t ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd")), background: nudgeTarget === t ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: nudgeTarget === t ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999"), textTransform: "capitalize" }}>{t}</button>
                   ); })}
@@ -5351,7 +5351,7 @@ export default function LoathrMediaGenerator() {
                     <input value={fieldVal || ""} onChange={function(e) { updateField(e.target.value); }}
                       style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fff" : "#fff" }} />
                   )}
-                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources") && <div style={{ display: "flex", gap: 3, alignItems: "center", marginTop: 2 }}>
+                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources" || nudgeTarget === "quote") && <div style={{ display: "flex", gap: 3, alignItems: "center", marginTop: 2 }}>
                     <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Size:</div>
                     <button onClick={function() { adjustFontSize(currentSlide, nudgeTarget, -1); }}
                       style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999", textAlign: "center", lineHeight: "14px" }}>-</button>
@@ -5359,21 +5359,21 @@ export default function LoathrMediaGenerator() {
                     <button onClick={function() { adjustFontSize(currentSlide, nudgeTarget, 1); }}
                       style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999", textAlign: "center", lineHeight: "14px" }}>+</button>
                   </div>}
-                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources") && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>
+                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources" || nudgeTarget === "quote") && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>
                     <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Font:</div>
                     {ALL_FONTS.map(function(f) { var fontKey = nudgeTarget + "Font"; var defaults = { heading: "foun", body: "maheni", highlight: activeSegment === "enterprise" ? "maheni" : activeSegment === "newsdesk" ? "maheni" : "wenssep", sources: "courier" }; var sel = (s[fontKey] || defaults[nudgeTarget] || "maheni") === f.id; return (
                       <button key={f.id} onClick={function() { updateSlideField(currentSlide, fontKey, f.id); }}
                         style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd")), background: sel ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999") }}>{f.label}</button>
                     ); })}
                   </div>}
-                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources") && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3, flexWrap: "wrap" }}>
+                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources" || nudgeTarget === "quote") && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3, flexWrap: "wrap" }}>
                     <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Color:</div>
                     {(TEXT_COLORS[activeSegment] || TEXT_COLORS.editorial).map(function(c) { var colorKey = nudgeTarget + "Color"; var sel = (s[colorKey] || null) === c.id; return (
                       <button key={c.label} onClick={function() { updateSlideField(currentSlide, colorKey, c.id); }}
                         style={{ width: c.id ? 14 : "auto", height: 14, padding: c.id ? 0 : "0 4px", border: "1px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : (activeSegment === "enterprise" ? "#444" : "#ddd")), background: c.id || "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : "#999", lineHeight: "14px", textAlign: "center" }} title={c.label}>{c.id ? "" : c.label}</button>
                     ); })}
                   </div>}
-                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources") && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>
+                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources" || nudgeTarget === "quote") && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>
                     <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Align:</div>
                     {[{ id: "left", label: "\u2190" }, { id: "center", label: "\u2194" }, { id: "right", label: "\u2192" }, { id: "justify", label: "\u2261" }].map(function(a) { var alignKey = nudgeTarget + "Align"; var sel = (s[alignKey] || "") === a.id; return (
                       <button key={a.id} onClick={function() { updateSlideField(currentSlide, alignKey, sel ? null : a.id); }}
