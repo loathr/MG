@@ -134,15 +134,15 @@ function autoBodySize(s, baseSize) {
 // Inline stat block — newspaper-style call-out box (hideable + moveable)
 function inlineStat(s) {
   if (!s || !s.stat || s.statHidden) return null;
-  var statSize = 28 + (s.statSize || 0);
+  var statSize = 24 + (s.statSize || 0);
   var boxBg = s.statBoxBg || "#1a1a1a";
   var boxHidden = s.statBoxHidden;
   var captionColor = boxBg === "#1a1a1a" ? "#f5f0e4cc" : "#1a1a1a99";
   return <div style={Object.assign({}, { margin: "4px 0", textAlign: "center" }, elT(s, "stat"))}>
-    <span style={Object.assign({}, boxHidden ? {} : { background: boxBg, padding: "5px 14px", display: "inline-block" })}>
-      <span style={{ ...MH, fontSize: statSize, color: s.statColor || "#c41e1e", lineHeight: 0.9 }}>{s.stat}</span>
-      {(s.statCaption || s.caption || s.statLabel) && <span style={{ ...CT, fontSize: 6.5 + (s.statCaptionSize || 0), color: boxHidden ? "#1a1a1a99" : captionColor, marginLeft: 6, lineHeight: 1.3 }}>{s.statCaption || s.caption || s.statLabel}</span>}
-    </span>
+    <div style={Object.assign({}, boxHidden ? { display: "inline-block" } : { background: boxBg, padding: "5px 16px", display: "inline-block" })}>
+      <div style={{ ...MH, fontSize: statSize, color: s.statColor || "#c41e1e", lineHeight: 1 }}>{s.stat}</div>
+      {(s.statCaption || s.caption || s.statLabel) && <div style={{ ...CT, fontSize: 6 + (s.statCaptionSize || 0), color: boxHidden ? "#1a1a1a99" : captionColor, marginTop: 2, lineHeight: 1.3 }}>{s.statCaption || s.caption || s.statLabel}</div>}
+    </div>
   </div>;
 }
 
