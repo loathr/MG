@@ -226,7 +226,7 @@ function CoverBroadsheet({ slide, url, images }) {
         </div>}
         {url && caption(slide)}
         {/* Dense text below photo */}
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8), color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: getCols(slide, (slide.leadParagraph || "") + (slide.body || "")), columnGap: 10, columnRule: "0.25px solid #1a1a1a0d", flex: 1 }, elT(slide, "body"))}>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8), color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: getCols(slide, (slide.leadParagraph || "") + (slide.body || "")), columnGap: 10, columnRule: "none", flex: 1 }, elT(slide, "body"))}>
           {leadBody(slide.leadParagraph || slide.body, slide)}
           {slide.leadParagraph && slide.body && <span> {slide.body}</span>}
         </div>
@@ -312,7 +312,7 @@ function CoverBreakingBanner({ slide, url }) {
           <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
         </div>}
         {url && caption(slide)}
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8), color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: getCols(slide, slide.leadParagraph), columnGap: 10, columnRule: getCols(slide, slide.leadParagraph) > 1 ? "0.25px solid #1a1a1a0d" : "none", flex: 1, overflow: "hidden" }, elT(slide, "body"))}>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8), color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: getCols(slide, slide.leadParagraph), columnGap: 10, columnRule: "none", flex: 1, overflow: "hidden" }, elT(slide, "body"))}>
 
           {leadBody(slide.leadParagraph || slide.body, slide)}
           {slide.leadParagraph && slide.body && <span> {slide.body}</span>}
@@ -386,7 +386,7 @@ function LayoutStandard({ slide, url }) {
         </div>}
         {url && caption(slide)}
         {/* Body text fills remaining space */}
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8.5), color: bodyColor(slide), lineHeight: 1.55, textAlign: "justify", columnCount: cols, columnGap: 10, columnRule: cols > 1 ? "0.25px solid #1a1a1a0d" : "none", flex: 1, overflow: "hidden" }, elT(slide, "body"))}>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8.5), color: bodyColor(slide), lineHeight: 1.55, textAlign: "justify", columnCount: cols, columnGap: 10, columnRule: "none", flex: 1, overflow: "hidden" }, elT(slide, "body"))}>
           {leadBody(slide.body, slide)}
         </div>
         {inlineStat(slide)}
@@ -413,7 +413,7 @@ function LayoutFeature({ slide, url }) {
         {roleLabel(slide)}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 16 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.1, marginBottom: 4, flexShrink: 0 }, elT(slide, "heading"))}>{slide.heading || ""}</div>
         {divider(slide, { w: 1.5, c: "#c41e1e", m: "0 0 4px 0" })}
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8), color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: cols, columnGap: 10, columnRule: cols > 1 ? "0.25px solid #1a1a1a0d" : "none", flex: 1, overflow: "hidden" }, elT(slide, "body"))}>{leadBody(slide.body, slide)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8), color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: cols, columnGap: 10, columnRule: "none", flex: 1, overflow: "hidden" }, elT(slide, "body"))}>{leadBody(slide.body, slide)}</div>
         {inlineStat(slide)}
         {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#c41e1e", pillText: "#ffffff", defaultStyle: "bar" })}
         {relatedBlock(slide)}
@@ -474,7 +474,7 @@ function LayoutWireReport({ slide }) {
           <div style={{ ...BR, fontSize: 7, letterSpacing: "0.1em", color: "#f5f0e4", fontWeight: 700 }}>{slide.highlight}</div>
         </div>}
         {inlineStat(slide)}
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8.5), color: bodyColor(slide), lineHeight: 1.55, textAlign: "justify", columnCount: cols, columnGap: 8, columnRule: "0.5px solid #1a1a1a22", flex: 1 }, elT(slide, "body"))}>{leadBody(slide.body, slide)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8.5), color: bodyColor(slide), lineHeight: 1.55, textAlign: "justify", columnCount: cols, columnGap: 8, columnRule: "none", flex: 1 }, elT(slide, "body"))}>{leadBody(slide.body, slide)}</div>
         {relatedBlock(slide)}
       </div>
       {srcLine(slide.sources, slide)}
@@ -496,7 +496,7 @@ function LayoutTornEdge({ slide, url }) {
         {roleLabel(slide)}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 16 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.1, marginBottom: 4 }, elT(slide, "heading"))}>{slide.heading || ""}</div>
         {headRule(slide)}
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8.5), color: bodyColor(slide), lineHeight: 1.55, textAlign: "justify", columnCount: getCols(slide, slide.body), columnGap: 10, columnRule: getCols(slide, slide.body) > 1 ? "0.25px solid #1a1a1a0d" : "none", flex: 1 }, elT(slide, "body"))}>{leadBody(slide.body, slide)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: autoBodySize(slide, 8.5), color: bodyColor(slide), lineHeight: 1.55, textAlign: "justify", columnCount: getCols(slide, slide.body), columnGap: 10, columnRule: "none", flex: 1 }, elT(slide, "body"))}>{leadBody(slide.body, slide)}</div>
         {inlineStat(slide)}
         {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#c41e1e", pillText: "#ffffff", defaultStyle: "bar" })}
         {relatedBlock(slide)}
@@ -609,7 +609,7 @@ function LayoutLShape({ slide, url }) {
       </div>
       {/* Bottom section: full width text */}
       <div style={{ padding: "0 14px", flex: 1, overflow: "hidden" }}>
-        <div style={{ ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: getCols(slide, bottomText), columnGap: 10, columnRule: getCols(slide, bottomText) > 1 ? "0.25px solid #1a1a1a0d" : "none" }}>{bottomText}</div>
+        <div style={{ ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: getCols(slide, bottomText), columnGap: 10, columnRule: "none" }}>{bottomText}</div>
         {inlineStat(slide)}
         {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#c41e1e", pillText: "#ffffff", defaultStyle: "bar" })}
         {relatedBlock(slide)}
@@ -645,7 +645,7 @@ function LayoutReverseLShape({ slide, url }) {
       </div>
       {/* Bottom section: full width text */}
       <div style={{ padding: "0 14px", flex: 1, overflow: "hidden" }}>
-        <div style={{ ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: getCols(slide, bottomText), columnGap: 10, columnRule: getCols(slide, bottomText) > 1 ? "0.25px solid #1a1a1a0d" : "none" }}>{bottomText}</div>
+        <div style={{ ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: getCols(slide, bottomText), columnGap: 10, columnRule: "none" }}>{bottomText}</div>
         {inlineStat(slide)}
         {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#c41e1e", pillText: "#ffffff", defaultStyle: "bar" })}
         {relatedBlock(slide)}
@@ -684,7 +684,7 @@ export function NewsReaction({ slide, images, index }) {
             <div style={{ ...CP, fontSize: 6, color: "#1a1a1a88", marginTop: 2, textAlign: "center" }}>{"\u2014"} {slide.source || slide.person || ""}</div>
           </div>
           {/* Body with circle floated right */}
-          <div style={Object.assign({}, { ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: cols, columnGap: 10, columnRule: cols > 1 ? "0.25px solid #1a1a1a0d" : "none" }, elT(slide, "body"))}>
+          <div style={Object.assign({}, { ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", columnCount: cols, columnGap: 10, columnRule: "none" }, elT(slide, "body"))}>
             {url && <div style={{ float: "right", width: 55, margin: "0 0 6px 8px", shapeOutside: "circle(50%)" }}>
               <div style={{ width: 55, height: 55, borderRadius: "50%", overflow: "hidden", border: "1.5px solid #1a1a1a22" }}>
                 <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF(slide) }} onError={function(e) { e.target.style.display = "none"; }} />
@@ -711,7 +711,7 @@ export function NewsSourcesCloser({ slide }) {
       <div style={{ padding: "6px 14px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <div style={{ ...BR, fontSize: 8, letterSpacing: "0.12em", color: "#c41e1e", marginBottom: 3, textAlign: "center" }}>SOURCES & REFERENCES</div>
         {doubleRule()}
-        <div style={{ columnCount: sources.length > 3 ? 3 : sources.length > 1 ? 2 : 1, columnGap: 8, columnRule: "0.5px solid #1a1a1a22", margin: "6px 0" }}>
+        <div style={{ columnCount: sources.length > 3 ? 3 : sources.length > 1 ? 2 : 1, columnGap: 8, columnRule: "none", margin: "6px 0" }}>
           {sources.length > 0 ? sources.map(function(src, i) {
             return <div key={i} style={{ marginBottom: 4, breakInside: "avoid", borderBottom: "0.25px solid #1a1a1a0d", paddingBottom: 3 }}>
               <div style={{ ...CT, fontSize: 6, color: "#1a1a1a", fontWeight: 700, lineHeight: 1.3 }}>{src.publication || "Source"}</div>
