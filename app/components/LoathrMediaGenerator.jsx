@@ -4512,61 +4512,61 @@ export default function LoathrMediaGenerator() {
               var pc = editingTemplate.colors || {};
               var pl = editingTemplate.layout || {};
               var pb = editingTemplate.branding || {};
-              var bgColor = pc.background || "#f5f0e4";
-              var headC = pc.heading || "#1a1a1a";
-              var bodyC = pc.body || "#1a1a1a";
-              var accentC = pc.accent || "#c41e1e";
-              var borderC = pc.border || "#1a1a1a";
-              var dividerC = pc.divider || "#1a1a1a22";
-              var mastheadC = pc.masthead || "#1a1a1a";
-              // Extract only fontFamily from resolved fonts to avoid style conflicts
+              var seg = editingTemplate.segment;
+              // Segment-aware defaults
+              var isEnt = seg === "enterprise";
+              var isNews = seg === "newsdesk";
+              var isEdit = seg === "editorial";
+              var bgColor = pc.background || (isEnt ? "#0a0a0a" : isNews ? "#f5f0e4" : isEdit ? "#1a1a2e" : "#ffffff");
+              var headC = pc.heading || (isEnt ? "#ffffff" : "#1a1a1a");
+              var bodyC = pc.body || (isEnt ? "#ffffffcc" : "#1a1a1a");
+              var accentC = pc.accent || (isEnt ? "#ffffff" : isNews ? "#c41e1e" : isEdit ? "#e6a817" : "#666666");
+              var borderC = pc.border || (isEnt ? "#ffffff33" : "#1a1a1a");
+              var dividerC = pc.divider || (isEnt ? "#ffffff22" : "#1a1a1a22");
+              var mastheadC = pc.masthead || (isEnt ? "#ffffff66" : "#1a1a1a");
+              var mastheadName = isEnt ? "LOATHR ENTERPRISE" : isNews ? "NEWS DESK" : isEdit ? "LOATHR" : pl.mastheadText || "LOATHR";
               function previewFont(id, fallback) { var r = resolveFontFamily(id) || fallback || {}; return { fontFamily: r.fontFamily || "inherit" }; }
-              var headFontObj = previewFont(pf.heading, FONT_MAP.crownheritage);
-              var bodyFontObj = previewFont(pf.body, FONT_MAP.vintage);
+              var headFontObj = previewFont(pf.heading, isEnt ? FONT_MAP.otilito : isNews ? FONT_MAP.crownheritage : FONT_MAP.foun);
+              var bodyFontObj = previewFont(pf.body, isEnt ? FONT_MAP.qogee : isNews ? FONT_MAP.vintage : FONT_MAP.maheni);
               var hlFontObj = previewFont(pf.highlight, FONT_MAP.medhorn);
-              var mastheadFontObj = previewFont(pf.masthead, FONT_MAP.eroded);
-              var bannerFontObj = previewFont(pf.banner, FONT_MAP.bramos);
-              var showTexture = !pc.textureOff;
-              return <div style={{ border: "1.5px solid " + borderC, background: bgColor, backgroundImage: showTexture ? "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.008) 1px, rgba(0,0,0,0.008) 2px)" : "none", padding: 0, overflow: "hidden", aspectRatio: "4/5" }}>
+              var mastheadFontObj = previewFont(pf.masthead, isEnt ? FONT_MAP.courier : isNews ? FONT_MAP.eroded : FONT_MAP.foun);
+              var bannerFontObj = previewFont(pf.banner, isNews ? FONT_MAP.bramos : FONT_MAP.courier);
+              var showTexture = isNews && !pc.textureOff;
+              return <div style={{ border: "1.5px solid " + borderC, background: bgColor, backgroundImage: showTexture ? "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.008) 1px, rgba(0,0,0,0.008) 2px)" : "none", padding: 0, overflow: "hidden" }}>
                 {/* Masthead */}
-                <div style={{ padding: "4px 8px 2px", textAlign: "center", borderBottom: "1.5px solid " + borderC }}>
-                  <div style={{ height: 1, background: borderC, marginBottom: 1 }} />
-                  <div style={{ height: 0.5, background: borderC, marginBottom: 3 }} />
-                  {pb.logo && (pb.mode === "logo" || pb.mode === "both") && <img src={pb.logo} alt="" style={{ maxHeight: 14, maxWidth: "40%", objectFit: "contain", marginBottom: 2 }} />}
-                  {(pb.mode !== "logo") && <div style={Object.assign({}, mastheadFontObj, { fontSize: 12, color: mastheadC, letterSpacing: "0.03em", lineHeight: 1 })}>{pl.mastheadText || "NEWS DESK"}</div>}
-                  <div style={{ ...CP, fontSize: 2.5, color: mastheadC + "44", letterSpacing: "0.1em", marginTop: 1 }}>by LOATHR</div>
-                </div>
-                {/* Date */}
-                <div style={{ textAlign: "center", padding: "2px 8px" }}>
-                  <div style={{ ...CP, fontSize: 2.5, color: bodyC + "88" }}>April 12, 2026</div>
+                <div style={{ padding: "4px 8px 2px", textAlign: isEnt ? "right" : "center", borderBottom: "1px solid " + borderC }}>
+                  {pb.logo && (pb.mode === "logo" || pb.mode === "both") && <img src={pb.logo} alt="" style={{ maxHeight: 14, maxWidth: "40%", objectFit: "contain", marginBottom: 2, filter: isEnt ? "brightness(2)" : "none" }} />}
+                  {(pb.mode !== "logo") && <div style={Object.assign({}, mastheadFontObj, { fontSize: 11, color: mastheadC, letterSpacing: isEnt ? "0.2em" : "0.03em", lineHeight: 1 })}>{pl.mastheadText || mastheadName}</div>}
+                  {isNews && <div style={{ ...CP, fontSize: 2.5, color: mastheadC + "44", marginTop: 1 }}>by LOATHR</div>}
+                  {isEnt && <div style={{ ...CP, fontSize: 3, color: "#ffffff44", marginTop: 1 }}>ENTERPRISE</div>}
                 </div>
                 {/* Headline */}
-                <div style={{ padding: "3px 8px" }}>
-                  <div style={Object.assign({}, headFontObj, { fontSize: 9, color: headC, lineHeight: 1.1, marginBottom: 2 })}>Sample Headline Text Here in Your Font</div>
-                  <div style={{ height: 0.5, background: dividerC, width: "30%", marginBottom: 3 }} />
+                <div style={{ padding: "4px 8px 2px" }}>
+                  <div style={Object.assign({}, headFontObj, { fontSize: 9, color: headC, lineHeight: 1.1, marginBottom: 2 })}>Sample Headline in Your Font</div>
+                  <div style={{ height: 0.5, background: dividerC, width: "30%", marginBottom: 2 }} />
                 </div>
                 {/* Body */}
-                <div style={{ padding: "0 8px" }}>
-                  <div style={Object.assign({}, bodyFontObj, { fontSize: 5, color: bodyC, lineHeight: 1.4, textAlign: "justify", marginBottom: 3 })}>Body text renders in your chosen font and color. The layout shows how content will look with these template settings applied across all generated slides.</div>
+                <div style={{ padding: "0 8px 3px" }}>
+                  <div style={Object.assign({}, bodyFontObj, { fontSize: 5, color: bodyC, lineHeight: 1.4, textAlign: "justify" })}>Body text in your chosen font and color. Shows how content looks with template settings.</div>
                 </div>
                 {/* Stat */}
                 <div style={{ textAlign: "center", padding: "2px 8px" }}>
-                  <span style={{ background: "#1a1a1a", padding: "2px 6px", display: "inline-block" }}>
+                  <span style={{ background: isEnt ? "#ffffff" : "#1a1a1a", padding: "2px 6px", display: "inline-block" }}>
                     <span style={Object.assign({}, hlFontObj, { fontSize: 10, color: accentC, lineHeight: 1 })}>42%</span>
                   </span>
-                  <div style={{ ...CP, fontSize: 3, color: bodyC + "88", marginTop: 1 }}>stat caption text</div>
+                  <div style={{ ...CP, fontSize: 3, color: bodyC + "88", marginTop: 1 }}>stat caption</div>
                 </div>
                 {/* Highlight */}
-                <div style={{ padding: "3px 8px" }}>
-                  <div style={Object.assign({}, hlFontObj, { fontSize: 5, color: bodyC, fontStyle: "italic", borderBottom: "1px solid " + accentC, display: "inline", paddingBottom: 1 })}>Pull quote or highlight text</div>
+                <div style={{ padding: "2px 8px" }}>
+                  <div style={Object.assign({}, hlFontObj, { fontSize: 5, color: bodyC, fontStyle: "italic", borderBottom: "1px solid " + accentC, display: "inline" })}>Pull quote text</div>
                 </div>
-                {/* Banner sample */}
+                {/* Banner */}
                 <div style={{ background: accentC, padding: "2px 8px", textAlign: "center", marginTop: 3 }}>
-                  <div style={Object.assign({}, bannerFontObj, { fontSize: 4, color: "#fff", letterSpacing: "0.15em" })}>BREAKING NEWS</div>
+                  <div style={Object.assign({}, bannerFontObj, { fontSize: 4, color: isEnt ? "#0a0a0a" : "#fff", letterSpacing: "0.12em" })}>{isEnt ? "JUST IN" : "BREAKING NEWS"}</div>
                 </div>
                 {/* Footer */}
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 8px", borderTop: "0.5px solid " + dividerC }}>
-                  <div style={{ ...CP, fontSize: 2, color: bodyC + "33" }}>NEWS DESK</div>
+                  <div style={{ ...CP, fontSize: 2, color: bodyC + "33" }}>{isEnt ? "LOATHR" : "NEWS DESK"}</div>
                   <div style={{ ...CP, fontSize: 2, color: bodyC + "33" }}>Page 1</div>
                 </div>
               </div>;
