@@ -3195,6 +3195,12 @@ export default function LoathrMediaGenerator() {
     // Colors
     if (c.heading && !s.headingColor) s.headingColor = c.heading;
     if (c.body && !s.bodyColor) s.bodyColor = c.body;
+    if (c.masthead && !s.mastheadColor) s.mastheadColor = c.masthead;
+    if (c.divider && !s.dividerColor) s.dividerColor = c.divider;
+    if (c.background) s._templateBg = c.background;
+    if (c.border) s._templateBorder = c.border;
+    if (c.accent) s._templateAccent = c.accent;
+    if (c.textureOff) s.bgTextureHidden = true;
     // Layout
     if (l.mastheadText && !s.mastheadText) s.mastheadText = l.mastheadText;
     if (l.imgFilter && !s.imgFilter) s.imgFilter = l.imgFilter;
@@ -4325,15 +4331,22 @@ export default function LoathrMediaGenerator() {
           {/* Colors */}
           <div style={{ marginBottom: 6 }}>
             <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>COLORS</div>
-            {[{ key: "heading", label: "Heading" }, { key: "body", label: "Body" }, { key: "accent", label: "Accent" }, { key: "background", label: "Background" }].map(function(slot) {
+            {[{ key: "heading", label: "Heading", def: "#1a1a1a" }, { key: "body", label: "Body", def: "#1a1a1a" }, { key: "accent", label: "Accent", def: "#c41e1e" }, { key: "accent2", label: "Accent 2", def: "#888888" }, { key: "background", label: "Background", def: "#f5f0e4" }, { key: "masthead", label: "Masthead", def: "#1a1a1a" }, { key: "border", label: "Border", def: "#1a1a1a" }, { key: "divider", label: "Divider", def: "#1a1a1a22" }].map(function(slot) {
               var colors = editingTemplate.colors || {};
               return <div key={slot.key} style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 2 }}>
                 <div style={{ ...CP, fontSize: 5, color: "#666", width: 50 }}>{slot.label}:</div>
-                <input type="color" value={colors[slot.key] || "#1a1a1a"} onChange={function(e) { var c = Object.assign({}, colors); c[slot.key] = e.target.value; setEditingTemplate(Object.assign({}, editingTemplate, { colors: c })); }}
+                <input type="color" value={colors[slot.key] || slot.def} onChange={function(e) { var c = Object.assign({}, colors); c[slot.key] = e.target.value; setEditingTemplate(Object.assign({}, editingTemplate, { colors: c })); }}
                   style={{ width: 24, height: 18, border: "0.5px solid #ddd", padding: 0, cursor: "pointer" }} />
                 <div style={{ ...CP, fontSize: 5, color: "#999" }}>{colors[slot.key] || "default"}</div>
+                {colors[slot.key] && <button onClick={function() { var c = Object.assign({}, colors); delete c[slot.key]; setEditingTemplate(Object.assign({}, editingTemplate, { colors: c })); }}
+                  style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 5, color: "#ccc" }}>{"\u00d7"}</button>}
               </div>;
             })}
+            <div style={{ display: "flex", gap: 4, alignItems: "center", marginTop: 3 }}>
+              <div style={{ ...CP, fontSize: 5, color: "#666", width: 50 }}>Texture:</div>
+              <button onClick={function() { var c = Object.assign({}, editingTemplate.colors || {}); c.textureOff = !c.textureOff; setEditingTemplate(Object.assign({}, editingTemplate, { colors: c })); }}
+                style={{ padding: "1px 6px", border: "0.5px solid " + ((editingTemplate.colors || {}).textureOff ? "#9b59b6" : "#ddd"), background: (editingTemplate.colors || {}).textureOff ? "#9b59b615" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: (editingTemplate.colors || {}).textureOff ? "#9b59b6" : "#999" }}>{(editingTemplate.colors || {}).textureOff ? "Off" : "On"}</button>
+            </div>
           </div>
 
           {/* Layout */}
@@ -4404,6 +4417,73 @@ export default function LoathrMediaGenerator() {
                 </div>
               </div>}
             </div>}
+          </div>
+
+          {/* Live preview */}
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 3 }}>PREVIEW</div>
+            {(function() {
+              var pf = editingTemplate.fonts || {};
+              var pc = editingTemplate.colors || {};
+              var pl = editingTemplate.layout || {};
+              var pb = editingTemplate.branding || {};
+              var bgColor = pc.background || "#f5f0e4";
+              var headC = pc.heading || "#1a1a1a";
+              var bodyC = pc.body || "#1a1a1a";
+              var accentC = pc.accent || "#c41e1e";
+              var borderC = pc.border || "#1a1a1a";
+              var dividerC = pc.divider || "#1a1a1a22";
+              var mastheadC = pc.masthead || "#1a1a1a";
+              var headFontObj = FONT_MAP[pf.heading] || FONT_MAP.crownheritage || {};
+              var bodyFontObj = FONT_MAP[pf.body] || FONT_MAP.vintage || {};
+              var hlFontObj = FONT_MAP[pf.highlight] || FONT_MAP.medhorn || {};
+              var mastheadFontObj = FONT_MAP[pf.masthead] || FONT_MAP.eroded || {};
+              var bannerFontObj = FONT_MAP[pf.banner] || FONT_MAP.bramos || {};
+              var showTexture = !pc.textureOff;
+              return <div style={{ border: "1.5px solid " + borderC, background: bgColor, backgroundImage: showTexture ? "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.008) 1px, rgba(0,0,0,0.008) 2px)" : "none", padding: 0, overflow: "hidden", aspectRatio: "4/5" }}>
+                {/* Masthead */}
+                <div style={{ padding: "4px 8px 2px", textAlign: "center", borderBottom: "1.5px solid " + borderC }}>
+                  <div style={{ height: 1, background: borderC, marginBottom: 1 }} />
+                  <div style={{ height: 0.5, background: borderC, marginBottom: 3 }} />
+                  {pb.logo && (pb.mode === "logo" || pb.mode === "both") && <img src={pb.logo} alt="" style={{ maxHeight: 14, maxWidth: "40%", objectFit: "contain", marginBottom: 2 }} />}
+                  {(pb.mode !== "logo") && <div style={Object.assign({}, mastheadFontObj, { fontSize: 12, color: mastheadC, letterSpacing: "0.03em", lineHeight: 1 })}>{pl.mastheadText || "NEWS DESK"}</div>}
+                  <div style={{ ...CP, fontSize: 2.5, color: mastheadC + "44", letterSpacing: "0.1em", marginTop: 1 }}>by LOATHR</div>
+                </div>
+                {/* Date */}
+                <div style={{ textAlign: "center", padding: "2px 8px" }}>
+                  <div style={{ ...CP, fontSize: 2.5, color: bodyC + "88" }}>April 12, 2026</div>
+                </div>
+                {/* Headline */}
+                <div style={{ padding: "3px 8px" }}>
+                  <div style={Object.assign({}, headFontObj, { fontSize: 9, color: headC, lineHeight: 1.1, marginBottom: 2 })}>Sample Headline Text Here in Your Font</div>
+                  <div style={{ height: 0.5, background: dividerC, width: "30%", marginBottom: 3 }} />
+                </div>
+                {/* Body */}
+                <div style={{ padding: "0 8px" }}>
+                  <div style={Object.assign({}, bodyFontObj, { fontSize: 5, color: bodyC, lineHeight: 1.4, textAlign: "justify", marginBottom: 3 })}>Body text renders in your chosen font and color. The layout shows how content will look with these template settings applied across all generated slides.</div>
+                </div>
+                {/* Stat */}
+                <div style={{ textAlign: "center", padding: "2px 8px" }}>
+                  <span style={{ background: "#1a1a1a", padding: "2px 6px", display: "inline-block" }}>
+                    <span style={Object.assign({}, hlFontObj, { fontSize: 10, color: accentC, lineHeight: 1 })}>42%</span>
+                  </span>
+                  <div style={{ ...CP, fontSize: 3, color: bodyC + "88", marginTop: 1 }}>stat caption text</div>
+                </div>
+                {/* Highlight */}
+                <div style={{ padding: "3px 8px" }}>
+                  <div style={Object.assign({}, hlFontObj, { fontSize: 5, color: bodyC, fontStyle: "italic", borderBottom: "1px solid " + accentC, display: "inline", paddingBottom: 1 })}>Pull quote or highlight text</div>
+                </div>
+                {/* Banner sample */}
+                <div style={{ background: accentC, padding: "2px 8px", textAlign: "center", marginTop: 3 }}>
+                  <div style={Object.assign({}, bannerFontObj, { fontSize: 4, color: "#fff", letterSpacing: "0.15em" })}>BREAKING NEWS</div>
+                </div>
+                {/* Footer */}
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 8px", borderTop: "0.5px solid " + dividerC }}>
+                  <div style={{ ...CP, fontSize: 2, color: bodyC + "33" }}>NEWS DESK</div>
+                  <div style={{ ...CP, fontSize: 2, color: bodyC + "33" }}>Page 1</div>
+                </div>
+              </div>;
+            })()}
           </div>
 
           {/* Save / Delete / Activate buttons */}
