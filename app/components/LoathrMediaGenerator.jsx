@@ -2755,6 +2755,7 @@ export default function LoathrMediaGenerator() {
   var ste = _s(null), editingTemplate = ste[0], setEditingTemplate = ste[1];
   var sta = _s(null), activeTemplate = sta[0], setActiveTemplate = sta[1];
   var stm = _s("templates"), studioMode = stm[0], setStudioMode = stm[1]; // "templates"|"canvas"|"brief"
+  var stt = _s("global"), templateTab = stt[0], setTemplateTab = stt[1]; // "global"|"cover"|"content"|"closer"
   var stbt = _s(null), briefTemplate = stbt[0], setBriefTemplate = stbt[1]; // selected template name for brief/canvas
   var stbs = _s("newsdesk"), briefSegment = stbs[0], setBriefSegment = stbs[1]; // segment style for brief/canvas
   var stbb = _s(""), briefText = stbb[0], setBriefText = stbb[1];
@@ -3240,13 +3241,33 @@ export default function LoathrMediaGenerator() {
   }
 
   // Apply template defaults to a slide (non-destructive — only fills missing fields)
-  function applyTemplate(slide) {
+  function applyTemplate(slide, slideIdx, totalSlides) {
     var t = getTemplate();
     if (!t) return slide;
     var s = Object.assign({}, slide);
     var f = t.fonts || {};
     var c = t.colors || {};
     var l = t.layout || {};
+    var isCoverSlide = slideIdx === 0;
+    var isCloserSlide = totalSlides && slideIdx === totalSlides - 1;
+    // Page-type specific settings
+    var cv = t.cover || {};
+    var ct = t.content || {};
+    var cl = t.closer || {};
+    if (isCoverSlide) {
+      if (cv.layout != null && s.newsCoverLayout == null && s.enterpriseCoverLayout == null) { s.newsCoverLayout = cv.layout; s.enterpriseCoverLayout = cv.layout; }
+      if (cv.mastheadSize && !s.mastheadSize) s.mastheadSize = cv.mastheadSize - 28;
+      if (cv.headlineSize && !s.headingSize) s.headingSize = cv.headlineSize - 24;
+      if (cv.split && !s.newsSplit && !s.enterpriseSplit) { s.newsSplit = cv.split; s.enterpriseSplit = cv.split; }
+    } else if (isCloserSlide) {
+      if (cl.background) s.bgColor = cl.background;
+    } else {
+      if (ct.layout != null && !s.newsLayout) s.newsLayout = ct.layout;
+      if (ct.columns && !s.columnCount) s.columnCount = ct.columns;
+      if (ct.split && !s.newsSplit) s.newsSplit = ct.split;
+      if (ct.dividerWeight != null && s.dividerWeight == null) s.dividerWeight = ct.dividerWeight;
+      if (ct.imgFilter && !s.imgFilter) s.imgFilter = ct.imgFilter;
+    }
     // Fonts — only if slide doesn't have an override
     if (f.heading && !s.headingFont) s.headingFont = f.heading;
     if (f.body && !s.bodyFont) s.bodyFont = f.body;
@@ -4374,6 +4395,17 @@ export default function LoathrMediaGenerator() {
             </div>
           </div>
 
+          {/* Sub-tabs: Global / Cover / Content / Closer */}
+          <div style={{ display: "flex", gap: 0, marginBottom: 8, borderBottom: "1px solid #9b59b622" }}>
+            {["global", "cover", "content", "closer"].map(function(t) {
+              var sel = templateTab === t;
+              return <button key={t} onClick={function() { setTemplateTab(t); }}
+                style={{ flex: 1, padding: "4px 0", border: "none", borderBottom: "2px solid " + (sel ? "#9b59b6" : "transparent"), background: sel ? "#9b59b608" : "transparent", cursor: "pointer", ...CP, fontSize: 6, letterSpacing: "0.08em", color: sel ? "#9b59b6" : "#999", fontWeight: sel ? 700 : 400, textTransform: "capitalize" }}>{t}</button>;
+            })}
+          </div>
+
+          {/* === GLOBAL TAB === */}
+          {templateTab === "global" && <>
           {/* Fonts */}
           <div style={{ marginBottom: 6 }}>
             <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>FONTS</div>
@@ -4491,6 +4523,123 @@ export default function LoathrMediaGenerator() {
               </div>}
             </div>}
           </div>
+          </>}
+
+          {/* === COVER TAB === */}
+          {templateTab === "cover" && <div>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 3 }}>COVER PAGE SETTINGS</div>
+            {(function() {
+              var cv = editingTemplate.cover || {};
+              function setCover(k, v) { var c = Object.assign({}, cv); c[k] = v; setEditingTemplate(Object.assign({}, editingTemplate, { cover: c })); }
+              return <>
+                <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#666", width: 60 }}>Layout:</div>
+                  <select value={cv.layout || ""} onChange={function(e) { setCover("layout", parseInt(e.target.value) || 0); }}
+                    style={{ flex: 1, padding: "2px 4px", border: "0.5px solid #ddd", ...CP, fontSize: 6, color: "#333" }}>
+                    {(editingTemplate.segment === "newsdesk" ? ["Broadsheet", "Tabloid", "Modern Split", "Breaking Banner", "Full Bleed"] : editingTemplate.segment === "enterprise" ? ["Standard", "Full Bleed", "Split L/R", "Text Only", "Center"] : ["Default"]).map(function(l, i) { return <option key={i} value={i}>{l}</option>; })}
+                  </select>
+                </div>
+                <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#666", width: 60 }}>Masthead:</div>
+                  <input type="range" min="16" max="40" value={cv.mastheadSize || 28} onChange={function(e) { setCover("mastheadSize", parseInt(e.target.value)); }} style={{ flex: 1 }} />
+                  <div style={{ ...CP, fontSize: 5, color: "#999" }}>{cv.mastheadSize || 28}px</div>
+                </div>
+                <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#666", width: 60 }}>Headline:</div>
+                  <input type="range" min="14" max="36" value={cv.headlineSize || 24} onChange={function(e) { setCover("headlineSize", parseInt(e.target.value)); }} style={{ flex: 1 }} />
+                  <div style={{ ...CP, fontSize: 5, color: "#999" }}>{cv.headlineSize || 24}px</div>
+                </div>
+                <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#666", width: 60 }}>Split:</div>
+                  <input type="range" min="25" max="70" value={cv.split || 45} onChange={function(e) { setCover("split", parseInt(e.target.value)); }} style={{ flex: 1 }} />
+                  <div style={{ ...CP, fontSize: 5, color: "#999" }}>{cv.split || 45}%</div>
+                </div>
+                <div style={{ ...CP, fontSize: 5, color: "#666", marginBottom: 2 }}>Show/Hide:</div>
+                <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                  {["masthead", "date", "banner", "lead", "byline"].map(function(el) {
+                    var hid = cv["hide_" + el];
+                    return <button key={el} onClick={function() { setCover("hide_" + el, !hid); }}
+                      style={{ padding: "1px 4px", border: "0.5px solid " + (hid ? "#ef444444" : "#9b59b644"), background: hid ? "#ef444408" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: hid ? "#ef4444" : "#9b59b6", textDecoration: hid ? "line-through" : "none", textTransform: "capitalize" }}>{el}</button>;
+                  })}
+                </div>
+              </>;
+            })()}
+          </div>}
+
+          {/* === CONTENT TAB === */}
+          {templateTab === "content" && <div>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 3 }}>CONTENT PAGE SETTINGS</div>
+            {(function() {
+              var ct = editingTemplate.content || {};
+              function setContent(k, v) { var c = Object.assign({}, ct); c[k] = v; setEditingTemplate(Object.assign({}, editingTemplate, { content: c })); }
+              return <>
+                <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#666", width: 60 }}>Layout:</div>
+                  <select value={ct.layout != null ? ct.layout : ""} onChange={function(e) { setContent("layout", e.target.value !== "" ? parseInt(e.target.value) : null); }}
+                    style={{ flex: 1, padding: "2px 4px", border: "0.5px solid #ddd", ...CP, fontSize: 6, color: "#333" }}>
+                    <option value="">Auto (rotate)</option>
+                    {(editingTemplate.segment === "newsdesk" ? ["Standard", "Feature", "Sidebar", "Wire Report", "Torn Edge", "Center Wrap", "Split", "L-Shape", "Reverse L"] : ["Auto"]).map(function(l, i) { return <option key={i} value={i}>{l}</option>; })}
+                  </select>
+                </div>
+                <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#666", width: 60 }}>Columns:</div>
+                  {[1, 2, 3].map(function(n) { var sel = (ct.columns || 2) === n; return <button key={n} onClick={function() { setContent("columns", n); }}
+                    style={{ width: 22, height: 18, border: "0.5px solid " + (sel ? "#9b59b6" : "#ddd"), background: sel ? "#9b59b615" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: sel ? "#9b59b6" : "#999", textAlign: "center", lineHeight: "18px" }}>{n}</button>; })}
+                </div>
+                <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#666", width: 60 }}>Split:</div>
+                  <input type="range" min="25" max="70" value={ct.split || 45} onChange={function(e) { setContent("split", parseInt(e.target.value)); }} style={{ flex: 1 }} />
+                  <div style={{ ...CP, fontSize: 5, color: "#999" }}>{ct.split || 45}%</div>
+                </div>
+                <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#666", width: 60 }}>Divider:</div>
+                  <input type="range" min="0" max="4" step="0.5" value={ct.dividerWeight || 0.5} onChange={function(e) { setContent("dividerWeight", parseFloat(e.target.value)); }} style={{ flex: 1 }} />
+                  <div style={{ ...CP, fontSize: 5, color: "#999" }}>{ct.dividerWeight || 0.5}px</div>
+                </div>
+                <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#666", width: 60 }}>Filter:</div>
+                  <select value={ct.imgFilter || ""} onChange={function(e) { setContent("imgFilter", e.target.value || null); }}
+                    style={{ flex: 1, padding: "2px 4px", border: "0.5px solid #ddd", ...CP, fontSize: 6, color: "#333" }}>
+                    <option value="">Default</option>
+                    {ENTERPRISE_IMG_FILTERS.map(function(f) { return <option key={f.id} value={f.id}>{f.label}</option>; })}
+                  </select>
+                </div>
+                <div style={{ ...CP, fontSize: 5, color: "#666", marginBottom: 2 }}>Show/Hide:</div>
+                <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                  {["roleLabel", "divider", "stat", "highlight", "related", "sources", "footer", "editionBar"].map(function(el) {
+                    var hid = ct["hide_" + el];
+                    return <button key={el} onClick={function() { setContent("hide_" + el, !hid); }}
+                      style={{ padding: "1px 4px", border: "0.5px solid " + (hid ? "#ef444444" : "#9b59b644"), background: hid ? "#ef444408" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: hid ? "#ef4444" : "#9b59b6", textDecoration: hid ? "line-through" : "none" }}>{el}</button>;
+                  })}
+                </div>
+              </>;
+            })()}
+          </div>}
+
+          {/* === CLOSER TAB === */}
+          {templateTab === "closer" && <div>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 3 }}>CLOSER PAGE SETTINGS</div>
+            {(function() {
+              var cl = editingTemplate.closer || {};
+              function setCloser(k, v) { var c = Object.assign({}, cl); c[k] = v; setEditingTemplate(Object.assign({}, editingTemplate, { closer: c })); }
+              return <>
+                <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#666", width: 60 }}>Background:</div>
+                  <input type="color" value={cl.background || (editingTemplate.colors || {}).background || "#f5f0e4"} onChange={function(e) { setCloser("background", e.target.value); }}
+                    style={{ width: 24, height: 18, border: "0.5px solid #ddd", padding: 0, cursor: "pointer" }} />
+                  <div style={{ ...CP, fontSize: 5, color: "#999" }}>{cl.background || "inherit"}</div>
+                </div>
+                <div style={{ ...CP, fontSize: 5, color: "#666", marginBottom: 2 }}>Show/Hide:</div>
+                <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                  {["masthead", "hashtags", "disclaimer", "sources", "byline"].map(function(el) {
+                    var hid = cl["hide_" + el];
+                    return <button key={el} onClick={function() { setCloser("hide_" + el, !hid); }}
+                      style={{ padding: "1px 4px", border: "0.5px solid " + (hid ? "#ef444444" : "#9b59b644"), background: hid ? "#ef444408" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: hid ? "#ef4444" : "#9b59b6", textDecoration: hid ? "line-through" : "none", textTransform: "capitalize" }}>{el}</button>;
+                  })}
+                </div>
+              </>;
+            })()}
+          </div>}
 
           {/* Live preview */}
           <div style={{ marginBottom: 8 }}>
@@ -5633,7 +5782,7 @@ export default function LoathrMediaGenerator() {
           <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
             <div style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff" }}>
               <div data-export-target="true" style={{ width: "100%", height: "100%", border: "1px solid #000000", overflow: "hidden" }}>
-            {isRecMode ? <RecSlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={applyTemplate(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
+            {isRecMode ? <RecSlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={applyTemplate(cur.slides[currentSlide] || {}, currentSlide, total)} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
             </div>
           </div>
           </div>
@@ -6383,7 +6532,7 @@ export default function LoathrMediaGenerator() {
             {cur.slides.map(function(slide, i) { if (!slide) return null; return (
               <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? uiAccent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
                 <div style={{ width: 340, height: 425, transform: "scale(0.2)", transformOrigin: "top left", pointerEvents: "none" }}>
-                  {isRecMode ? <RecSlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={applyTemplate(slide)} slideIndex={i} totalSlides={total} images={images} edition={editionData} />}
+                  {isRecMode ? <RecSlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={applyTemplate(slide, i, total)} slideIndex={i} totalSlides={total} images={images} edition={editionData} />}
                 </div>
               </div>); })}
           </div>
