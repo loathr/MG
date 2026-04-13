@@ -4380,35 +4380,23 @@ export default function LoathrMediaGenerator() {
             {[{ key: "masthead", label: "Masthead" }, { key: "heading", label: "Heading" }, { key: "body", label: "Body" }, { key: "highlight", label: "Highlight" }, { key: "banner", label: "Banner" }, { key: "sources", label: "Sources" }].map(function(slot) {
               var fonts = editingTemplate.fonts || {};
               var current = fonts[slot.key] || "";
-              var resolved = resolveFontFamily(current) || {};
-              return <div key={slot.key} style={{ marginBottom: 4 }}>
-                <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 2 }}>
-                  <div style={{ ...CP, fontSize: 5, color: "#666", width: 50 }}>{slot.label}:</div>
-                  <div style={Object.assign({}, resolved, { fontSize: 7, color: "#333", flex: 1 })}>{current ? (ALL_FONTS.find(function(f) { return f.id === current; }) || GOOGLE_FONTS.find(function(f) { return f.id === current; }) || { label: current }).label : "Default"}</div>
-                  {current && <button onClick={function() { var f = Object.assign({}, fonts); delete f[slot.key]; setEditingTemplate(Object.assign({}, editingTemplate, { fonts: f })); }}
-                    style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 6, color: "#ccc" }}>{"\u00d7"}</button>}
-                </div>
-                <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                  {ALL_FONTS.slice(0, 8).map(function(f) {
-                    var sel = current === f.id;
-                    var fontStyle = FONT_MAP[f.id] || {};
-                    return <button key={f.id} onClick={function() { var fn = Object.assign({}, fonts); fn[slot.key] = f.id; setEditingTemplate(Object.assign({}, editingTemplate, { fonts: fn })); }}
-                      style={Object.assign({}, { padding: "1px 4px", border: "0.5px solid " + (sel ? "#9b59b6" : "#ddd"), background: sel ? "#9b59b615" : "transparent", cursor: "pointer", fontSize: 5, color: sel ? "#9b59b6" : "#999", lineHeight: 1.2 }, fontStyle)}>{f.label}</button>;
-                  })}
-                  {GOOGLE_FONTS.slice(0, 6).map(function(gf) {
-                    var sel = current === gf.id;
-                    if (sel) loadGoogleFont(gf.family);
-                    return <button key={gf.id} onClick={function() { loadGoogleFont(gf.family); var fn = Object.assign({}, fonts); fn[slot.key] = gf.id; setEditingTemplate(Object.assign({}, editingTemplate, { fonts: fn })); }}
-                      onMouseEnter={function() { loadGoogleFont(gf.family); }}
-                      style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? "#9b59b6" : "#ddd"), background: sel ? "#9b59b615" : "transparent", cursor: "pointer", fontSize: 5, color: sel ? "#9b59b6" : "#999", fontFamily: "'" + gf.family + "', serif", lineHeight: 1.2 }}>{gf.label}</button>;
-                  })}
-                  <select value="" onChange={function(e) { if (!e.target.value) return; var id = e.target.value; var gf = GOOGLE_FONTS.find(function(f) { return f.id === id; }) || ALL_FONTS.find(function(f) { return f.id === id; }); if (gf && gf.family) loadGoogleFont(gf.family); var fn = Object.assign({}, fonts); fn[slot.key] = id; setEditingTemplate(Object.assign({}, editingTemplate, { fonts: fn })); }}
-                    style={{ padding: "1px 3px", border: "0.5px solid #ddd", ...CP, fontSize: 4, color: "#999", width: 40 }}>
-                    <option value="">More</option>
-                    <optgroup label="Custom">{ALL_FONTS.map(function(f) { return <option key={f.id} value={f.id}>{f.label}</option>; })}</optgroup>
-                    <optgroup label="Google">{GOOGLE_FONTS.map(function(f) { return <option key={f.id} value={f.id}>{f.label}</option>; })}</optgroup>
-                  </select>
-                </div>
+              var fontLabel = current ? (ALL_FONTS.find(function(f) { return f.id === current; }) || GOOGLE_FONTS.find(function(f) { return f.id === current; }) || { label: current }).label : "Default";
+              var previewStyle = (function() { var r = resolveFontFamily(current); return r ? { fontFamily: r.fontFamily || "inherit" } : {}; })();
+              return <div key={slot.key} style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 2 }}>
+                <div style={{ ...CP, fontSize: 5, color: "#666", width: 45, flexShrink: 0 }}>{slot.label}:</div>
+                <select value={current} onChange={function(e) {
+                  var id = e.target.value;
+                  var gf = GOOGLE_FONTS.find(function(f) { return f.id === id; });
+                  if (gf) loadGoogleFont(gf.family);
+                  var fn = Object.assign({}, fonts);
+                  if (id) fn[slot.key] = id; else delete fn[slot.key];
+                  setEditingTemplate(Object.assign({}, editingTemplate, { fonts: fn }));
+                }}
+                  style={Object.assign({}, { flex: 1, padding: "3px 4px", border: "0.5px solid " + (current ? "#9b59b6" : "#ddd"), background: current ? "#9b59b608" : "#fff", ...CP, fontSize: 7, color: "#333" }, previewStyle)}>
+                  <option value="">Default</option>
+                  <optgroup label="Custom">{ALL_FONTS.map(function(f) { return <option key={f.id} value={f.id}>{f.label}</option>; })}</optgroup>
+                  <optgroup label="Google Fonts">{GOOGLE_FONTS.map(function(f) { return <option key={f.id} value={f.id}>{f.label}</option>; })}</optgroup>
+                </select>
               </div>;
             })}
           </div>
@@ -4506,12 +4494,20 @@ export default function LoathrMediaGenerator() {
 
           {/* Live preview */}
           <div style={{ marginBottom: 8 }}>
-            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 3 }}>PREVIEW</div>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>PREVIEW</div>
+            <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
+              {["masthead", "headline", "body", "stat", "highlight", "banner", "footer"].map(function(el) {
+                var hid = (editingTemplate.hidden || {})[el];
+                return <button key={el} onClick={function() { var h = Object.assign({}, editingTemplate.hidden || {}); h[el] = !hid; setEditingTemplate(Object.assign({}, editingTemplate, { hidden: h })); }}
+                  style={{ padding: "1px 4px", border: "0.5px solid " + (hid ? "#ef444444" : "#9b59b644"), background: hid ? "#ef444408" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: hid ? "#ef4444" : "#9b59b6", textDecoration: hid ? "line-through" : "none" }}>{el}</button>;
+              })}
+            </div>
             {(function() {
               var pf = editingTemplate.fonts || {};
               var pc = editingTemplate.colors || {};
               var pl = editingTemplate.layout || {};
               var pb = editingTemplate.branding || {};
+              var ph = editingTemplate.hidden || {};
               var seg = editingTemplate.segment;
               // Segment-aware defaults
               var isEnt = seg === "enterprise";
@@ -4534,41 +4530,41 @@ export default function LoathrMediaGenerator() {
               var showTexture = isNews && !pc.textureOff;
               return <div style={{ border: "1.5px solid " + borderC, background: bgColor, backgroundImage: showTexture ? "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.008) 1px, rgba(0,0,0,0.008) 2px)" : "none", padding: 0, overflow: "hidden" }}>
                 {/* Masthead */}
-                <div style={{ padding: "4px 8px 2px", textAlign: isEnt ? "right" : "center", borderBottom: "1px solid " + borderC }}>
+                {!ph.masthead && <div style={{ padding: "4px 8px 2px", textAlign: isEnt ? "right" : "center", borderBottom: "1px solid " + borderC }}>
                   {pb.logo && (pb.mode === "logo" || pb.mode === "both") && <img src={pb.logo} alt="" style={{ maxHeight: 14, maxWidth: "40%", objectFit: "contain", marginBottom: 2, filter: isEnt ? "brightness(2)" : "none" }} />}
                   {(pb.mode !== "logo") && <div style={Object.assign({}, mastheadFontObj, { fontSize: 11, color: mastheadC, letterSpacing: isEnt ? "0.2em" : "0.03em", lineHeight: 1 })}>{pl.mastheadText || mastheadName}</div>}
                   {isNews && <div style={{ ...CP, fontSize: 2.5, color: mastheadC + "44", marginTop: 1 }}>by LOATHR</div>}
                   {isEnt && <div style={{ ...CP, fontSize: 3, color: "#ffffff44", marginTop: 1 }}>ENTERPRISE</div>}
-                </div>
+                </div>}
                 {/* Headline */}
-                <div style={{ padding: "4px 8px 2px" }}>
+                {!ph.headline && <div style={{ padding: "4px 8px 2px" }}>
                   <div style={Object.assign({}, headFontObj, { fontSize: 9, color: headC, lineHeight: 1.1, marginBottom: 2 })}>Sample Headline in Your Font</div>
                   <div style={{ height: 0.5, background: dividerC, width: "30%", marginBottom: 2 }} />
-                </div>
+                </div>}
                 {/* Body */}
-                <div style={{ padding: "0 8px 3px" }}>
+                {!ph.body && <div style={{ padding: "0 8px 3px" }}>
                   <div style={Object.assign({}, bodyFontObj, { fontSize: 5, color: bodyC, lineHeight: 1.4, textAlign: "justify" })}>Body text in your chosen font and color. Shows how content looks with template settings.</div>
-                </div>
+                </div>}
                 {/* Stat */}
-                <div style={{ textAlign: "center", padding: "2px 8px" }}>
+                {!ph.stat && <div style={{ textAlign: "center", padding: "2px 8px" }}>
                   <span style={{ background: isEnt ? "#ffffff" : "#1a1a1a", padding: "2px 6px", display: "inline-block" }}>
                     <span style={Object.assign({}, hlFontObj, { fontSize: 10, color: accentC, lineHeight: 1 })}>42%</span>
                   </span>
                   <div style={{ ...CP, fontSize: 3, color: bodyC + "88", marginTop: 1 }}>stat caption</div>
-                </div>
+                </div>}
                 {/* Highlight */}
-                <div style={{ padding: "2px 8px" }}>
+                {!ph.highlight && <div style={{ padding: "2px 8px" }}>
                   <div style={Object.assign({}, hlFontObj, { fontSize: 5, color: bodyC, fontStyle: "italic", borderBottom: "1px solid " + accentC, display: "inline" })}>Pull quote text</div>
-                </div>
+                </div>}
                 {/* Banner */}
-                <div style={{ background: accentC, padding: "2px 8px", textAlign: "center", marginTop: 3 }}>
+                {!ph.banner && <div style={{ background: accentC, padding: "2px 8px", textAlign: "center", marginTop: 3 }}>
                   <div style={Object.assign({}, bannerFontObj, { fontSize: 4, color: isEnt ? "#0a0a0a" : "#fff", letterSpacing: "0.12em" })}>{isEnt ? "JUST IN" : "BREAKING NEWS"}</div>
-                </div>
+                </div>}
                 {/* Footer */}
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 8px", borderTop: "0.5px solid " + dividerC }}>
+                {!ph.footer && <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 8px", borderTop: "0.5px solid " + dividerC }}>
                   <div style={{ ...CP, fontSize: 2, color: bodyC + "33" }}>{isEnt ? "LOATHR" : "NEWS DESK"}</div>
                   <div style={{ ...CP, fontSize: 2, color: bodyC + "33" }}>Page 1</div>
-                </div>
+                </div>}
               </div>;
             })()}
           </div>
