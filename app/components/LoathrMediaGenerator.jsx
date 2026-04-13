@@ -49,9 +49,71 @@ var ALL_FONTS = [
   { id: "courier", label: "Courier" },
   { id: "wenssep", label: "Wenssep" },
 ];
-function bodyFont(slide) { return FONT_MAP[slide && slide.bodyFont] || HD; }
-function headFont(slide) { return FONT_MAP[slide && slide.headingFont] || FN; }
-function hlFont(slide) { return FONT_MAP[slide && slide.highlightFont] || WS; }
+
+// Curated Google Fonts for editorial use
+var GOOGLE_FONTS = [
+  { id: "g_playfair", label: "Playfair Display", family: "Playfair Display", category: "serif" },
+  { id: "g_lora", label: "Lora", family: "Lora", category: "serif" },
+  { id: "g_merriweather", label: "Merriweather", family: "Merriweather", category: "serif" },
+  { id: "g_robotoslab", label: "Roboto Slab", family: "Roboto Slab", category: "slab" },
+  { id: "g_sourceserif", label: "Source Serif Pro", family: "Source Serif 4", category: "serif" },
+  { id: "g_librebaskerville", label: "Libre Baskerville", family: "Libre Baskerville", category: "serif" },
+  { id: "g_dmserif", label: "DM Serif Display", family: "DM Serif Display", category: "serif" },
+  { id: "g_cormorant", label: "Cormorant Garamond", family: "Cormorant Garamond", category: "serif" },
+  { id: "g_inter", label: "Inter", family: "Inter", category: "sans" },
+  { id: "g_worksans", label: "Work Sans", family: "Work Sans", category: "sans" },
+  { id: "g_oswald", label: "Oswald", family: "Oswald", category: "sans" },
+  { id: "g_poppins", label: "Poppins", family: "Poppins", category: "sans" },
+  { id: "g_spacegrotesk", label: "Space Grotesk", family: "Space Grotesk", category: "sans" },
+  { id: "g_crimsontext", label: "Crimson Text", family: "Crimson Text", category: "serif" },
+  { id: "g_spectral", label: "Spectral", family: "Spectral", category: "serif" },
+  { id: "g_bitter", label: "Bitter", family: "Bitter", category: "slab" },
+  { id: "g_josefin", label: "Josefin Sans", family: "Josefin Sans", category: "sans" },
+  { id: "g_ibmplexserif", label: "IBM Plex Serif", family: "IBM Plex Serif", category: "serif" },
+  { id: "g_archivo", label: "Archivo", family: "Archivo", category: "sans" },
+  { id: "g_fraunces", label: "Fraunces", family: "Fraunces", category: "serif" },
+  { id: "g_newsreader", label: "Newsreader", family: "Newsreader", category: "serif" },
+  { id: "g_literata", label: "Literata", family: "Literata", category: "serif" },
+  { id: "g_alegreya", label: "Alegreya", family: "Alegreya", category: "serif" },
+  { id: "g_cabin", label: "Cabin", family: "Cabin", category: "sans" },
+];
+
+// Google Fonts loader — dynamically inject CSS link
+var _loadedGoogleFonts = {};
+function loadGoogleFont(family) {
+  if (!family || _loadedGoogleFonts[family]) return;
+  _loadedGoogleFonts[family] = true;
+  var link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "https://fonts.googleapis.com/css2?family=" + encodeURIComponent(family) + ":wght@400;700&display=swap";
+  document.head.appendChild(link);
+}
+
+// Resolve any font ID (custom or Google) to a fontFamily CSS value
+function resolveFontFamily(id) {
+  if (!id) return null;
+  if (FONT_MAP[id]) return FONT_MAP[id];
+  var gf = GOOGLE_FONTS.find(function(f) { return f.id === id; });
+  if (gf) { loadGoogleFont(gf.family); return { fontFamily: "'" + gf.family + "', serif" }; }
+  // Search result Google font (g_search_xxx format)
+  if (id.startsWith("g_search_")) {
+    var family = id.replace("g_search_", "").replace(/_/g, " ");
+    loadGoogleFont(family); return { fontFamily: "'" + family + "', serif" };
+  }
+  return null;
+}
+
+// Color swatches for the picker
+var COLOR_SWATCHES = [
+  "#1a1a1a", "#333333", "#666666", "#999999", "#cccccc", "#ffffff",
+  "#c41e1e", "#e63946", "#ef4444", "#f97316", "#eab308", "#22c55e",
+  "#0ea5e9", "#3b82f6", "#6366f1", "#8b5cf6", "#9b59b6", "#ec4899",
+  "#1a3a5c", "#0d4f4f", "#4a2c2a", "#2d1b4e", "#0a0a0a", "#f5f0e4",
+];
+
+function bodyFont(slide) { return resolveFontFamily(slide && slide.bodyFont) || HD; }
+function headFont(slide) { return resolveFontFamily(slide && slide.headingFont) || FN; }
+function hlFont(slide) { return resolveFontFamily(slide && slide.highlightFont) || WS; }
 
 var TEXT_COLORS = {
   enterprise: [
@@ -6069,20 +6131,73 @@ export default function LoathrMediaGenerator() {
                     <button onClick={function() { adjustFontSize(currentSlide, nudgeTarget, 1); }}
                       style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999", textAlign: "center", lineHeight: "14px" }}>+</button>
                   </div>}
-                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources" || nudgeTarget === "quote") && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>
-                    <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Font:</div>
-                    {ALL_FONTS.map(function(f) { var fontKey = nudgeTarget + "Font"; var defaults = { heading: "foun", body: "maheni", highlight: activeSegment === "enterprise" ? "maheni" : activeSegment === "newsdesk" ? "maheni" : "wenssep", sources: "courier" }; var sel = (s[fontKey] || defaults[nudgeTarget] || "maheni") === f.id; return (
-                      <button key={f.id} onClick={function() { updateSlideField(currentSlide, fontKey, f.id); }}
-                        style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd")), background: sel ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999") }}>{f.label}</button>
-                    ); })}
-                  </div>}
-                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources" || nudgeTarget === "quote") && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3, flexWrap: "wrap" }}>
-                    <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Color:</div>
-                    {(TEXT_COLORS[activeSegment] || TEXT_COLORS.editorial).map(function(c) { var colorKey = nudgeTarget + "Color"; var sel = (s[colorKey] || null) === c.id; return (
-                      <button key={c.label} onClick={function() { updateSlideField(currentSlide, colorKey, c.id); }}
-                        style={{ width: c.id ? 14 : "auto", height: 14, padding: c.id ? 0 : "0 4px", border: "1px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : (activeSegment === "enterprise" ? "#444" : "#ddd")), background: c.id || "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : "#999", lineHeight: "14px", textAlign: "center" }} title={c.label}>{c.id ? "" : c.label}</button>
-                    ); })}
-                  </div>}
+                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources" || nudgeTarget === "quote") && (function() {
+                    var fontKey = nudgeTarget + "Font";
+                    var currentFont = s[fontKey] || "";
+                    var selColor = activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent;
+                    var dimColor = activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999";
+                    var borderDim = activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd";
+                    return <div style={{ marginTop: 3 }}>
+                      <div style={{ ...CP, fontSize: 4, color: dimColor, marginBottom: 2 }}>Font:</div>
+                      {/* Custom fonts with preview */}
+                      <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
+                        {ALL_FONTS.map(function(f) {
+                          var sel = currentFont === f.id;
+                          var fontStyle = FONT_MAP[f.id] || {};
+                          return <button key={f.id} onClick={function() { updateSlideField(currentSlide, fontKey, f.id); }}
+                            style={Object.assign({}, { padding: "2px 5px", border: "0.5px solid " + (sel ? selColor : borderDim), background: sel ? selColor + "22" : "transparent", cursor: "pointer", fontSize: 6, color: sel ? selColor : dimColor, lineHeight: 1.2 }, fontStyle)}>{f.label}</button>;
+                        })}
+                      </div>
+                      {/* Google Fonts with preview */}
+                      <div style={{ ...CP, fontSize: 3.5, color: dimColor, marginBottom: 2 }}>GOOGLE FONTS</div>
+                      <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
+                        {GOOGLE_FONTS.map(function(gf) {
+                          var sel = currentFont === gf.id;
+                          if (sel || _loadedGoogleFonts[gf.family]) loadGoogleFont(gf.family);
+                          return <button key={gf.id} onClick={function() { loadGoogleFont(gf.family); updateSlideField(currentSlide, fontKey, gf.id); }}
+                            onMouseEnter={function() { loadGoogleFont(gf.family); }}
+                            style={{ padding: "2px 5px", border: "0.5px solid " + (sel ? selColor : borderDim), background: sel ? selColor + "22" : "transparent", cursor: "pointer", fontSize: 6, color: sel ? selColor : dimColor, fontFamily: "'" + gf.family + "', serif", lineHeight: 1.2 }}>{gf.label}</button>;
+                        })}
+                      </div>
+                      {/* Search Google Fonts */}
+                      <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+                        <input placeholder="Search Google Fonts..." onKeyDown={function(e) {
+                          if (e.key === "Enter" && e.target.value.trim()) {
+                            var family = e.target.value.trim();
+                            var id = "g_search_" + family.replace(/\s+/g, "_");
+                            loadGoogleFont(family);
+                            updateSlideField(currentSlide, fontKey, id);
+                            e.target.value = "";
+                          }
+                        }}
+                          style={{ flex: 1, padding: "2px 4px", border: "0.5px solid " + borderDim, ...CP, fontSize: 5, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : "#fff" }} />
+                      </div>
+                    </div>;
+                  })()}
+                  {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources" || nudgeTarget === "quote") && (function() {
+                    var colorKey = nudgeTarget + "Color";
+                    var currentColor = s[colorKey] || "";
+                    var dimColor = activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999";
+                    return <div style={{ marginTop: 3 }}>
+                      <div style={{ ...CP, fontSize: 4, color: dimColor, marginBottom: 2 }}>Color:</div>
+                      <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 2 }}>
+                        <button onClick={function() { updateSlideField(currentSlide, colorKey, null); }}
+                          style={{ width: 14, height: 14, border: "1px solid " + (!currentColor ? "#9b59b6" : "#ddd"), background: "linear-gradient(135deg, #fff 45%, #ef4444 55%)", cursor: "pointer", fontSize: 3 }} title="Auto" />
+                        {COLOR_SWATCHES.map(function(c) {
+                          var sel = currentColor === c;
+                          return <button key={c} onClick={function() { updateSlideField(currentSlide, colorKey, c); }}
+                            style={{ width: 14, height: 14, border: "1.5px solid " + (sel ? "#9b59b6" : c === "#ffffff" ? "#ddd" : "transparent"), background: c, cursor: "pointer", borderRadius: 1 }} title={c} />;
+                        })}
+                      </div>
+                      <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+                        <input type="color" value={currentColor || "#1a1a1a"} onChange={function(e) { updateSlideField(currentSlide, colorKey, e.target.value); }}
+                          style={{ width: 18, height: 14, border: "0.5px solid #ddd", padding: 0, cursor: "pointer" }} />
+                        <input value={currentColor || ""} onChange={function(e) { if (/^#[0-9a-fA-F]{0,8}$/.test(e.target.value) || !e.target.value) updateSlideField(currentSlide, colorKey, e.target.value || null); }}
+                          placeholder="#hex"
+                          style={{ width: 50, padding: "1px 3px", border: "0.5px solid #ddd", ...CP, fontSize: 5, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : "#fff" }} />
+                      </div>
+                    </div>;
+                  })()}
                   {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources" || nudgeTarget === "quote") && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>
                     <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Align:</div>
                     {[{ id: "left", label: "\u2190" }, { id: "center", label: "\u2194" }, { id: "right", label: "\u2192" }, { id: "justify", label: "\u2261" }].map(function(a) { var alignKey = nudgeTarget + "Align"; var sel = (s[alignKey] || "") === a.id; return (
