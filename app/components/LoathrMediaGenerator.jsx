@@ -2692,6 +2692,16 @@ export default function LoathrMediaGenerator() {
   var stl = _s([]), studioTemplates = stl[0], setStudioTemplates = stl[1];
   var ste = _s(null), editingTemplate = ste[0], setEditingTemplate = ste[1];
   var sta = _s(null), activeTemplate = sta[0], setActiveTemplate = sta[1];
+  var stm = _s("templates"), studioMode = stm[0], setStudioMode = stm[1]; // "templates"|"canvas"|"brief"
+  var stbt = _s(null), briefTemplate = stbt[0], setBriefTemplate = stbt[1]; // selected template name for brief/canvas
+  var stbs = _s("newsdesk"), briefSegment = stbs[0], setBriefSegment = stbs[1]; // segment style for brief/canvas
+  var stbb = _s(""), briefText = stbb[0], setBriefText = stbb[1];
+  var stbn = _s(""), briefClient = stbn[0], setBriefClient = stbn[1];
+  var stbc = _s(6), briefSlides = stbc[0], setBriefSlides = stbc[1];
+  var stbi = _s([]), briefImages = stbi[0], setBriefImages = stbi[1];
+  var stba = _s(true), briefAutoImages = stba[0], setBriefAutoImages = stba[1];
+  // Canvas slides
+  var scvs = _s([]), canvasSlides = scvs[0], setCanvasSlides = scvs[1];
   var ndd = _s(null), newsDesk = ndd[0], setNewsDesk = ndd[1];
   var ndr = _s("global"), newsRegion = ndr[0], setNewsRegion = ndr[1];
   var ndt = _s("today"), newsTimeframe = ndt[0], setNewsTimeframe = ndt[1];
@@ -4243,13 +4253,20 @@ export default function LoathrMediaGenerator() {
 
       {/* ===== STUDIOS ===== */}
       {activeSegment === "studios" && <div style={{ padding: 12, border: "0.5px solid #9b59b633", background: "#faf8ff", marginBottom: 12 }}>
-        <div style={{ textAlign: "center", marginBottom: 12 }}>
+        <div style={{ textAlign: "center", marginBottom: 8 }}>
           <div style={{ ...CP, fontSize: 12, letterSpacing: "0.3em", color: "#9b59b6", fontWeight: 700 }}>STUDIOS</div>
           <div style={{ ...CP, fontSize: 6, color: "#9b59b688", marginTop: 2 }}>Design & Templates</div>
         </div>
+        <div style={{ display: "flex", gap: 0, marginBottom: 10, justifyContent: "center" }}>
+          {[{ id: "templates", l: "Templates" }, { id: "brief", l: "Client Brief" }, { id: "canvas", l: "Blank Canvas" }].map(function(m) {
+            var sel = studioMode === m.id;
+            return <button key={m.id} onClick={function() { setStudioMode(m.id); }}
+              style={{ padding: "5px 12px", border: "none", borderBottom: "1.5px solid " + (sel ? "#9b59b6" : "transparent"), background: sel ? "#9b59b608" : "transparent", cursor: "pointer", ...CP, fontSize: 7, letterSpacing: "0.08em", color: sel ? "#9b59b6" : "#999", fontWeight: sel ? 700 : 400 }}>{m.l}</button>;
+          })}
+        </div>
 
-        {/* Saved templates list */}
-        <div style={{ marginBottom: 10 }}>
+        {/* Saved templates list — templates mode only */}
+        {studioMode === "templates" && <div style={{ marginBottom: 10 }}>
           <div style={{ ...CP, fontSize: 7, color: "#9b59b6", letterSpacing: "0.1em", marginBottom: 4 }}>MY TEMPLATES</div>
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
             {userRole === "admin" && <button onClick={function() { setEditingTemplate({ name: "", segment: "newsdesk", fonts: {}, colors: {}, layout: {}, branding: { mode: "text", text: "", logo: null, logoPosition: "above" } }); }}
@@ -4263,10 +4280,10 @@ export default function LoathrMediaGenerator() {
               </button>;
             })}
           </div>
-        </div>
+        </div>}
 
         {/* Template editor */}
-        {editingTemplate && <div style={{ border: "0.5px solid #9b59b633", padding: 10, background: "#fff" }}>
+        {studioMode === "templates" && editingTemplate && <div style={{ border: "0.5px solid #9b59b633", padding: 10, background: "#fff" }}>
           <div style={{ ...CP, fontSize: 7, color: "#9b59b6", letterSpacing: "0.1em", marginBottom: 6 }}>{editingTemplate.name ? "EDIT TEMPLATE" : "CREATE TEMPLATE"}</div>
 
           {/* Name */}
@@ -4420,11 +4437,202 @@ export default function LoathrMediaGenerator() {
         </div>}
 
         {/* Active template indicator */}
-        {activeTemplate && !editingTemplate && <div style={{ padding: 6, border: "0.5px solid #9b59b633", background: "#9b59b608", textAlign: "center", marginTop: 6 }}>
+        {activeTemplate && !editingTemplate && studioMode === "templates" && <div style={{ padding: 6, border: "0.5px solid #9b59b633", background: "#9b59b608", textAlign: "center", marginTop: 6 }}>
           <div style={{ ...CP, fontSize: 6, color: "#9b59b6" }}>Active: <span style={{ fontWeight: 700 }}>{activeTemplate}</span></div>
           <div style={{ ...CP, fontSize: 5, color: "#9b59b688", marginTop: 2 }}>Template defaults apply to new generations</div>
         </div>}
+
+        {/* Template export/import */}
+        {studioMode === "templates" && studioTemplates.length > 0 && <div style={{ marginTop: 6, display: "flex", gap: 3, justifyContent: "center" }}>
+          <button onClick={function() {
+            var blob = new Blob([JSON.stringify(studioTemplates, null, 2)], { type: "application/json" });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a"); a.href = url; a.download = "loathr-templates.json"; a.click();
+            URL.revokeObjectURL(url);
+          }} style={{ padding: "3px 8px", border: "0.5px solid #9b59b644", background: "transparent", cursor: "pointer", ...CP, fontSize: 5, color: "#9b59b6" }}>{"\u2B07"} Export</button>
+          <label style={{ padding: "3px 8px", border: "0.5px solid #9b59b644", background: "transparent", cursor: "pointer", ...CP, fontSize: 5, color: "#9b59b6" }}>
+            {"\u2B06"} Import
+            <input type="file" accept=".json" style={{ display: "none" }} onChange={function(e) {
+              var file = e.target.files && e.target.files[0];
+              if (file) {
+                var reader = new FileReader();
+                reader.onload = function(ev) {
+                  try {
+                    var imported = JSON.parse(ev.target.result);
+                    if (Array.isArray(imported)) {
+                      var merged = studioTemplates.slice();
+                      imported.forEach(function(t) { if (t.name && !merged.some(function(m) { return m.name === t.name; })) merged.push(t); });
+                      setStudioTemplates(merged);
+                      localStorage.setItem("loathr_templates", JSON.stringify(merged));
+                    }
+                  } catch (err) { console.error("Import failed:", err); }
+                };
+                reader.readAsText(file);
+              }
+            }} />
+          </label>
+        </div>}
+
+        {/* ===== CLIENT BRIEF MODE ===== */}
+        {studioMode === "brief" && <div>
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>TEMPLATE</div>
+            <select value={briefTemplate || ""} onChange={function(e) { setBriefTemplate(e.target.value || null); }}
+              style={{ width: "100%", padding: "4px 8px", border: "0.5px solid #ddd", ...CP, fontSize: 7, color: "#333" }}>
+              <option value="">None (segment defaults)</option>
+              {studioTemplates.map(function(t) { return <option key={t.name} value={t.name}>{t.name}{t.segment ? " (" + t.segment + ")" : ""}</option>; })}
+            </select>
+          </div>
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>SEGMENT STYLE</div>
+            <div style={{ display: "flex", gap: 3 }}>
+              {[{ id: "editorial", l: "Editorial" }, { id: "enterprise", l: "Enterprise" }, { id: "newsdesk", l: "News Desk" }].map(function(sg) {
+                var sel = briefSegment === sg.id;
+                return <button key={sg.id} onClick={function() { setBriefSegment(sg.id); }}
+                  style={{ flex: 1, padding: "3px 6px", border: "0.5px solid " + (sel ? "#9b59b6" : "#ddd"), background: sel ? "#9b59b615" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#9b59b6" : "#999" }}>{sg.l}</button>;
+              })}
+            </div>
+          </div>
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>CLIENT NAME</div>
+            <input value={briefClient} onChange={function(e) { setBriefClient(e.target.value); }}
+              placeholder="Acme Corp"
+              style={{ width: "100%", padding: "4px 8px", border: "0.5px solid #ddd", ...CP, fontSize: 8, color: "#333" }} />
+          </div>
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>BRIEF <span style={{ color: "#bbb" }}>(paste content, press release, notes)</span></div>
+            <textarea value={briefText} onChange={function(e) { setBriefText(e.target.value); }}
+              rows={6} placeholder="Paste the client's content, press release, talking points, or notes here..."
+              style={{ width: "100%", padding: "6px 8px", border: "0.5px solid #ddd", ...CP, fontSize: 7, color: "#333", resize: "vertical" }} />
+            {briefText && <div style={{ ...CP, fontSize: 5, color: "#999", marginTop: 1 }}>{briefText.split(/\s+/).length} words</div>}
+          </div>
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>IMAGES</div>
+            <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 3, cursor: "pointer" }}>
+                <input type="checkbox" checked={briefAutoImages} onChange={function(e) { setBriefAutoImages(e.target.checked); }} />
+                <span style={{ ...CP, fontSize: 6, color: "#666" }}>Auto-search images from text</span>
+              </label>
+            </div>
+            <label style={{ display: "block", padding: "6px", border: "1px dashed #9b59b644", background: "#faf8ff", cursor: "pointer", textAlign: "center", ...CP, fontSize: 6, color: "#9b59b6" }}>
+              Upload images ({briefImages.length} uploaded)
+              <input type="file" accept="image/*" multiple style={{ display: "none" }} onChange={function(e) {
+                var files = Array.from(e.target.files || []);
+                files.forEach(function(file) {
+                  var reader = new FileReader();
+                  reader.onload = function(ev) { setBriefImages(function(prev) { return prev.concat([{ preview: ev.target.result, file: file }]); }); };
+                  reader.readAsDataURL(file);
+                });
+              }} />
+            </label>
+            {briefImages.length > 0 && <div style={{ display: "flex", gap: 3, marginTop: 3, flexWrap: "wrap" }}>
+              {briefImages.map(function(img, i) { return <div key={i} style={{ width: 40, height: 50, overflow: "hidden", border: "0.5px solid #ddd", position: "relative" }}>
+                <img src={img.preview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <button onClick={function() { setBriefImages(function(prev) { return prev.filter(function(_, j) { return j !== i; }); }); }}
+                  style={{ position: "absolute", top: 0, right: 0, background: "#ef4444", color: "#fff", border: "none", fontSize: 6, width: 10, height: 10, cursor: "pointer", lineHeight: "10px", padding: 0 }}>{"\u00d7"}</button>
+              </div>; })}
+            </div>}
+          </div>
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>SLIDES</div>
+            <div style={{ display: "flex", gap: 3 }}>
+              {[4, 5, 6, 8].map(function(n) { return <button key={n} onClick={function() { setBriefSlides(n); }}
+                style={{ flex: 1, padding: "3px 0", border: "0.5px solid " + (briefSlides === n ? "#9b59b6" : "#ddd"), background: briefSlides === n ? "#9b59b615" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: briefSlides === n ? "#9b59b6" : "#999" }}>{n}</button>; })}
+            </div>
+          </div>
+          <button onClick={function() {
+            if (!briefText.trim()) return;
+            // Switch to the selected segment and generate with brief as topic
+            setActiveSegment(briefSegment);
+            setCategory(briefSegment);
+            if (briefTemplate) { setActiveTemplate(briefTemplate); localStorage.setItem("loathr_active_template", briefTemplate); }
+            setTopic(briefClient ? briefClient + ": " + briefText.slice(0, 100) : briefText.slice(0, 100));
+            setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: briefSlides, customVoice: "Write about: " + briefClient + ". Use this content as the source material: " + briefText }); });
+          }} disabled={!briefText.trim() || isGenerating}
+            style={{ width: "100%", padding: "8px 16px", border: "none", background: "#9b59b6", color: "#fff", cursor: briefText.trim() ? "pointer" : "default", ...CP, fontSize: 8, letterSpacing: "0.1em", opacity: briefText.trim() ? 1 : 0.5 }}>GENERATE CAROUSEL</button>
+        </div>}
+
+        {/* ===== BLANK CANVAS MODE ===== */}
+        {studioMode === "canvas" && <div>
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>TEMPLATE</div>
+            <select value={briefTemplate || ""} onChange={function(e) { setBriefTemplate(e.target.value || null); if (e.target.value) { setActiveTemplate(e.target.value); localStorage.setItem("loathr_active_template", e.target.value); } }}
+              style={{ width: "100%", padding: "4px 8px", border: "0.5px solid #ddd", ...CP, fontSize: 7, color: "#333" }}>
+              <option value="">None (segment defaults)</option>
+              {studioTemplates.map(function(t) { return <option key={t.name} value={t.name}>{t.name}</option>; })}
+            </select>
+          </div>
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>SEGMENT STYLE</div>
+            <div style={{ display: "flex", gap: 3 }}>
+              {[{ id: "editorial", l: "Editorial" }, { id: "enterprise", l: "Enterprise" }, { id: "newsdesk", l: "News Desk" }].map(function(sg) {
+                var sel = briefSegment === sg.id;
+                return <button key={sg.id} onClick={function() { setBriefSegment(sg.id); }}
+                  style={{ flex: 1, padding: "3px 6px", border: "0.5px solid " + (sel ? "#9b59b6" : "#ddd"), background: sel ? "#9b59b615" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#9b59b6" : "#999" }}>{sg.l}</button>;
+              })}
+            </div>
+          </div>
+
+          {/* Canvas slides editor */}
+          <div style={{ ...CP, fontSize: 5, color: "#999", letterSpacing: "0.1em", marginBottom: 3 }}>SLIDES ({canvasSlides.length})</div>
+          {canvasSlides.map(function(cs, ci) {
+            return <div key={ci} style={{ border: "0.5px solid #ddd", padding: 6, marginBottom: 4, background: "#fff" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                <div style={{ ...CP, fontSize: 6, color: "#9b59b6", fontWeight: 700 }}>Slide {ci + 1}</div>
+                <button onClick={function() { setCanvasSlides(function(prev) { return prev.filter(function(_, j) { return j !== ci; }); }); }}
+                  style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 8, color: "#ef4444" }}>{"\u00d7"}</button>
+              </div>
+              <input value={cs.heading || ""} onChange={function(e) { setCanvasSlides(function(prev) { var n = prev.slice(); n[ci] = Object.assign({}, n[ci], { heading: e.target.value }); return n; }); }}
+                placeholder="Heading"
+                style={{ width: "100%", padding: "3px 6px", border: "0.5px solid #ddd", ...CP, fontSize: 7, color: "#333", marginBottom: 2, fontWeight: 700 }} />
+              <textarea value={cs.body || ""} onChange={function(e) { setCanvasSlides(function(prev) { var n = prev.slice(); n[ci] = Object.assign({}, n[ci], { body: e.target.value }); return n; }); }}
+                placeholder="Body text"
+                rows={2} style={{ width: "100%", padding: "3px 6px", border: "0.5px solid #ddd", ...CP, fontSize: 6, color: "#333", marginBottom: 2, resize: "vertical" }} />
+              <input value={cs.highlight || ""} onChange={function(e) { setCanvasSlides(function(prev) { var n = prev.slice(); n[ci] = Object.assign({}, n[ci], { highlight: e.target.value }); return n; }); }}
+                placeholder="Highlight / pull quote (optional)"
+                style={{ width: "100%", padding: "3px 6px", border: "0.5px solid #ddd", ...CP, fontSize: 6, color: "#666", marginBottom: 2 }} />
+              <div style={{ display: "flex", gap: 3 }}>
+                <input value={cs.sources || ""} onChange={function(e) { setCanvasSlides(function(prev) { var n = prev.slice(); n[ci] = Object.assign({}, n[ci], { sources: e.target.value }); return n; }); }}
+                  placeholder="Sources"
+                  style={{ flex: 1, padding: "2px 6px", border: "0.5px solid #ddd", ...CP, fontSize: 5, color: "#999" }} />
+                <label style={{ padding: "2px 6px", border: "0.5px solid #9b59b644", cursor: "pointer", ...CP, fontSize: 5, color: "#9b59b6" }}>
+                  {cs.image ? "Change" : "Image"}
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={function(e) {
+                    var file = e.target.files && e.target.files[0];
+                    if (file) { var reader = new FileReader(); reader.onload = function(ev) { setCanvasSlides(function(prev) { var n = prev.slice(); n[ci] = Object.assign({}, n[ci], { image: ev.target.result }); return n; }); }; reader.readAsDataURL(file); }
+                  }} />
+                </label>
+              </div>
+              {cs.image && <div style={{ marginTop: 2, width: 40, height: 30, overflow: "hidden", border: "0.5px solid #ddd" }}><img src={cs.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>}
+            </div>;
+          })}
+          <button onClick={function() { setCanvasSlides(function(prev) { return prev.concat([{ heading: "", body: "", highlight: "", sources: "" }]); }); }}
+            style={{ width: "100%", padding: "6px", border: "1px dashed #9b59b644", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#9b59b6", marginBottom: 6 }}>+ Add Slide</button>
+
+          {canvasSlides.length >= 2 && <button onClick={function() {
+            // Build options from canvas slides
+            var slides = canvasSlides.map(function(cs, i) {
+              var s = { heading: cs.heading || "Slide " + (i + 1), body: cs.body || "", highlight: cs.highlight || undefined, sources: cs.sources || undefined };
+              if (i === 0) { s.title = cs.heading || "Cover"; s.subtitle = cs.body || ""; }
+              return s;
+            });
+            // Switch to segment and set options
+            setActiveSegment(briefSegment);
+            setCategory(briefSegment);
+            if (briefTemplate) { setActiveTemplate(briefTemplate); localStorage.setItem("loathr_active_template", briefTemplate); }
+            setTopic(canvasSlides[0].heading || "Canvas");
+            setOptions([{ angle: "Canvas", slides: slides }]);
+            setCurrentSlide(0); setSelectedOption(0);
+            // Set uploaded images
+            var imgMap = {};
+            canvasSlides.forEach(function(cs, i) { if (cs.image) imgMap[i] = { url: cs.image, thumb: cs.image, source: "Upload" }; });
+            if (Object.keys(imgMap).length > 0) setImages(imgMap);
+          }}
+            style={{ width: "100%", padding: "8px 16px", border: "none", background: "#9b59b6", color: "#fff", cursor: "pointer", ...CP, fontSize: 8, letterSpacing: "0.1em" }}>PREVIEW CAROUSEL</button>}
+        </div>}
+
       </div>}
+
 
       {/* Cross-category lens pickers — Level 3, editorial only */}
       {activeSegment === "editorial" && category && <div style={{ marginBottom: 12 }}>
