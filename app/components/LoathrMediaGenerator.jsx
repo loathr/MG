@@ -2628,6 +2628,10 @@ export default function LoathrMediaGenerator() {
   // News Desk state
   var ndf = _s(null), newsFilter = ndf[0], setNewsFilter = ndf[1];
   var ndu = _s(null), newsUrgency = ndu[0], setNewsUrgency = ndu[1];
+  // Studios state
+  var stl = _s([]), studioTemplates = stl[0], setStudioTemplates = stl[1];
+  var ste = _s(null), editingTemplate = ste[0], setEditingTemplate = ste[1];
+  var sta = _s(null), activeTemplate = sta[0], setActiveTemplate = sta[1];
   var ndd = _s(null), newsDesk = ndd[0], setNewsDesk = ndd[1];
   var ndr = _s("global"), newsRegion = ndr[0], setNewsRegion = ndr[1];
   var ndt = _s("today"), newsTimeframe = ndt[0], setNewsTimeframe = ndt[1];
@@ -2673,6 +2677,11 @@ export default function LoathrMediaGenerator() {
       // User level from generation count
       var gc = parseInt(localStorage.getItem("loathr_gen_count") || "0");
       setUserLevel(gc === 0 ? 1 : gc < 5 ? 2 : 3);
+      // Load studio templates
+      var tmpls = JSON.parse(localStorage.getItem("loathr_templates") || "[]");
+      setStudioTemplates(tmpls);
+      var active = localStorage.getItem("loathr_active_template");
+      if (active) setActiveTemplate(active);
     } catch (e) {}
     // Read shared link params
     try {
@@ -4014,6 +4023,7 @@ export default function LoathrMediaGenerator() {
           { id: "editorial", label: "Editorial", color: null },
           { id: "enterprise", label: "Enterprise", color: "#ffffff" },
           { id: "newsdesk", label: "News Desk", color: "#c41e1e" },
+          { id: "studios", label: "Studios", color: "#9b59b6" },
         ].map(function(s) {
           var sel = activeSegment === s.id;
           return <button key={s.id} onClick={function() {
@@ -4109,6 +4119,191 @@ export default function LoathrMediaGenerator() {
               style={{ padding: "2px 6px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#c8c0aa"), background: sel ? "#1a1a1a11" : "transparent", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270", cursor: "pointer" }}>{t.label}</button>;
           })}
         </div>
+      </div>}
+
+      {/* ===== STUDIOS ===== */}
+      {activeSegment === "studios" && <div style={{ padding: 12, border: "0.5px solid #9b59b633", background: "#faf8ff", marginBottom: 12 }}>
+        <div style={{ textAlign: "center", marginBottom: 12 }}>
+          <div style={{ ...CP, fontSize: 12, letterSpacing: "0.3em", color: "#9b59b6", fontWeight: 700 }}>STUDIOS</div>
+          <div style={{ ...CP, fontSize: 6, color: "#9b59b688", marginTop: 2 }}>Design & Templates</div>
+        </div>
+
+        {/* Saved templates list */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ ...CP, fontSize: 7, color: "#9b59b6", letterSpacing: "0.1em", marginBottom: 4 }}>MY TEMPLATES</div>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
+            <button onClick={function() { setEditingTemplate({ name: "", segment: "newsdesk", fonts: {}, colors: {}, layout: {}, branding: { mode: "text", text: "", logo: null, logoPosition: "above" } }); }}
+              style={{ padding: "8px 12px", border: "1px dashed #9b59b644", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#9b59b6" }}>+ Create New</button>
+            {studioTemplates.map(function(t, i) {
+              var isActive = activeTemplate === t.name;
+              return <button key={i} onClick={function() { setEditingTemplate(Object.assign({}, t)); }}
+                style={{ padding: "8px 12px", border: "0.5px solid " + (isActive ? "#9b59b6" : "#ddd"), background: isActive ? "#9b59b615" : "#fff", cursor: "pointer", ...CP, fontSize: 7, color: isActive ? "#9b59b6" : "#666" }}>
+                <div style={{ fontWeight: 700 }}>{t.name}</div>
+                <div style={{ fontSize: 5, color: "#999", marginTop: 1 }}>{t.segment || "Universal"}{isActive ? " ✓ Active" : ""}</div>
+              </button>;
+            })}
+          </div>
+        </div>
+
+        {/* Template editor */}
+        {editingTemplate && <div style={{ border: "0.5px solid #9b59b633", padding: 10, background: "#fff" }}>
+          <div style={{ ...CP, fontSize: 7, color: "#9b59b6", letterSpacing: "0.1em", marginBottom: 6 }}>{editingTemplate.name ? "EDIT TEMPLATE" : "CREATE TEMPLATE"}</div>
+
+          {/* Name */}
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>NAME</div>
+            <input value={editingTemplate.name || ""} onChange={function(e) { setEditingTemplate(Object.assign({}, editingTemplate, { name: e.target.value })); }}
+              placeholder="My Brand Template"
+              style={{ width: "100%", padding: "4px 8px", border: "0.5px solid #ddd", ...CP, fontSize: 8, color: "#333" }} />
+          </div>
+
+          {/* Segment */}
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>SEGMENT</div>
+            <div style={{ display: "flex", gap: 3 }}>
+              {[{ id: "editorial", l: "Editorial" }, { id: "enterprise", l: "Enterprise" }, { id: "newsdesk", l: "News Desk" }, { id: null, l: "Universal" }].map(function(sg) {
+                var sel = editingTemplate.segment === sg.id;
+                return <button key={sg.l} onClick={function() { setEditingTemplate(Object.assign({}, editingTemplate, { segment: sg.id })); }}
+                  style={{ padding: "2px 8px", border: "0.5px solid " + (sel ? "#9b59b6" : "#ddd"), background: sel ? "#9b59b615" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#9b59b6" : "#999" }}>{sg.l}</button>;
+              })}
+            </div>
+          </div>
+
+          {/* Fonts */}
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>FONTS</div>
+            {[{ key: "masthead", label: "Masthead" }, { key: "heading", label: "Heading" }, { key: "body", label: "Body" }, { key: "highlight", label: "Highlight" }, { key: "banner", label: "Banner" }, { key: "sources", label: "Sources" }].map(function(slot) {
+              var fonts = editingTemplate.fonts || {};
+              return <div key={slot.key} style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 2 }}>
+                <div style={{ ...CP, fontSize: 5, color: "#666", width: 50 }}>{slot.label}:</div>
+                <select value={fonts[slot.key] || ""} onChange={function(e) { var f = Object.assign({}, fonts); f[slot.key] = e.target.value || undefined; setEditingTemplate(Object.assign({}, editingTemplate, { fonts: f })); }}
+                  style={{ flex: 1, padding: "2px 4px", border: "0.5px solid #ddd", ...CP, fontSize: 6, color: "#333" }}>
+                  <option value="">Default</option>
+                  {ALL_FONTS.map(function(f) { return <option key={f.id} value={f.id}>{f.label}</option>; })}
+                </select>
+              </div>;
+            })}
+          </div>
+
+          {/* Colors */}
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>COLORS</div>
+            {[{ key: "heading", label: "Heading" }, { key: "body", label: "Body" }, { key: "accent", label: "Accent" }, { key: "background", label: "Background" }].map(function(slot) {
+              var colors = editingTemplate.colors || {};
+              return <div key={slot.key} style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 2 }}>
+                <div style={{ ...CP, fontSize: 5, color: "#666", width: 50 }}>{slot.label}:</div>
+                <input type="color" value={colors[slot.key] || "#1a1a1a"} onChange={function(e) { var c = Object.assign({}, colors); c[slot.key] = e.target.value; setEditingTemplate(Object.assign({}, editingTemplate, { colors: c })); }}
+                  style={{ width: 24, height: 18, border: "0.5px solid #ddd", padding: 0, cursor: "pointer" }} />
+                <div style={{ ...CP, fontSize: 5, color: "#999" }}>{colors[slot.key] || "default"}</div>
+              </div>;
+            })}
+          </div>
+
+          {/* Layout */}
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>LAYOUT DEFAULTS</div>
+            <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 2 }}>
+              <div style={{ ...CP, fontSize: 5, color: "#666", width: 50 }}>Split:</div>
+              <input type="range" min="25" max="70" value={(editingTemplate.layout || {}).defaultSplit || 45} onChange={function(e) { var l = Object.assign({}, editingTemplate.layout || {}); l.defaultSplit = parseInt(e.target.value); setEditingTemplate(Object.assign({}, editingTemplate, { layout: l })); }}
+                style={{ flex: 1 }} />
+              <div style={{ ...CP, fontSize: 5, color: "#999" }}>{(editingTemplate.layout || {}).defaultSplit || 45}%</div>
+            </div>
+            <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 2 }}>
+              <div style={{ ...CP, fontSize: 5, color: "#666", width: 50 }}>Columns:</div>
+              {[1, 2, 3].map(function(n) { var sel = ((editingTemplate.layout || {}).defaultColumns || 2) === n; return <button key={n} onClick={function() { var l = Object.assign({}, editingTemplate.layout || {}); l.defaultColumns = n; setEditingTemplate(Object.assign({}, editingTemplate, { layout: l })); }}
+                style={{ width: 20, height: 18, border: "0.5px solid " + (sel ? "#9b59b6" : "#ddd"), background: sel ? "#9b59b615" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: sel ? "#9b59b6" : "#999", textAlign: "center", lineHeight: "18px" }}>{n}</button>; })}
+            </div>
+            <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 2 }}>
+              <div style={{ ...CP, fontSize: 5, color: "#666", width: 50 }}>Filter:</div>
+              <select value={(editingTemplate.layout || {}).imgFilter || ""} onChange={function(e) { var l = Object.assign({}, editingTemplate.layout || {}); l.imgFilter = e.target.value || undefined; setEditingTemplate(Object.assign({}, editingTemplate, { layout: l })); }}
+                style={{ flex: 1, padding: "2px 4px", border: "0.5px solid #ddd", ...CP, fontSize: 6, color: "#333" }}>
+                <option value="">Default</option>
+                {ENTERPRISE_IMG_FILTERS.map(function(f) { return <option key={f.id} value={f.id}>{f.label}</option>; })}
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+              <div style={{ ...CP, fontSize: 5, color: "#666", width: 50 }}>Masthead:</div>
+              <input value={(editingTemplate.layout || {}).mastheadText || ""} onChange={function(e) { var l = Object.assign({}, editingTemplate.layout || {}); l.mastheadText = e.target.value; setEditingTemplate(Object.assign({}, editingTemplate, { layout: l })); }}
+                placeholder="NEWS DESK"
+                style={{ flex: 1, padding: "2px 4px", border: "0.5px solid #ddd", ...CP, fontSize: 7, color: "#333" }} />
+            </div>
+          </div>
+
+          {/* Branding — logo */}
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>BRANDING</div>
+            <div style={{ display: "flex", gap: 3, marginBottom: 4 }}>
+              {[{ id: "text", l: "Text Only" }, { id: "logo", l: "Logo Only" }, { id: "both", l: "Text + Logo" }].map(function(m) {
+                var br = editingTemplate.branding || {};
+                var sel = (br.mode || "text") === m.id;
+                return <button key={m.id} onClick={function() { setEditingTemplate(Object.assign({}, editingTemplate, { branding: Object.assign({}, br, { mode: m.id }) })); }}
+                  style={{ padding: "2px 6px", border: "0.5px solid " + (sel ? "#9b59b6" : "#ddd"), background: sel ? "#9b59b615" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: sel ? "#9b59b6" : "#999" }}>{m.l}</button>;
+              })}
+            </div>
+            {(editingTemplate.branding || {}).mode !== "text" && <div style={{ marginBottom: 4 }}>
+              <label style={{ display: "block", padding: "8px", border: "1px dashed #9b59b644", background: "#faf8ff", cursor: "pointer", textAlign: "center", ...CP, fontSize: 6, color: "#9b59b6" }}>
+                {(editingTemplate.branding || {}).logo ? "Change Logo" : "Upload Logo"}
+                <input type="file" accept="image/*" style={{ display: "none" }} onChange={function(e) {
+                  var file = e.target.files && e.target.files[0];
+                  if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function(ev) {
+                      var br = Object.assign({}, editingTemplate.branding || {});
+                      br.logo = ev.target.result;
+                      setEditingTemplate(Object.assign({}, editingTemplate, { branding: br }));
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }} />
+              </label>
+              {(editingTemplate.branding || {}).logo && <div style={{ marginTop: 4, textAlign: "center" }}>
+                <img src={(editingTemplate.branding || {}).logo} alt="Logo" style={{ maxHeight: 40, maxWidth: "60%" }} />
+                <div style={{ display: "flex", gap: 2, justifyContent: "center", marginTop: 3 }}>
+                  {[{ id: "above", l: "Above" }, { id: "below", l: "Below" }, { id: "left", l: "Left" }, { id: "right", l: "Right" }].map(function(p) {
+                    var sel = ((editingTemplate.branding || {}).logoPosition || "above") === p.id;
+                    return <button key={p.id} onClick={function() { var br = Object.assign({}, editingTemplate.branding || {}); br.logoPosition = p.id; setEditingTemplate(Object.assign({}, editingTemplate, { branding: br })); }}
+                      style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? "#9b59b6" : "#ddd"), background: sel ? "#9b59b615" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? "#9b59b6" : "#999" }}>{p.l}</button>;
+                  })}
+                </div>
+              </div>}
+            </div>}
+          </div>
+
+          {/* Save / Delete / Activate buttons */}
+          <div style={{ display: "flex", gap: 4 }}>
+            <button onClick={function() {
+              if (!editingTemplate.name || !editingTemplate.name.trim()) return;
+              var tmpls = studioTemplates.slice();
+              var idx = tmpls.findIndex(function(t) { return t.name === editingTemplate.name; });
+              if (idx >= 0) tmpls[idx] = editingTemplate; else tmpls.push(editingTemplate);
+              setStudioTemplates(tmpls);
+              localStorage.setItem("loathr_templates", JSON.stringify(tmpls));
+              setEditingTemplate(null);
+            }}
+              style={{ flex: 1, padding: "6px 10px", border: "none", background: "#9b59b6", color: "#fff", cursor: "pointer", ...CP, fontSize: 7, letterSpacing: "0.08em" }}>{"\uD83D\uDCBE"} Save</button>
+            <button onClick={function() {
+              setActiveTemplate(activeTemplate === editingTemplate.name ? null : editingTemplate.name);
+              localStorage.setItem("loathr_active_template", activeTemplate === editingTemplate.name ? "" : editingTemplate.name);
+            }}
+              style={{ flex: 1, padding: "6px 10px", border: "0.5px solid #9b59b6", background: activeTemplate === editingTemplate.name ? "#9b59b615" : "transparent", color: "#9b59b6", cursor: "pointer", ...CP, fontSize: 7, letterSpacing: "0.08em" }}>{activeTemplate === editingTemplate.name ? "Deactivate" : "Activate"}</button>
+            {editingTemplate.name && <button onClick={function() {
+              var tmpls = studioTemplates.filter(function(t) { return t.name !== editingTemplate.name; });
+              setStudioTemplates(tmpls);
+              localStorage.setItem("loathr_templates", JSON.stringify(tmpls));
+              if (activeTemplate === editingTemplate.name) { setActiveTemplate(null); localStorage.removeItem("loathr_active_template"); }
+              setEditingTemplate(null);
+            }}
+              style={{ padding: "6px 10px", border: "0.5px solid #ef4444", background: "transparent", color: "#ef4444", cursor: "pointer", ...CP, fontSize: 7 }}>{"\u2715"}</button>}
+          </div>
+          <button onClick={function() { setEditingTemplate(null); }}
+            style={{ width: "100%", marginTop: 4, padding: "4px 10px", border: "0.5px solid #ddd", background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#999" }}>Cancel</button>
+        </div>}
+
+        {/* Active template indicator */}
+        {activeTemplate && !editingTemplate && <div style={{ padding: 6, border: "0.5px solid #9b59b633", background: "#9b59b608", textAlign: "center", marginTop: 6 }}>
+          <div style={{ ...CP, fontSize: 6, color: "#9b59b6" }}>Active: <span style={{ fontWeight: 700 }}>{activeTemplate}</span></div>
+          <div style={{ ...CP, fontSize: 5, color: "#9b59b688", marginTop: 2 }}>Template defaults apply to new generations</div>
+        </div>}
       </div>}
 
       {/* Cross-category lens pickers — Level 3, editorial only */}
@@ -5568,7 +5763,8 @@ export default function LoathrMediaGenerator() {
             </div>}
 
             {/* === SLIDE === */}
-            {editSection === "slide" && <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+            {editSection === "slide" && <div>
+              <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
               <button onClick={function() { duplicateSlide(currentSlide); }}
                 style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#666" }}>{"\u2398"} Copy</button>
               {currentSlide > 1 && <button onClick={function() { moveSlide(currentSlide, currentSlide - 1); }}
@@ -5582,6 +5778,7 @@ export default function LoathrMediaGenerator() {
             <div style={{ marginTop: 4, textAlign: "center" }}>
               <button onClick={resetAllSlides}
                 style={{ padding: "3px 10px", border: "0.5px solid #ef444444", background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#ef4444", letterSpacing: "0.05em" }}>{"\u21BA"} Reset All Slides</button>
+            </div>
             </div>}
           </div>;
         })()}
