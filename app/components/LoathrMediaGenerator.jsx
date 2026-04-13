@@ -3283,6 +3283,8 @@ export default function LoathrMediaGenerator() {
     if (c.background) s._templateBg = c.background;
     if (c.border) s._templateBorder = c.border;
     if (c.accent) s._templateAccent = c.accent;
+    if (c.accent2) s._templateAccent2 = c.accent2;
+    if (c.accent && !s.statColor) s.statColor = c.accent;
     if (c.textureOff) s.bgTextureHidden = true;
     // Layout
     if (l.mastheadText && !s.mastheadText) s.mastheadText = l.mastheadText;
@@ -3291,6 +3293,7 @@ export default function LoathrMediaGenerator() {
     var br = t.branding || {};
     if (br.logo) s._templateLogo = br.logo;
     if (br.logoPosition) s._templateLogoPosition = br.logoPosition;
+    if (br.logoSize) s._templateLogoSize = br.logoSize;
     if (br.mode) s._templateBrandMode = br.mode;
     if (br.mode === "text" || br.mode === "both") {
       if (l.mastheadText && !s.mastheadText) s.mastheadText = l.mastheadText;
@@ -4406,16 +4409,17 @@ export default function LoathrMediaGenerator() {
 
           {/* === GLOBAL TAB === */}
           {templateTab === "global" && <>
-          {/* Fonts */}
+          {/* Fonts + sizes */}
           <div style={{ marginBottom: 6 }}>
             <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>FONTS</div>
-            {[{ key: "masthead", label: "Masthead" }, { key: "heading", label: "Heading" }, { key: "body", label: "Body" }, { key: "highlight", label: "Highlight" }, { key: "banner", label: "Banner" }, { key: "sources", label: "Sources" }].map(function(slot) {
+            {[{ key: "masthead", label: "Masthead", defSize: 28 }, { key: "heading", label: "Heading", defSize: 16 }, { key: "body", label: "Body", defSize: 8 }, { key: "highlight", label: "Highlight", defSize: 8 }, { key: "banner", label: "Banner", defSize: 10 }, { key: "sources", label: "Sources", defSize: 4 }].map(function(slot) {
               var fonts = editingTemplate.fonts || {};
+              var sizes = editingTemplate.fontSizes || {};
               var current = fonts[slot.key] || "";
-              var fontLabel = current ? (ALL_FONTS.find(function(f) { return f.id === current; }) || GOOGLE_FONTS.find(function(f) { return f.id === current; }) || { label: current }).label : "Default";
+              var currentSize = sizes[slot.key] || null;
               var previewStyle = (function() { var r = resolveFontFamily(current); return r ? { fontFamily: r.fontFamily || "inherit" } : {}; })();
-              return <div key={slot.key} style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 2 }}>
-                <div style={{ ...CP, fontSize: 5, color: "#666", width: 45, flexShrink: 0 }}>{slot.label}:</div>
+              return <div key={slot.key} style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
+                <div style={{ ...CP, fontSize: 5, color: "#666", width: 42, flexShrink: 0 }}>{slot.label}:</div>
                 <select value={current} onChange={function(e) {
                   var id = e.target.value;
                   var gf = GOOGLE_FONTS.find(function(f) { return f.id === id; });
@@ -4424,11 +4428,18 @@ export default function LoathrMediaGenerator() {
                   if (id) fn[slot.key] = id; else delete fn[slot.key];
                   setEditingTemplate(Object.assign({}, editingTemplate, { fonts: fn }));
                 }}
-                  style={Object.assign({}, { flex: 1, padding: "3px 4px", border: "0.5px solid " + (current ? "#9b59b6" : "#ddd"), background: current ? "#9b59b608" : "#fff", ...CP, fontSize: 7, color: "#333" }, previewStyle)}>
+                  style={Object.assign({}, { flex: 1, padding: "2px 3px", border: "0.5px solid " + (current ? "#9b59b6" : "#ddd"), background: current ? "#9b59b608" : "#fff", ...CP, fontSize: 6, color: "#333" }, previewStyle)}>
                   <option value="">Default</option>
                   <optgroup label="Custom">{ALL_FONTS.map(function(f) { return <option key={f.id} value={f.id}>{f.label}</option>; })}</optgroup>
-                  <optgroup label="Google Fonts">{GOOGLE_FONTS.map(function(f) { return <option key={f.id} value={f.id}>{f.label}</option>; })}</optgroup>
+                  <optgroup label="Google">{GOOGLE_FONTS.map(function(f) { return <option key={f.id} value={f.id}>{f.label}</option>; })}</optgroup>
                 </select>
+                <div style={{ display: "flex", gap: 1, alignItems: "center", flexShrink: 0 }}>
+                  <button onClick={function() { var sz = Object.assign({}, sizes); sz[slot.key] = Math.max(3, (currentSize || slot.defSize) - 1); setEditingTemplate(Object.assign({}, editingTemplate, { fontSizes: sz })); }}
+                    style={{ width: 12, height: 12, border: "0.5px solid #ddd", background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#999", textAlign: "center", lineHeight: "12px" }}>-</button>
+                  <div style={{ ...CP, fontSize: 4, color: "#999", width: 16, textAlign: "center" }}>{currentSize || slot.defSize}</div>
+                  <button onClick={function() { var sz = Object.assign({}, sizes); sz[slot.key] = Math.min(50, (currentSize || slot.defSize) + 1); setEditingTemplate(Object.assign({}, editingTemplate, { fontSizes: sz })); }}
+                    style={{ width: 12, height: 12, border: "0.5px solid #ddd", background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#999", textAlign: "center", lineHeight: "12px" }}>+</button>
+                </div>
               </div>;
             })}
           </div>
@@ -4520,8 +4531,20 @@ export default function LoathrMediaGenerator() {
                       style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? "#9b59b6" : "#ddd"), background: sel ? "#9b59b615" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? "#9b59b6" : "#999" }}>{p.l}</button>;
                   })}
                 </div>
+                <div style={{ display: "flex", gap: 3, alignItems: "center", marginTop: 3 }}>
+                  <div style={{ ...CP, fontSize: 4, color: "#666" }}>Size:</div>
+                  <input type="range" min="12" max="60" value={(editingTemplate.branding || {}).logoSize || 30} onChange={function(e) { var br = Object.assign({}, editingTemplate.branding || {}); br.logoSize = parseInt(e.target.value); setEditingTemplate(Object.assign({}, editingTemplate, { branding: br })); }}
+                    style={{ flex: 1 }} />
+                  <div style={{ ...CP, fontSize: 4, color: "#999" }}>{(editingTemplate.branding || {}).logoSize || 30}px</div>
+                </div>
               </div>}
             </div>}
+          </div>
+
+          {/* Reset Global */}
+          <div style={{ textAlign: "center", marginTop: 4 }}>
+            <button onClick={function() { setEditingTemplate(Object.assign({}, editingTemplate, { fonts: {}, fontSizes: {}, colors: {}, branding: { mode: "text" }, layout: {}, hidden: {} })); }}
+              style={{ padding: "3px 8px", border: "0.5px solid #ef444444", background: "transparent", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>{"\u21BA"} Reset Global</button>
           </div>
           </>}
 
@@ -4564,6 +4587,10 @@ export default function LoathrMediaGenerator() {
                 </div>
               </>;
             })()}
+            <div style={{ textAlign: "center", marginTop: 6 }}>
+              <button onClick={function() { setEditingTemplate(Object.assign({}, editingTemplate, { cover: {} })); }}
+                style={{ padding: "3px 8px", border: "0.5px solid #ef444444", background: "transparent", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>{"\u21BA"} Reset Cover</button>
+            </div>
           </div>}
 
           {/* === CONTENT TAB === */}
@@ -4614,6 +4641,10 @@ export default function LoathrMediaGenerator() {
                 </div>
               </>;
             })()}
+            <div style={{ textAlign: "center", marginTop: 6 }}>
+              <button onClick={function() { setEditingTemplate(Object.assign({}, editingTemplate, { content: {} })); }}
+                style={{ padding: "3px 8px", border: "0.5px solid #ef444444", background: "transparent", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>{"\u21BA"} Reset Content</button>
+            </div>
           </div>}
 
           {/* === CLOSER TAB === */}
@@ -4639,9 +4670,13 @@ export default function LoathrMediaGenerator() {
                 </div>
               </>;
             })()}
+            <div style={{ textAlign: "center", marginTop: 6 }}>
+              <button onClick={function() { setEditingTemplate(Object.assign({}, editingTemplate, { closer: {} })); }}
+                style={{ padding: "3px 8px", border: "0.5px solid #ef444444", background: "transparent", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>{"\u21BA"} Reset Closer</button>
+            </div>
           </div>}
 
-          {/* Live preview */}
+          {/* Live preview — style guide card */}
           <div style={{ marginBottom: 8 }}>
             <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>PREVIEW</div>
             <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
@@ -4653,6 +4688,7 @@ export default function LoathrMediaGenerator() {
             </div>
             {(function() {
               var pf = editingTemplate.fonts || {};
+              var pfs = editingTemplate.fontSizes || {};
               var pc = editingTemplate.colors || {};
               var pl = editingTemplate.layout || {};
               var pb = editingTemplate.branding || {};
@@ -4680,8 +4716,8 @@ export default function LoathrMediaGenerator() {
               return <div style={{ border: "1.5px solid " + borderC, background: bgColor, backgroundImage: showTexture ? "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.008) 1px, rgba(0,0,0,0.008) 2px)" : "none", padding: 0, overflow: "hidden" }}>
                 {/* Masthead */}
                 {!ph.masthead && <div style={{ padding: "4px 8px 2px", textAlign: isEnt ? "right" : "center", borderBottom: "1px solid " + borderC }}>
-                  {pb.logo && (pb.mode === "logo" || pb.mode === "both") && <img src={pb.logo} alt="" style={{ maxHeight: 14, maxWidth: "40%", objectFit: "contain", marginBottom: 2, filter: isEnt ? "brightness(2)" : "none" }} />}
-                  {(pb.mode !== "logo") && <div style={Object.assign({}, mastheadFontObj, { fontSize: 11, color: mastheadC, letterSpacing: isEnt ? "0.2em" : "0.03em", lineHeight: 1 })}>{pl.mastheadText || mastheadName}</div>}
+                  {pb.logo && (pb.mode === "logo" || pb.mode === "both") && <img src={pb.logo} alt="" style={{ maxHeight: (pb.logoSize || 30) * 0.5, maxWidth: "50%", objectFit: "contain", marginBottom: 2, filter: isEnt ? "brightness(2)" : "none" }} />}
+                  {(pb.mode !== "logo") && <div style={Object.assign({}, mastheadFontObj, { fontSize: Math.min((pfs.masthead || 28) * 0.4, 14), color: mastheadC, letterSpacing: isEnt ? "0.2em" : "0.03em", lineHeight: 1 })}>{pl.mastheadText || mastheadName}</div>}
                   {isNews && <div style={{ ...CP, fontSize: 2.5, color: mastheadC + "44", marginTop: 1 }}>by LOATHR</div>}
                   {isEnt && <div style={{ ...CP, fontSize: 3, color: "#ffffff44", marginTop: 1 }}>ENTERPRISE</div>}
                 </div>}
@@ -4743,6 +4779,10 @@ export default function LoathrMediaGenerator() {
               setEditingTemplate(null);
             }}
               style={{ padding: "6px 10px", border: "0.5px solid #ef4444", background: "transparent", color: "#ef4444", cursor: "pointer", ...CP, fontSize: 7 }}>{"\u2715"}</button>}
+          </div>
+          <div style={{ textAlign: "center", marginTop: 4 }}>
+            <button onClick={function() { setEditingTemplate({ name: editingTemplate.name, segment: editingTemplate.segment }); }}
+              style={{ padding: "3px 8px", border: "0.5px solid #ef444444", background: "transparent", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>{"\u21BA"} Reset Entire Template</button>
           </div>
           <button onClick={function() { setEditingTemplate(null); }}
             style={{ width: "100%", marginTop: 4, padding: "4px 10px", border: "0.5px solid #ddd", background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#999" }}>Cancel</button>

@@ -200,7 +200,8 @@ function Masthead({ slide, size }) {
   var brandMode = slide._templateBrandMode || "text";
   var showText = brandMode === "text" || brandMode === "both";
   var showLogo = (brandMode === "logo" || brandMode === "both") && logo;
-  var logoEl = showLogo ? <img src={logo} alt="" style={{ maxHeight: 30, maxWidth: "50%", objectFit: "contain" }} /> : null;
+  var logoSize = slide._templateLogoSize || 30;
+  var logoEl = showLogo ? <img src={logo} alt="" style={{ maxHeight: logoSize, maxWidth: "50%", objectFit: "contain" }} /> : null;
   var textEl = showText ? <div style={{ ...(FONT_MAP[slide.mastheadFont] || ER), fontSize: mSize, color: headColor(slide), letterSpacing: "0.03em", lineHeight: 1 }}>{slide.mastheadText || "NEWS DESK"}</div> : null;
   return <>
     {tripleRule()}
