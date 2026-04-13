@@ -4379,13 +4379,36 @@ export default function LoathrMediaGenerator() {
             <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>FONTS</div>
             {[{ key: "masthead", label: "Masthead" }, { key: "heading", label: "Heading" }, { key: "body", label: "Body" }, { key: "highlight", label: "Highlight" }, { key: "banner", label: "Banner" }, { key: "sources", label: "Sources" }].map(function(slot) {
               var fonts = editingTemplate.fonts || {};
-              return <div key={slot.key} style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 2 }}>
-                <div style={{ ...CP, fontSize: 5, color: "#666", width: 50 }}>{slot.label}:</div>
-                <select value={fonts[slot.key] || ""} onChange={function(e) { var f = Object.assign({}, fonts); f[slot.key] = e.target.value || undefined; setEditingTemplate(Object.assign({}, editingTemplate, { fonts: f })); }}
-                  style={{ flex: 1, padding: "2px 4px", border: "0.5px solid #ddd", ...CP, fontSize: 6, color: "#333" }}>
-                  <option value="">Default</option>
-                  {ALL_FONTS.map(function(f) { return <option key={f.id} value={f.id}>{f.label}</option>; })}
-                </select>
+              var current = fonts[slot.key] || "";
+              var resolved = resolveFontFamily(current) || {};
+              return <div key={slot.key} style={{ marginBottom: 4 }}>
+                <div style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 2 }}>
+                  <div style={{ ...CP, fontSize: 5, color: "#666", width: 50 }}>{slot.label}:</div>
+                  <div style={Object.assign({}, resolved, { fontSize: 7, color: "#333", flex: 1 })}>{current ? (ALL_FONTS.find(function(f) { return f.id === current; }) || GOOGLE_FONTS.find(function(f) { return f.id === current; }) || { label: current }).label : "Default"}</div>
+                  {current && <button onClick={function() { var f = Object.assign({}, fonts); delete f[slot.key]; setEditingTemplate(Object.assign({}, editingTemplate, { fonts: f })); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 6, color: "#ccc" }}>{"\u00d7"}</button>}
+                </div>
+                <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                  {ALL_FONTS.slice(0, 8).map(function(f) {
+                    var sel = current === f.id;
+                    var fontStyle = FONT_MAP[f.id] || {};
+                    return <button key={f.id} onClick={function() { var fn = Object.assign({}, fonts); fn[slot.key] = f.id; setEditingTemplate(Object.assign({}, editingTemplate, { fonts: fn })); }}
+                      style={Object.assign({}, { padding: "1px 4px", border: "0.5px solid " + (sel ? "#9b59b6" : "#ddd"), background: sel ? "#9b59b615" : "transparent", cursor: "pointer", fontSize: 5, color: sel ? "#9b59b6" : "#999", lineHeight: 1.2 }, fontStyle)}>{f.label}</button>;
+                  })}
+                  {GOOGLE_FONTS.slice(0, 6).map(function(gf) {
+                    var sel = current === gf.id;
+                    if (sel) loadGoogleFont(gf.family);
+                    return <button key={gf.id} onClick={function() { loadGoogleFont(gf.family); var fn = Object.assign({}, fonts); fn[slot.key] = gf.id; setEditingTemplate(Object.assign({}, editingTemplate, { fonts: fn })); }}
+                      onMouseEnter={function() { loadGoogleFont(gf.family); }}
+                      style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? "#9b59b6" : "#ddd"), background: sel ? "#9b59b615" : "transparent", cursor: "pointer", fontSize: 5, color: sel ? "#9b59b6" : "#999", fontFamily: "'" + gf.family + "', serif", lineHeight: 1.2 }}>{gf.label}</button>;
+                  })}
+                  <select value="" onChange={function(e) { if (!e.target.value) return; var id = e.target.value; var gf = GOOGLE_FONTS.find(function(f) { return f.id === id; }) || ALL_FONTS.find(function(f) { return f.id === id; }); if (gf && gf.family) loadGoogleFont(gf.family); var fn = Object.assign({}, fonts); fn[slot.key] = id; setEditingTemplate(Object.assign({}, editingTemplate, { fonts: fn })); }}
+                    style={{ padding: "1px 3px", border: "0.5px solid #ddd", ...CP, fontSize: 4, color: "#999", width: 40 }}>
+                    <option value="">More</option>
+                    <optgroup label="Custom">{ALL_FONTS.map(function(f) { return <option key={f.id} value={f.id}>{f.label}</option>; })}</optgroup>
+                    <optgroup label="Google">{GOOGLE_FONTS.map(function(f) { return <option key={f.id} value={f.id}>{f.label}</option>; })}</optgroup>
+                  </select>
+                </div>
               </div>;
             })}
           </div>
@@ -4496,11 +4519,13 @@ export default function LoathrMediaGenerator() {
               var borderC = pc.border || "#1a1a1a";
               var dividerC = pc.divider || "#1a1a1a22";
               var mastheadC = pc.masthead || "#1a1a1a";
-              var headFontObj = resolveFontFamily(pf.heading) || FONT_MAP.crownheritage || {};
-              var bodyFontObj = resolveFontFamily(pf.body) || FONT_MAP.vintage || {};
-              var hlFontObj = resolveFontFamily(pf.highlight) || FONT_MAP.medhorn || {};
-              var mastheadFontObj = resolveFontFamily(pf.masthead) || FONT_MAP.eroded || {};
-              var bannerFontObj = resolveFontFamily(pf.banner) || FONT_MAP.bramos || {};
+              // Extract only fontFamily from resolved fonts to avoid style conflicts
+              function previewFont(id, fallback) { var r = resolveFontFamily(id) || fallback || {}; return { fontFamily: r.fontFamily || "inherit" }; }
+              var headFontObj = previewFont(pf.heading, FONT_MAP.crownheritage);
+              var bodyFontObj = previewFont(pf.body, FONT_MAP.vintage);
+              var hlFontObj = previewFont(pf.highlight, FONT_MAP.medhorn);
+              var mastheadFontObj = previewFont(pf.masthead, FONT_MAP.eroded);
+              var bannerFontObj = previewFont(pf.banner, FONT_MAP.bramos);
               var showTexture = !pc.textureOff;
               return <div style={{ border: "1.5px solid " + borderC, background: bgColor, backgroundImage: showTexture ? "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.008) 1px, rgba(0,0,0,0.008) 2px)" : "none", padding: 0, overflow: "hidden", aspectRatio: "4/5" }}>
                 {/* Masthead */}
