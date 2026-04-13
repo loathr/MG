@@ -195,11 +195,22 @@ function Masthead({ slide, size }) {
   var isBreaking = slide.breaking;
   var isDev = slide.developing;
   var mSize = (size || 28) + (slide.mastheadSize || 0);
+  var logo = slide._templateLogo;
+  var logoPos = slide._templateLogoPosition || "above";
+  var brandMode = slide._templateBrandMode || "text";
+  var showText = brandMode === "text" || brandMode === "both";
+  var showLogo = (brandMode === "logo" || brandMode === "both") && logo;
+  var logoEl = showLogo ? <img src={logo} alt="" style={{ maxHeight: 30, maxWidth: "50%", objectFit: "contain" }} /> : null;
+  var textEl = showText ? <div style={{ ...(FONT_MAP[slide.mastheadFont] || ER), fontSize: mSize, color: headColor(slide), letterSpacing: "0.03em", lineHeight: 1 }}>{slide.mastheadText || "NEWS DESK"}</div> : null;
   return <>
     {tripleRule()}
-    <div style={Object.assign({}, { padding: "6px 14px 4px", textAlign: "center", flexShrink: 0 }, elT(slide, "heading"))}>
-      <div style={{ ...(FONT_MAP[slide.mastheadFont] || ER), fontSize: mSize, color: headColor(slide), letterSpacing: "0.03em", lineHeight: 1 }}>{slide.mastheadText || "NEWS DESK"}</div>
-      <div style={{ ...CP, fontSize: 3.5, color: "#1a1a1a33", letterSpacing: "0.15em", marginTop: 2 }}>by LOATHR</div>
+    <div style={Object.assign({}, { padding: "6px 14px 4px", textAlign: "center", flexShrink: 0, display: (logoPos === "left" || logoPos === "right") && showLogo && showText ? "flex" : "block", alignItems: "center", justifyContent: "center", gap: 8 }, elT(slide, "heading"))}>
+      {logoPos === "above" && logoEl}
+      {logoPos === "left" && logoEl}
+      {textEl}
+      {logoPos === "right" && logoEl}
+      {logoPos === "below" && logoEl}
+      {showText && <div style={{ ...CP, fontSize: 3.5, color: "#1a1a1a33", letterSpacing: "0.15em", marginTop: 2 }}>by LOATHR</div>}
     </div>
     {editionBar(slide)}
     {isBreaking && <div style={{ background: "#c41e1e", padding: "5px 14px", textAlign: "center", flexShrink: 0 }}>

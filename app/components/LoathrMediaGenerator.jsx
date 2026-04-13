@@ -3098,6 +3098,47 @@ export default function LoathrMediaGenerator() {
   };
 
   // Override keys per element
+  // Get active template for current segment
+  function getTemplate() {
+    if (!activeTemplate) return null;
+    var t = studioTemplates.find(function(t) { return t.name === activeTemplate; });
+    if (!t) return null;
+    if (t.segment && t.segment !== category && t.segment !== activeSegment) return null;
+    return t;
+  }
+
+  // Apply template defaults to a slide (non-destructive — only fills missing fields)
+  function applyTemplate(slide) {
+    var t = getTemplate();
+    if (!t) return slide;
+    var s = Object.assign({}, slide);
+    var f = t.fonts || {};
+    var c = t.colors || {};
+    var l = t.layout || {};
+    // Fonts — only if slide doesn't have an override
+    if (f.heading && !s.headingFont) s.headingFont = f.heading;
+    if (f.body && !s.bodyFont) s.bodyFont = f.body;
+    if (f.highlight && !s.highlightFont) s.highlightFont = f.highlight;
+    if (f.sources && !s.sourcesFont) s.sourcesFont = f.sources;
+    if (f.masthead && !s.mastheadFont) s.mastheadFont = f.masthead;
+    if (f.banner && !s.bannerFont) s.bannerFont = f.banner;
+    // Colors
+    if (c.heading && !s.headingColor) s.headingColor = c.heading;
+    if (c.body && !s.bodyColor) s.bodyColor = c.body;
+    // Layout
+    if (l.mastheadText && !s.mastheadText) s.mastheadText = l.mastheadText;
+    if (l.imgFilter && !s.imgFilter) s.imgFilter = l.imgFilter;
+    // Branding
+    var br = t.branding || {};
+    if (br.logo) s._templateLogo = br.logo;
+    if (br.logoPosition) s._templateLogoPosition = br.logoPosition;
+    if (br.mode) s._templateBrandMode = br.mode;
+    if (br.mode === "text" || br.mode === "both") {
+      if (l.mastheadText && !s.mastheadText) s.mastheadText = l.mastheadText;
+    }
+    return s;
+  }
+
   var ELEMENT_OVERRIDES = {
     heading: ["headingFont", "headingSize", "headingColor", "headingAlign"],
     body: ["bodyFont", "bodySize", "bodyColor", "bodyAlign"],
@@ -5142,7 +5183,7 @@ export default function LoathrMediaGenerator() {
           <div ref={slideRef} style={{ border: "1.5px solid #000000", display: "inline-block", boxShadow: "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)" }}>
             <div style={{ width: 340, height: 425, overflow: "hidden", border: "4px solid #ffffff" }}>
               <div data-export-target="true" style={{ width: "100%", height: "100%", border: "1px solid #000000", overflow: "hidden" }}>
-            {isRecMode ? <RecSlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
+            {isRecMode ? <RecSlideRenderer category={category} slideData={(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={applyTemplate(cur.slides[currentSlide] || {})} slideIndex={currentSlide} totalSlides={total} images={images} edition={editionData} />}
             </div>
           </div>
           </div>
@@ -5839,7 +5880,7 @@ export default function LoathrMediaGenerator() {
             {cur.slides.map(function(slide, i) { if (!slide) return null; return (
               <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? uiAccent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
                 <div style={{ width: 340, height: 425, transform: "scale(0.2)", transformOrigin: "top left", pointerEvents: "none" }}>
-                  {isRecMode ? <RecSlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} edition={editionData} />}
+                  {isRecMode ? <RecSlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={applyTemplate(slide)} slideIndex={i} totalSlides={total} images={images} edition={editionData} />}
                 </div>
               </div>); })}
           </div>

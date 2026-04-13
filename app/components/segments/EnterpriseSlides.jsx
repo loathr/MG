@@ -140,11 +140,15 @@ export var ENTERPRISE_LAYOUT_LABELS = ["Top/Bottom", "Bottom/Top", "Left/Right",
 export var ENTERPRISE_COVER_LABELS = ["Standard", "Full Bleed", "Split L/R", "Text Only", "Center"];
 
 // Masthead component (reused across cover layouts)
-function Masthead({ isBreaking, align }) {
+function Masthead({ isBreaking, align, slide }) {
+  var logo = slide && slide._templateLogo;
+  var brandMode = slide && slide._templateBrandMode || "text";
+  var showLogo = (brandMode === "logo" || brandMode === "both") && logo;
   return <>
     <div style={{ padding: "8px 16px 4px", borderBottom: "1px solid #ffffff33", textAlign: align || "right", flexShrink: 0 }}>
-      <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff66" }}>LOATHR</div>
-      <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffff44", marginTop: 1 }}>ENTERPRISE</div>
+      {showLogo && <img src={logo} alt="" style={{ maxHeight: 24, maxWidth: "40%", objectFit: "contain", marginBottom: 2, filter: "brightness(2)" }} />}
+      {brandMode !== "logo" && <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff66" }}>LOATHR</div>}
+      {brandMode !== "logo" && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffff44", marginTop: 1 }}>ENTERPRISE</div>}
     </div>
     {isBreaking && <div style={{ background: "#ffffff", padding: "3px 16px", textAlign: "center", flexShrink: 0 }}>
       <div style={{ ...CP, fontSize: 6, letterSpacing: "0.25em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
@@ -173,7 +177,7 @@ export function EnterpriseCover({ slide, images, index }) {
   // Layout 0 — Standard (masthead → image strip → title)
   if (coverLayout === 0) return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
-      <Masthead isBreaking={isBreaking} />
+      <Masthead isBreaking={isBreaking} slide={slide} />
       {url && <div style={{ height: sp + "%", overflow: "hidden", flexShrink: 0, borderBottom: "1px solid #ffffff22" }}>
         <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>}
@@ -227,7 +231,7 @@ export function EnterpriseCover({ slide, images, index }) {
   // Layout 3 — Text Only
   if (coverLayout === 3) return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
-      <Masthead isBreaking={isBreaking} />
+      <Masthead isBreaking={isBreaking} slide={slide} />
       <div style={{ flex: 1, padding: "20px 16px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <CoverTitle slide={slide} />
       </div>
