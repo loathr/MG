@@ -4496,11 +4496,11 @@ export default function LoathrMediaGenerator() {
               var borderC = pc.border || "#1a1a1a";
               var dividerC = pc.divider || "#1a1a1a22";
               var mastheadC = pc.masthead || "#1a1a1a";
-              var headFontObj = FONT_MAP[pf.heading] || FONT_MAP.crownheritage || {};
-              var bodyFontObj = FONT_MAP[pf.body] || FONT_MAP.vintage || {};
-              var hlFontObj = FONT_MAP[pf.highlight] || FONT_MAP.medhorn || {};
-              var mastheadFontObj = FONT_MAP[pf.masthead] || FONT_MAP.eroded || {};
-              var bannerFontObj = FONT_MAP[pf.banner] || FONT_MAP.bramos || {};
+              var headFontObj = resolveFontFamily(pf.heading) || FONT_MAP.crownheritage || {};
+              var bodyFontObj = resolveFontFamily(pf.body) || FONT_MAP.vintage || {};
+              var hlFontObj = resolveFontFamily(pf.highlight) || FONT_MAP.medhorn || {};
+              var mastheadFontObj = resolveFontFamily(pf.masthead) || FONT_MAP.eroded || {};
+              var bannerFontObj = resolveFontFamily(pf.banner) || FONT_MAP.bramos || {};
               var showTexture = !pc.textureOff;
               return <div style={{ border: "1.5px solid " + borderC, background: bgColor, backgroundImage: showTexture ? "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.008) 1px, rgba(0,0,0,0.008) 2px)" : "none", padding: 0, overflow: "hidden", aspectRatio: "4/5" }}>
                 {/* Masthead */}
