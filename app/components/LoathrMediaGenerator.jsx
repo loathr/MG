@@ -2536,7 +2536,67 @@ function buildRecPrompt(catLabel, topic) {
 // --- MAIN COMPONENT ---
 export default function LoathrMediaGenerator() {
   var _s = useState, _cb = useCallback, _ef = useEffect, _ref = useRef;
-  var seg = _s("editorial"), activeSegment = seg[0], setActiveSegment = seg[1]; // "editorial"|"enterprise"|"newsdesk"
+  // Auth state
+  var auth = _s(null), userRole = auth[0], setUserRole = auth[1]; // null=gate, "admin", "limited"
+  var acx = _s(""), accessCode = acx[0], setAccessCode = acx[1];
+  var ace = _s(""), accessError = ace[0], setAccessError = ace[1];
+  var acl = _s(false), accessLoading = acl[0], setAccessLoading = acl[1];
+
+  // Check saved auth on mount
+  _ef(function() {
+    try {
+      var saved = localStorage.getItem("loathr_access");
+      if (saved) {
+        var parsed = JSON.parse(saved);
+        if (parsed && parsed.role) setUserRole(parsed.role);
+      }
+    } catch (e) {}
+  }, []);
+
+  // Verify code
+  async function verifyCode() {
+    if (!accessCode.trim()) return;
+    setAccessLoading(true); setAccessError("");
+    try {
+      var r = await fetch("/api/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: accessCode }) });
+      var d = await r.json();
+      if (d.valid) {
+        setUserRole(d.role);
+        localStorage.setItem("loathr_access", JSON.stringify({ role: d.role, code: accessCode.trim().toUpperCase() }));
+      } else {
+        setAccessError(d.error || "Invalid code");
+      }
+    } catch (e) { setAccessError("Verification failed"); }
+    finally { setAccessLoading(false); }
+  }
+
+  function logout() {
+    setUserRole(null);
+    localStorage.removeItem("loathr_access");
+    setAccessCode("");
+  }
+
+  // Generation counter for limited users
+  function getGenCount() {
+    try {
+      var data = JSON.parse(localStorage.getItem("loathr_gen_limit") || "{}");
+      var today = new Date().toDateString();
+      if (data.date !== today) return 0;
+      return data.count || 0;
+    } catch (e) { return 0; }
+  }
+  function incrementGenCount() {
+    var today = new Date().toDateString();
+    var current = getGenCount();
+    localStorage.setItem("loathr_gen_limit", JSON.stringify({ date: today, count: current + 1 }));
+  }
+  function canGenerate() {
+    if (userRole === "admin") return true;
+    return getGenCount() < 6;
+  }
+  var genRemaining = userRole === "admin" ? null : 6 - getGenCount();
+
+  var seg = _s("editorial"), activeSegment = seg[0], setActiveSegment = seg[1]; // "editorial"|"enterprise"|"newsdesk"|"studios"
   var cs = _s(null), category = cs[0], setCategory = cs[1];
   var sc2 = _s(null), secondaryCategory = sc2[0], setSecondaryCategory = sc2[1];
   var scc = _s(2), secondaryCount = scc[0], setSecondaryCount = scc[1];
@@ -3432,6 +3492,7 @@ export default function LoathrMediaGenerator() {
 
   var generate = _cb(async function() {
     if (!topic.trim() || !category) return;
+    if (!canGenerate()) { setError("Daily generation limit reached (6/6). Try again tomorrow."); return; }
     if (abortRef.current) abortRef.current.abort();
     var controller = new AbortController();
     abortRef.current = controller;
@@ -3550,6 +3611,7 @@ export default function LoathrMediaGenerator() {
       else if (Array.isArray(parsed) && parsed[0]) results.push(parsed[0]);
       if (results.length === 0) throw new Error("No valid carousel generated");
       setOptions(results);
+      incrementGenCount();
       // Save to recent and history
       try {
         var recent = JSON.parse(localStorage.getItem("loathr_recent") || "[]");
@@ -4047,8 +4109,25 @@ export default function LoathrMediaGenerator() {
     finally { setIsGenerating(false); }
   }, [topic, category, apiKeys]);
 
+  // Gate screen — show before app loads
+  if (!userRole) return (
+    <div style={{ maxWidth: 400, margin: "0 auto", padding: "80px 20px", textAlign: "center", minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+      <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: "#1a1a1a", fontWeight: 700, marginBottom: 4 }}>L O A T H R</div>
+      <div style={{ width: 40, height: 1, background: "#ddd", margin: "8px auto" }} />
+      <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", color: "#999", marginBottom: 40 }}>MEDIA MAKER</div>
+      <div style={{ ...CP, fontSize: 9, color: "#666", marginBottom: 12 }}>Enter your invite code</div>
+      <input value={accessCode} onChange={function(e) { setAccessCode(e.target.value); setAccessError(""); }}
+        onKeyDown={function(e) { if (e.key === "Enter") verifyCode(); }}
+        placeholder="LOATHR-XXXX"
+        style={{ width: "100%", padding: "12px 16px", border: "1px solid #ddd", ...CP, fontSize: 12, color: "#333", textAlign: "center", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 8 }} />
+      {accessError && <div style={{ ...CP, fontSize: 8, color: "#ef4444", marginBottom: 8 }}>{accessError}</div>}
+      <button onClick={verifyCode} disabled={accessLoading}
+        style={{ width: "100%", padding: "12px 16px", border: "none", background: "#1a1a1a", color: "#ffffff", cursor: accessLoading ? "wait" : "pointer", ...CP, fontSize: 9, letterSpacing: "0.15em" }}>{accessLoading ? "VERIFYING..." : "ENTER"}</button>
+    </div>
+  );
+
   return (
-    <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px", background: activeSegment === "enterprise" ? "#0a0a0a" : activeSegment === "newsdesk" ? "#f5f0e4" : undefined, color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : undefined, minHeight: activeSegment !== "editorial" ? "100vh" : undefined, transition: "background 0.3s, color 0.3s" }}>
+    <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px", background: activeSegment === "enterprise" ? "#0a0a0a" : activeSegment === "newsdesk" ? "#f5f0e4" : activeSegment === "studios" ? "#faf8ff" : undefined, color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : undefined, minHeight: activeSegment !== "editorial" ? "100vh" : undefined, transition: "background 0.3s, color 0.3s" }}>
       <style>{"@font-face{font-family:'Foun';src:url('/Fonts/Foun/OpenType-PS/Foun.otf') format('opentype'),url('/Fonts/Foun/OpenType-TT/Foun.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Wenssep';src:url('/Fonts/Wenssep/Wenssep.otf') format('opentype'),url('/Fonts/Wenssep/Wenssep.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Regular.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Otilito';src:url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Regular.otf') format('opentype'),url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/TTF/TBJOtilito-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Otilito';src:url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Bold.otf') format('opentype'),url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/TTF/TBJOtilito-Bold.ttf') format('truetype');font-weight:700;font-style:normal;font-display:swap}@font-face{font-family:'Qogee';src:url('/Fonts/qogee-font-2026-04-07-06-00-04-utc/Qogee.otf') format('opentype'),url('/Fonts/qogee-font-2026-04-07-06-00-04-utc/Qogee.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Matina';src:url('/Fonts/Matina/Font/Matina-Regular.woff2') format('woff2'),url('/Fonts/Matina/Font/Matina-Regular.woff') format('woff'),url('/Fonts/Matina/Font/Matina-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'QuickZip';src:url('/Fonts/News%20Deck/FONT/QUICK-ZIP.woff') format('woff'),url('/Fonts/News%20Deck/FONT/QUICK-ZIP.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'GrandHalva';src:url('/Fonts/News%20Deck/GRAND%20HALVA.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'CarbonText';src:url('/Fonts/News%20Deck/carbon-modern-typeface-webfonts-2026-04-07-06-00-24-utc/fonts/CarbonText-Regular.woff2') format('woff2'),url('/Fonts/News%20Deck/carbon-modern-typeface-webfonts-2026-04-07-06-00-24-utc/fonts/CarbonText-Regular.woff') format('woff');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Medhorn';src:url('/Fonts/News%20Deck/medhorn-modern-sport-display-bold-slab-serif-2026-04-07-05-58-49-utc/Web-PS/Medhorn.woff2') format('woff2'),url('/Fonts/News%20Deck/medhorn-modern-sport-display-bold-slab-serif-2026-04-07-05-58-49-utc/OpenType-PS/Medhorn.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Eroded';src:url('/Fonts/News%20Deck/eroded-personal-use/ERODED%20PERSONAL%20USE.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'VintageTypist';src:url('/Fonts/News%20Deck/vintage-typist/VintageTypist.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}@font-face{font-family:'Bramos';src:url('/Fonts/News%20Deck/bramos/Bramos.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Cheelaved';src:url('/Fonts/News%20Deck/the-cheelaved/TheCheelaved-Regular.otf') format('opentype'),url('/Fonts/News%20Deck/the-cheelaved/TheCheelaved-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'RealityStone';src:url('/Fonts/News%20Deck/reality-stone-personal-use/Reality%20Stone.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'CrownHeritage';src:url('/Fonts/News%20Deck/crown-heritage/CrownHeritage.otf') format('opentype'),url('/Fonts/News%20Deck/crown-heritage/CrownHeritage.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}@keyframes walk{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}@keyframes hammer{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-45deg)}}@keyframes sweep{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}@keyframes paint{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}@keyframes carry{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-3px) rotate(-2deg)}75%{transform:translateY(-3px) rotate(2deg)}}@keyframes figfade{0%{opacity:1}45%{opacity:1}50%{opacity:0}95%{opacity:0}100%{opacity:1}}"}</style>
 
       <div style={{ textAlign: "center", marginBottom: 20 }}>
@@ -4173,14 +4252,14 @@ export default function LoathrMediaGenerator() {
         <div style={{ marginBottom: 10 }}>
           <div style={{ ...CP, fontSize: 7, color: "#9b59b6", letterSpacing: "0.1em", marginBottom: 4 }}>MY TEMPLATES</div>
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
-            <button onClick={function() { setEditingTemplate({ name: "", segment: "newsdesk", fonts: {}, colors: {}, layout: {}, branding: { mode: "text", text: "", logo: null, logoPosition: "above" } }); }}
-              style={{ padding: "8px 12px", border: "1px dashed #9b59b644", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#9b59b6" }}>+ Create New</button>
+            {userRole === "admin" && <button onClick={function() { setEditingTemplate({ name: "", segment: "newsdesk", fonts: {}, colors: {}, layout: {}, branding: { mode: "text", text: "", logo: null, logoPosition: "above" } }); }}
+              style={{ padding: "8px 12px", border: "1px dashed #9b59b644", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#9b59b6" }}>+ Create New</button>}
             {studioTemplates.map(function(t, i) {
               var isActive = activeTemplate === t.name;
-              return <button key={i} onClick={function() { setEditingTemplate(Object.assign({}, t)); }}
-                style={{ padding: "8px 12px", border: "0.5px solid " + (isActive ? "#9b59b6" : "#ddd"), background: isActive ? "#9b59b615" : "#fff", cursor: "pointer", ...CP, fontSize: 7, color: isActive ? "#9b59b6" : "#666" }}>
+              return <button key={i} onClick={function() { if (userRole === "admin") setEditingTemplate(Object.assign({}, t)); }}
+                style={{ padding: "8px 12px", border: "0.5px solid " + (isActive ? "#9b59b6" : "#ddd"), background: isActive ? "#9b59b615" : "#fff", cursor: userRole === "admin" ? "pointer" : "default", ...CP, fontSize: 7, color: isActive ? "#9b59b6" : "#666" }}>
                 <div style={{ fontWeight: 700 }}>{t.name}</div>
-                <div style={{ fontSize: 5, color: "#999", marginTop: 1 }}>{t.segment || "Universal"}{isActive ? " ✓ Active" : ""}</div>
+                <div style={{ fontSize: 5, color: "#999", marginTop: 1 }}>{t.segment || "Universal"}{isActive ? " \u2713 Active" : ""}{userRole !== "admin" ? " (view only)" : ""}</div>
               </button>;
             })}
           </div>
@@ -5947,6 +6026,8 @@ export default function LoathrMediaGenerator() {
       <div style={{ textAlign: "center", padding: "18px 0 12px", borderTop: "0.5px solid var(--color-border-tertiary)", marginTop: 16 }}>
         <div style={{ ...CP, fontSize: 8, letterSpacing: "0.3em", color: "var(--color-text-tertiary)", opacity: 0.4 }}>L O A T H R</div>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 2 }}>MEDIA MAKER</div>
+        {userRole === "limited" && genRemaining !== null && <div style={{ ...CP, fontSize: 5, color: genRemaining > 2 ? "#22c55e" : genRemaining > 0 ? "#d97706" : "#ef4444", marginTop: 4 }}>{genRemaining}/6 generations remaining today</div>}
+        <button onClick={logout} style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 5, color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 4 }}>Log out</button>
       </div>
     </div>
   );
