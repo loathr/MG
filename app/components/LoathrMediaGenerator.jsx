@@ -2673,9 +2673,9 @@ export default function LoathrMediaGenerator() {
   }
   function canGenerate() {
     if (userRole === "admin") return true;
-    return getGenCount() < 6;
+    return getGenCount() < 15;
   }
-  var genRemaining = userRole === "admin" ? null : 6 - getGenCount();
+  var genRemaining = userRole === "admin" ? null : 15 - getGenCount();
 
   var seg = _s("editorial"), activeSegment = seg[0], setActiveSegment = seg[1]; // "editorial"|"enterprise"|"newsdesk"|"studios"
   var cs = _s(null), category = cs[0], setCategory = cs[1];
@@ -6770,7 +6770,7 @@ export default function LoathrMediaGenerator() {
       <div style={{ textAlign: "center", padding: "18px 0 12px", borderTop: "0.5px solid var(--color-border-tertiary)", marginTop: 16 }}>
         <div style={{ ...CP, fontSize: 8, letterSpacing: "0.3em", color: "var(--color-text-tertiary)", opacity: 0.4 }}>L O A T H R</div>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 2 }}>MEDIA MAKER</div>
-        {userRole === "limited" && genRemaining !== null && <div style={{ ...CP, fontSize: 5, color: genRemaining > 2 ? "#22c55e" : genRemaining > 0 ? "#d97706" : "#ef4444", marginTop: 4 }}>{genRemaining}/6 generations remaining today</div>}
+        {userRole === "limited" && genRemaining !== null && <div style={{ ...CP, fontSize: 5, color: genRemaining > 2 ? "#22c55e" : genRemaining > 0 ? "#d97706" : "#ef4444", marginTop: 4 }}>{genRemaining}/15 generations remaining today</div>}
         <button onClick={logout} style={{ background: "none", border: "none", cursor: "pointer", ...CP, fontSize: 5, color: "var(--color-text-tertiary)", opacity: 0.3, marginTop: 4 }}>Log out</button>
       </div>
     </div>
