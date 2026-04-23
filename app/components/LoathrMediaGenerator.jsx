@@ -649,11 +649,7 @@ function styleBody(text, accentColor, accent2Color) {
     if (/^[A-Z\s]+$/.test(part) && part.trim().length > 2 && hitCount < 2) {
       var c = colors[hitCount % colors.length];
       hitCount++;
-      // Wrap each word individually for cleaner line breaks
-      var words = part.trim().split(/\s+/);
-      return words.map(function(word, wi) {
-        return <span key={i + "-" + wi} style={{ color: "#000000", fontWeight: 700, background: c, padding: "1px 4px", margin: "0 2px 2px 0", display: "inline-block", lineHeight: 1.6 }}>{word}</span>;
-      });
+      return <span key={i} style={{ fontWeight: 700, borderBottom: "2px solid " + c, paddingBottom: 1, color: "inherit" }}>{part}</span>;
     }
     return part;
   });
@@ -2515,13 +2511,36 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
   setExportStatus("Creating ZIP...");
   try {
     var content = await zip.generateAsync({ type: "blob" });
-    var blobUrl = URL.createObjectURL(content);
-    var a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = "LOATHR-" + category.toUpperCase() + "-carousel" + (useJpeg ? "-optimized" : "") + ".zip";
-    a.click();
-    URL.revokeObjectURL(blobUrl);
-    setExportStatus("Downloaded!");
+    var fileName = "LOATHR-" + category.toUpperCase() + "-carousel" + (useJpeg ? "-optimized" : "") + ".zip";
+    // Mobile: use share API if available
+    if (navigator.share && navigator.canShare) {
+      var file = new File([content], fileName, { type: "application/zip" });
+      if (navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: "LOATHR Carousel", text: "Carousel export" });
+          setExportStatus("Shared!");
+        } catch (shareErr) {
+          if (shareErr.name !== "AbortError") {
+            // Fallback to download
+            var blobUrl2 = URL.createObjectURL(content);
+            var a2 = document.createElement("a"); a2.href = blobUrl2; a2.download = fileName; a2.click();
+            URL.revokeObjectURL(blobUrl2);
+            setExportStatus("Downloaded!");
+          } else { setExportStatus("Share cancelled"); }
+        }
+      } else {
+        var blobUrl3 = URL.createObjectURL(content);
+        var a3 = document.createElement("a"); a3.href = blobUrl3; a3.download = fileName; a3.click();
+        URL.revokeObjectURL(blobUrl3);
+        setExportStatus("Downloaded!");
+      }
+    } else {
+      // Desktop: direct download
+      var blobUrl = URL.createObjectURL(content);
+      var a = document.createElement("a"); a.href = blobUrl; a.download = fileName; a.click();
+      URL.revokeObjectURL(blobUrl);
+      setExportStatus("Downloaded!");
+    }
   } catch (e) { setExportStatus("ZIP creation failed"); }
   setTimeout(function() { setExportStatus(null); }, 2000);
 };
@@ -5806,15 +5825,15 @@ export default function LoathrMediaGenerator() {
               style={{ padding: "6px 8px", border: "1px solid " + uiAccent, background: "transparent", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 8, color: uiAccent, opacity: exportStatus ? 0.5 : 1 }}>
               {"\u2B07"} SAVE
             </button>
-            {/* Export all — JPEG (smaller, iPhone optimized) */}
+            {/* Export all — JPEG */}
             <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus, "jpeg"); }} disabled={!!exportStatus}
-              style={{ padding: "6px 8px", border: "1px solid " + uiAccent, background: uiAccent + "15", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 8, color: uiAccent, opacity: exportStatus ? 0.5 : 1 }}>
-              <Archive size={9} /> {exportStatus || "ALL JPG"}
+              style={{ padding: "6px 8px", border: "1px solid " + uiAccent, background: uiAccent + "15", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 7, color: uiAccent, opacity: exportStatus ? 0.5 : 1 }}>
+              {exportStatus || "\u2B07 Download All (JPG)"}
             </button>
-            {/* Export all — PNG (lossless, larger files) */}
+            {/* Export all — PNG */}
             <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus, "png"); }} disabled={!!exportStatus}
-              style={{ padding: "6px 8px", border: "0.5px solid #ccc", background: "transparent", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 8, color: "#999", opacity: exportStatus ? 0.5 : 1 }}>
-              ALL PNG
+              style={{ padding: "6px 8px", border: "0.5px solid #ccc", background: "transparent", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 7, color: "#999", opacity: exportStatus ? 0.5 : 1 }}>
+              {"\u2B07"} Download All (PNG)
             </button>
           </div>
         </div>
