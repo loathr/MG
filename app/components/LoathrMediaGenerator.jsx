@@ -3613,6 +3613,99 @@ export default function LoathrMediaGenerator() {
     if (navigator.clipboard) { navigator.clipboard.writeText(link); }
   }, [topic, category]);
 
+  // Export carousel as JSON file
+  function exportCarousel() {
+    var _so = selectedOptionRef.current;
+    var cur = options && options[_so];
+    if (!cur || !cur.slides) return;
+    var imgUrls = {};
+    Object.keys(images || {}).forEach(function(k) {
+      if (images[k] && images[k].url) imgUrls[k] = { url: images[k].url, thumb: images[k].thumb || images[k].url, source: images[k].source || "" };
+    });
+    var data = {
+      version: 1,
+      topic: topic,
+      category: category,
+      segment: activeSegment,
+      template: activeTemplate || null,
+      slides: cur.slides,
+      images: imgUrls,
+      mosaics: Object.keys(_mosaicSlides).length > 0 ? _mosaicSlides : undefined,
+      exportDate: new Date().toISOString()
+    };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    var fileName = "LOATHR-" + (topic || "carousel").replace(/[^a-zA-Z0-9]/g, "-").slice(0, 30) + ".json";
+    if (navigator.share && navigator.canShare) {
+      var file = new File([blob], fileName, { type: "application/json" });
+      if (navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: "LOATHR Carousel" }).catch(function() {});
+        return;
+      }
+    }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a"); a.href = url; a.download = fileName; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Import carousel from JSON file
+  async function importCarousel(file) {
+    try {
+      var text = await file.text();
+      var data = JSON.parse(text);
+      if (!data.slides || !Array.isArray(data.slides)) { setError("Invalid carousel file"); return; }
+      // Set category and segment
+      if (data.category) { setCategory(data.category); }
+      if (data.segment) { setActiveSegment(data.segment); }
+      if (data.topic) { setTopic(data.topic); }
+      if (data.template) { setActiveTemplate(data.template); localStorage.setItem("loathr_active_template", data.template); }
+      // Load slides
+      setOptions([{ angle: "Imported", slides: data.slides }]);
+      setCurrentSlide(0); setSelectedOption(0);
+      // Load images — try saved URLs, fallback search for failed ones
+      if (data.images) {
+        var imgMap = {};
+        var failedSlides = [];
+        var keys = Object.keys(data.images);
+        for (var ki = 0; ki < keys.length; ki++) {
+          var k = keys[ki];
+          var img = data.images[k];
+          if (img && img.url) {
+            try {
+              var resp = await fetch(img.url, { method: "HEAD", mode: "no-cors" });
+              imgMap[parseInt(k)] = img;
+            } catch (e) { failedSlides.push(parseInt(k)); }
+          }
+        }
+        // Fallback search for failed images
+        if (failedSlides.length > 0 && data.slides) {
+          var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
+          var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
+          for (var fi = 0; fi < failedSlides.length; fi++) {
+            var si = failedSlides[fi];
+            var slide = data.slides[si];
+            if (!slide) continue;
+            var sq = (slide.heading || slide.title || data.topic || "").slice(0, 50);
+            try {
+              if (unsplashKey) {
+                var sr = await searchUnsplash(sq, unsplashKey);
+                if (sr.length > 0) { imgMap[si] = sr[0]; continue; }
+              }
+              if (pexelsKey) {
+                var pr = await searchPexels(sq, pexelsKey);
+                if (pr.length > 0) { imgMap[si] = pr[0]; continue; }
+              }
+            } catch (e) {}
+          }
+        }
+        setImages(imgMap);
+        _allImages = imgMap;
+        setImgStatus(Object.keys(imgMap).length + " images loaded" + (failedSlides.length > 0 ? " (" + failedSlides.length + " replaced)" : ""));
+      }
+      // Load mosaics
+      if (data.mosaics) { _mosaicSlides = data.mosaics; }
+    } catch (e) { setError("Failed to import: " + e.message); }
+  }
+
   var cancelGenerate = _cb(function() {
     if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
     setIsGenerating(false); setError("Generation cancelled");
@@ -4262,6 +4355,14 @@ export default function LoathrMediaGenerator() {
         <div style={{ ...CP, fontSize: 14, letterSpacing: "0.4em", color: "var(--color-text-primary)", fontWeight: 700, lineHeight: 1.1 }}>L O A T H R</div>
         <div style={{ width: 40, height: 1, background: "var(--color-border-tertiary)", margin: "9px auto" }} />
         <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", color: activeSegment === "enterprise" ? "#888888" : activeSegment === "newsdesk" ? "#c41e1e" : "var(--color-text-tertiary)", textTransform: "uppercase", marginTop: 2 }}>Media Maker</div>
+        <label style={{ display: "inline-block", marginTop: 6, padding: "3px 8px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "var(--color-text-tertiary)", letterSpacing: "0.08em" }}>
+          {"\u2B06"} Import Carousel
+          <input type="file" accept=".json" style={{ display: "none" }} onChange={function(e) {
+            var file = e.target.files && e.target.files[0];
+            if (file) importCarousel(file);
+            e.target.value = "";
+          }} />
+        </label>
       </div>
 
 
@@ -5841,6 +5942,10 @@ export default function LoathrMediaGenerator() {
             <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus, "png"); }} disabled={!!exportStatus}
               style={{ padding: "6px 8px", border: "0.5px solid #ccc", background: "transparent", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 7, color: "#999", opacity: exportStatus ? 0.5 : 1 }}>
               {"\u2B07"} Download All (PNG)
+            </button>
+            <button onClick={exportCarousel}
+              style={{ padding: "6px 8px", border: "0.5px solid #9b59b6", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#9b59b6" }}>
+              {"\u2B06"} Share as File
             </button>
           </div>
         </div>
