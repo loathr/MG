@@ -2805,6 +2805,13 @@ export default function LoathrMediaGenerator() {
     if (category === "enterprise") { setTrending([]); }
   }, [enterpriseForce, enterpriseMode, enterpriseSector, category]);
 
+  // Trigger search when topic changes (from pill clicks, trending selections, etc.)
+  _ef(function() {
+    if (topic && topic.trim().length >= 2 && category) {
+      triggerSearch(topic);
+    }
+  }, [topic]);
+
   // Keep ref in sync so generate() always reads latest locked images
   _ef(function() { lockedRef.current = lockedPersonImages; }, [lockedPersonImages]);
 
