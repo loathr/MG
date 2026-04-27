@@ -2437,7 +2437,7 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
   return window.html2canvas(exportTarget, {
     width: ew,
     height: eh,
-    scale: 1080 / ew,
+    scale: Math.min(1080 / ew, window.innerWidth < 500 ? 2.5 : 1080 / ew),
     useCORS: true,
     allowTaint: true,
     backgroundColor: "#000000",
@@ -2653,7 +2653,7 @@ export default function LoathrMediaGenerator() {
 
   function logout() {
     setUserRole(null);
-    localStorage.removeItem("loathr_access");
+    try { localStorage.removeItem("loathr_access"); } catch (e) {}
     setAccessCode("");
   }
 
@@ -2667,9 +2667,11 @@ export default function LoathrMediaGenerator() {
     } catch (e) { return 0; }
   }
   function incrementGenCount() {
-    var today = new Date().toDateString();
-    var current = getGenCount();
-    localStorage.setItem("loathr_gen_limit", JSON.stringify({ date: today, count: current + 1 }));
+    try {
+      var today = new Date().toDateString();
+      var current = getGenCount();
+      localStorage.setItem("loathr_gen_limit", JSON.stringify({ date: today, count: current + 1 }));
+    } catch (e) {}
   }
   function canGenerate() {
     if (userRole === "admin") return true;
@@ -3671,8 +3673,14 @@ export default function LoathrMediaGenerator() {
           var img = data.images[k];
           if (img && img.url) {
             try {
-              var resp = await fetch(img.url, { method: "HEAD", mode: "no-cors" });
-              imgMap[parseInt(k)] = img;
+              // Try loading the image — if URL works, use it; if not, mark for replacement
+              await new Promise(function(resolve) {
+                var testImg = new Image();
+                testImg.onload = function() { imgMap[parseInt(k)] = img; resolve(); };
+                testImg.onerror = function() { failedSlides.push(parseInt(k)); resolve(); };
+                testImg.src = img.url;
+                setTimeout(function() { if (!imgMap[parseInt(k)] && failedSlides.indexOf(parseInt(k)) < 0) { failedSlides.push(parseInt(k)); resolve(); } }, 5000);
+              });
             } catch (e) { failedSlides.push(parseInt(k)); }
           }
         }
