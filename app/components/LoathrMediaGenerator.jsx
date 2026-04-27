@@ -2429,20 +2429,26 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
   await new Promise(function(r) { setTimeout(r, 800); });
   var el = slideRef.current;
   if (!el) return null;
-  // Export the full framed slide exactly as seen on screen — all borders included
+  // Export the inner slide div (child of the ref) to avoid border/padding mismatch
   var exportTarget = el;
-  var ew = exportTarget.offsetWidth;
-  var eh = exportTarget.offsetHeight;
-  // Scale to 1080px width (3.176x) — sharp on iPhone retina (3x)
+  // Find the actual slide content div inside
+  var innerSlide = el.querySelector("[style*='width: 340']") || el.querySelector("[style*='width:340']") || el.firstElementChild || el;
+  var ew = innerSlide.offsetWidth || 340;
+  var eh = innerSlide.offsetHeight || 425;
+  // Scale to 1080px width — cap on mobile to prevent memory crash
+  var exportScale = window.innerWidth < 500 ? Math.min(2.5, 1080 / ew) : 1080 / ew;
   return window.html2canvas(exportTarget, {
-    width: ew,
-    height: eh,
-    scale: Math.min(1080 / ew, window.innerWidth < 500 ? 2.5 : 1080 / ew),
+    width: exportTarget.offsetWidth,
+    height: exportTarget.offsetHeight,
+    scale: exportScale,
     useCORS: true,
     allowTaint: true,
-    backgroundColor: "#000000",
+    backgroundColor: null,
     logging: false,
     onclone: function(clonedDoc, clonedEl) {
+      // Force consistent dimensions — prevent black panel overflow
+      clonedEl.style.width = exportTarget.offsetWidth + "px";
+      clonedEl.style.height = exportTarget.offsetHeight + "px";
       // Fix objectFit:cover — convert to background-image
       var imgs = clonedEl.querySelectorAll("img[style*='object-fit']");
       imgs.forEach(function(img) {
@@ -2454,7 +2460,6 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
           img.style.opacity = "0";
         }
       });
-      // Fix text container expansion at export scale
       // Lock the outermost slide container to prevent any overflow
       clonedEl.style.overflow = "hidden";
       var innerDivs = clonedEl.querySelectorAll("div");
@@ -5921,7 +5926,7 @@ export default function LoathrMediaGenerator() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 4 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", textTransform: "uppercase" }}>Slide {currentSlide + 1} / {total}</div>
           <div style={{ display: "flex", gap: 3 }}>
-            {/* Save single slide — optimized for iPhone (long-press to save) */}
+            {/* Save single slide */}
             <button onClick={async function() {
               if (exportStatus) return;
               setExportStatus("Rendering...");
@@ -5930,9 +5935,18 @@ export default function LoathrMediaGenerator() {
                 var canvas = await renderSlideToCanvas(slideRef, currentSlide, setCurrentSlide);
                 if (canvas) {
                   var blob = await new Promise(function(r) { canvas.toBlob(r, "image/jpeg", 0.92); });
-                  var blobUrl = URL.createObjectURL(blob);
-                  var a = document.createElement("a"); a.href = blobUrl; a.download = "LOATHR-slide-" + (currentSlide + 1) + ".jpg"; a.click();
-                  URL.revokeObjectURL(blobUrl);
+                  var fileName = "LOATHR-slide-" + (currentSlide + 1) + ".jpg";
+                  // Mobile: use share API
+                  if (navigator.share && navigator.canShare) {
+                    var file = new File([blob], fileName, { type: "image/jpeg" });
+                    if (navigator.canShare({ files: [file] })) {
+                      try { await navigator.share({ files: [file], title: "LOATHR Slide" }); } catch (se) {}
+                    } else {
+                      var bu = URL.createObjectURL(blob); var a = document.createElement("a"); a.href = bu; a.download = fileName; a.click(); URL.revokeObjectURL(bu);
+                    }
+                  } else {
+                    var blobUrl = URL.createObjectURL(blob); var a2 = document.createElement("a"); a2.href = blobUrl; a2.download = fileName; a2.click(); URL.revokeObjectURL(blobUrl);
+                  }
                 }
                 setExportStatus("Saved!");
               } catch (e) { setExportStatus("Failed"); }
