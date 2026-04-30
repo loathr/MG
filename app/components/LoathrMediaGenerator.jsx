@@ -2813,8 +2813,9 @@ export default function LoathrMediaGenerator() {
   }, [enterpriseForce, enterpriseMode, enterpriseSector, category]);
 
   // Trigger search when topic changes (from pill clicks, trending selections, etc.)
+  // Skip during generation to prevent concurrent API floods
   _ef(function() {
-    if (topic && topic.trim().length >= 2 && category) {
+    if (topic && topic.trim().length >= 2 && category && !isGenerating && !options) {
       triggerSearch(topic);
     }
   }, [topic]);
@@ -3726,7 +3727,7 @@ export default function LoathrMediaGenerator() {
 
   var generate = _cb(async function() {
     if (!topic.trim() || !category) return;
-    if (!canGenerate()) { setError("Daily generation limit reached (6/6). Try again tomorrow."); return; }
+    if (!canGenerate()) { setError("Daily generation limit reached (15/15). Try again tomorrow."); return; }
     if (abortRef.current) abortRef.current.abort();
     var controller = new AbortController();
     abortRef.current = controller;
