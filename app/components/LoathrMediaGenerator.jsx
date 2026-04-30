@@ -2436,7 +2436,7 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
   var ew = innerSlide.offsetWidth || 340;
   var eh = innerSlide.offsetHeight || 425;
   // Scale to 1080px width — cap on mobile to prevent memory crash
-  var exportScale = window.innerWidth < 500 ? Math.min(2.5, 1080 / ew) : 1080 / ew;
+  var exportScale = window.innerWidth < 500 ? Math.min(3, 1080 / ew) : 1080 / ew;
   return window.html2canvas(exportTarget, {
     width: exportTarget.offsetWidth,
     height: exportTarget.offsetHeight,
@@ -2492,7 +2492,7 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
   var useJpeg = format === "jpeg";
   var mimeType = useJpeg ? "image/jpeg" : "image/png";
   var ext = useJpeg ? ".jpg" : ".png";
-  var quality = useJpeg ? 0.92 : 1.0;
+  var quality = useJpeg ? 0.96 : 1.0;
   setExportStatus("Loading export libraries...");
   try {
     await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
@@ -5935,7 +5935,7 @@ export default function LoathrMediaGenerator() {
                 await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
                 var canvas = await renderSlideToCanvas(slideRef, currentSlide, setCurrentSlide);
                 if (canvas) {
-                  var blob = await new Promise(function(r) { canvas.toBlob(r, "image/jpeg", 0.92); });
+                  var blob = await new Promise(function(r) { canvas.toBlob(r, "image/jpeg", 0.96); });
                   var fileName = "LOATHR-slide-" + (currentSlide + 1) + ".jpg";
                   // Mobile: use share API
                   if (navigator.share && navigator.canShare) {
