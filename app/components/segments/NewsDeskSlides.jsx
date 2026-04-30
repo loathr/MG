@@ -94,9 +94,10 @@ function editionBar(s) {
 
 // Page footer
 function pageFooter(s, pageNum) {
+  var pn = pageNum || (s && s.pageNumber) || 1;
   return <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 14px", flexShrink: 0, borderTop: "0.5px solid #1a1a1a22" }}>
-    <div style={{ ...CP, fontSize: 3.5, color: "#1a1a1a33", letterSpacing: "0.1em" }}>NEWS DESK <span style={{ fontSize: 2.5, color: "#1a1a1a22" }}>by LOATHR</span></div>
-    <div style={{ ...CP, fontSize: 3.5, color: "#1a1a1a33" }}>Page {pageNum || s && s.pageNumber || 1}</div>
+    <div style={{ ...CP, fontSize: 3.5, color: "#1a1a1a88", letterSpacing: "0.1em" }}>NEWS DESK <span style={{ fontSize: 2.5, color: "#1a1a1a55" }}>by LOATHR</span></div>
+    <div style={{ ...CP, fontSize: 3.5, color: "#1a1a1a88" }}>Page {pn}</div>
   </div>;
 }
 
@@ -679,11 +680,13 @@ export function NewsStory({ slide, images, index }) {
   var url = images && images[index] ? images[index].url : null;
   var li = typeof slide.newsLayout === "number" ? slide.newsLayout : ((index - 1) % LAYOUTS.length);
   var L = LAYOUTS[li] || LayoutStandard;
-  return <L slide={slide} url={url} />;
+  var s = Object.assign({}, slide, { pageNumber: index + 1 });
+  return <L slide={s} url={url} />;
 }
 
 // ===== REACTION (Option A: center column, Option C: portrait left) =====
 export function NewsReaction({ slide, images, index }) {
+  slide = Object.assign({}, slide, { pageNumber: index + 1 });
   var url = images && images[index] ? images[index].url : null;
   var bs = autoBodySize(slide, 8);
   var imgSize = slide.portraitSize || 80;
