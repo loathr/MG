@@ -6062,6 +6062,8 @@ export default function LoathrMediaGenerator() {
           <button onClick={factCheck} disabled={factCheckLoading}
             style={{ padding: "4px 10px", border: "0.5px solid #ccc", background: factCheckResult ? (factCheckResult.score >= 7 ? "#22c55e22" : "#ef444422") : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: factCheckResult ? (factCheckResult.score >= 7 ? "#22c55e" : "#ef4444") : "#999" }}>
             {factCheckLoading ? "Checking..." : factCheckResult ? factCheckResult.score + "/10" : "\u2713 Fact Check"}</button>
+          {factCheckResult && <button onClick={function() { setFactCheckResult(null); }}
+            style={{ padding: "4px 6px", border: "0.5px solid #ccc", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#999" }}>{"\u21BA"}</button>}
           <button onClick={function() { setEditMode(!editMode); setEditField(null); }}
             style={{ padding: "4px 10px", border: "0.5px solid " + (editMode ? uiAccent : "#ccc"), background: editMode ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: editMode ? uiAccent : "#999" }}>
             {editMode ? "\u2713 Done Editing" : "\u270E Edit"}</button>
@@ -6659,8 +6661,8 @@ export default function LoathrMediaGenerator() {
               {currentSlide < total - 2 && currentSlide > 0 && <button onClick={function() { moveSlide(currentSlide, currentSlide + 1); }}
                 style={{ padding: "2px 5px", border: "0.5px solid #ddd", background: "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666" }}>{"\u2193"}</button>}
               <div style={{ flex: 1 }} />
-              {isContent && <button onClick={function() { deleteSlide(currentSlide); }}
-                style={{ padding: "2px 5px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>{"\u2715"} Delete</button>}
+              {total > 2 && <button onClick={function() { deleteSlide(currentSlide); }}
+                style={{ padding: "2px 5px", border: "0.5px solid #ef444444", background: "#fff", cursor: "pointer", ...CP, fontSize: 5, color: "#ef4444" }}>{"\u2715"} Delete Slide</button>}
             </div>
             <div style={{ marginTop: 4, textAlign: "center" }}>
               <button onClick={resetAllSlides}
