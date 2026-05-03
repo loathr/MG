@@ -4063,16 +4063,26 @@ export default function LoathrMediaGenerator() {
             else if (role === "hotTake" && !imgMap[3]) imgMap[3] = pvImg;
           });
 
-          // 1. Main topic search for cover + closer (coverPrefix only here)
+          // 1. Main topic search for cover + closer
+          // Cover gets FULL category context (label + topic + force/filter prefix). Per-slide queries (below) stay slim — that was the Commit A intent.
           var topicTokens = shortTopic.split(/\s+/).filter(Boolean);
-          var mainQuery = (coverPrefix + topicTokens.join(" ")).trim();
-          var mainImgs = await primaryFn(mainQuery, primaryKey);
-          // Degrade query by dropping one keyword at a time, never collapse to bare category
+          var coverContext = (coverPrefix + (catInfo && catInfo.label ? catInfo.label + " " : "")).trim();
+          var coverTopic = topicTokens.join(" ") || (topic || "").trim();
+          var mainQuery = (coverContext + " " + coverTopic).trim();
+          var mainImgs = [];
+          if (mainQuery) {
+            try { mainImgs = await primaryFn(mainQuery, primaryKey); } catch (e) {}
+          }
+          // Degrade by dropping topic tokens one at a time, then category label as last resort
           if (mainImgs.length === 0 && topicTokens.length > 1) {
-            var fallbackQuery = (coverPrefix + topicTokens.slice(0, topicTokens.length - 1).join(" ")).trim();
+            var fallbackQuery = (coverContext + " " + topicTokens.slice(0, topicTokens.length - 1).join(" ")).trim();
             try { mainImgs = await primaryFn(fallbackQuery, primaryKey); } catch (e) {}
           }
-          if (mainImgs.length === 0 && secondaryFn) {
+          if (mainImgs.length === 0 && coverContext) {
+            // Last resort: just the category context (better than blank cover)
+            try { mainImgs = await primaryFn(coverContext, primaryKey); } catch (e) {}
+          }
+          if (mainImgs.length === 0 && secondaryFn && mainQuery) {
             try { mainImgs = await secondaryFn(mainQuery, secondaryKey); } catch (e) {}
           }
           if (mainImgs.length > 0 && !imgMap[0]) imgMap[0] = mainImgs[0]; // cover (skip if person image locked)
