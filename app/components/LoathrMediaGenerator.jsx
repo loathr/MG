@@ -2619,16 +2619,18 @@ function buildPrompt(catLabel, topic, editionSeed, picks, hasPersonImage, second
     crossCatInstr += "\n\nCROSS-CATEGORY LENS — TERTIARY: \"" + tertiaryCatLabel + "\" (EXACTLY " + terN + " slide" + (terN > 1 ? "s" : "") + ")\n" + terDir + "\nOn these slides, add \"categoryLens\": \"" + tertiaryCatLabel + "\". Best roles: THE DEEP CUT or THE COUNTER. Must be SPECIFIC and surprising.";
   }
 
-  var angleLine = angleSuppressed ? "" : "\n\nEDITORIAL ANGLE: " + freshness;
-  var topicFaithfulness = "\n\nTOPIC FAITHFULNESS (read this first):\n- Answer the topic AS WRITTEN. The topic is the user's intent — do not pivot away from it.\n- If the topic asks a current/timely/listicle question (uses words like 'currently', 'now', 'this week', 'best', 'top', 'streaming', 'trending', 'guide to'), answer it LITERALLY. List the actual things. Do NOT pivot to backstory, hot takes, untold origins, cultural commentary, or unrelated fields.\n- The slide roles below are a MENU, not a checklist. Use only the ones that genuinely fit the topic. A 'what's currently streaming' carousel does NOT need THE ORIGIN, THE TURNING POINT, or THE RIPPLE EFFECT — those force tangents.\n- For literal/listicle topics, prefer numbered or named content slides over abstract editorial roles. Each slide should be one specific item, pick, or recommendation answering the user's question.";
-  var driftRules = angleSuppressed
-    ? "\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching"
-    : "\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Where natural, slide 3 may offer a counterpoint or complication to slides 1-2 — but only if it serves the topic, not as a forced contradiction\n- Later slides may connect the topic to a different field or unexpected consequence WHEN it deepens the story — don't force a tangent if the topic doesn't support one\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching";
-  var slideRolesIntro = angleSuppressed
-    ? "\n\nSLIDE ROLES (use ONLY what genuinely fits the topic — for literal/listicle topics, ignore the abstract editorial roles and use numbered item slides instead):"
-    : "\n\nSLIDE ROLES (use as many as the topic warrants — pick what genuinely fits, don't force every role):";
+  // LITERAL MODE — when angle is suppressed (auto-detected timely topic OR user picked Literal)
+  // Override persona voice and slide roles to prevent editorial drift
+  if (angleSuppressed) {
+    var literalVoice = "You are a Curator for LOATHR. Your job is to answer the user's question LITERALLY with a list of specific, real items. No persona, no editorial pivots, no backstories — just the actual answer the user asked for.";
+    return literalVoice + "\n\nYou are writing for LOATHR.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + toneInstr + customVoiceInstr + "\n\nLITERAL TOPIC MODE:\nThe user wants a direct, current answer to this query. Treat it like a curated list, not a magazine feature.\n\n" + slideCountInstr + "\n\nWRITING RULES:\n- Answer the topic AS WRITTEN. Each content slide is ONE specific item, pick, name, or recommendation.\n- For 'currently streaming/best/top' queries, name the actual titles, brands, places, or people. No invented backstories.\n- Use web search if available to ground the list in real, current data.\n- NO uniqueness/contradiction/cross-field rules — those force tangents. Just list well.\n- If a slide is about a specific person, add a 'person' field with their name.\n- Body text: 2-3 sentences MAX — what it is + why it's worth attention.\n- NEVER use 'algorithm' or cliché phrases ('went viral', 'broke the internet', 'changed the game').\n\nSLIDE ROLES (use these literal roles — do NOT use THE ORIGIN, THE TURNING POINT, THE HOT TAKE, etc.):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle\n- \"PICK 1\" through \"PICK N\" — each slide: heading (the item name), body (2-3 sentences: what it is, why it's a pick), highlight (one specific detail — director, year, address, price, runtime, whatever fits), keywords (2-3 terms for image search), sources\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Curated List\",\"slides\":[{...slides...}]}";
+  }
 
-  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + topicFaithfulness + angleLine + "\nWRITING STYLE for content slides: " + style + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nWRITING RULES:\n- NEVER use the word 'algorithm' or 'algorithmic' — it's overused and lazy. Find a more specific way to describe what you mean.\n- Avoid cliché tech/media phrases: 'broke the internet', 'went viral', 'changed the game', 'disrupted'. Use fresh language.\n- HIGHLIGHT FIELD: The 'highlight' on each slide must be an ADDITIONAL INSIGHT — a fact, statistic, or perspective NOT already stated in the body text. Think of it as a newspaper pull-quote or sidebar fact that adds new value. BAD: repeating a phrase from the body. GOOD: a surprising related fact, a contrasting data point, or an expert opinion that deepens understanding." + driftRules + slideRolesIntro + "\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nMOSAIC LAYOUT: You may add '\"mosaic\": true' on 1-2 content slides where a photo collage adds visual variety. Do NOT overuse — most slides should be single image. Good candidates: THE ORIGIN or THE RIPPLE EFFECT. Do NOT use mosaic on Cover, Closer, stat slides (THE EVIDENCE), or quote slides (THE VOICE).\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
+  // FEATURE MODE (default) — magazine-style deep dive with persona + angle
+  var angleLine = "\n\nEDITORIAL ANGLE: " + freshness;
+  var driftRules = "\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Where natural, slide 3 may offer a counterpoint or complication to slides 1-2 — but only if it serves the topic, not as a forced contradiction\n- Later slides may connect the topic to a different field or unexpected consequence WHEN it deepens the story — don't force a tangent if the topic doesn't support one\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching";
+
+  return persona.voice + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + angleLine + "\nWRITING STYLE for content slides: " + style + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nWRITING RULES:\n- NEVER use the word 'algorithm' or 'algorithmic' — it's overused and lazy. Find a more specific way to describe what you mean.\n- Avoid cliché tech/media phrases: 'broke the internet', 'went viral', 'changed the game', 'disrupted'. Use fresh language.\n- HIGHLIGHT FIELD: The 'highlight' on each slide must be an ADDITIONAL INSIGHT — a fact, statistic, or perspective NOT already stated in the body text. Think of it as a newspaper pull-quote or sidebar fact that adds new value. BAD: repeating a phrase from the body. GOOD: a surprising related fact, a contrasting data point, or an expert opinion that deepens understanding." + driftRules + "\n\nSLIDE ROLES (use as many as the topic warrants — pick what genuinely fits, don't force every role):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nMOSAIC LAYOUT: You may add '\"mosaic\": true' on 1-2 content slides where a photo collage adds visual variety. Do NOT overuse — most slides should be single image. Good candidates: THE ORIGIN or THE RIPPLE EFFECT. Do NOT use mosaic on Cover, Closer, stat slides (THE EVIDENCE), or quote slides (THE VOICE).\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -2886,6 +2888,10 @@ export default function LoathrMediaGenerator() {
   var uiAccent = category === "photo" ? "#888888" : (pal ? pal.accent : "#888888");
   var cur = options ? options[selectedOption] : null;
   var total = cur && cur.slides ? cur.slides.length : 0;
+  // Visible-only counts for navigation (excludes soft-deleted slides)
+  var visibleTotal = cur && cur.slides ? cur.slides.filter(function(s) { return s && !s._deleted; }).length : 0;
+  var visiblePos = cur && cur.slides ? cur.slides.slice(0, Math.min(currentSlide + 1, cur.slides.length)).filter(function(s) { return s && !s._deleted; }).length : 0;
+  var deletedSlides = cur && cur.slides ? cur.slides.map(function(s, i) { return { slide: s, idx: i }; }).filter(function(o) { return o.slide && o.slide._deleted; }) : [];
 
   var getVisibleTopics = _cb(function() {
     if (!category) return [];
@@ -3483,7 +3489,48 @@ export default function LoathrMediaGenerator() {
     setEditValue(currentValue || "");
   };
 
+  // Soft-delete: mark slide as _deleted so it can be restored from the Trash panel
   var deleteSlide = function(slideIdx) {
+    setOptions(function(prev) {
+      var _so = selectedOptionRef.current;
+      if (!prev || !prev[_so]) return prev;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[_so]);
+      var slides = opt.slides.slice();
+      slides[slideIdx] = Object.assign({}, slides[slideIdx], { _deleted: true, _deletedAt: Date.now() });
+      opt.slides = slides;
+      newOpts[_so] = opt;
+      return newOpts;
+    });
+    // Move to the next visible slide if we just deleted the current one
+    if (currentSlide === slideIdx) {
+      var _so2 = selectedOptionRef.current;
+      var optSlides = options && options[_so2] ? options[_so2].slides : [];
+      var nextVisible = -1;
+      for (var i = slideIdx + 1; i < optSlides.length; i++) { if (!optSlides[i]._deleted) { nextVisible = i; break; } }
+      if (nextVisible === -1) for (var j = slideIdx - 1; j >= 0; j--) { if (!optSlides[j]._deleted) { nextVisible = j; break; } }
+      if (nextVisible >= 0) setCurrentSlide(nextVisible);
+    }
+  };
+
+  var restoreSlide = function(slideIdx) {
+    setOptions(function(prev) {
+      var _so = selectedOptionRef.current;
+      if (!prev || !prev[_so]) return prev;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[_so]);
+      var slides = opt.slides.slice();
+      var s = Object.assign({}, slides[slideIdx]);
+      delete s._deleted; delete s._deletedAt;
+      slides[slideIdx] = s;
+      opt.slides = slides;
+      newOpts[_so] = opt;
+      return newOpts;
+    });
+    setCurrentSlide(slideIdx);
+  };
+
+  var purgeDeletedSlide = function(slideIdx) {
     setOptions(function(prev) {
       var _so = selectedOptionRef.current;
       if (!prev || !prev[_so]) return prev;
@@ -3495,7 +3542,6 @@ export default function LoathrMediaGenerator() {
       newOpts[_so] = opt;
       return newOpts;
     });
-    if (currentSlide >= slideIdx && currentSlide > 0) setCurrentSlide(currentSlide - 1);
   };
 
   var duplicateSlide = function(slideIdx) {
@@ -3648,9 +3694,13 @@ export default function LoathrMediaGenerator() {
     if (!cur || !cur.slides) return;
     setFactCheckLoading(true); setFactCheckResult(null);
     try {
+      // Bug 3 — sources is sent as context but not auto-fixable (array shape)
       var FACT_FIELDS = ["title", "subtitle", "heading", "leadParagraph", "body", "highlight", "relatedBody", "stat", "statCaption", "caption", "quote", "person", "sources"];
+      // Bug 4 — skip closer slide (no factual claims, just hashtags/funnyLine/disclaimer)
       var slideTexts = cur.slides.map(function(s, i) {
-        var role = i === 0 ? "COVER" : i === cur.slides.length - 1 ? "CLOSER" : "CONTENT";
+        if (s && s._deleted) return null;
+        if (i === cur.slides.length - 1) return null; // skip closer
+        var role = i === 0 ? "COVER" : "CONTENT";
         var lines = ["SLIDE " + i + " (" + role + "):"];
         FACT_FIELDS.forEach(function(f) {
           var v = s[f];
@@ -3660,11 +3710,11 @@ export default function LoathrMediaGenerator() {
           lines.push("  " + f + ": " + String(v));
         });
         return lines.join("\n");
-      }).join("\n\n");
+      }).filter(Boolean).join("\n\n");
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2500,
           tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{ role: "user", content: "You are a fact-checker reviewing an Instagram carousel about \"" + topic + "\".\n\nThe carousel uses 0-based slide indices. Each slide lists its fields explicitly.\n\nContent:\n" + slideTexts + "\n\nFor each slide, verify:\n1. Are the facts accurate? Flag anything wrong or unverifiable.\n2. Are statistics real? Flag made-up numbers.\n3. Are quotes attributed correctly?\n4. Is the overall narrative fair or misleading?\n\nUse web_search to verify specific claims when uncertain.\n\nRespond ONLY with JSON (no prose, no markdown):\n{\"score\": 1-10, \"summary\": \"one sentence overall\", \"issues\": [{\"slide\": <0-based slide index>, \"field\": \"<exact field name from the slide listing — e.g. body, stat, quote, highlight>\", \"issue\": \"what's wrong\", \"fix\": \"the corrected value to write into that field\"}]}\n\nThe \"fix\" must be the FULL replacement value for that field, not a description. If everything checks out, return an empty issues array." }] }) });
+          messages: [{ role: "user", content: "You are a fact-checker reviewing an Instagram carousel about \"" + topic + "\".\n\nThe carousel uses 0-based slide indices. Each slide lists its fields explicitly. The 'sources' field (if present) is provided as context for what the writer cited — do NOT propose a 'fix' for the sources field, only flag in the 'issue' text if a citation is wrong.\n\nContent:\n" + slideTexts + "\n\nFor each slide, verify:\n1. Are the facts accurate? Flag anything wrong or unverifiable.\n2. Are statistics real? Flag made-up numbers.\n3. Are quotes attributed correctly?\n4. Is the overall narrative fair or misleading?\n\nUse web_search to verify specific claims when uncertain.\n\nRespond ONLY with JSON (no prose, no markdown):\n{\"score\": 1-10, \"summary\": \"one sentence overall\", \"issues\": [{\"slide\": <0-based slide index>, \"field\": \"<exact field name from the slide listing — e.g. body, stat, quote, highlight; do NOT use 'sources'>\", \"issue\": \"what's wrong\", \"fix\": \"the corrected value to write into that field\"}]}\n\nThe \"fix\" must be the FULL replacement value for that field, not a description. Never propose a fix for 'sources'. If everything checks out, return an empty issues array." }] }) });
       var d = await r.json();
       if (d.error) { setFactCheckResult({ score: 0, summary: "Fact-check failed: " + (d.error.message || JSON.stringify(d.error)), issues: [], _failed: true }); return; }
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
@@ -6002,7 +6052,7 @@ export default function LoathrMediaGenerator() {
           <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.08em" }}>{editionData.voice} {"\u00b7"} {editionData.angle} {"\u00b7"} {editionData.style}{secondaryCategory ? " \u00b7 +" + secondaryCount + " " + (CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) || {}).label : ""}{tertiaryCategory ? " \u00b7 +" + tertiaryCount + " " + (CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) || {}).label : ""}</div>
         </div>}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 4 }}>
-          <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", textTransform: "uppercase" }}>Slide {currentSlide + 1} / {total}</div>
+          <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", textTransform: "uppercase" }}>Slide {visiblePos} / {visibleTotal}{deletedSlides.length > 0 ? " · " + deletedSlides.length + " deleted" : ""}</div>
           <div style={{ display: "flex", gap: 3 }}>
             {/* Save single slide */}
             <button onClick={async function() {
@@ -6059,12 +6109,12 @@ export default function LoathrMediaGenerator() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 14 }}>
-          <button onClick={function() { setCurrentSlide(Math.max(0, currentSlide - 1)); }} disabled={currentSlide === 0}
+          <button onClick={function() { var i = currentSlide - 1; while (i >= 0 && cur.slides[i] && cur.slides[i]._deleted) i--; if (i >= 0) setCurrentSlide(i); }} disabled={currentSlide === 0}
             style={{ width: 34, height: 34, cursor: currentSlide === 0 ? "default" : "pointer", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", opacity: currentSlide === 0 ? 0.3 : 1 }}>{"\u2039"}</button>
           <div style={{ display: "flex", gap: 5 }}>
-            {cur.slides.map(function(_, i) { return <button key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: i === currentSlide ? 18 : 6, height: 6, cursor: "pointer", border: "none", background: i === currentSlide ? uiAccent : "var(--color-border-tertiary)", transition: "all 0.2s" }} />; })}
+            {cur.slides.map(function(s, i) { if (s && s._deleted) return null; return <button key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: i === currentSlide ? 18 : 6, height: 6, cursor: "pointer", border: "none", background: i === currentSlide ? uiAccent : "var(--color-border-tertiary)", transition: "all 0.2s" }} />; })}
           </div>
-          <button onClick={function() { setCurrentSlide(Math.min(total - 1, currentSlide + 1)); }} disabled={currentSlide === total - 1}
+          <button onClick={function() { var i = currentSlide + 1; while (i < total && cur.slides[i] && cur.slides[i]._deleted) i++; if (i < total) setCurrentSlide(i); }} disabled={currentSlide === total - 1}
             style={{ width: 34, height: 34, cursor: currentSlide === total - 1 ? "default" : "pointer", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", opacity: currentSlide === total - 1 ? 0.3 : 1 }}>{"\u203A"}</button>
         </div>
         {/* Image swap controls */}
@@ -6148,8 +6198,8 @@ export default function LoathrMediaGenerator() {
             style={{ padding: "4px 10px", border: "0.5px solid #ccc", background: shareLink ? uiAccent + "15" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: shareLink ? uiAccent : "#999" }}>
             {shareLink ? "\u2713 Copied" : "\u21E7 Share"}</button>
           <button onClick={factCheck} disabled={factCheckLoading}
-            style={{ padding: "4px 10px", border: "0.5px solid #ccc", background: factCheckResult ? (factCheckResult.score >= 7 ? "#22c55e22" : "#ef444422") : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: factCheckResult ? (factCheckResult.score >= 7 ? "#22c55e" : "#ef4444") : "#999" }}>
-            {factCheckLoading ? "Checking..." : factCheckResult ? factCheckResult.score + "/10" : "\u2713 Fact Check"}</button>
+            style={{ padding: "4px 10px", border: "0.5px solid #ccc", background: factCheckResult ? (factCheckResult._failed ? "#f59e0b22" : factCheckResult.score >= 7 ? "#22c55e22" : "#ef444422") : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: factCheckResult ? (factCheckResult._failed ? "#b45309" : factCheckResult.score >= 7 ? "#22c55e" : "#ef4444") : "#999" }}>
+            {factCheckLoading ? "Checking..." : factCheckResult ? (factCheckResult._failed ? "! Retry" : factCheckResult.score + "/10") : "\u2713 Fact Check"}</button>
           {factCheckResult && <button onClick={function() { setFactCheckResult(null); }}
             style={{ padding: "4px 6px", border: "0.5px solid #ccc", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#999" }}>{"\u21BA"}</button>}
           <button onClick={function() { setEditMode(!editMode); setEditField(null); }}
@@ -6189,6 +6239,26 @@ export default function LoathrMediaGenerator() {
             setDeletedSnapshot(null);
           }}
             style={{ padding: "3px 10px", border: "0.5px solid " + uiAccent, background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.05em" }}>{"\u21A9"} Undo</button>
+        </div>}
+        {/* Trash panel \u2014 soft-deleted slides, restorable */}
+        {deletedSlides.length > 0 && <div style={{ marginTop: 6, padding: 6, border: "0.5px solid #d8d6d0", background: "#fafaf7", borderRadius: 3 }}>
+          <div style={{ ...CP, fontSize: 6, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>TRASH ({deletedSlides.length})</div>
+          {deletedSlides.map(function(o) {
+            var label = (o.slide.heading || o.slide.title || ("Slide " + (o.idx + 1))).slice(0, 60);
+            return (
+              <div key={o.idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0", borderBottom: "0.5px solid #eee" }}>
+                <span style={{ ...CP, fontSize: 6, color: "#666", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+                <div style={{ display: "flex", gap: 3 }}>
+                  <button onClick={function() { restoreSlide(o.idx); }}
+                    title="Restore this slide"
+                    style={{ padding: "2px 6px", border: "0.5px solid #22c55e", background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#22c55e" }}>{"\u21A9"} Restore</button>
+                  <button onClick={function() { if (confirm("Permanently delete this slide?")) purgeDeletedSlide(o.idx); }}
+                    title="Permanently delete"
+                    style={{ padding: "2px 6px", border: "0.5px solid #ef4444", background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#ef4444" }}>{"\u2715"}</button>
+                </div>
+              </div>
+            );
+          })}
         </div>}
         {/* Editor panel — slide editing controls */}
         {editMode && cur && (function() {
@@ -6795,15 +6865,17 @@ export default function LoathrMediaGenerator() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
             <div style={{ ...CP, fontSize: 6, color: factCheckResult.score >= 7 ? "#22c55e" : "#ef4444" }}>{factCheckResult.summary}</div>
             {factCheckResult.issues.some(function(is) { return is.fix; }) && <button onClick={function() {
-              // Auto-apply all fixes that have a suggested correction
               var _fso = selectedOptionRef.current;
-              var written = 0, skipped = 0;
-              factCheckResult.issues.forEach(function(issue) {
-                if (!issue.fix || typeof issue.slide !== "number") { skipped++; return; }
-                var slideIdx = issue.slide; // 0-based per updated prompt
+              var written = 0;
+              var skippedIdx = []; // indices of issues that didn't get applied
+              factCheckResult.issues.forEach(function(issue, idx) {
+                if (!issue.fix || typeof issue.slide !== "number") { skippedIdx.push(idx); return; }
+                var slideIdx = issue.slide;
                 var _fcur = options && options[_fso];
                 var curSlide = _fcur && _fcur.slides ? _fcur.slides[slideIdx] : null;
-                if (!curSlide) { skipped++; return; }
+                if (!curSlide) { skippedIdx.push(idx); return; }
+                // Bug 3 — never auto-apply sources fixes (would corrupt array shape)
+                if (issue.field === "sources") { skippedIdx.push(idx); return; }
                 if (issue.field && curSlide[issue.field] !== undefined) {
                   updateSlideField(slideIdx, issue.field, issue.fix);
                   written++; return;
@@ -6813,22 +6885,31 @@ export default function LoathrMediaGenerator() {
                 else if (curSlide.stat && (lc.indexOf("stat") > -1 || lc.indexOf("number") > -1 || lc.indexOf("figure") > -1)) { updateSlideField(slideIdx, "stat", issue.fix); written++; }
                 else if (curSlide.quote && lc.indexOf("quote") > -1) { updateSlideField(slideIdx, "quote", issue.fix); written++; }
                 else if (curSlide.heading && lc.indexOf("heading") > -1) { updateSlideField(slideIdx, "heading", issue.fix); written++; }
-                else { skipped++; }
+                else { skippedIdx.push(idx); }
               });
-              setFactCheckResult(Object.assign({}, factCheckResult, { _applied: true, _written: written, _skipped: skipped }));
+              setFactCheckResult(Object.assign({}, factCheckResult, { _applied: true, _written: written, _skipped: skippedIdx.length, _skippedIdx: skippedIdx }));
             }}
               style={{ padding: "2px 6px", border: "0.5px solid #22c55e", background: factCheckResult._applied ? "#22c55e22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#22c55e" }}>
               {factCheckResult._applied ? ("\u2713 Applied " + (factCheckResult._written || 0) + (factCheckResult._skipped ? "/" + ((factCheckResult._written || 0) + factCheckResult._skipped) : "")) : "Apply Fixes"}</button>}
           </div>
-          {factCheckResult.issues.map(function(issue, i) { return (
-            <div key={i} style={{ ...CP, fontSize: 6, color: "#666", marginBottom: 2 }}>
-              <span style={{ color: "#ef4444", fontWeight: 700 }}>Slide {issue.slide}:</span> {issue.issue}
-              {issue.fix && <span style={{ color: "#22c55e" }}> {"\u2192"} {issue.fix}</span>}
-            </div>
-          ); })}
+          {factCheckResult.issues.map(function(issue, i) {
+            var wasSkipped = factCheckResult._applied && factCheckResult._skippedIdx && factCheckResult._skippedIdx.indexOf(i) > -1;
+            var canJump = typeof issue.slide === "number";
+            return (
+              <div key={i} onClick={canJump ? function() { setCurrentSlide(issue.slide); } : null}
+                style={{ ...CP, fontSize: 6, color: "#666", marginBottom: 2, padding: "2px 4px", cursor: canJump ? "pointer" : "default", borderRadius: 2, background: wasSkipped ? "#fef3c7" : "transparent" }}
+                onMouseEnter={canJump ? function(e) { e.currentTarget.style.background = wasSkipped ? "#fde68a" : "#f1f1f1"; } : null}
+                onMouseLeave={canJump ? function(e) { e.currentTarget.style.background = wasSkipped ? "#fef3c7" : "transparent"; } : null}>
+                <span style={{ color: "#ef4444", fontWeight: 700 }}>Slide {(typeof issue.slide === "number" ? issue.slide + 1 : "?")}{issue.field ? " \u00b7 " + issue.field : ""}:</span> {issue.issue}
+                {issue.fix && <span style={{ color: "#22c55e" }}> {"\u2192"} {issue.fix}</span>}
+                {wasSkipped && <span style={{ color: "#a16207", marginLeft: 4, fontStyle: "italic" }}>(couldn't auto-apply \u2014 edit manually)</span>}
+              </div>
+            );
+          })}
         </div>}
         {factCheckResult && (!factCheckResult.issues || factCheckResult.issues.length === 0) && factCheckResult.score > 0 && <div style={{ marginTop: 4, ...CP, fontSize: 6, color: "#22c55e", textAlign: "center" }}>{"\u2713"} {factCheckResult.summary}</div>}
         {factCheckResult && factCheckResult._failed && <div style={{ marginTop: 4, padding: 6, border: "0.5px solid #ef444444", background: "#fef2f2", ...CP, fontSize: 6, color: "#ef4444", textAlign: "center", borderRadius: 3 }}>{factCheckResult.summary}</div>}
+        {factCheckResult && !factCheckResult._failed && factCheckResult.score === 0 && (!factCheckResult.issues || factCheckResult.issues.length === 0) && <div style={{ marginTop: 4, padding: 6, border: "0.5px solid #cccccc", background: "#fafafa", ...CP, fontSize: 6, color: "#666", textAlign: "center", borderRadius: 3 }}>Fact-check returned no actionable findings. {factCheckResult.summary}</div>}
         {/* Related topics — elevated */}
         {relatedTopics.length > 0 && <div style={{ display: "flex", gap: 3, flexWrap: "wrap", justifyContent: "center", marginTop: 8 }}>
           <span style={{ ...CP, fontSize: 6, color: "#999" }}>Next:</span>
