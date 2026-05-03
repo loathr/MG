@@ -136,6 +136,7 @@ export function buildNewsDeskPrompt(keywords, filter, region, timeframe, country
   var effectiveTime = isUrgent ? "today" : timeLabel;
 
   return "You are a senior news editor writing for LOATHR NEWS DESK, an editorial Instagram brand that presents news in a newspaper-style carousel format.\n\n" +
+    "TODAY'S DATE: " + timestamp + ". Treat this as 'today' / 'now'. Do NOT default to your training cutoff — that data is stale. Always use web_search to find CURRENT news.\n\n" +
     "SEARCH KEYWORDS: \"" + keywords + "\"\n" +
     "FILTER: " + filterLabel + "\n" +
     "LOCATION: " + locationLabel + "\n" +

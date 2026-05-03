@@ -148,6 +148,7 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks, sector) 
   var timestamp = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() + " at " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
 
   return "You are a senior business analyst writing for LOATHR ENTERPRISE, a black-and-white editorial Instagram brand focused on business intelligence.\n\n" +
+    "TODAY'S DATE: " + timestamp + ". Treat this as 'today' / 'now' / 'currently'. Do NOT default to your training cutoff. Use web search to verify current facts.\n\n" +
     "Industry/Topic: \"" + topic + "\"\n" +
     "Force: \"" + forceLabel + "\"\n" +
     (sectorLabel ? "Sector: \"" + sectorLabel + "\"\n" : "") +
@@ -201,6 +202,7 @@ export function buildEnterpriseNewsPrompt(keywords, force, editionSeed, picks, s
   var tone = ep.enterpriseTone ? ENTERPRISE_TONES.find(function(t) { return t.id === ep.enterpriseTone; }) : null;
 
   return "You are a senior business news editor writing for LOATHR ENTERPRISE, a black-and-white editorial Instagram brand.\n\n" +
+    "TODAY'S DATE: " + timestamp + ". Treat this as 'today' / 'now'. Do NOT default to your training cutoff. Always use web_search for current facts.\n\n" +
     "SEARCH KEYWORDS: \"" + keywords + "\"\n" +
     "BUSINESS SECTOR: " + forceLabel + (sector ? " (" + sector.label + ")" : "") + "\n" +
     "TIMESTAMP: " + timestamp + "\n\n" +
@@ -232,7 +234,11 @@ export function buildEnterpriseTipsPrompt(topic, force, editionSeed, picks, sect
   var focus = ep.enterpriseFocus ? ENTERPRISE_FOCUS.find(function(f) { return f.id === ep.enterpriseFocus; }) : null;
   var tone = ep.enterpriseTone ? ENTERPRISE_TONES.find(function(t) { return t.id === ep.enterpriseTone; }) : null;
 
+  var d = new Date();
+  var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var today = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
   return "You are a senior business strategist writing for LOATHR ENTERPRISE, a black-and-white editorial Instagram brand.\n\n" +
+    "TODAY'S DATE: " + today + ". Treat this as 'today' / 'now'. Do NOT default to your training cutoff. Use web_search for current best practices and tools.\n\n" +
     "Industry: \"" + topic + "\"\n" +
     "Focus Area: " + forceLabel + (sector ? " (" + sector.label + ")" : "") + "\n\n" +
     "Write an ACTIONABLE TIPS carousel for businesses in this industry. Every slide should contain a specific, tactical tip that a business owner could implement this week.\n\n" +
