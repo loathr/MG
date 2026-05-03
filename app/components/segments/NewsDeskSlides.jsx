@@ -43,9 +43,9 @@ function imgF(s) {
   return f[s && s.imgFilter || "newspaper"] || f.newspaper;
 }
 
-// Newspaper texture background
-var NEWS_BG = "#f5f0e4";
-var NEWS_BG_TEXTURE = "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.008) 1px, rgba(0,0,0,0.008) 2px)";
+// Newspaper texture background — grungy newsprint white
+var NEWS_BG = "#f7f5f0";
+var NEWS_BG_TEXTURE = "repeating-radial-gradient(circle at 0% 0%, rgba(40,30,20,0.04) 0px, transparent 1.4px, transparent 4px),repeating-radial-gradient(circle at 100% 100%, rgba(40,30,20,0.035) 0px, transparent 1.2px, transparent 5px),repeating-radial-gradient(circle at 50% 50%, rgba(40,30,20,0.025) 0px, transparent 0.8px, transparent 7px),repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(0,0,0,0.014) 2px, rgba(0,0,0,0.014) 3px),repeating-linear-gradient(90deg, transparent 0, transparent 3px, rgba(0,0,0,0.01) 3px, rgba(0,0,0,0.01) 4px),radial-gradient(ellipse at 25% 15%, rgba(180,160,120,0.05), transparent 55%),radial-gradient(ellipse at 75% 85%, rgba(120,100,80,0.04), transparent 60%)";
 
 function newsBg(s) {
   return { background: (s && s.bgColor) || NEWS_BG, backgroundImage: (s && s.bgTextureHidden) ? "none" : NEWS_BG_TEXTURE };

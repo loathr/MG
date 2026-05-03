@@ -352,16 +352,16 @@ function extractKeywords(text, max) {
 }
 
 function getSlideImageQuery(slide, categoryLabel, topic) {
-  // Person field gets priority — search for their name directly
-  if (slide.person) return slide.person;
+  // Person field — anchor to topic so portraits stay subject-relevant
+  if (slide.person) return slide.person + " " + extractKeywords(topic, 2);
   var heading = slide.heading || slide.title || slide.name || slide.headline || "";
   var body = slide.body || slide.leadParagraph || "";
-  // Extract meaningful keywords from heading + body, NOT category label (which gives generic results)
   var headKw = heading.length > 3 ? extractKeywords(heading, 3) : "";
   var bodyKw = body.length > 10 ? extractKeywords(body, 2) : "";
-  var combined = (headKw + " " + bodyKw).trim();
-  if (combined.length > 5) return topic + " " + combined;
-  return topic + " " + extractKeywords(heading || categoryLabel, 3);
+  var topicKw = extractKeywords(topic, 2);
+  var combined = (topicKw + " " + headKw + " " + bodyKw).trim().split(/\s+/).slice(0, 4).join(" ");
+  if (combined.length > 5) return combined;
+  return (topicKw + " " + extractKeywords(heading || categoryLabel, 2)).trim();
 }
 
 var PALETTES = {
@@ -375,7 +375,7 @@ var PALETTES = {
   nightlife: { bg: "#0a0a1a", accent: "#9b59b6", accent2: "#f1c40f", text: "#f0e6ff" },
   gossip: { bg: "#1a0a14", accent: "#ff4081", accent2: "#ffab40", text: "#fff0f5" },
   enterprise: { bg: "#0a0a0a", accent: "#ffffff", accent2: "#888888", text: "#ffffff" },
-  newsdesk: { bg: "#f5f0e4", accent: "#c41e1e", accent2: "#1a1a1a", text: "#1a1a1a" },
+  newsdesk: { bg: "#f7f5f0", accent: "#c41e1e", accent2: "#1a1a1a", text: "#1a1a1a" },
 };
 
 var CAT_LABELS = { film: "FILM & TV", photo: "PHOTOGRAPHY", sports: "SPORTS \u00d7 CULTURE", trivia: "DID YOU KNOW?", art: "ART & MUSIC", fashion: "FASHION", food: "FOOD & DRINK", nightlife: "NIGHTLIFE", gossip: "THE TEA", enterprise: "ENTERPRISE", newsdesk: "NEWS DESK" };
@@ -1861,15 +1861,15 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
 }
 
 // --- IMAGE SEARCH ---
-var searchUnsplash = async function(query, apiKey) {
-  var r = await fetch("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(query) + "&per_page=10&orientation=portrait", { headers: { Authorization: "Client-ID " + apiKey } });
+var searchUnsplash = async function(query, apiKey, page) {
+  var r = await fetch("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: "Client-ID " + apiKey } });
   if (!r.ok) throw new Error("Unsplash " + r.status);
   var d = await r.json();
   return (d.results || []).map(function(img) { return { url: img.urls ? img.urls.regular : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; });
 };
 
-var searchPexels = async function(query, apiKey) {
-  var r = await fetch("https://api.pexels.com/v1/search?query=" + encodeURIComponent(query) + "&per_page=10&orientation=portrait", { headers: { Authorization: apiKey } });
+var searchPexels = async function(query, apiKey, page) {
+  var r = await fetch("https://api.pexels.com/v1/search?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: apiKey } });
   if (!r.ok) throw new Error("Pexels " + r.status);
   var d = await r.json();
   return (d.photos || []).map(function(img) { return { url: img.src ? img.src.large : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; });
@@ -2748,6 +2748,8 @@ export default function LoathrMediaGenerator() {
   var swp = _s(null), swapSlide = swp[0], setSwapSlide = swp[1]; // slide index being swapped
   var swi = _s([]), swapImages = swi[0], setSwapImages = swi[1]; // candidate images for swap
   var swl = _s(false), swapLoading = swl[0], setSwapLoading = swl[1];
+  var swpg = _s(1), swapPage = swpg[0], setSwapPage = swpg[1]; // pagination for regenerate
+  var swmd = _s("auto"), swapMode = swmd[0], setSwapMode = swmd[1]; // auto | person | place | thing
   var siq = _s(""), swapQuery = siq[0], setSwapQuery = siq[1]; // custom search query for swap
   // Image style hover preview
   var hov = _s(null), hoverStyle = hov[0], setHoverStyle = hov[1];
@@ -2756,6 +2758,8 @@ export default function LoathrMediaGenerator() {
   // Fact-checker state
   var fcs = _s(null), factCheckResult = fcs[0], setFactCheckResult = fcs[1];
   var fcl = _s(false), factCheckLoading = fcl[0], setFactCheckLoading = fcl[1];
+  // Delete-carousel undo snapshot — null when nothing to restore
+  var dsn = _s(null), deletedSnapshot = dsn[0], setDeletedSnapshot = dsn[1];
   // --- Custom Story mode ---
   var csm = _s(false), customStoryMode = csm[0], setCustomStoryMode = csm[1];
   var cfl = _s("editorial"), creativeFreedom = cfl[0], setCreativeFreedom = cfl[1];
@@ -3173,41 +3177,77 @@ export default function LoathrMediaGenerator() {
   }, []);
 
   // Image swap: fetch replacement candidates for a specific slide
-  async function fetchSwapImages(slideIdx, query) {
+  // mode: "auto" | "person" | "place" | "thing" — controls which APIs are called and in what order
+  async function fetchSwapImages(slideIdx, query, page, mode) {
+    var pg = page || 1;
+    var md = mode || "auto";
     setSwapLoading(true); setSwapImages([]);
     try {
       var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
       var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
       var catLabel = cat ? cat.label : category;
       var searchQ = query || (catLabel + " " + extractKeywords(topic, 3));
-      var results = [];
-      // Primary sources
-      if (unsplashKey) { try { var us = await searchUnsplash(searchQ, unsplashKey); results = results.concat(us.slice(0, 6)); } catch (e) {} }
-      if (pexelsKey) { try { var px = await searchPexels(searchQ, pexelsKey); results = results.concat(px.slice(0, 4)); } catch (e) {} }
-      // Wikipedia + Wikimedia Commons
-      try { var wr = await searchWikiRest(searchQ); results = results.concat(wr); } catch (e) {}
-      try { var wm = await searchWikimedia(searchQ); results = results.concat(wm.slice(0, 3)); } catch (e) {}
-      try { var wc = await searchWikiCommons(searchQ); results = results.concat(wc.slice(0, 4)); } catch (e) {}
-      // Pixabay
-      try { var pb = await searchPixabay(searchQ); results = results.concat(pb.slice(0, 4)); } catch (e) {}
-      // Vintage / archival
-      try { var vi = await searchVintage(category, extractKeywords(query || topic, 2)); results = results.concat(vi.slice(0, 3)); } catch (e) {}
-      // Person-specific: TMDb + iTunes if query looks like a name
       var _so = selectedOptionRef.current;
       var cur = options ? options[_so] : null;
       var personName = cur && cur.slides && cur.slides[slideIdx] ? cur.slides[slideIdx].person : null;
-      if (personName || (searchQ.split(" ").length <= 3 && /^[A-Z]/.test(searchQ))) {
+
+      // Auto-detect: if slide has a person field, or query is 2-4 capitalized words, treat as person
+      var looksLikePerson = (function() {
+        if (md !== "auto") return md === "person";
+        if (personName) return true;
+        var words = searchQ.trim().split(/\s+/);
+        if (words.length < 2 || words.length > 4) return false;
+        return words.every(function(w) { return /^[A-Z][a-z'-]+$/.test(w); });
+      })();
+      var isPlace = md === "place";
+      var results = [];
+
+      if (looksLikePerson) {
+        // PERSON MODE — portrait sources first, anchored to topic context
         var pName = personName || searchQ;
-        try { var tm = await searchTMDb(pName); results = results.concat(tm.slice(0, 3)); } catch (e) {}
-        try { var it = await searchITunes(pName); results = results.concat(it.slice(0, 2)); } catch (e) {}
+        var topicAnchor = extractKeywords(topic, 2);
+        // Wikipedia REST — best for notable figures
+        try { var wr = await searchWikiRest(pName); results = results.concat(wr); } catch (e) {}
+        // TMDb — actors, directors, TV personalities
+        try { var tm = await searchTMDb(pName); results = results.concat(tm.slice(0, 4)); } catch (e) {}
+        // iTunes — musicians
+        try { var it = await searchITunes(pName); results = results.concat(it.slice(0, 3)); } catch (e) {}
+        // Wikimedia file search (often has portraits not in REST summary)
+        try { var wm = await searchWikimedia(pName); results = results.concat(wm.slice(0, 3)); } catch (e) {}
+        // Stock APIs with portrait/headshot anchors + topic context
+        var stockQ = pName + " portrait" + (topicAnchor ? " " + topicAnchor : "");
+        if (unsplashKey) { try { var us = await searchUnsplash(stockQ, unsplashKey, pg); results = results.concat(us.slice(0, 4)); } catch (e) {} }
+        if (pexelsKey) { try { var px = await searchPexels(stockQ, pexelsKey, pg); results = results.concat(px.slice(0, 4)); } catch (e) {} }
+        // Filter out obvious landscapes (kept aspectRatio metadata where available)
+        results = results.filter(function(img) {
+          if (!img) return false;
+          if (img.width && img.height && img.width > img.height * 1.3) return false; // wide landscape
+          return true;
+        });
+      } else if (isPlace) {
+        // PLACE MODE — archival + commons first
+        try { var wcp = await searchWikiCommons(searchQ); results = results.concat(wcp.slice(0, 6)); } catch (e) {}
+        try { var wrp = await searchWikiRest(searchQ); results = results.concat(wrp); } catch (e) {}
+        try { var vip = await searchVintage(category, extractKeywords(searchQ, 2)); results = results.concat(vip.slice(0, 4)); } catch (e) {}
+        if (unsplashKey) { try { var usp = await searchUnsplash(searchQ + " landmark", unsplashKey, pg); results = results.concat(usp.slice(0, 4)); } catch (e) {} }
+        if (pexelsKey) { try { var pxp = await searchPexels(searchQ + " landscape", pexelsKey, pg); results = results.concat(pxp.slice(0, 3)); } catch (e) {} }
+      } else {
+        // THING / AUTO mode — original mixed-source flow
+        if (unsplashKey) { try { var ust = await searchUnsplash(searchQ, unsplashKey, pg); results = results.concat(ust.slice(0, 6)); } catch (e) {} }
+        if (pexelsKey) { try { var pxt = await searchPexels(searchQ, pexelsKey, pg); results = results.concat(pxt.slice(0, 4)); } catch (e) {} }
+        try { var wrt = await searchWikiRest(searchQ); results = results.concat(wrt); } catch (e) {}
+        try { var wmt = await searchWikimedia(searchQ); results = results.concat(wmt.slice(0, 3)); } catch (e) {}
+        try { var wct = await searchWikiCommons(searchQ); results = results.concat(wct.slice(0, 4)); } catch (e) {}
+        try { var pbt = await searchPixabay(searchQ); results = results.concat(pbt.slice(0, 4)); } catch (e) {}
+        try { var vit = await searchVintage(category, extractKeywords(query || topic, 2)); results = results.concat(vit.slice(0, 3)); } catch (e) {}
       }
-      // Deduplicate across sources
+
       results = dedupeImages(results);
-      // If too few results, retry with broader query
-      if (results.length < 4 && query) {
+      // Fallback if too few — broader query (skip in person mode to avoid generic results)
+      if (results.length < 4 && query && !looksLikePerson) {
         var broaderQ = catLabel + " " + extractKeywords(query, 2);
-        if (unsplashKey) { try { var us2 = await searchUnsplash(broaderQ, unsplashKey); results = results.concat(us2.slice(0, 4)); } catch (e) {} }
-        if (pexelsKey) { try { var px2 = await searchPexels(broaderQ, pexelsKey); results = results.concat(px2.slice(0, 3)); } catch (e) {} }
+        if (unsplashKey) { try { var us2 = await searchUnsplash(broaderQ, unsplashKey, pg); results = results.concat(us2.slice(0, 4)); } catch (e) {} }
+        if (pexelsKey) { try { var px2 = await searchPexels(broaderQ, pexelsKey, pg); results = results.concat(px2.slice(0, 3)); } catch (e) {} }
         results = dedupeImages(results);
       }
       setSwapImages(results.slice(0, 16));
@@ -3590,24 +3630,33 @@ export default function LoathrMediaGenerator() {
     if (!cur || !cur.slides) return;
     setFactCheckLoading(true); setFactCheckResult(null);
     try {
+      var FACT_FIELDS = ["title", "subtitle", "heading", "leadParagraph", "body", "highlight", "relatedBody", "stat", "statCaption", "caption", "quote", "person", "sources"];
       var slideTexts = cur.slides.map(function(s, i) {
-        if (i === 0) return "COVER: " + (s.title || "");
-        if (i === cur.slides.length - 1) return null;
-        return "SLIDE " + (i + 1) + ": " + (s.heading || "") + " — " + (s.body || "") + (s.stat ? " [STAT: " + s.stat + "]" : "") + (s.quote ? " [QUOTE: " + s.quote + "]" : "");
-      }).filter(Boolean).join("\n");
+        var role = i === 0 ? "COVER" : i === cur.slides.length - 1 ? "CLOSER" : "CONTENT";
+        var lines = ["SLIDE " + i + " (" + role + "):"];
+        FACT_FIELDS.forEach(function(f) {
+          var v = s[f];
+          if (v == null || v === "") return;
+          if (Array.isArray(v)) v = v.map(function(x) { return typeof x === "string" ? x : JSON.stringify(x); }).join("; ");
+          else if (typeof v === "object") v = JSON.stringify(v);
+          lines.push("  " + f + ": " + String(v));
+        });
+        return lines.join("\n");
+      }).join("\n\n");
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 600,
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2500,
           tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{ role: "user", content: "You are a fact-checker reviewing an Instagram carousel about \"" + topic + "\".\n\nHere is the content:\n" + slideTexts + "\n\nFor each slide, verify:\n1. Are the facts accurate? Flag anything wrong or unverifiable.\n2. Are statistics real? Flag made-up numbers.\n3. Are quotes attributed correctly?\n4. Is the overall narrative fair or misleading?\n\nRespond ONLY with JSON:\n{\"score\": 1-10, \"summary\": \"one sentence overall\", \"issues\": [{\"slide\": N, \"issue\": \"what's wrong\", \"fix\": \"suggested correction\"}]}\nIf everything checks out, return empty issues array." }] }) });
+          messages: [{ role: "user", content: "You are a fact-checker reviewing an Instagram carousel about \"" + topic + "\".\n\nThe carousel uses 0-based slide indices. Each slide lists its fields explicitly.\n\nContent:\n" + slideTexts + "\n\nFor each slide, verify:\n1. Are the facts accurate? Flag anything wrong or unverifiable.\n2. Are statistics real? Flag made-up numbers.\n3. Are quotes attributed correctly?\n4. Is the overall narrative fair or misleading?\n\nUse web_search to verify specific claims when uncertain.\n\nRespond ONLY with JSON (no prose, no markdown):\n{\"score\": 1-10, \"summary\": \"one sentence overall\", \"issues\": [{\"slide\": <0-based slide index>, \"field\": \"<exact field name from the slide listing — e.g. body, stat, quote, highlight>\", \"issue\": \"what's wrong\", \"fix\": \"the corrected value to write into that field\"}]}\n\nThe \"fix\" must be the FULL replacement value for that field, not a description. If everything checks out, return an empty issues array." }] }) });
       var d = await r.json();
-      if (d.error) { setFactCheckResult({ score: 0, summary: "Fact-check failed: " + (d.error.message || d.error), issues: [] }); return; }
+      if (d.error) { setFactCheckResult({ score: 0, summary: "Fact-check failed: " + (d.error.message || JSON.stringify(d.error)), issues: [], _failed: true }); return; }
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
       var cleaned = text.replace(/```json|```/g, "").trim();
       var js = cleaned.indexOf("{"); var je = cleaned.lastIndexOf("}");
       if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
+      if (!cleaned) { setFactCheckResult({ score: 0, summary: "Fact-check returned no output. Try again.", issues: [], _failed: true }); return; }
       var parsed = JSON.parse(cleaned);
       setFactCheckResult(parsed);
-    } catch (e) { setFactCheckResult({ score: 0, summary: "Parse error: " + e.message, issues: [] }); }
+    } catch (e) { setFactCheckResult({ score: 0, summary: "Parse error: " + e.message + ". The model may have returned incomplete JSON — try again.", issues: [], _failed: true }); }
     finally { setFactCheckLoading(false); }
   }, [options, selectedOption, topic]);
 
@@ -3882,18 +3931,21 @@ export default function LoathrMediaGenerator() {
           var secondaryFn = unsplashKey && pexelsKey ? searchPexels : null;
           var secondaryKey = pexelsKey || "";
           var shortTopic = extractKeywords(topic, 3);
-          // Enterprise/News Desk: add context to image search for more relevant results
+          // Enterprise/News Desk: prefix is for the COVER image only — per-slide queries use slide-specific keywords
+          var coverPrefix = "";
           if (category === "enterprise" && enterpriseForce) {
             var forceImgCtx = { tech: "technology innovation", policy: "government regulation", ai: "artificial intelligence robot", markets: "stock market finance", culture: "culture society", media: "media broadcast", education: "education university", stocks: "wall street trading", lifestyle: "consumer lifestyle", news: "breaking news press" };
-            shortTopic = (forceImgCtx[enterpriseForce] || "business") + " " + shortTopic;
+            coverPrefix = (forceImgCtx[enterpriseForce] || "business") + " ";
           }
           if (category === "newsdesk" && newsFilter) {
             var filterImgCtx = { breaking: "breaking news urgent", developing: "news press conference", trending: "viral social media", politics: "politics government capitol", sports: "sports athlete stadium", money: "finance economy money", people: "celebrity public figure", tech: "technology digital", culture: "culture arts society", world: "global world map" };
-            shortTopic = (filterImgCtx[newsFilter] || "news") + " " + shortTopic;
+            coverPrefix = (filterImgCtx[newsFilter] || "news") + " ";
           }
           var imgMap = {};
           var slides = results[0] && results[0].slides ? results[0].slides : [];
-          var vintageSlots = [1, 2, 7];
+          // Bug 5 fix — vintage routing only on for visual/historical categories
+          var VINTAGE_CATS = { film: 1, photo: 1, art: 1, trivia: 1, fashion: 1 };
+          var vintageSlots = VINTAGE_CATS[category] ? [1, 2, 7] : [];
 
           // 0. Place locked person images — read from ref for guaranteed freshness
           var currentLocked = lockedRef.current || {};
@@ -3943,14 +3995,17 @@ export default function LoathrMediaGenerator() {
             else if (role === "hotTake" && !imgMap[3]) imgMap[3] = pvImg;
           });
 
-          // 1. Main topic search for cover + closer
-          var mainImgs = await primaryFn(catInfo.label + " " + shortTopic, primaryKey);
-          // Retry with broader terms if main search returned nothing
-          if (mainImgs.length === 0) {
-            try { mainImgs = await primaryFn(catInfo.label, primaryKey); } catch (e) {}
+          // 1. Main topic search for cover + closer (coverPrefix only here)
+          var topicTokens = shortTopic.split(/\s+/).filter(Boolean);
+          var mainQuery = (coverPrefix + topicTokens.join(" ")).trim();
+          var mainImgs = await primaryFn(mainQuery, primaryKey);
+          // Degrade query by dropping one keyword at a time, never collapse to bare category
+          if (mainImgs.length === 0 && topicTokens.length > 1) {
+            var fallbackQuery = (coverPrefix + topicTokens.slice(0, topicTokens.length - 1).join(" ")).trim();
+            try { mainImgs = await primaryFn(fallbackQuery, primaryKey); } catch (e) {}
           }
           if (mainImgs.length === 0 && secondaryFn) {
-            try { mainImgs = await secondaryFn(catInfo.label + " " + shortTopic, secondaryKey); } catch (e) {}
+            try { mainImgs = await secondaryFn(mainQuery, secondaryKey); } catch (e) {}
           }
           if (mainImgs.length > 0 && !imgMap[0]) imgMap[0] = mainImgs[0]; // cover (skip if person image locked)
           // Closer gets a different image from main results (not index 1 which may be too similar to cover)
@@ -4362,7 +4417,7 @@ export default function LoathrMediaGenerator() {
   );
 
   return (
-    <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px", background: activeSegment === "enterprise" ? "#0a0a0a" : activeSegment === "newsdesk" ? "#f5f0e4" : activeSegment === "studios" ? "#faf8ff" : undefined, color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : undefined, minHeight: activeSegment !== "editorial" ? "100vh" : undefined, transition: "background 0.3s, color 0.3s" }}>
+    <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 16px", background: activeSegment === "enterprise" ? "#0a0a0a" : activeSegment === "newsdesk" ? "#f7f5f0" : activeSegment === "studios" ? "#faf8ff" : undefined, backgroundImage: activeSegment === "newsdesk" ? NEWSDESK_THEME.uiTexture : undefined, color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : undefined, minHeight: activeSegment !== "editorial" ? "100vh" : undefined, transition: "background 0.3s, color 0.3s" }}>
       <style>{"@font-face{font-family:'Foun';src:url('/Fonts/Foun/OpenType-PS/Foun.otf') format('opentype'),url('/Fonts/Foun/OpenType-TT/Foun.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Wenssep';src:url('/Fonts/Wenssep/Wenssep.otf') format('opentype'),url('/Fonts/Wenssep/Wenssep.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Maheni';src:url('/Fonts/Maheni/Maheni-Regular.otf') format('opentype'),url('/Fonts/Maheni/Maheni-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Otilito';src:url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Regular.otf') format('opentype'),url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/TTF/TBJOtilito-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Otilito';src:url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/OTF/TBJOtilito-Bold.otf') format('opentype'),url('/Fonts/otilito-sans-font-family-2026-04-07-06-24-36-utc/TTF/TBJOtilito-Bold.ttf') format('truetype');font-weight:700;font-style:normal;font-display:swap}@font-face{font-family:'Qogee';src:url('/Fonts/qogee-font-2026-04-07-06-00-04-utc/Qogee.otf') format('opentype'),url('/Fonts/qogee-font-2026-04-07-06-00-04-utc/Qogee.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Matina';src:url('/Fonts/Matina/Font/Matina-Regular.woff2') format('woff2'),url('/Fonts/Matina/Font/Matina-Regular.woff') format('woff'),url('/Fonts/Matina/Font/Matina-Regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'QuickZip';src:url('/Fonts/News%20Deck/FONT/QUICK-ZIP.woff') format('woff'),url('/Fonts/News%20Deck/FONT/QUICK-ZIP.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'GrandHalva';src:url('/Fonts/News%20Deck/GRAND%20HALVA.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'CarbonText';src:url('/Fonts/News%20Deck/carbon-modern-typeface-webfonts-2026-04-07-06-00-24-utc/fonts/CarbonText-Regular.woff2') format('woff2'),url('/Fonts/News%20Deck/carbon-modern-typeface-webfonts-2026-04-07-06-00-24-utc/fonts/CarbonText-Regular.woff') format('woff');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Medhorn';src:url('/Fonts/News%20Deck/medhorn-modern-sport-display-bold-slab-serif-2026-04-07-05-58-49-utc/Web-PS/Medhorn.woff2') format('woff2'),url('/Fonts/News%20Deck/medhorn-modern-sport-display-bold-slab-serif-2026-04-07-05-58-49-utc/OpenType-PS/Medhorn.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Eroded';src:url('/Fonts/News%20Deck/eroded-personal-use/ERODED%20PERSONAL%20USE.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'VintageTypist';src:url('/Fonts/News%20Deck/vintage-typist/VintageTypist.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}@font-face{font-family:'Bramos';src:url('/Fonts/News%20Deck/bramos/Bramos.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'Cheelaved';src:url('/Fonts/News%20Deck/the-cheelaved/TheCheelaved-Regular.otf') format('opentype'),url('/Fonts/News%20Deck/the-cheelaved/TheCheelaved-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'RealityStone';src:url('/Fonts/News%20Deck/reality-stone-personal-use/Reality%20Stone.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@font-face{font-family:'CrownHeritage';src:url('/Fonts/News%20Deck/crown-heritage/CrownHeritage.otf') format('opentype'),url('/Fonts/News%20Deck/crown-heritage/CrownHeritage.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}@keyframes walk{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}@keyframes hammer{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-45deg)}}@keyframes sweep{0%,100%{transform:rotate(-15deg)}50%{transform:rotate(15deg)}}@keyframes paint{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}@keyframes carry{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-3px) rotate(-2deg)}75%{transform:translateY(-3px) rotate(2deg)}}@keyframes figfade{0%{opacity:1}45%{opacity:1}50%{opacity:0}95%{opacity:0}100%{opacity:1}}"}</style>
 
       <div style={{ textAlign: "center", marginBottom: 20 }}>
@@ -4447,7 +4502,7 @@ export default function LoathrMediaGenerator() {
           {NEWSDESK_URGENCY.map(function(u) {
             var sel = newsUrgency === u.id;
             return <button key={u.id} onClick={function() { setNewsUrgency(sel ? null : u.id); setNewsFilter(sel ? null : u.id); }}
-              style={{ padding: "3px 10px", cursor: "pointer", border: sel ? "1px solid " + u.color : "0.5px solid #c8c0aa", background: sel ? u.color + "18" : "transparent", ...CP, fontSize: 8, color: sel ? u.color : "#8a8270", letterSpacing: "0.05em", fontWeight: sel ? 700 : 400 }}>{u.label}</button>;
+              style={{ padding: "3px 10px", cursor: "pointer", border: sel ? "1px solid " + u.color : "0.5px solid #d8d6d0", background: sel ? u.color + "18" : "transparent", ...CP, fontSize: 8, color: sel ? u.color : "#8a8270", letterSpacing: "0.05em", fontWeight: sel ? 700 : 400 }}>{u.label}</button>;
           })}
         </div>
         {/* Desk row */}
@@ -4456,7 +4511,7 @@ export default function LoathrMediaGenerator() {
           {NEWSDESK_DESKS.map(function(d) {
             var sel = newsDesk === d.id;
             return <button key={d.id} onClick={function() { setNewsDesk(sel ? null : d.id); if (!sel) setNewsFilter(d.id); else if (!newsUrgency) setNewsFilter(null); }}
-              style={{ padding: "2px 7px", cursor: "pointer", border: sel ? "1px solid #1a1a1a" : "0.5px solid #c8c0aa", background: sel ? "#1a1a1a0d" : "transparent", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270", letterSpacing: "0.02em" }}>{d.label}</button>;
+              style={{ padding: "2px 7px", cursor: "pointer", border: sel ? "1px solid #1a1a1a" : "0.5px solid #d8d6d0", background: sel ? "#1a1a1a0d" : "transparent", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270", letterSpacing: "0.02em" }}>{d.label}</button>;
           })}
         </div>
         {/* Desk description */}
@@ -4465,13 +4520,13 @@ export default function LoathrMediaGenerator() {
         <div style={{ display: "flex", gap: 6, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
             <select value={newsRegion} onChange={function(e) { setNewsRegion(e.target.value); setNewsCountry(""); }}
-              style={{ padding: "2px 4px", border: "0.5px solid #c8c0aa", background: "#ffffff", ...CP, fontSize: 6, color: "#1a1a1a" }}>
+              style={{ padding: "2px 4px", border: "0.5px solid #d8d6d0", background: "#ffffff", ...CP, fontSize: 6, color: "#1a1a1a" }}>
               {NEWSDESK_REGIONS.map(function(r) { return <option key={r.id} value={r.id}>{r.label}</option>; })}
             </select>
           </div>
           {(function() { var reg = NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }); return reg && reg.countries && reg.countries.length > 0 ? (
             <select value={newsCountry} onChange={function(e) { setNewsCountry(e.target.value); }}
-              style={{ padding: "2px 4px", border: "0.5px solid #c8c0aa", background: "#ffffff", ...CP, fontSize: 6, color: "#1a1a1a" }}>
+              style={{ padding: "2px 4px", border: "0.5px solid #d8d6d0", background: "#ffffff", ...CP, fontSize: 6, color: "#1a1a1a" }}>
               <option value="">All {reg.label}</option>
               {reg.countries.map(function(c) { return <option key={c} value={c}>{c}</option>; })}
             </select>
@@ -4479,7 +4534,7 @@ export default function LoathrMediaGenerator() {
           {NEWSDESK_TIMEFRAMES.map(function(t) {
             var sel = newsTimeframe === t.id;
             return <button key={t.id} onClick={function() { setNewsTimeframe(t.id); }}
-              style={{ padding: "2px 6px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#c8c0aa"), background: sel ? "#1a1a1a11" : "transparent", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270", cursor: "pointer" }}>{t.label}</button>;
+              style={{ padding: "2px 6px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#d8d6d0"), background: sel ? "#1a1a1a11" : "transparent", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270", cursor: "pointer" }}>{t.label}</button>;
           })}
         </div>
       </div>}
@@ -4588,7 +4643,7 @@ export default function LoathrMediaGenerator() {
           {/* Colors */}
           <div style={{ marginBottom: 6 }}>
             <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>COLORS</div>
-            {[{ key: "heading", label: "Heading", def: "#1a1a1a" }, { key: "body", label: "Body", def: "#1a1a1a" }, { key: "accent", label: "Accent", def: "#c41e1e" }, { key: "accent2", label: "Accent 2", def: "#888888" }, { key: "background", label: "Background", def: "#f5f0e4" }, { key: "masthead", label: "Masthead", def: "#1a1a1a" }, { key: "border", label: "Border", def: "#1a1a1a" }, { key: "divider", label: "Divider", def: "#1a1a1a22" }].map(function(slot) {
+            {[{ key: "heading", label: "Heading", def: "#1a1a1a" }, { key: "body", label: "Body", def: "#1a1a1a" }, { key: "accent", label: "Accent", def: "#c41e1e" }, { key: "accent2", label: "Accent 2", def: "#888888" }, { key: "background", label: "Background", def: "#f7f5f0" }, { key: "masthead", label: "Masthead", def: "#1a1a1a" }, { key: "border", label: "Border", def: "#1a1a1a" }, { key: "divider", label: "Divider", def: "#1a1a1a22" }].map(function(slot) {
               var colors = editingTemplate.colors || {};
               return <div key={slot.key} style={{ display: "flex", gap: 4, alignItems: "center", marginBottom: 2 }}>
                 <div style={{ ...CP, fontSize: 5, color: "#666", width: 50 }}>{slot.label}:</div>
@@ -4797,7 +4852,7 @@ export default function LoathrMediaGenerator() {
               return <>
                 <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
                   <div style={{ ...CP, fontSize: 5, color: "#666", width: 60 }}>Background:</div>
-                  <input type="color" value={cl.background || (editingTemplate.colors || {}).background || "#f5f0e4"} onChange={function(e) { setCloser("background", e.target.value); }}
+                  <input type="color" value={cl.background || (editingTemplate.colors || {}).background || "#f7f5f0"} onChange={function(e) { setCloser("background", e.target.value); }}
                     style={{ width: 24, height: 18, border: "0.5px solid #ddd", padding: 0, cursor: "pointer" }} />
                   <div style={{ ...CP, fontSize: 5, color: "#999" }}>{cl.background || "inherit"}</div>
                 </div>
@@ -4839,7 +4894,7 @@ export default function LoathrMediaGenerator() {
               var isEnt = seg === "enterprise";
               var isNews = seg === "newsdesk";
               var isEdit = seg === "editorial";
-              var bgColor = pc.background || (isEnt ? "#0a0a0a" : isNews ? "#f5f0e4" : isEdit ? "#1a1a2e" : "#ffffff");
+              var bgColor = pc.background || (isEnt ? "#0a0a0a" : isNews ? "#f7f5f0" : isEdit ? "#1a1a2e" : "#ffffff");
               var headC = pc.heading || (isEnt ? "#ffffff" : "#1a1a1a");
               var bodyC = pc.body || (isEnt ? "#ffffffcc" : "#1a1a1a");
               var accentC = pc.accent || (isEnt ? "#ffffff" : isNews ? "#c41e1e" : isEdit ? "#e6a817" : "#666666");
@@ -5297,10 +5352,10 @@ export default function LoathrMediaGenerator() {
             }}>
             <input value={topic} onChange={function(e) { var v = e.target.value; setTopic(v); setRefinedAngles([]); setSuggestions(filterSuggestions(v, category)); setCrossCatSuggestions(searchAllCategories(v, category)); triggerSearch(v); }}
               placeholder={category === "newsdesk" ? "Search keywords: oil, election, LeBron..." : category === "enterprise" ? (function() { var sLabel = enterpriseSector ? (ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) || {}).label : null; if (enterpriseMode === "news") return sLabel ? "Search " + sLabel + " news..." : "Search business news: tariffs, IPO, merger..."; if (enterpriseMode === "tips") return sLabel ? "Advise " + sLabel + " businesses on..." : "Industry to advise: restaurants, SaaS, retail..."; if (sLabel) return "Topic in " + sLabel + "..."; var hints = { tech: "e.g. Healthcare, Retail, Banking...", policy: "e.g. Pharma, Energy, Cannabis...", ai: "e.g. Legal services, Call centers, Education...", markets: "e.g. Real estate, Crypto, Commodities...", culture: "e.g. Luxury brands, Fast food, Streaming..." }; return hints[enterpriseForce] || "Industry or topic to analyze..."; })() : "Topic for " + cat.label + "... (or drop an image)"}
-              style={{ flex: 1, padding: "10px 14px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ffffff" : "var(--color-background-primary)", color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : "var(--color-text-primary)", fontSize: 12, ...CP }} />
+              style={{ flex: 1, padding: "10px 14px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ffffff" : "var(--color-background-primary)", color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : "var(--color-text-primary)", fontSize: 12, ...CP }} />
             {topic && <button onClick={function() { setTopic(""); setOptions(null); setSmartAngles([]); setWebResults([]); setViralScore(null); setTrending([]); setSuggestions([]); setCrossCatSuggestions([]); setRefinedAngles([]); }}
               style={{ padding: "10px 6px", border: "none", background: "transparent", cursor: "pointer", ...CP, fontSize: 12, color: activeSegment === "enterprise" ? "#666" : "#999", display: "flex", alignItems: "center" }}>{"\u2715"}</button>}
-            <label style={{ padding: "10px 8px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), cursor: "pointer", display: "flex", alignItems: "center", background: "transparent" }}>
+            <label style={{ padding: "10px 8px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "var(--color-border-tertiary)"), cursor: "pointer", display: "flex", alignItems: "center", background: "transparent" }}>
               <Camera size={14} style={{ color: "#999" }} />
               <input type="file" accept="image/*" style={{ display: "none" }} onChange={function(e) {
                 var file = e.target.files && e.target.files[0];
@@ -5529,11 +5584,11 @@ export default function LoathrMediaGenerator() {
           </div>}
 
           {/* Smart angles + web trends (merged) */}
-          {(smartAngles.length > 0 || webResults.length > 0 || isSearching) && <div style={{ marginBottom: 6, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#ebe6d6" : "var(--color-background-secondary)", padding: 6 }}>
+          {(smartAngles.length > 0 || webResults.length > 0 || isSearching) && <div style={{ marginBottom: 6, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fafaf7" : "var(--color-background-secondary)", padding: 6 }}>
             <div style={{ ...CP, fontSize: 6, color: uiAccent, letterSpacing: "0.1em", marginBottom: 4 }}>ANGLES {isSearching && <span style={{ animation: "pulse 1s infinite" }}>...</span>}</div>
             {smartAngles.map(function(a, i) { return (
               <div key={"a" + i} onClick={function() { setTopic(a.topic); setSmartAngles([]); setWebResults([]); setSuggestions([]); }}
-                style={{ padding: "4px 0", cursor: "pointer", borderBottom: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa44" : "var(--color-border-tertiary)") }}>
+                style={{ padding: "4px 0", cursor: "pointer", borderBottom: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#d8d6d044" : "var(--color-border-tertiary)") }}>
                 <div style={{ ...CP, fontSize: 9, color: activeSegment === "enterprise" ? "#ddd" : activeSegment === "newsdesk" ? "#1a1a1a" : "var(--color-text-primary)" }}>{a.topic}</div>
                 <div style={{ ...CP, fontSize: 6, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)", marginTop: 1 }}>{a.hook}</div>
               </div>
@@ -5541,7 +5596,7 @@ export default function LoathrMediaGenerator() {
             {webResults.length > 0 && smartAngles.length > 0 && <div style={{ height: 0.5, background: uiAccent + "33", margin: "4px 0" }} />}
             {webResults.map(function(w, i) { return (
               <div key={"w" + i} onClick={function() { setTopic(w.topic); setSmartAngles([]); setWebResults([]); setSuggestions([]); }}
-                style={{ padding: "4px 0", cursor: "pointer", borderBottom: i < webResults.length - 1 ? "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa44" : "var(--color-border-tertiary)") : "none" }}>
+                style={{ padding: "4px 0", cursor: "pointer", borderBottom: i < webResults.length - 1 ? "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#d8d6d044" : "var(--color-border-tertiary)") : "none" }}>
                 <div style={{ ...CP, fontSize: 9, color: activeSegment === "enterprise" ? "#ddd" : activeSegment === "newsdesk" ? "#1a1a1a" : "var(--color-text-primary)" }}>{w.topic}</div>
                 <div style={{ ...CP, fontSize: 6, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)", marginTop: 1 }}>{w.hook} {w.source && <span style={{ color: uiAccent + "66" }}>{w.source}</span>}</div>
               </div>
@@ -5621,7 +5676,7 @@ export default function LoathrMediaGenerator() {
               {showEditionSettings ? "\u25B2 HIDE EDITION SETTINGS" : "\u25BC EDITION SETTINGS"}
             </button>
           </div>
-          {showEditionSettings && <div style={{ marginBottom: 10, padding: 10, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#ebe6d6" : "#fafafa" }}>
+          {showEditionSettings && <div style={{ marginBottom: 10, padding: 10, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#d8d6d0" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fafaf7" : "#fafafa" }}>
             {/* Enterprise settings */}
             {activeSegment === "enterprise" && <div>
               <div style={{ marginBottom: 8 }}>
@@ -5674,7 +5729,7 @@ export default function LoathrMediaGenerator() {
                 <div style={{ display: "flex", gap: 3 }}>
                   {NEWSDESK_ANGLES.map(function(a) { var sel = editionPicks.newsdeskAngle === a.id; return (
                     <button key={a.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { newsdeskAngle: a.id }); }); }}
-                      style={{ padding: "3px 8px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#c8c0aa"), background: sel ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270" }}>{a.label}</button>
+                      style={{ padding: "3px 8px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#d8d6d0"), background: sel ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270" }}>{a.label}</button>
                   ); })}
                 </div>
               </div>
@@ -5683,7 +5738,7 @@ export default function LoathrMediaGenerator() {
                 <div style={{ display: "flex", gap: 3 }}>
                   {NEWSDESK_EMPHASIS.map(function(e) { var sel = editionPicks.newsdeskEmphasis === e.id; return (
                     <button key={e.id} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { newsdeskEmphasis: e.id }); }); }}
-                      style={{ padding: "3px 8px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#c8c0aa"), background: sel ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270" }}>{e.label}</button>
+                      style={{ padding: "3px 8px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#d8d6d0"), background: sel ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270" }}>{e.label}</button>
                   ); })}
                 </div>
               </div>
@@ -5691,10 +5746,10 @@ export default function LoathrMediaGenerator() {
                 <div style={{ ...CP, fontSize: 6, color: "#8a8270", letterSpacing: "0.1em", marginBottom: 3 }}>SLIDES</div>
                 <div style={{ display: "flex", gap: 3 }}>
                   <button onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: 0 }); }); }}
-                    style={{ padding: "3px 6px", border: "0.5px solid " + (!editionPicks.slideCount ? "#1a1a1a" : "#c8c0aa"), background: !editionPicks.slideCount ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: !editionPicks.slideCount ? "#1a1a1a" : "#8a8270" }}>Auto</button>
+                    style={{ padding: "3px 6px", border: "0.5px solid " + (!editionPicks.slideCount ? "#1a1a1a" : "#d8d6d0"), background: !editionPicks.slideCount ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: !editionPicks.slideCount ? "#1a1a1a" : "#8a8270" }}>Auto</button>
                   {[5,6,7,8,10].map(function(n) { return (
                     <button key={n} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: n }); }); }}
-                      style={{ padding: "3px 6px", border: "0.5px solid " + (editionPicks.slideCount === n ? "#1a1a1a" : "#c8c0aa"), background: editionPicks.slideCount === n ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: editionPicks.slideCount === n ? "#1a1a1a" : "#8a8270" }}>{n}</button>
+                      style={{ padding: "3px 6px", border: "0.5px solid " + (editionPicks.slideCount === n ? "#1a1a1a" : "#d8d6d0"), background: editionPicks.slideCount === n ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: editionPicks.slideCount === n ? "#1a1a1a" : "#8a8270" }}>{n}</button>
                   ); })}
                 </div>
               </div>
@@ -5810,14 +5865,14 @@ export default function LoathrMediaGenerator() {
 
           <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10 }}>
             <button onClick={isFetchingTrending ? cancelTrending : fetchTrending}
-              style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#555") : activeSegment === "newsdesk" ? (isFetchingTrending ? "#c41e1e" : "#c8c0aa") : isFetchingTrending ? "#e63946" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? (isFetchingTrending ? "#ffffff11" : trending.length > 0 ? "#ffffff08" : "transparent") : isFetchingTrending ? "#e6394611" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#aaa") : activeSegment === "newsdesk" ? (isFetchingTrending ? "#c41e1e" : "#8a8270") : isFetchingTrending ? "#e63946" : "var(--color-text-tertiary)" }}>
+              style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#555") : activeSegment === "newsdesk" ? (isFetchingTrending ? "#c41e1e" : "#d8d6d0") : isFetchingTrending ? "#e63946" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? (isFetchingTrending ? "#ffffff11" : trending.length > 0 ? "#ffffff08" : "transparent") : isFetchingTrending ? "#e6394611" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: activeSegment === "enterprise" ? (isFetchingTrending || trending.length > 0 ? "#ffffff" : "#aaa") : activeSegment === "newsdesk" ? (isFetchingTrending ? "#c41e1e" : "#8a8270") : isFetchingTrending ? "#e63946" : "var(--color-text-tertiary)" }}>
               <Flame size={11} />{isFetchingTrending ? "Stop" : activeSegment === "newsdesk" ? "Top Stories" + (newsDesk ? " \u00b7 " + (NEWSDESK_DESKS.find(function(d) { return d.id === newsDesk; }) || {}).label : "") : activeSegment === "enterprise" ? (enterpriseMode === "news" ? "Breaking" : enterpriseMode === "tips" ? "Ideas" : "Trending") + (enterpriseForce ? " \u00b7 " + (ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) || {}).label : "") + (enterpriseSector ? " \u00b7 " + (ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) || {}).label : "") : "Trending"}</button>
             {activeSegment === "editorial" && <button onClick={function() { setShuffleKey(function(k) { return k + 1; }); }}
               style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Shuffle size={11} />Shuffle</button>}
             {activeSegment === "editorial" && <button onClick={surpriseMe}
               style={{ padding: "6px 10px", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: "var(--color-text-tertiary)" }}><Zap size={11} />Surprise</button>}
             {topic.trim() && <button onClick={refineTopic} disabled={isRefining}
-              style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)" }}>
+              style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "var(--color-border-tertiary)"), background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 9, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)" }}>
               <Sparkles size={11} />{isRefining ? "..." : "Refine"}</button>}
           </div>
           {refinedAngles.length > 0 && <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
@@ -5832,14 +5887,14 @@ export default function LoathrMediaGenerator() {
           {trending.length > 0 && <div style={{ marginBottom: 10 }}>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
               <button onClick={function() { setTrending([]); }}
-                style={{ padding: "4px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "var(--color-border-tertiary)"), background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 8, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)" }}>
+                style={{ padding: "4px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "var(--color-border-tertiary)"), background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, ...CP, fontSize: 8, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "var(--color-text-tertiary)" }}>
                 {"\u2190"} Back
               </button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {trending.map(function(t, i) { return (
                 <button key={i} onClick={function() { setTopic(t.topic); setRefinedAngles([]); setTrending([]); }}
-                  style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : uiAccent + "44"), background: activeSegment === "enterprise" ? "#ffffff08" : activeSegment === "newsdesk" ? "#1a1a1a06" : uiAccent + "08", cursor: "pointer", ...CP, fontSize: 9, textAlign: "left", color: activeSegment === "enterprise" ? "#ddd" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent }}>
+                  style={{ padding: "6px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : uiAccent + "44"), background: activeSegment === "enterprise" ? "#ffffff08" : activeSegment === "newsdesk" ? "#1a1a1a06" : uiAccent + "08", cursor: "pointer", ...CP, fontSize: 9, textAlign: "left", color: activeSegment === "enterprise" ? "#ddd" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent }}>
                   <div style={{ fontWeight: 700 }}>{t.topic}</div>
                   <div style={{ fontSize: 6, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : uiAccent + "88", marginTop: 1 }}>{t.hook}{t.source ? " — " + t.source : ""}</div>
                 </button>); })}
@@ -5993,8 +6048,8 @@ export default function LoathrMediaGenerator() {
         {/* Image swap controls */}
         <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
           <button onClick={function() {
-            if (swapSlide === currentSlide) { setSwapSlide(null); setSwapImages([]); setSwapQuery(""); }
-            else { setSwapSlide(currentSlide); var slideData = cur.slides[currentSlide] || {}; var q = slideData.heading || slideData.title || topic; setSwapQuery(q); fetchSwapImages(currentSlide, q); }
+            if (swapSlide === currentSlide) { setSwapSlide(null); setSwapImages([]); setSwapQuery(""); setSwapPage(1); setSwapMode("auto"); }
+            else { setSwapSlide(currentSlide); var slideData = cur.slides[currentSlide] || {}; var q = slideData.heading || slideData.title || topic; setSwapQuery(q); setSwapPage(1); var initMode = slideData.person ? "person" : "auto"; setSwapMode(initMode); fetchSwapImages(currentSlide, q, 1, initMode); }
           }}
             style={{ padding: "4px 10px", border: "0.5px solid " + (swapSlide === currentSlide ? uiAccent : "#ccc"), background: swapSlide === currentSlide ? uiAccent + "15" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: swapSlide === currentSlide ? uiAccent : "#999", letterSpacing: "0.05em" }}>
             <Camera size={9} style={{ display: "inline", verticalAlign: "middle", marginRight: 3 }} />{swapSlide === currentSlide ? "Cancel Swap" : "Swap Image"}
@@ -6013,14 +6068,25 @@ export default function LoathrMediaGenerator() {
               ); })}
             </div>
           </div>}
+          <div style={{ display: "flex", gap: 3, marginBottom: 6 }}>
+            {[{ id: "auto", l: "Auto" }, { id: "person", l: "Person" }, { id: "place", l: "Place" }, { id: "thing", l: "Thing" }].map(function(m) {
+              var sel = swapMode === m.id;
+              return <button key={m.id} onClick={function() { setSwapMode(m.id); setSwapPage(1); fetchSwapImages(swapSlide, swapQuery, 1, m.id); }}
+                style={{ padding: "2px 8px", border: "0.5px solid " + (sel ? uiAccent : "#ccc"), background: sel ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? uiAccent : "#999", letterSpacing: "0.05em" }}>{m.l}</button>;
+            })}
+          </div>
           <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
             <input value={swapQuery} onChange={function(e) { setSwapQuery(e.target.value); }}
-              onKeyDown={function(e) { if (e.key === "Enter") fetchSwapImages(swapSlide, swapQuery); }}
+              onKeyDown={function(e) { if (e.key === "Enter") { setSwapPage(1); fetchSwapImages(swapSlide, swapQuery, 1, swapMode); } }}
               placeholder="Search for replacement image..."
               style={{ flex: 1, padding: "4px 8px", border: "0.5px solid #ccc", ...CP, fontSize: 8, color: "#333" }} />
-            <button onClick={function() { fetchSwapImages(swapSlide, swapQuery); }}
+            <button onClick={function() { setSwapPage(1); fetchSwapImages(swapSlide, swapQuery, 1, swapMode); }}
               disabled={swapLoading}
               style={{ padding: "4px 8px", border: "0.5px solid " + uiAccent, background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent }}>{swapLoading ? "..." : "Search"}</button>
+            <button onClick={function() { var next = swapPage + 1; setSwapPage(next); fetchSwapImages(swapSlide, swapQuery, next, swapMode); }}
+              disabled={swapLoading || !swapQuery}
+              title="Get a fresh batch of results"
+              style={{ padding: "4px 8px", border: "0.5px solid " + uiAccent, background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent }}>{"↻"} Regenerate</button>
           </div>
           {swapImages.length > 0 && <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 4 }}>
             {swapImages.map(function(img, i) { return (
@@ -6070,7 +6136,38 @@ export default function LoathrMediaGenerator() {
           <button onClick={function() { generate(); }}
             style={{ padding: "4px 10px", border: "0.5px solid " + uiAccent, background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent }}>
             {"\u21BB"} Regenerate</button>
+          <button onClick={function() {
+            // Snapshot the full carousel state for soft undo
+            setDeletedSnapshot({
+              options: options,
+              images: images,
+              mosaicSlides: Object.assign({}, _mosaicSlides),
+              currentSlide: currentSlide,
+              factCheckResult: factCheckResult,
+              selectedOption: selectedOptionRef.current,
+              ts: Date.now(),
+            });
+            setOptions(null); setImages({}); _allImages = {}; _mosaicSlides = {};
+            setCurrentSlide(0); setFactCheckResult(null); setSwapSlide(null);
+            // Auto-clear the undo offer after 15s
+            setTimeout(function() { setDeletedSnapshot(function(s) { return (s && Date.now() - s.ts >= 14500) ? null : s; }); }, 15000);
+          }}
+            style={{ padding: "4px 10px", border: "0.5px solid #ef4444", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#ef4444" }}>
+            {"\u2715"} Delete</button>
         </div>
+        {deletedSnapshot && <div style={{ marginTop: 6, padding: "6px 10px", border: "0.5px solid " + uiAccent + "66", background: uiAccent + "11", borderRadius: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ ...CP, fontSize: 7, color: "#666" }}>Carousel deleted.</span>
+          <button onClick={function() {
+            var snap = deletedSnapshot;
+            setOptions(snap.options); setImages(snap.images); _allImages = snap.images;
+            _mosaicSlides = snap.mosaicSlides || {};
+            setCurrentSlide(snap.currentSlide || 0);
+            setFactCheckResult(snap.factCheckResult || null);
+            setSelectedOption(snap.selectedOption || 0);
+            setDeletedSnapshot(null);
+          }}
+            style={{ padding: "3px 10px", border: "0.5px solid " + uiAccent, background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent, letterSpacing: "0.05em" }}>{"\u21A9"} Undo</button>
+        </div>}
         {/* Editor panel — slide editing controls */}
         {editMode && cur && (function() {
           var s = cur.slides[currentSlide] || {};
@@ -6315,23 +6412,23 @@ export default function LoathrMediaGenerator() {
                 <div style={{ ...CP, fontSize: 5, color: "#8a8270", marginBottom: 3 }}>SLIDE LAYOUT</div>
                 <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
                   <button onClick={function() { updateSlideField(currentSlide, "newsLayout", null); }}
-                    style={{ padding: "2px 6px", border: "0.5px solid " + (s.newsLayout == null ? "#1a1a1a" : "#c8c0aa"), background: s.newsLayout == null ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: s.newsLayout == null ? "#1a1a1a" : "#8a8270" }}>Auto</button>
+                    style={{ padding: "2px 6px", border: "0.5px solid " + (s.newsLayout == null ? "#1a1a1a" : "#d8d6d0"), background: s.newsLayout == null ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: s.newsLayout == null ? "#1a1a1a" : "#8a8270" }}>Auto</button>
                   {NEWS_LAYOUT_LABELS.map(function(label, li) { return (
                     <button key={li} onClick={function() { updateSlideField(currentSlide, "newsLayout", li); }}
-                      style={{ padding: "2px 6px", border: "0.5px solid " + (s.newsLayout === li ? "#1a1a1a" : "#c8c0aa"), background: s.newsLayout === li ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: s.newsLayout === li ? "#1a1a1a" : "#8a8270" }}>{label}</button>
+                      style={{ padding: "2px 6px", border: "0.5px solid " + (s.newsLayout === li ? "#1a1a1a" : "#d8d6d0"), background: s.newsLayout === li ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: s.newsLayout === li ? "#1a1a1a" : "#8a8270" }}>{label}</button>
                   ); })}
                 </div>
                 <div style={{ marginTop: 4, display: "flex", gap: 3, alignItems: "center" }}>
                   <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Split:</div>
                   <button onClick={function() { updateSlideField(currentSlide, "newsSplit", Math.max(25, (s.newsSplit || 45) - 5)); }}
-                    style={{ width: 16, height: 16, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#8a8270", textAlign: "center", lineHeight: "16px" }}>{"\u2190"}</button>
+                    style={{ width: 16, height: 16, border: "0.5px solid #d8d6d0", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#8a8270", textAlign: "center", lineHeight: "16px" }}>{"\u2190"}</button>
                   <div style={{ ...CP, fontSize: 6, color: "#1a1a1a", minWidth: 30, textAlign: "center" }}>{s.newsSplit || 45}%</div>
                   <button onClick={function() { updateSlideField(currentSlide, "newsSplit", Math.min(70, (s.newsSplit || 45) + 5)); }}
-                    style={{ width: 16, height: 16, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#8a8270", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
+                    style={{ width: 16, height: 16, border: "0.5px solid #d8d6d0", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#8a8270", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
                   <div style={{ ...CP, fontSize: 5, color: "#8a8270", marginLeft: 8 }}>Cols:</div>
                   {[1,2,3].map(function(n) { return (
                     <button key={n} onClick={function() { updateSlideField(currentSlide, "columnCount", n); }}
-                      style={{ width: 16, height: 16, border: "0.5px solid " + ((s.columnCount || 2) === n ? "#1a1a1a" : "#c8c0aa"), background: (s.columnCount || 2) === n ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: (s.columnCount || 2) === n ? "#1a1a1a" : "#8a8270", textAlign: "center", lineHeight: "16px" }}>{n}</button>
+                      style={{ width: 16, height: 16, border: "0.5px solid " + ((s.columnCount || 2) === n ? "#1a1a1a" : "#d8d6d0"), background: (s.columnCount || 2) === n ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: (s.columnCount || 2) === n ? "#1a1a1a" : "#8a8270", textAlign: "center", lineHeight: "16px" }}>{n}</button>
                   ); })}
                 </div>
               </div>}
@@ -6341,83 +6438,83 @@ export default function LoathrMediaGenerator() {
                 <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
                   {NEWS_COVER_LABELS.map(function(label, li) { return (
                     <button key={li} onClick={function() { updateSlideField(currentSlide, "newsCoverLayout", li); }}
-                      style={{ padding: "2px 6px", border: "0.5px solid " + (s.newsCoverLayout === li ? "#1a1a1a" : "#c8c0aa"), background: s.newsCoverLayout === li ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: s.newsCoverLayout === li ? "#1a1a1a" : "#8a8270" }}>{label}</button>
+                      style={{ padding: "2px 6px", border: "0.5px solid " + (s.newsCoverLayout === li ? "#1a1a1a" : "#d8d6d0"), background: s.newsCoverLayout === li ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: s.newsCoverLayout === li ? "#1a1a1a" : "#8a8270" }}>{label}</button>
                   ); })}
                 </div>
                 <div style={{ marginTop: 4, display: "flex", gap: 3, alignItems: "center" }}>
                   <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Split:</div>
                   <button onClick={function() { updateSlideField(currentSlide, "newsSplit", Math.max(25, (s.newsSplit || 45) - 5)); }}
-                    style={{ width: 16, height: 16, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#8a8270", textAlign: "center", lineHeight: "16px" }}>{"\u2190"}</button>
+                    style={{ width: 16, height: 16, border: "0.5px solid #d8d6d0", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#8a8270", textAlign: "center", lineHeight: "16px" }}>{"\u2190"}</button>
                   <div style={{ ...CP, fontSize: 6, color: "#1a1a1a", minWidth: 30, textAlign: "center" }}>{s.newsSplit || 45}%</div>
                   <button onClick={function() { updateSlideField(currentSlide, "newsSplit", Math.min(70, (s.newsSplit || 45) + 5)); }}
-                    style={{ width: 16, height: 16, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#8a8270", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
+                    style={{ width: 16, height: 16, border: "0.5px solid #d8d6d0", background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: "#8a8270", textAlign: "center", lineHeight: "16px" }}>{"\u2192"}</button>
                 </div>
               </div>}
               {/* News Desk portrait + reaction layout controls */}
-              {activeSegment === "newsdesk" && s.quote && <div style={{ marginBottom: 4, borderTop: "0.5px solid #c8c0aa", paddingTop: 3 }}>
+              {activeSegment === "newsdesk" && s.quote && <div style={{ marginBottom: 4, borderTop: "0.5px solid #d8d6d0", paddingTop: 3 }}>
                 <div style={{ ...CP, fontSize: 5, color: "#8a8270", letterSpacing: "0.1em", marginBottom: 3 }}>REACTION LAYOUT</div>
                 <div style={{ display: "flex", gap: 2, alignItems: "center", marginBottom: 3 }}>
                   {[{ id: null, l: "Center" }, { id: "left", l: "Left" }].map(function(lo) {
                     var sel = (s.reactionLayout || null) === lo.id; return <button key={lo.l} onClick={function() { updateSlideField(currentSlide, "reactionLayout", lo.id); }}
-                      style={{ padding: "2px 8px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#c8c0aa"), background: sel ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270" }}>{lo.l}</button>;
+                      style={{ padding: "2px 8px", border: "0.5px solid " + (sel ? "#1a1a1a" : "#d8d6d0"), background: sel ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#1a1a1a" : "#8a8270" }}>{lo.l}</button>;
                   })}
                 </div>
                 <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 3 }}>
                   <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Portrait:</div>
                   <button onClick={function() { updateSlideField(currentSlide, "portraitSize", Math.max(40, (s.portraitSize || 80) - 10)); }}
-                    style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
+                    style={{ width: 14, height: 14, border: "0.5px solid #d8d6d0", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
                   <div style={{ ...CP, fontSize: 5, color: "#1a1a1a" }}>{s.portraitSize || 80}px</div>
                   <button onClick={function() { updateSlideField(currentSlide, "portraitSize", Math.min(120, (s.portraitSize || 80) + 10)); }}
-                    style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
+                    style={{ width: 14, height: 14, border: "0.5px solid #d8d6d0", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
                   <div style={{ display: "flex", gap: 1, marginLeft: 4 }}>
                     {["up","down","left","right"].map(function(dir) { var arrows = { up: "\u2191", down: "\u2193", left: "\u2190", right: "\u2192" }; return (
                       <button key={dir} onClick={function() { nudgePosition(currentSlide, "portrait", dir); }}
-                        style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>{arrows[dir]}</button>
+                        style={{ width: 14, height: 14, border: "0.5px solid #d8d6d0", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>{arrows[dir]}</button>
                     ); })}
                   </div>
                 </div>
               </div>}
               {/* News Desk stat + divider controls */}
-              {activeSegment === "newsdesk" && isContent && s.stat && <div style={{ marginBottom: 4, borderTop: "0.5px solid #c8c0aa", paddingTop: 3 }}>
+              {activeSegment === "newsdesk" && isContent && s.stat && <div style={{ marginBottom: 4, borderTop: "0.5px solid #d8d6d0", paddingTop: 3 }}>
                 <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
                   <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Stat:</div>
                   <button onClick={function() { adjustFontSize(currentSlide, "stat", -2); }}
-                    style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
+                    style={{ width: 14, height: 14, border: "0.5px solid #d8d6d0", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
                   <div style={{ ...CP, fontSize: 5, color: "#1a1a1a" }}>{s.statSize || 0}</div>
                   <button onClick={function() { adjustFontSize(currentSlide, "stat", 2); }}
-                    style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
+                    style={{ width: 14, height: 14, border: "0.5px solid #d8d6d0", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
                   <button onClick={function() { updateSlideField(currentSlide, "statHidden", !s.statHidden); }}
-                    style={{ padding: "1px 4px", border: "0.5px solid #c8c0aa", background: s.statHidden ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: s.statHidden ? "#1a1a1a" : "#8a8270" }}>{s.statHidden ? "Hidden" : "Visible"}</button>
+                    style={{ padding: "1px 4px", border: "0.5px solid #d8d6d0", background: s.statHidden ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: s.statHidden ? "#1a1a1a" : "#8a8270" }}>{s.statHidden ? "Hidden" : "Visible"}</button>
                 </div>
               </div>}
               {activeSegment === "newsdesk" && <div style={{ marginBottom: 4 }}>
                 <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
                   <div style={{ ...CP, fontSize: 5, color: "#8a8270" }}>Divider:</div>
                   <button onClick={function() { updateSlideField(currentSlide, "dividerWeight", Math.max(0, (s.dividerWeight || 1) - 0.5)); }}
-                    style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
+                    style={{ width: 14, height: 14, border: "0.5px solid #d8d6d0", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
                   <div style={{ ...CP, fontSize: 5, color: "#1a1a1a" }}>{typeof s.dividerWeight === "number" ? s.dividerWeight : 1}px</div>
                   <button onClick={function() { updateSlideField(currentSlide, "dividerWeight", Math.min(4, (s.dividerWeight || 1) + 0.5)); }}
-                    style={{ width: 14, height: 14, border: "0.5px solid #c8c0aa", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
+                    style={{ width: 14, height: 14, border: "0.5px solid #d8d6d0", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
                   <button onClick={function() { updateSlideField(currentSlide, "dividerHidden", !s.dividerHidden); }}
-                    style={{ padding: "1px 4px", border: "0.5px solid #c8c0aa", background: s.dividerHidden ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: s.dividerHidden ? "#1a1a1a" : "#8a8270" }}>{s.dividerHidden ? "Hidden" : "Visible"}</button>
+                    style={{ padding: "1px 4px", border: "0.5px solid #d8d6d0", background: s.dividerHidden ? "#1a1a1a11" : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: s.dividerHidden ? "#1a1a1a" : "#8a8270" }}>{s.dividerHidden ? "Hidden" : "Visible"}</button>
                 </div>
               </div>}
               {/* Per-element text controls — all segments */}
-              <div style={{ marginTop: 4, borderTop: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#eee"), paddingTop: 4 }}>
+              <div style={{ marginTop: 4, borderTop: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#d8d6d0" : "#eee"), paddingTop: 4 }}>
                 <div style={{ display: "flex", gap: 2, alignItems: "center", marginBottom: 3, flexWrap: "wrap" }}>
                   <div style={{ ...CP, fontSize: 5, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Element:</div>
                   {["all", "heading", "body", "highlight", "sources"].concat(s.quote ? ["quote"] : []).concat(s.stat ? ["stat"] : []).map(function(t) { return (
                     <button key={t} onClick={function() { setNudgeTarget(t); }}
-                      style={{ padding: "1px 4px", border: "0.5px solid " + (nudgeTarget === t ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd")), background: nudgeTarget === t ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: nudgeTarget === t ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999"), textTransform: "capitalize" }}>{t}</button>
+                      style={{ padding: "1px 4px", border: "0.5px solid " + (nudgeTarget === t ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "#ddd")), background: nudgeTarget === t ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 5, color: nudgeTarget === t ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999"), textTransform: "capitalize" }}>{t}</button>
                   ); })}
                   <div style={{ display: "flex", gap: 1, marginLeft: 4 }}>
                     {["up","down","left","right"].map(function(dir) { var arrows = { up: "\u2191", down: "\u2193", left: "\u2190", right: "\u2192" }; return (
                       <button key={dir} onClick={function() { nudgePosition(currentSlide, nudgeTarget, dir); }}
-                        style={{ width: 16, height: 16, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999", textAlign: "center", lineHeight: "16px" }}>{arrows[dir]}</button>
+                        style={{ width: 16, height: 16, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 8, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999", textAlign: "center", lineHeight: "16px" }}>{arrows[dir]}</button>
                     ); })}
                   </div>
                   {nudgeTarget !== "all" && <button onClick={function() { resetElement(currentSlide, nudgeTarget); }}
-                    style={{ padding: "1px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), cursor: "pointer", ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#e63946" : "#c41e1e", marginLeft: 2 }}>{"\u21BA"} Reset {nudgeTarget}</button>}
+                    style={{ padding: "1px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "#ddd"), cursor: "pointer", ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#e63946" : "#c41e1e", marginLeft: 2 }}>{"\u21BA"} Reset {nudgeTarget}</button>}
                 </div>
                 {/* Per-block text edit + size + font */}
                 {nudgeTarget !== "all" && (function() {
@@ -6431,30 +6528,30 @@ export default function LoathrMediaGenerator() {
                   var fieldVal = s[fieldKey] !== undefined ? s[fieldKey] : (s[nudgeTarget] || "");
                   var updateField = function(val) { updateSlideField(currentSlide, fieldKey, val); };
                   // Stat element — special controls
-                  if (nudgeTarget === "stat") return <div style={{ padding: 4, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), borderRadius: 2, background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ebe6d6" : "#fafafa" }}>
+                  if (nudgeTarget === "stat") return <div style={{ padding: 4, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#d8d6d0" : "#ddd"), borderRadius: 2, background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#fafaf7" : "#fafafa" }}>
                     <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : "#333", marginBottom: 2 }}>STAT</div>
                     <input value={s.stat || ""} onChange={function(e) { updateSlideField(currentSlide, "stat", e.target.value); }}
-                      style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), ...CP, fontSize: 8, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : "#fff", fontWeight: 700, marginBottom: 3 }} />
+                      style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#d8d6d0"), ...CP, fontSize: 8, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : "#fff", fontWeight: 700, marginBottom: 3 }} />
                     <input value={s.statCaption || s.caption || s.statLabel || ""} onChange={function(e) { updateSlideField(currentSlide, "statCaption", e.target.value); }}
                       placeholder="Stat caption text..."
-                      style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), ...CP, fontSize: 6, color: activeSegment === "enterprise" ? "#aaa" : "#666", background: activeSegment === "enterprise" ? "#111" : "#fff", marginBottom: 3 }} />
+                      style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#d8d6d0"), ...CP, fontSize: 6, color: activeSegment === "enterprise" ? "#aaa" : "#666", background: activeSegment === "enterprise" ? "#111" : "#fff", marginBottom: 3 }} />
                     <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
                       <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : "#8a8270" }}>Caption size:</div>
                       <button onClick={function() { adjustFontSize(currentSlide, "statCaption", -0.5); }}
-                        style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
+                        style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#d8d6d0"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
                       <div style={{ ...CP, fontSize: 5, color: activeSegment === "enterprise" ? "#ccc" : "#1a1a1a" }}>{s.statCaptionSize || 0}</div>
                       <button onClick={function() { adjustFontSize(currentSlide, "statCaption", 0.5); }}
-                        style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
+                        style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#d8d6d0"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
                     </div>
                     <div style={{ display: "flex", gap: 3, alignItems: "center", marginBottom: 2 }}>
                       <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : "#8a8270" }}>Size:</div>
                       <button onClick={function() { adjustFontSize(currentSlide, "stat", -2); }}
-                        style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
+                        style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#d8d6d0"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : "#8a8270", textAlign: "center", lineHeight: "14px" }}>-</button>
                       <div style={{ ...CP, fontSize: 5, color: activeSegment === "enterprise" ? "#ccc" : "#1a1a1a" }}>{s.statSize || 0}</div>
                       <button onClick={function() { adjustFontSize(currentSlide, "stat", 2); }}
-                        style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
+                        style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#d8d6d0"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : "#8a8270", textAlign: "center", lineHeight: "14px" }}>+</button>
                       <button onClick={function() { updateSlideField(currentSlide, "statHidden", !s.statHidden); }}
-                        style={{ padding: "1px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#c8c0aa"), background: s.statHidden ? (activeSegment === "enterprise" ? "#ffffff22" : "#1a1a1a11") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: s.statHidden ? (activeSegment === "enterprise" ? "#fff" : "#1a1a1a") : (activeSegment === "enterprise" ? "#888" : "#8a8270") }}>{s.statHidden ? "Hidden" : "Visible"}</button>
+                        style={{ padding: "1px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : "#d8d6d0"), background: s.statHidden ? (activeSegment === "enterprise" ? "#ffffff22" : "#1a1a1a11") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: s.statHidden ? (activeSegment === "enterprise" ? "#fff" : "#1a1a1a") : (activeSegment === "enterprise" ? "#888" : "#8a8270") }}>{s.statHidden ? "Hidden" : "Visible"}</button>
                     </div>
                     <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
                       <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : "#8a8270" }}>Color:</div>
@@ -6465,7 +6562,7 @@ export default function LoathrMediaGenerator() {
                     </div>
                     <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 2 }}>
                       <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : "#8a8270" }}>Box:</div>
-                      {[{ id: "#1a1a1a", l: "Dark" }, { id: "#c41e1e", l: "Red" }, { id: "#f5f0e4", l: "Light" }].map(function(b) {
+                      {[{ id: "#1a1a1a", l: "Dark" }, { id: "#c41e1e", l: "Red" }, { id: "#f7f5f0", l: "Light" }].map(function(b) {
                         var sel = (s.statBoxBg || "#1a1a1a") === b.id; return <button key={b.l} onClick={function() { updateSlideField(currentSlide, "statBoxBg", b.id); }}
                           style={{ padding: "0 4px", height: 14, border: "1px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : "#333") : "#ddd"), background: b.id, cursor: "pointer", ...CP, fontSize: 4, color: b.id === "#1a1a1a" ? "#fff" : "#333", lineHeight: "14px" }}>{b.l}</button>;
                       })}
@@ -6480,29 +6577,29 @@ export default function LoathrMediaGenerator() {
                       })}
                     </div>
                   </div>;
-                  return <div style={{ padding: 4, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), borderRadius: 2, background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ebe6d6" : "#fafafa" }}>
+                  return <div style={{ padding: 4, border: "0.5px solid " + (activeSegment === "enterprise" ? "#333" : activeSegment === "newsdesk" ? "#d8d6d0" : "#ddd"), borderRadius: 2, background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#fafaf7" : "#fafafa" }}>
                   <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : "#333", marginBottom: 2 }}>{nudgeTarget.toUpperCase()}{isCover && coverMap[nudgeTarget] ? " (" + coverMap[nudgeTarget] + ")" : ""}</div>
                   {nudgeTarget === "body" || fieldKey === "subtitle" || fieldKey === "leadParagraph" ? (
                     <textarea key={fieldKey + "-" + currentSlide} defaultValue={fieldVal || ""} onBlur={function(e) { updateField(e.target.value); }} onChange={function(e) { updateField(e.target.value); }}
-                      rows={3} style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fff" : "#fff", resize: "vertical" }} />
+                      rows={3} style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "#ddd"), ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fff" : "#fff", resize: "vertical" }} />
                   ) : (
                     <input key={fieldKey + "-" + currentSlide} defaultValue={fieldVal || ""} onBlur={function(e) { updateField(e.target.value); }} onChange={function(e) { updateField(e.target.value); }}
-                      style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fff" : "#fff" }} />
+                      style={{ width: "100%", padding: "2px 4px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "#ddd"), ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#ddd" : "#333", background: activeSegment === "enterprise" ? "#111" : activeSegment === "newsdesk" ? "#fff" : "#fff" }} />
                   )}
                   {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources" || nudgeTarget === "quote") && <div style={{ display: "flex", gap: 3, alignItems: "center", marginTop: 2 }}>
                     <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Size:</div>
                     <button onClick={function() { adjustFontSize(currentSlide, nudgeTarget, -1); }}
-                      style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999", textAlign: "center", lineHeight: "14px" }}>-</button>
+                      style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999", textAlign: "center", lineHeight: "14px" }}>-</button>
                     <div style={{ ...CP, fontSize: 5, color: activeSegment === "enterprise" ? "#ccc" : "#666" }}>{(s[nudgeTarget + "Size"] || 0) > 0 ? "+" : ""}{s[nudgeTarget + "Size"] || 0}</div>
                     <button onClick={function() { adjustFontSize(currentSlide, nudgeTarget, 1); }}
-                      style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999", textAlign: "center", lineHeight: "14px" }}>+</button>
+                      style={{ width: 14, height: 14, border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999", textAlign: "center", lineHeight: "14px" }}>+</button>
                   </div>}
                   {(nudgeTarget === "heading" || nudgeTarget === "body" || nudgeTarget === "highlight" || nudgeTarget === "sources" || nudgeTarget === "quote") && (function() {
                     var fontKey = nudgeTarget + "Font";
                     var currentFont = s[fontKey] || "";
                     var selColor = activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent;
                     var dimColor = activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999";
-                    var borderDim = activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd";
+                    var borderDim = activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "#ddd";
                     return <div style={{ marginTop: 3 }}>
                       <div style={{ ...CP, fontSize: 4, color: dimColor, marginBottom: 2 }}>Font:</div>
                       {/* Custom fonts with preview */}
@@ -6568,14 +6665,14 @@ export default function LoathrMediaGenerator() {
                     <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Align:</div>
                     {[{ id: "left", label: "\u2190" }, { id: "center", label: "\u2194" }, { id: "right", label: "\u2192" }, { id: "justify", label: "\u2261" }].map(function(a) { var alignKey = nudgeTarget + "Align"; var sel = (s[alignKey] || "") === a.id; return (
                       <button key={a.id} onClick={function() { updateSlideField(currentSlide, alignKey, sel ? null : a.id); }}
-                        style={{ width: 18, height: 14, border: "0.5px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd")), background: sel ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999"), textAlign: "center", lineHeight: "14px" }}>{a.label}</button>
+                        style={{ width: 18, height: 14, border: "0.5px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "#ddd")), background: sel ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999"), textAlign: "center", lineHeight: "14px" }}>{a.label}</button>
                     ); })}
                   </div>}
                   {nudgeTarget === "highlight" && <div style={{ display: "flex", gap: 2, alignItems: "center", marginTop: 3 }}>
                     <div style={{ ...CP, fontSize: 4, color: activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999" }}>Style:</div>
                     {HIGHLIGHT_STYLES.map(function(hs) { var sel = (s.highlightStyle || (activeSegment === "enterprise" ? "bar" : activeSegment === "newsdesk" ? "bar" : "pill")) === hs.id; return (
                       <button key={hs.id} onClick={function() { updateSlideField(currentSlide, "highlightStyle", hs.id); }}
-                        style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd")), background: sel ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999") }}>{hs.label}</button>
+                        style={{ padding: "1px 4px", border: "0.5px solid " + (sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "#ddd")), background: sel ? (activeSegment === "enterprise" ? "#ffffff22" : activeSegment === "newsdesk" ? "#1a1a1a11" : uiAccent + "15") : "transparent", cursor: "pointer", ...CP, fontSize: 4, color: sel ? (activeSegment === "enterprise" ? "#fff" : activeSegment === "newsdesk" ? "#1a1a1a" : uiAccent) : (activeSegment === "enterprise" ? "#888" : activeSegment === "newsdesk" ? "#8a8270" : "#999") }}>{hs.label}</button>
                     ); })}
                   </div>}
                   {nudgeTarget === "body" && activeSegment === "enterprise" && <div style={{ marginTop: 3 }}>
@@ -6648,7 +6745,7 @@ export default function LoathrMediaGenerator() {
 
             {editSection === "layout" && <div style={{ marginTop: 4, textAlign: "center" }}>
               <button onClick={function() { resetSlideLayout(currentSlide); }}
-                style={{ padding: "3px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#c8c0aa" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: activeSegment === "enterprise" ? "#e63946" : "#c41e1e", letterSpacing: "0.05em" }}>{"\u21BA"} Reset Slide Layout</button>
+                style={{ padding: "3px 10px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: activeSegment === "enterprise" ? "#e63946" : "#c41e1e", letterSpacing: "0.05em" }}>{"\u21BA"} Reset Slide Layout</button>
             </div>}
 
             {/* === SLIDE === */}
@@ -6678,32 +6775,28 @@ export default function LoathrMediaGenerator() {
             {factCheckResult.issues.some(function(is) { return is.fix; }) && <button onClick={function() {
               // Auto-apply all fixes that have a suggested correction
               var _fso = selectedOptionRef.current;
+              var written = 0, skipped = 0;
               factCheckResult.issues.forEach(function(issue) {
-                if (!issue.fix || !issue.slide) return;
-                var slideIdx = issue.slide - 1; // fact checker uses 1-indexed
+                if (!issue.fix || typeof issue.slide !== "number") { skipped++; return; }
+                var slideIdx = issue.slide; // 0-based per updated prompt
                 var _fcur = options && options[_fso];
                 var curSlide = _fcur && _fcur.slides ? _fcur.slides[slideIdx] : null;
-                if (!curSlide) return;
-                // Find which field the fix applies to — check body first, then heading, then stat
-                var fixText = issue.fix;
-                if (curSlide.body && issue.issue.toLowerCase().indexOf("body") > -1) { updateSlideField(slideIdx, "body", fixText); }
-                else if (curSlide.stat && (issue.issue.toLowerCase().indexOf("stat") > -1 || issue.issue.toLowerCase().indexOf("number") > -1 || issue.issue.toLowerCase().indexOf("revenue") > -1)) { updateSlideField(slideIdx, "stat", fixText); }
-                else if (curSlide.quote && issue.issue.toLowerCase().indexOf("quote") > -1) { updateSlideField(slideIdx, "quote", fixText); }
-                else if (curSlide.body) {
-                  // Default: replace the problematic text in body
-                  var newBody = curSlide.body;
-                  // Try to find and replace the incorrect part
-                  var issueWords = issue.issue.split('"').filter(function(w) { return w.length > 5; });
-                  if (issueWords.length > 0) {
-                    issueWords.forEach(function(w) { if (newBody.indexOf(w) > -1) newBody = newBody.replace(w, fixText); });
-                  }
-                  if (newBody !== curSlide.body) updateSlideField(slideIdx, "body", newBody);
+                if (!curSlide) { skipped++; return; }
+                if (issue.field && curSlide[issue.field] !== undefined) {
+                  updateSlideField(slideIdx, issue.field, issue.fix);
+                  written++; return;
                 }
+                var lc = (issue.issue || "").toLowerCase();
+                if (curSlide.body && lc.indexOf("body") > -1) { updateSlideField(slideIdx, "body", issue.fix); written++; }
+                else if (curSlide.stat && (lc.indexOf("stat") > -1 || lc.indexOf("number") > -1 || lc.indexOf("figure") > -1)) { updateSlideField(slideIdx, "stat", issue.fix); written++; }
+                else if (curSlide.quote && lc.indexOf("quote") > -1) { updateSlideField(slideIdx, "quote", issue.fix); written++; }
+                else if (curSlide.heading && lc.indexOf("heading") > -1) { updateSlideField(slideIdx, "heading", issue.fix); written++; }
+                else { skipped++; }
               });
-              setFactCheckResult(Object.assign({}, factCheckResult, { _applied: true }));
+              setFactCheckResult(Object.assign({}, factCheckResult, { _applied: true, _written: written, _skipped: skipped }));
             }}
               style={{ padding: "2px 6px", border: "0.5px solid #22c55e", background: factCheckResult._applied ? "#22c55e22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#22c55e" }}>
-              {factCheckResult._applied ? "\u2713 Applied" : "Apply Fixes"}</button>}
+              {factCheckResult._applied ? ("\u2713 Applied " + (factCheckResult._written || 0) + (factCheckResult._skipped ? "/" + ((factCheckResult._written || 0) + factCheckResult._skipped) : "")) : "Apply Fixes"}</button>}
           </div>
           {factCheckResult.issues.map(function(issue, i) { return (
             <div key={i} style={{ ...CP, fontSize: 6, color: "#666", marginBottom: 2 }}>
@@ -6713,6 +6806,7 @@ export default function LoathrMediaGenerator() {
           ); })}
         </div>}
         {factCheckResult && (!factCheckResult.issues || factCheckResult.issues.length === 0) && factCheckResult.score > 0 && <div style={{ marginTop: 4, ...CP, fontSize: 6, color: "#22c55e", textAlign: "center" }}>{"\u2713"} {factCheckResult.summary}</div>}
+        {factCheckResult && factCheckResult._failed && <div style={{ marginTop: 4, padding: 6, border: "0.5px solid #ef444444", background: "#fef2f2", ...CP, fontSize: 6, color: "#ef4444", textAlign: "center", borderRadius: 3 }}>{factCheckResult.summary}</div>}
         {/* Related topics — elevated */}
         {relatedTopics.length > 0 && <div style={{ display: "flex", gap: 3, flexWrap: "wrap", justifyContent: "center", marginTop: 8 }}>
           <span style={{ ...CP, fontSize: 6, color: "#999" }}>Next:</span>

@@ -54,38 +54,46 @@ export var NEWSDESK_TIMEFRAMES = [
 ];
 
 export var NEWSDESK_PALETTE = {
-  bg: "#f5f0e4",
+  bg: "#f7f5f0",
   accent: "#c41e1e",
   accent2: "#1a1a1a",
   text: "#1a1a1a",
 };
 
+// Grungy newsprint texture for slide backgrounds — multi-layer CSS noise
+export var NEWSDESK_BG_TEXTURE = "repeating-radial-gradient(circle at 0% 0%, rgba(40,30,20,0.04) 0px, transparent 1.4px, transparent 4px),repeating-radial-gradient(circle at 100% 100%, rgba(40,30,20,0.035) 0px, transparent 1.2px, transparent 5px),repeating-radial-gradient(circle at 50% 50%, rgba(40,30,20,0.025) 0px, transparent 0.8px, transparent 7px),repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(0,0,0,0.014) 2px, rgba(0,0,0,0.014) 3px),repeating-linear-gradient(90deg, transparent 0, transparent 3px, rgba(0,0,0,0.01) 3px, rgba(0,0,0,0.01) 4px),radial-gradient(ellipse at 25% 15%, rgba(180,160,120,0.05), transparent 55%),radial-gradient(ellipse at 75% 85%, rgba(120,100,80,0.04), transparent 60%)";
+
+// Subtler texture for editor UI chrome — premium feel, not grungy
+export var NEWSDESK_UI_TEXTURE = "repeating-radial-gradient(circle at 0% 0%, rgba(40,30,20,0.025) 0px, transparent 1.2px, transparent 5px),repeating-radial-gradient(circle at 100% 100%, rgba(40,30,20,0.02) 0px, transparent 1px, transparent 6px),repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(0,0,0,0.008) 3px, rgba(0,0,0,0.008) 4px)";
+
 export var NEWSDESK_THEME = {
-  pageBg: "#f5f0e4",
+  pageBg: "#f7f5f0",
   pageText: "#1a1a1a",
-  uiBg: "#ebe6d6",
+  uiBg: "#fafaf7",
   uiText: "#1a1a1a",
-  uiBorder: "#c8c0aa",
+  uiBorder: "#d8d6d0",
   buttonBg: "transparent",
   buttonBorder: "#1a1a1a44",
   buttonText: "#1a1a1a",
   buttonActiveBg: "#1a1a1a11",
   buttonActiveText: "#1a1a1a",
   inputBg: "#ffffff",
-  inputBorder: "#c8c0aa",
+  inputBorder: "#d8d6d0",
   inputText: "#1a1a1a",
-  panelBg: "#ebe6d6",
+  panelBg: "#fafaf7",
   breakingColor: "#c41e1e",
+  uiTexture: NEWSDESK_UI_TEXTURE,
 };
 
 export var NEWSDESK_DESIGN = {
-  imageFilter: "saturate(0.7) contrast(1.05)",
+  imageFilter: "saturate(0.75) contrast(1.08)",
   containers: ["formal", "minimal"],
   borderColor: "#1a1a1a",
   borderWidth: 1,
   fontHeading: "'Foun',Georgia,serif",
   fontBody: "'Maheni',Georgia,serif",
   watermarkColor: "#1a1a1a66",
+  bgTexture: NEWSDESK_BG_TEXTURE,
 };
 
 export var NEWSDESK_SLIDE_ROLES = [
