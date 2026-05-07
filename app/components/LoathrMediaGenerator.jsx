@@ -1028,7 +1028,7 @@ function SplitTextBox({ slide, position, accent, accent2, category, seed, styleB
 
   var headingEl = <div style={Object.assign({}, { ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: slide.headingColor || (useSticky ? "inherit" : "#ffffff"), textTransform: "uppercase", letterSpacing: "0.03em" }, slide.headingAlign ? { textAlign: slide.headingAlign } : {})}>{slide.heading || ""}</div>;
   var bodyEl = <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: slide.bodyColor || (useSticky ? "inherit" : "#ffffffe6"), lineHeight: 1.45 }, slide.bodyAlign ? { textAlign: slide.bodyAlign } : {})}>{styleBody ? styleBody(slide.body || "", accent, accent2) : (slide.body || "")}</div>;
-  var highlightEl = styledHighlight(slide.highlight, slide, { fg: useSticky ? "inherit" : "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", bg: "transparent", defaultStyle: "underline" });
+  var highlightEl = styledHighlight(slide.highlight, slide, { fg: useSticky ? "inherit" : "#ffffff", accent: "#ffffff", pillText: "#1a1a1a", bg: "transparent", defaultStyle: "underline" });
   var citeEl = <MicroCite sources={slide.sources} accent={accent} />;
 
   // Per-element position offsets from customPosition
@@ -1216,7 +1216,7 @@ function S2Arena({ slide, index, category, images }) {
   var textContent = <div>
     <div style={Object.assign({}, { ...headFont(slide), fontSize: 13 + (slide.headingSize || 0), color: slide.headingColor || (useSticky ? "inherit" : "#ffffff"), marginBottom: 10, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: slide.headingAlign || "right" }, hTransform)}>{slide.heading || "Part " + index}</div>
     <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9.5 + (slide.bodySize || 0), color: slide.bodyColor || (useSticky ? "inherit" : "#ffffffe6"), lineHeight: 1.5, textAlign: slide.bodyAlign || "left" }, bTransform)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-    {styledHighlight(slide.highlight, slide, { fg: useSticky ? "inherit" : "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "underline" })}
+    {styledHighlight(slide.highlight, slide, { fg: useSticky ? "inherit" : "#ffffff", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "underline" })}
     {slide.specs && <div style={{ marginTop: 8, border: "1px solid " + p.accent + "44", padding: "4px 6px", background: "rgba(255,255,255,0.03)" }}><div style={{ ...WS, fontSize: 5.3, color: useSticky ? "inherit" : "#ffffffaa", textAlign: "left" }}>{slide.specs}</div></div>}
     <MicroCite sources={slide.sources} />
   </div>;
@@ -1270,7 +1270,7 @@ function S3RayGun({ slide, index, category, images }) {
     var flippedText = <div>
       <div style={Object.assign({}, { ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: slide.headingColor || (useSticky ? "inherit" : "#ffffff"), marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: slide.headingAlign || "left" }, h3t)}>{slide.heading || "Part " + index}</div>
       <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: slide.bodyColor || (useSticky ? "inherit" : "#ffffffe6"), lineHeight: 1.45, textAlign: slide.bodyAlign || "right", overflow: "hidden" }, b3t)}>{styleBody(slide.body, p.accent2, p.accent)}</div>
-      {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "underline" })}
+      {styledHighlight(slide.highlight, slide, { fg: useSticky ? "inherit" : "#ffffff", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "underline" })}
       <MicroCite sources={slide.sources} />
     </div>;
     var flippedWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index + 1}>{flippedText}</BubbleBox>
@@ -1299,7 +1299,7 @@ function S3RayGun({ slide, index, category, images }) {
   var normalText = <div>
     <div style={Object.assign({}, { ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: slide.headingColor || (useSticky ? "inherit" : "#ffffff"), marginBottom: 8, letterSpacing: "0.03em", textTransform: "uppercase", textAlign: slide.headingAlign || "right" }, h3t)}>{slide.heading || "Part " + index}</div>
     <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: slide.bodyColor || (useSticky ? "inherit" : "#ffffffe6"), lineHeight: 1.45, textAlign: slide.bodyAlign || "left", overflow: "hidden" }, b3t)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-    {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "underline" })}
+    {styledHighlight(slide.highlight, slide, { fg: useSticky ? "inherit" : "#ffffff", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "underline" })}
     <MicroCite sources={slide.sources} />
   </div>;
   var normalWrapped = useBubble ? <BubbleBox accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</BubbleBox>
@@ -1563,7 +1563,7 @@ function S5Face({ slide, index, category, images }) {
   var s5Text = <div style={{ overflow: "hidden" }}>
     <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: slide.bodyColor || (useSticky ? "inherit" : "#ffffffe6"), lineHeight: 1.45, textAlign: slide.bodyAlign || "right" }, b5t)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
     {!styled && <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />}
-    {styledHighlight(slide.highlight, slide, { fg: "#1a1a1a", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "underline" })}
+    {styledHighlight(slide.highlight, slide, { fg: useSticky ? "inherit" : "#ffffff", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: "underline" })}
   </div>;
   var CONTAINER_MAP5 = { bubble: BubbleBox, sticky: StickyNote, formal: FormalFrame, glass: GlassBox, tape: TapeStrip, cutout: CutoutBox, minimal: MinimalBox, none: null };
   var co5 = slide.containerStyle && CONTAINER_MAP5.hasOwnProperty(slide.containerStyle) ? slide.containerStyle : null;
@@ -1865,14 +1865,14 @@ var searchUnsplash = async function(query, apiKey, page) {
   var r = await fetch("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: "Client-ID " + apiKey } });
   if (!r.ok) throw new Error("Unsplash " + r.status);
   var d = await r.json();
-  return (d.results || []).map(function(img) { return { url: img.urls ? img.urls.regular : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; });
+  return (d.results || []).map(function(img) { return { url: img.urls ? (img.urls.full || img.urls.regular) : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; });
 };
 
 var searchPexels = async function(query, apiKey, page) {
   var r = await fetch("https://api.pexels.com/v1/search?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: apiKey } });
   if (!r.ok) throw new Error("Pexels " + r.status);
   var d = await r.json();
-  return (d.photos || []).map(function(img) { return { url: img.src ? img.src.large : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; });
+  return (d.photos || []).map(function(img) { return { url: img.src ? (img.src.original || img.src.large2x || img.src.large) : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; });
 };
 
 
@@ -2435,8 +2435,8 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
   var innerSlide = el.querySelector("[style*='width: 340']") || el.querySelector("[style*='width:340']") || el.firstElementChild || el;
   var ew = innerSlide.offsetWidth || 340;
   var eh = innerSlide.offsetHeight || 425;
-  // Scale to 1080px width — cap on mobile to prevent memory crash
-  var exportScale = window.innerWidth < 500 ? Math.min(3, 1080 / ew) : 1080 / ew;
+  // Scale to 2160px width on desktop; cap mobile at 4x (~1360px) to prevent memory crash
+  var exportScale = window.innerWidth < 500 ? Math.min(4, 2160 / ew) : 2160 / ew;
   return window.html2canvas(exportTarget, {
     width: exportTarget.offsetWidth,
     height: exportTarget.offsetHeight,
