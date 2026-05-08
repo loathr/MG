@@ -1,0 +1,10 @@
+[
+  { "text": "Top of the hour. [topic] — and what changed today.", "weight": 10 },
+  { "text": "Mr. Coffee. News desk. Today's story —", "weight": 10 },
+  { "text": "What you need to know about [topic], in three minutes.", "weight": 10 },
+  { "text": "Filing this hour: [topic].", "weight": 10 },
+  { "text": "There are two things happening with [topic]. We'll take them in order.", "weight": 10 },
+  { "text": "The story is moving. Here's where it stands.", "weight": 10 },
+  { "text": "From the desk —", "weight": 10 },
+  { "text": "This is the story today, and this is what it means.", "weight": 10 }
+]

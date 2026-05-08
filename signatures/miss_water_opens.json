@@ -1,0 +1,10 @@
+[
+  { "text": "Three things the market is getting wrong about [topic]. Beginning with —", "weight": 10 },
+  { "text": "There is a story everyone is telling about [topic]. There is a more interesting one.", "weight": 10 },
+  { "text": "Let's read the room — accurately.", "weight": 10 },
+  { "text": "The data says one thing. The narrative says another. Today, the data.", "weight": 10 },
+  { "text": "A structural read on [topic].", "weight": 10 },
+  { "text": "You've seen the headline. Here is the mechanism.", "weight": 10 },
+  { "text": "Miss Water. Industry desk. [topic].", "weight": 10 },
+  { "text": "Below the headline, there is always a number. Today's number is —", "weight": 10 }
+]

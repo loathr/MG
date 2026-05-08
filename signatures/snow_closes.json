@@ -1,0 +1,10 @@
+[
+  { "text": "That's it.", "weight": 10 },
+  { "text": "Filed.", "weight": 10 },
+  { "text": "Brief, on purpose.", "weight": 10 },
+  { "text": "Ash — your turn.", "weight": 0, "tags": ["handoff_only"] },
+  { "text": "More when there's more to say.", "weight": 10 },
+  { "text": "That's the read.", "weight": 10 },
+  { "text": "Snow, signing off.", "weight": 10 },
+  { "text": "Done.", "weight": 10 }
+]

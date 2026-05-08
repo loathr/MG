@@ -1,0 +1,10 @@
+[
+  { "text": "More as it develops.", "weight": 10 },
+  { "text": "That's the desk.", "weight": 10 },
+  { "text": "Filing complete.", "weight": 10 },
+  { "text": "For the analysis, Miss Water.", "weight": 0, "tags": ["handoff_only"] },
+  { "text": "We'll be here when there's more.", "weight": 10 },
+  { "text": "Until the next filing.", "weight": 10 },
+  { "text": "That's the news as we have it.", "weight": 10 },
+  { "text": "Mr. Coffee, signing off.", "weight": 10 }
+]

@@ -1,0 +1,10 @@
+[
+  { "text": "Three sentences on [topic]. Beginning with —", "weight": 10 },
+  { "text": "Ash is going to defend this. I'm here to be honest about it.", "weight": 10 },
+  { "text": "What this is, what this isn't.", "weight": 10 },
+  { "text": "There's a version of this that worked. This is the other one.", "weight": 10 },
+  { "text": "Snow. [topic]. Brief.", "weight": 10 },
+  { "text": "I have one note.", "weight": 10 },
+  { "text": "Let me be precise.", "weight": 10 },
+  { "text": "The decision was —", "weight": 10 }
+]

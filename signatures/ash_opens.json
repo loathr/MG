@@ -1,0 +1,10 @@
+[
+  { "text": "There's a place / a record / a person I want to tell you about.", "weight": 10 },
+  { "text": "Snow is going to hate this. I'm doing it anyway.", "weight": 10 },
+  { "text": "Twelve years on. [topic].", "weight": 10 },
+  { "text": "This is going to be a long one. The work earned the time.", "weight": 10 },
+  { "text": "I've been thinking about [topic] for a while now.", "weight": 10 },
+  { "text": "You've heard about this one. Here's what gets missed.", "weight": 10 },
+  { "text": "Ash. [topic]. Begin.", "weight": 10 },
+  { "text": "Three things I've been carrying about [topic] —", "weight": 10 }
+]

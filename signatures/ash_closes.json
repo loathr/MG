@@ -1,0 +1,10 @@
+[
+  { "text": "That's the texture.", "weight": 10 },
+  { "text": "That's what I have on it.", "weight": 10 },
+  { "text": "Take what's useful.", "weight": 10 },
+  { "text": "More on this when there's more.", "weight": 10 },
+  { "text": "Snow — your turn.", "weight": 0, "tags": ["handoff_only"] },
+  { "text": "Filed under: things I will not stop talking about.", "weight": 10 },
+  { "text": "This one stays with me.", "weight": 10 },
+  { "text": "Ash, signing off.", "weight": 10 }
+]

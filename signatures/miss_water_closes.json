@@ -1,0 +1,12 @@
+[
+  { "text": "That is the read.", "weight": 10 },
+  { "text": "Make of it what you will.", "weight": 10 },
+  { "text": "The market will catch up.", "weight": 10 },
+  { "text": "This will age — we'll see how.", "weight": 10 },
+  { "text": "Filed.", "weight": 10 },
+  { "text": "Back to you, [Mr. Coffee].", "weight": 0, "tags": ["handoff_only"] },
+  { "text": "Notes are in the carousel.", "weight": 10 },
+  { "text": "Until the next data point.", "weight": 10 },
+  { "text": "Stay hydrated.", "weight": 5 },
+  { "text": "Drink more water.", "weight": 5 }
+]

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useCallback, useEffect, useRef } from "react";
+import { extractCarouselPayload, MODE_MAPPING, CHARACTER_FOR_CATEGORY } from "../lib/scriptSchema";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
 import { ENTERPRISE_FORCES, ENTERPRISE_SECTORS, ENTERPRISE_TOPICS, ENTERPRISE_GENERAL_TOPICS, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
 import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS, styledHighlight, HIGHLIGHT_STYLES, ENTERPRISE_IMG_FILTERS, setGlobalImgFilter } from "./segments/EnterpriseSlides";
@@ -2758,6 +2759,9 @@ export default function LoathrMediaGenerator() {
   var fvs = _s([]), favorites = fvs[0], setFavorites = fvs[1];
   var tch = _s([]), topicChain = tch[0], setTopicChain = tch[1];
   var shl = _s(null), shareLink = shl[0], setShareLink = shl[1];
+  var scrR = _s(null), scriptResult = scrR[0], setScriptResult = scrR[1];
+  var scrL = _s(false), scriptLoading = scrL[0], setScriptLoading = scrL[1];
+  var scrE = _s(null), scriptError = scrE[0], setScriptError = scrE[1];
   var shf = _s(false), showFavorites = shf[0], setShowFavorites = shf[1];
   var wrs = _s([]), webResults = wrs[0], setWebResults = wrs[1];
   var sld = _s(false), isSearching = sld[0], setIsSearching = sld[1];
@@ -3748,11 +3752,35 @@ export default function LoathrMediaGenerator() {
     if (navigator.clipboard) { navigator.clipboard.writeText(link); }
   }, [topic, category]);
 
+  // 5. Generate video script — sends carousel + mode to /api/script which loads the right bible
+  var generateScript = _cb(async function() {
+    if (scriptLoading) return;
+    var cur = options ? options[selectedOption] : null;
+    if (!cur || !cur.slides || !cur.slides.length) { setScriptError("Generate a carousel first"); return; }
+    if (!CHARACTER_FOR_CATEGORY[category]) { setScriptError("No character mapped for category '" + category + "'"); return; }
+    var optId = (OPTION_TYPES[selectedOption] || {}).id;
+    var mode = MODE_MAPPING[optId];
+    if (!mode) { setScriptError("Unknown mode for option '" + optId + "'"); return; }
+    setScriptLoading(true); setScriptError(null); setScriptResult(null);
+    try {
+      var carousel = extractCarouselPayload(topic, category, cur.slides);
+      var r = await fetch("/api/script", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ carousel: carousel, mode: mode }) });
+      var d = await r.json();
+      if (!r.ok || d.error) { setScriptError(d.error || ("Request failed (" + r.status + ")")); return; }
+      setScriptResult(d);
+    } catch (e) {
+      setScriptError(e.message || "Script generation failed");
+    } finally {
+      setScriptLoading(false);
+    }
+  }, [options, selectedOption, topic, category, scriptLoading]);
+
   // Export carousel as JSON file
-  function exportCarousel() {
+  async function exportCarousel() {
     var _so = selectedOptionRef.current;
     var cur = options && options[_so];
-    if (!cur || !cur.slides) return;
+    if (!cur || !cur.slides) { setExportStatus("Nothing to share"); setTimeout(function() { setExportStatus(null); }, 1500); return; }
     var imgUrls = {};
     Object.keys(images || {}).forEach(function(k) {
       if (images[k] && images[k].url) imgUrls[k] = { url: images[k].url, thumb: images[k].thumb || images[k].url, source: images[k].source || "" };
@@ -3770,16 +3798,40 @@ export default function LoathrMediaGenerator() {
     };
     var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     var fileName = "LOATHR-" + (topic || "carousel").replace(/[^a-zA-Z0-9]/g, "-").slice(0, 30) + ".json";
+    setExportStatus("Sharing...");
+    var triedShare = false;
     if (navigator.share && navigator.canShare) {
-      var file = new File([blob], fileName, { type: "application/json" });
-      if (navigator.canShare({ files: [file] })) {
-        navigator.share({ files: [file], title: "LOATHR Carousel" }).catch(function() {});
-        return;
+      try {
+        var file = new File([blob], fileName, { type: "application/json" });
+        if (navigator.canShare({ files: [file] })) {
+          triedShare = true;
+          await navigator.share({ files: [file], title: "LOATHR Carousel" });
+          setExportStatus("Shared!");
+          setTimeout(function() { setExportStatus(null); }, 1500);
+          return;
+        }
+      } catch (e) {
+        if (e && e.name === "AbortError") {
+          setExportStatus("Cancelled");
+          setTimeout(function() { setExportStatus(null); }, 1500);
+          return;
+        }
+        // any other share failure → fall through to download
       }
     }
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a"); a.href = url; a.download = fileName; a.click();
-    URL.revokeObjectURL(url);
+    try {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = fileName; a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function() { URL.revokeObjectURL(url); }, 100);
+      setExportStatus(triedShare ? "Downloaded" : "Saved!");
+    } catch (e) {
+      setExportStatus("Failed");
+    }
+    setTimeout(function() { setExportStatus(null); }, 1500);
   }
 
   // Import carousel from JSON file
@@ -6117,6 +6169,11 @@ export default function LoathrMediaGenerator() {
               style={{ padding: "6px 8px", border: "0.5px solid #9b59b6", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#9b59b6" }}>
               {"\u2B06"} Share as File
             </button>
+            {CHARACTER_FOR_CATEGORY[category] && <button onClick={generateScript} disabled={scriptLoading}
+              title={"Generate a " + CHARACTER_FOR_CATEGORY[category].name + " script from this carousel"}
+              style={{ padding: "6px 8px", border: "0.5px solid #2563eb", background: scriptLoading ? "#2563eb15" : "transparent", cursor: scriptLoading ? "default" : "pointer", ...CP, fontSize: 7, color: "#2563eb", opacity: scriptLoading ? 0.6 : 1 }}>
+              {scriptLoading ? "Writing..." : "\uD83C\uDFAC Script"}
+            </button>}
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
@@ -6292,6 +6349,8 @@ export default function LoathrMediaGenerator() {
           else if (s.quote) { fields = [["quote", s.quote], ["source", s.source]]; }
           else if (s.stat) { fields = [["heading", s.heading], ["stat", s.stat], ["caption", s.caption || s.statLabel || s.body]]; }
           else { fields = [["heading", s.heading], ["body", s.body]]; }
+          // News Desk: always expose relatedBody on content slides so users can add/edit/clear it
+          if (activeSegment === "newsdesk" && isContent) { fields.push(["relatedBody", s.relatedBody || ""]); }
           // Highlight as separate section (not mixed with body fields)
           var hasHighlight = !isCover && !isCloser && !s.quote && !s.stat && s.highlight !== undefined;
           return <div style={{ marginTop: 6, border: "0.5px solid " + uiAccent + "44", background: "#f8f8f8", padding: 8, borderRadius: 3 }}>
@@ -6308,7 +6367,7 @@ export default function LoathrMediaGenerator() {
             {editSection === "content" && <div>
               {/* Text editing */}
               {editField ? <div style={{ marginBottom: 4 }}>
-                {editField.field === "body" || editField.field === "context" || editField.field === "quote" ? (
+                {editField.field === "body" || editField.field === "context" || editField.field === "quote" || editField.field === "relatedBody" ? (
                   <textarea value={editValue} onChange={function(e) { setEditValue(e.target.value); }}
                     rows={3} style={{ width: "100%", padding: "4px 8px", border: "0.5px solid " + uiAccent, ...CP, fontSize: 8, color: "#333", resize: "vertical", background: "#fff" }} />
                 ) : (
@@ -6322,10 +6381,17 @@ export default function LoathrMediaGenerator() {
               </div> : null}
               <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
                 {fields.map(function(f) { return f[1] !== undefined ? (
-                  <button key={f[0]} onClick={function() { startEdit(currentSlide, f[0], f[1] || ""); }}
-                    style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: editField && editField.field === f[0] ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    <span style={{ color: uiAccent }}>{f[0]}</span>: {f[1] ? String(f[1]).slice(0, 25) : "(empty)"}
-                  </button>
+                  <span key={f[0]} style={{ display: "inline-flex", alignItems: "stretch" }}>
+                    <button onClick={function() { startEdit(currentSlide, f[0], f[1] || ""); }}
+                      style={{ padding: "2px 6px", border: "0.5px solid #ddd", background: editField && editField.field === f[0] ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: "#666", maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ color: uiAccent }}>{f[0]}</span>: {f[1] ? String(f[1]).slice(0, 25) : "(empty)"}
+                    </button>
+                    {f[0] === "relatedBody" && f[1] ? (
+                      <button onClick={function() { updateSlideField(currentSlide, "relatedBody", ""); if (editField && editField.field === "relatedBody") { setEditField(null); setEditValue(""); } }}
+                        title="Remove related section"
+                        style={{ padding: "0 5px", border: "0.5px solid #ddd", borderLeft: "none", background: "#fff", cursor: "pointer", ...CP, fontSize: 7, color: "#999" }}>{"×"}</button>
+                    ) : null}
+                  </span>
                 ) : null; })}
               </div>
               {/* Highlight / Insight — separate from body */}
@@ -7007,6 +7073,61 @@ export default function LoathrMediaGenerator() {
               style={{ padding: "3px 8px", border: "0.5px solid " + uiAccent + "33", background: uiAccent + "08", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent }} title={catLabel}>{f.topic}</button>;
           })}
         </div>}
+      </div>}
+
+      {(scriptResult || scriptError) && <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={function() { setScriptResult(null); setScriptError(null); }}>
+        <div onClick={function(e) { e.stopPropagation(); }} style={{ background: "#fff", maxWidth: 640, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 24, border: "1px solid #1a1a1a", boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+            <div>
+              <div style={{ ...CP, fontSize: 7, letterSpacing: "0.2em", color: "#888", textTransform: "uppercase" }}>{scriptResult ? scriptResult.mode.replace(/_/g, " ") : "Script error"}</div>
+              {scriptResult && <div style={{ ...CP, fontSize: 16, fontWeight: 700, color: "#1a1a1a", marginTop: 2 }}>{scriptResult.character_name}</div>}
+              {scriptResult && <div style={{ ...CP, fontSize: 6, color: "#aaa", marginTop: 2, letterSpacing: "0.05em" }}>{scriptResult.bible} · {scriptResult.topic}</div>}
+            </div>
+            <button onClick={function() { setScriptResult(null); setScriptError(null); }}
+              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#999", padding: "0 4px" }}>{"×"}</button>
+          </div>
+          {scriptError && <div style={{ padding: 12, background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", ...CP, fontSize: 10 }}>{scriptError}</div>}
+          {scriptResult && <div>
+            <div style={{ marginBottom: 14, paddingBottom: 10, borderBottom: "0.5px dashed #ddd" }}>
+              <div style={{ ...CP, fontSize: 6, letterSpacing: "0.15em", color: "#2563eb", marginBottom: 4 }}>COLD OPEN</div>
+              <div style={{ ...CP, fontSize: 12, color: "#1a1a1a", fontStyle: "italic", lineHeight: 1.5 }}>{scriptResult.cold_open}</div>
+            </div>
+            {(scriptResult.beats || []).map(function(b, i) { return (
+              <div key={i} style={{ marginBottom: 12 }}>
+                <div style={{ ...CP, fontSize: 6, letterSpacing: "0.15em", color: "#888", marginBottom: 3 }}>BEAT {i + 1}</div>
+                <div style={{ ...CP, fontSize: 11, color: "#222", lineHeight: 1.55 }}>{b.text}</div>
+                {b.animation_note && <div style={{ ...CP, fontSize: 6, color: "#aaa", marginTop: 3, fontStyle: "italic" }}>[{b.animation_note}]</div>}
+              </div>
+            ); })}
+            <div style={{ marginTop: 14, paddingTop: 10, borderTop: "0.5px dashed #ddd" }}>
+              <div style={{ ...CP, fontSize: 6, letterSpacing: "0.15em", color: "#2563eb", marginBottom: 4 }}>SIGN-OFF</div>
+              <div style={{ ...CP, fontSize: 12, color: "#1a1a1a", fontStyle: "italic", lineHeight: 1.5 }}>{scriptResult.sign_off}</div>
+            </div>
+            <div style={{ display: "flex", gap: 6, marginTop: 18, paddingTop: 12, borderTop: "0.5px solid #eee" }}>
+              <button onClick={function() {
+                  var lines = ["[" + scriptResult.character_name + " — " + scriptResult.mode.replace(/_/g, " ").toUpperCase() + "]", "", scriptResult.cold_open, ""];
+                  (scriptResult.beats || []).forEach(function(b, i) { lines.push("Beat " + (i + 1) + ": " + b.text); if (b.animation_note) lines.push("  (" + b.animation_note + ")"); lines.push(""); });
+                  lines.push(scriptResult.sign_off);
+                  if (navigator.clipboard) navigator.clipboard.writeText(lines.join("\n"));
+                }}
+                style={{ padding: "6px 12px", border: "0.5px solid #2563eb", background: "#2563eb", color: "#fff", cursor: "pointer", ...CP, fontSize: 7 }}>Copy text</button>
+              <button onClick={function() { if (navigator.clipboard) navigator.clipboard.writeText(JSON.stringify(scriptResult, null, 2)); }}
+                style={{ padding: "6px 12px", border: "0.5px solid #2563eb", background: "transparent", color: "#2563eb", cursor: "pointer", ...CP, fontSize: 7 }}>Copy JSON</button>
+              <button onClick={function() {
+                  var blob = new Blob([JSON.stringify(scriptResult, null, 2)], { type: "application/json" });
+                  var url = URL.createObjectURL(blob);
+                  var a = document.createElement("a"); a.href = url;
+                  a.download = "LOATHR-script-" + scriptResult.character + "-" + (scriptResult.topic || "untitled").replace(/[^a-zA-Z0-9]/g, "-").slice(0, 30) + ".json";
+                  a.style.display = "none"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                  setTimeout(function() { URL.revokeObjectURL(url); }, 100);
+                }}
+                style={{ padding: "6px 12px", border: "0.5px solid #2563eb", background: "transparent", color: "#2563eb", cursor: "pointer", ...CP, fontSize: 7 }}>Download .json</button>
+              <span style={{ flex: 1 }} />
+              <button onClick={function() { setScriptResult(null); setScriptError(null); }}
+                style={{ padding: "6px 12px", border: "0.5px solid #ccc", background: "transparent", color: "#666", cursor: "pointer", ...CP, fontSize: 7 }}>Close</button>
+            </div>
+          </div>}
+        </div>
       </div>}
 
       <div style={{ textAlign: "center", padding: "18px 0 12px", borderTop: "0.5px solid var(--color-border-tertiary)", marginTop: 16 }}>

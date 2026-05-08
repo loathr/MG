@@ -1,0 +1,10 @@
+[
+  { "text": "File [NN]. Subject: [topic].", "weight": 10 },
+  { "text": "Three things about [topic]. Two of them are wrong.", "weight": 10 },
+  { "text": "Loathr Bot. Returning to a topic I have feelings about.", "weight": 10 },
+  { "text": "This shouldn't need saying. I'm going to say it.", "weight": 10 },
+  { "text": "Begin transmission. [topic].", "weight": 10 },
+  { "text": "You've heard this before. You've heard it wrong.", "weight": 10 },
+  { "text": "A correction is in order.", "weight": 10 },
+  { "text": "Filed under: things I will die on this hill about.", "weight": 10 }
+]
