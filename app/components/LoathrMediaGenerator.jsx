@@ -1367,6 +1367,38 @@ var STAT_LAYOUTS = [
   { s1: { top: "18%", left: "50%", transform: "translateX(-50%)", textAlign: "center" }, s2: { top: "42%", left: "50%", transform: "translateX(-50%)", textAlign: "center" } },
 ];
 
+// --- S4 STAT helpers (shared by renderer + editor) ---
+var STAT_FORMATS = ["killer", "comparison", "story", "versus", "timeline"];
+var STAT_FORMAT_FIELDS = {
+  killer: ["stat", "caption"],
+  comparison: ["before", "beforeLabel", "after", "afterLabel", "shift"],
+  versus: ["left", "leftStat", "leftLabel", "right", "rightStat", "rightLabel", "verdict"],
+  timeline: ["year", "stat", "statLabel", "context"],
+  story: ["narrative"],
+};
+function detectStatFormat(s) {
+  if (!s) return "killer";
+  return s.statFormat || (s.before ? "comparison" : s.stats ? "story" : s.left ? "versus" : (s.year && !s.heading) ? "timeline" : s.stat2 ? "comparison" : "killer");
+}
+// Pull the leading numeric token off a too-long stat; return { stat, rest }
+function splitLongStat(value) {
+  var v = String(value || "").trim();
+  if (!v) return { stat: "", rest: "" };
+  var m = v.match(/^([\-+$£€¥]?\d[\d.,]*[%KMBkmbx+]?)\s*(.*)$/);
+  if (m && m[1] && m[2]) return { stat: m[1], rest: m[2].trim() };
+  var sp = v.indexOf(" ");
+  if (sp > 0) return { stat: v.slice(0, sp), rest: v.slice(sp + 1).trim() };
+  return { stat: v, rest: "" };
+}
+// Killer-format font sizing. autoFit shrinks aggressively for long strings.
+function killerFontSize(val, autoFit) {
+  var n = String(val || "").length;
+  if (autoFit) {
+    return n > 30 ? 16 : n > 22 ? 22 : n > 16 ? 28 : n > 10 ? 36 : n > 5 ? 48 : 64;
+  }
+  return n > 8 ? 36 : n > 5 ? 48 : 64;
+}
+
 // --- S4 STAT (5 formats: comparison, killer, story, versus, timeline) ---
 function S4Emigre({ slide, index, category, images }) {
   if (!slide) return <div style={{ width: "100%", height: "100%", background: "#0a0a0a" }} />;
@@ -1436,18 +1468,21 @@ function S4Emigre({ slide, index, category, images }) {
   // Format B: Killer Number — centered or left-anchored variation
   if (fmt === "killer") {
     var killerVal = String(slide.stat || "");
-    var killerSize = killerVal.length > 8 ? 36 : killerVal.length > 5 ? 48 : 64;
+    var killerAutoFit = slide.statAutoFit !== false; // default ON
+    var killerSize = killerFontSize(killerVal, killerAutoFit);
+    var killerLS = killerSize > 36 ? -2 : -1;
     var killerLayout = index % 2;
+    var statStyle = { ...WS, fontSize: killerSize, color: p.accent, lineHeight: 0.85, letterSpacing: killerLS, wordBreak: "break-word", overflowWrap: "break-word" };
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.6)">
         {killerLayout === 0 ? (
-          <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 3, textAlign: "center", width: "85%" }}>
-            <div style={{ ...WS, fontSize: killerSize, color: p.accent, lineHeight: 0.85, letterSpacing: -2 }}>{slide.stat}</div>
+          <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 3, textAlign: "center", width: "85%", maxHeight: "62%", overflow: "hidden" }}>
+            <div style={statStyle}>{slide.stat}</div>
             <div style={{ ...HD, fontSize: 9, color: "#ffffffcc", marginTop: 12, lineHeight: 1.5 }}>{slide.caption || slide.statLabel || slide.body}</div>
           </div>
         ) : (
-          <div style={{ position: "absolute", top: "30%", left: M_SIDE, zIndex: 3, width: "70%" }}>
-            <div style={{ ...WS, fontSize: killerSize, color: p.accent, lineHeight: 0.85, letterSpacing: -2 }}>{slide.stat}</div>
+          <div style={{ position: "absolute", top: "30%", left: M_SIDE, zIndex: 3, width: "70%", maxHeight: "62%", overflow: "hidden" }}>
+            <div style={statStyle}>{slide.stat}</div>
             <div style={{ width: "30%", height: 2, background: p.accent, margin: "10px 0" }} />
             <div style={{ ...HD, fontSize: 9, color: "#ffffffcc", lineHeight: 1.5 }}>{slide.caption || slide.statLabel || slide.body}</div>
           </div>
@@ -6344,10 +6379,15 @@ export default function LoathrMediaGenerator() {
           var isCover = currentSlide === 0;
           var isCloser = currentSlide === total - 1;
           var fields = [];
+          var isStat = !!(s.stat || s.statFormat || s.stats || s.before || s.leftStat || s.year || s.stat2);
+          var statFmt = isStat ? detectStatFormat(s) : null;
           if (isCover) { fields = [["title", s.title], ["subtitle", s.subtitle], ["titleHighlight", s.titleHighlight]]; }
           else if (isCloser) { fields = [["hashtags", s.hashtags], ["funnyLine", s.funnyLine], ["disclaimer", s.disclaimer]]; }
           else if (s.quote) { fields = [["quote", s.quote], ["source", s.source]]; }
-          else if (s.stat) { fields = [["heading", s.heading], ["stat", s.stat], ["caption", s.caption || s.statLabel || s.body]]; }
+          else if (isStat) {
+            var statKeys = STAT_FORMAT_FIELDS[statFmt] || ["stat", "caption"];
+            fields = [["heading", s.heading]].concat(statKeys.map(function(k) { return [k, s[k]]; }));
+          }
           else { fields = [["heading", s.heading], ["body", s.body]]; }
           // News Desk: always expose relatedBody on content slides so users can add/edit/clear it
           if (activeSegment === "newsdesk" && isContent) { fields.push(["relatedBody", s.relatedBody || ""]); }
@@ -6394,6 +6434,60 @@ export default function LoathrMediaGenerator() {
                   </span>
                 ) : null; })}
               </div>
+              {/* Stat-slide controls: format switcher, char counter, split, auto-fit, stats[] editor */}
+              {isStat && (function() {
+                var statVal = String(s.stat || "");
+                var killerStat = statFmt === "killer" || statFmt === "timeline";
+                var tooLong = killerStat && statVal.length > 14;
+                return <div style={{ marginBottom: 4, padding: 6, background: "#fff", border: "0.5px solid " + uiAccent + "33" }}>
+                  <div style={{ ...CP, fontSize: 4, color: uiAccent + "88", marginBottom: 2 }}>STAT FORMAT</div>
+                  <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 4 }}>
+                    {STAT_FORMATS.map(function(fmtId) {
+                      var sel = statFmt === fmtId;
+                      return <button key={fmtId} onClick={function() { updateSlideField(currentSlide, "statFormat", fmtId); }}
+                        style={{ padding: "2px 6px", border: "0.5px solid " + (sel ? uiAccent : "#ddd"), background: sel ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: sel ? uiAccent : "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>{fmtId}</button>;
+                    })}
+                  </div>
+                  {killerStat && s.stat !== undefined && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <span style={{ ...CP, fontSize: 5, color: tooLong ? "#c41e1e" : "#888" }}>stat length: {statVal.length}/14{tooLong ? " ⚠" : ""}</span>
+                      {tooLong && <button onClick={function() {
+                        var sp = splitLongStat(statVal);
+                        updateSlideField(currentSlide, "stat", sp.stat);
+                        if (sp.rest) {
+                          var existingCap = s.caption || s.statLabel || "";
+                          updateSlideField(currentSlide, "caption", existingCap ? sp.rest + " — " + existingCap : sp.rest);
+                        }
+                      }} style={{ padding: "2px 6px", background: "#c41e1e", color: "#fff", border: "none", cursor: "pointer", ...CP, fontSize: 5 }}>Split overflow {"→"} caption</button>}
+                    </div>
+                  )}
+                  {statFmt === "killer" && <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                    <input type="checkbox" checked={s.statAutoFit !== false} onChange={function(e) { updateSlideField(currentSlide, "statAutoFit", e.target.checked); }} />
+                    <span style={{ ...CP, fontSize: 6, color: "#666" }}>Auto-fit text to box</span>
+                  </label>}
+                  {statFmt === "story" && (function() {
+                    var stats = Array.isArray(s.stats) ? s.stats : [{ num: s.stat || "", label: s.statLabel || "" }, { num: s.stat2 || "", label: s.stat2Label || "" }, { num: "", label: "" }];
+                    return <div style={{ marginTop: 4, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
+                      <div style={{ ...CP, fontSize: 4, color: uiAccent + "88", marginBottom: 2 }}>STATS (3 ROWS)</div>
+                      {[0, 1, 2].map(function(i) {
+                        var item = stats[i] || { num: "", label: "" };
+                        return <div key={i} style={{ display: "flex", gap: 3, marginBottom: 2 }}>
+                          <input value={item.num || ""} placeholder={"#" + (i + 1) + " num"} onChange={function(e) {
+                            var arr = stats.slice();
+                            arr[i] = Object.assign({}, arr[i] || {}, { num: e.target.value });
+                            updateSlideField(currentSlide, "stats", arr);
+                          }} style={{ width: 72, padding: "2px 4px", border: "0.5px solid #ddd", ...CP, fontSize: 7, background: "#fff" }} />
+                          <input value={item.label || ""} placeholder="label" onChange={function(e) {
+                            var arr = stats.slice();
+                            arr[i] = Object.assign({}, arr[i] || {}, { label: e.target.value });
+                            updateSlideField(currentSlide, "stats", arr);
+                          }} style={{ flex: 1, padding: "2px 4px", border: "0.5px solid #ddd", ...CP, fontSize: 7, background: "#fff" }} />
+                        </div>;
+                      })}
+                    </div>;
+                  })()}
+                </div>;
+              })()}
               {/* Highlight / Insight — separate from body */}
               {hasHighlight && <div style={{ marginBottom: 3 }}>
                 <div style={{ ...CP, fontSize: 4, color: uiAccent + "88", marginBottom: 2 }}>INSIGHT</div>
