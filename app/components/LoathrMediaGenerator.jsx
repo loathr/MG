@@ -2882,6 +2882,8 @@ export default function LoathrMediaGenerator() {
   var ths = _s([]), topicHistory = ths[0], setTopicHistory = ths[1];
   var clb = _s([]), closerLibrary = clb[0], setCloserLibrary = clb[1];
   var clr = _s(false), closerLoading = clr[0], setCloserLoading = clr[1];
+  var spv = _s(null), sourcesPreview = spv[0], setSourcesPreview = spv[1]; // pre-flight source list { topic, sources: [{publication, title, date, url}], error? }
+  var spvl = _s(false), sourcesPreviewLoading = spvl[0], setSourcesPreviewLoading = spvl[1];
   var sas = _s([]), smartAngles = sas[0], setSmartAngles = sas[1];
   var ccr = _s([]), crossCatRelated = ccr[0], setCrossCatRelated = ccr[1];
   var shp = _s(false), showPastGen = shp[0], setShowPastGen = shp[1];
@@ -3865,7 +3867,7 @@ export default function LoathrMediaGenerator() {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 8000,
           tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{ role: "user", content: "You are a fact-checker reviewing an Instagram carousel about \"" + topic + "\"." + dateAnchor() + "\n\nThe carousel uses 0-based slide indices. Each slide lists its fields explicitly. The 'sources' field (if present) is provided as context for what the writer cited — do NOT propose a 'fix' for the sources field, only flag in the 'issue' text if a citation is wrong.\n\nContent:\n" + slideTexts + "\n\nFor each slide, verify:\n1. Are the facts accurate? Flag anything wrong or unverifiable. Use web_search to confirm.\n2. Are statistics real? Flag made-up numbers. Check against primary sources.\n3. Are quotes attributed correctly?\n4. Is the overall narrative fair or misleading?\n5. CROSS-SLIDE CONSISTENCY: if the same number/date/name appears on multiple slides, are the values consistent? Flag drift (e.g. '$2.51B' on slide 6 vs '$2.5B' on slide 3).\n\nUse web_search to verify specific claims when uncertain. Cite the URL(s) you consulted for every issue.\n\nRespond ONLY with JSON (no prose, no markdown):\n{\"score\": 1-10, \"summary\": \"one sentence overall\", \"issues\": [{\"slide\": <0-based slide index>, \"field\": \"<exact field name — e.g. body, stat, quote, highlight; never 'sources'>\", \"issue\": \"what's wrong\", \"fix\": \"the corrected value to write into that field\", \"verifiedAgainst\": [\"https://url1\", \"https://url2\"], \"confidence\": \"high|medium|low\"}]}\n\n- \"fix\" must be the FULL replacement value for that field, not a description.\n- \"verifiedAgainst\" lists the URLs you actually consulted via web_search (at least one URL for high/medium confidence issues; may be empty for low-confidence stylistic flags).\n- \"confidence\": high = primary source contradicts, medium = secondary source, low = pattern-match concern with no specific contradicting source.\n- Never propose a fix for the 'sources' field. If everything checks out, return an empty issues array." }] }) });
+          messages: [{ role: "user", content: "You are a fact-checker reviewing an Instagram carousel about \"" + topic + "\"." + dateAnchor() + "\n\nThe carousel uses 0-based slide indices. Each slide lists its fields explicitly. The 'sources' field (if present) is provided as context for what the writer cited — do NOT propose a 'fix' for the sources field, only flag in the 'issue' text if a citation is wrong.\n\nContent:\n" + slideTexts + "\n\nFor each slide, verify:\n1. Are the facts accurate? Flag anything wrong or unverifiable. Use web_search to confirm.\n2. Are statistics real? Flag made-up numbers. Check against primary sources.\n3. Are quotes attributed correctly?\n4. Is the overall narrative fair or misleading?\n5. CROSS-SLIDE CONSISTENCY: if the same number/date/name appears on multiple slides, are the values consistent? Flag drift (e.g. '$2.51B' on slide 6 vs '$2.5B' on slide 3).\n6. CITATION ALIGNMENT: for each slide that has a 'sources' field, judge whether the cited sources actually contain the slide's claim. If you can web_search the cited URL or publication and the source does NOT mention the slide's number/quote/event, flag it. Use field 'sources' in the issue (it's the only context where 'sources' is allowed as the field). Set 'fix' to a brief suggestion (e.g. 'cite primary article from Bloomberg 2026-03 instead') rather than a full replacement value, and DO NOT auto-apply — the user will hand-edit sources.\n\nUse web_search to verify specific claims when uncertain. Cite the URL(s) you consulted for every issue.\n\nRespond ONLY with JSON (no prose, no markdown):\n{\"score\": 1-10, \"summary\": \"one sentence overall\", \"issues\": [{\"slide\": <0-based slide index>, \"field\": \"<exact field name — e.g. body, stat, quote, highlight; never 'sources'>\", \"issue\": \"what's wrong\", \"fix\": \"the corrected value to write into that field\", \"verifiedAgainst\": [\"https://url1\", \"https://url2\"], \"confidence\": \"high|medium|low\"}]}\n\n- \"fix\" must be the FULL replacement value for that field, not a description.\n- \"verifiedAgainst\" lists the URLs you actually consulted via web_search (at least one URL for high/medium confidence issues; may be empty for low-confidence stylistic flags).\n- \"confidence\": high = primary source contradicts, medium = secondary source, low = pattern-match concern with no specific contradicting source.\n- Never propose a fix for the 'sources' field. If everything checks out, return an empty issues array." }] }) });
       var d = await r.json();
       if (d.error) { setFactCheckResult({ score: 0, summary: "Fact-check failed: " + (d.error.message || JSON.stringify(d.error)), issues: [], _failed: true }); return; }
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
@@ -3878,6 +3880,27 @@ export default function LoathrMediaGenerator() {
     } catch (e) { setFactCheckResult({ score: 0, summary: "Parse error: " + e.message + ". The model may have returned incomplete JSON — try again.", issues: [], _failed: true }); }
     finally { setFactCheckLoading(false); }
   }, [options, selectedOption, topic]);
+
+  // Pre-flight: ask the model what sources it would consult to write this carousel. User sees the source list before committing to a full generation.
+  var previewSources = _cb(async function() {
+    if (!topic.trim()) return;
+    setSourcesPreviewLoading(true); setSourcesPreview(null);
+    try {
+      var catLabel = cat ? cat.label : (category || "general");
+      var segCtx = activeSegment === "enterprise" ? "business / industry analysis" : activeSegment === "newsdesk" ? "current news reporting" : "editorial magazine";
+      var prompt = "You are about to write a LOATHR " + segCtx + " carousel about \"" + topic + "\" in the \"" + catLabel + "\" category." + dateAnchor() + "\n\nBefore writing, identify the 5-8 most authoritative sources you would consult and cite. Use web_search to find current authoritative material. Prefer primary documents, named-byline reporting, peer-reviewed work, and recognized publications over aggregators, SEO content, or opinion blogs.\n\nFor each source, return: publication (string), title (string), date (string, ISO format YYYY-MM-DD if known else year), author (string or null), url (string), and why (1 sentence on why this source matters for the topic).\n\nIf the topic is niche or recent and fewer than 3 authoritative sources exist, return what you found honestly. Do NOT fabricate URLs or article titles.\n\nRespond ONLY with JSON, no prose, no markdown:\n{\"sources\": [{\"publication\":\"...\",\"title\":\"...\",\"date\":\"...\",\"author\":\"...\",\"url\":\"https://...\",\"why\":\"...\"}]}";
+      var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 3000, tools: [{ type: "web_search_20250305", name: "web_search" }], messages: [{ role: "user", content: prompt }] }) });
+      var d = await r.json();
+      if (d.error) { setSourcesPreview({ topic: topic, sources: [], error: d.error.message || JSON.stringify(d.error) }); return; }
+      var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("").replace(/```json|```/g, "").trim();
+      var js = text.indexOf("{"); var je = text.lastIndexOf("}");
+      if (js >= 0 && je > js) text = text.slice(js, je + 1);
+      if (!text) { setSourcesPreview({ topic: topic, sources: [], error: "No output" }); return; }
+      var parsed = JSON.parse(text);
+      setSourcesPreview({ topic: topic, sources: Array.isArray(parsed.sources) ? parsed.sources : [] });
+    } catch (e) { setSourcesPreview({ topic: topic, sources: [], error: "Parse error: " + e.message }); }
+    finally { setSourcesPreviewLoading(false); }
+  }, [topic, cat, category, activeSegment]);
 
   // Two-pass fact-check: pass 1 extracts claims, pass 2 verifies each via web_search.
   // Slower + ~2x token cost, but catches more wrong-but-plausible-sounding claims than the single-call check.
@@ -3916,7 +3939,7 @@ export default function LoathrMediaGenerator() {
 
       // PASS 2 — verify each claim with web_search
       setFactCheckResult({ score: 0, summary: "Verifying " + claims.length + " claims…", issues: [], _phase: "verify", _claimCount: claims.length });
-      var verifyPrompt = "You are a fact-checker. For each numbered claim below, use web_search to verify against primary sources. Return ONLY issues — claims that are wrong, misleading, or unverifiable from authoritative sources. Pass-through correct claims silently.\n\nCarousel topic: \"" + topic + "\"." + dateAnchor() + "\n\nClaims to verify:\n" + claims.map(function(c, i) { return (i + 1) + ". [slide " + c.slide + " · " + (c.field || "?") + " · " + (c.type || "generic") + "] " + c.claim; }).join("\n") + "\n\nOriginal slide content for context:\n" + slideTexts + "\n\nFor each problem found, return an issue entry. Always cite the URL(s) you consulted via web_search.\n\nRespond ONLY with JSON, no prose, no markdown:\n{\"score\": 1-10, \"summary\": \"one sentence overall verdict\", \"issues\": [{\"slide\": N, \"field\": \"<exact field name>\", \"issue\": \"what's wrong (with reference to the source contradiction)\", \"fix\": \"the corrected value to write into that field\", \"verifiedAgainst\": [\"https://url1\", \"https://url2\"], \"confidence\": \"high|medium|low\"}]}\n\n- \"fix\" must be the FULL replacement value.\n- \"verifiedAgainst\" must include at least one URL per high/medium-confidence issue.\n- \"confidence\": high = primary source contradicts, medium = secondary source, low = pattern concern.\n- Never propose a fix for the 'sources' field. Skip stylistic/opinion concerns; only factual problems.";
+      var verifyPrompt = "You are a fact-checker. For each numbered claim below, use web_search to verify against primary sources. Return ONLY issues — claims that are wrong, misleading, or unverifiable from authoritative sources. Pass-through correct claims silently.\n\nAlso check CITATION ALIGNMENT: for each slide that has a 'sources' field in the original content, judge whether the cited source actually contains the slide's claim. If web_search of the cited URL/publication doesn't surface the slide's specific number/quote/event, flag with field 'sources' and 'fix' set to a brief suggestion (e.g. 'cite Bloomberg 2026-03 primary article instead').\n\nCarousel topic: \"" + topic + "\"." + dateAnchor() + "\n\nClaims to verify:\n" + claims.map(function(c, i) { return (i + 1) + ". [slide " + c.slide + " · " + (c.field || "?") + " · " + (c.type || "generic") + "] " + c.claim; }).join("\n") + "\n\nOriginal slide content for context:\n" + slideTexts + "\n\nFor each problem found, return an issue entry. Always cite the URL(s) you consulted via web_search.\n\nRespond ONLY with JSON, no prose, no markdown:\n{\"score\": 1-10, \"summary\": \"one sentence overall verdict\", \"issues\": [{\"slide\": N, \"field\": \"<exact field name; use 'sources' only for citation-alignment flags>\", \"issue\": \"what's wrong (with reference to the source contradiction)\", \"fix\": \"the corrected value (or suggestion for sources)\", \"verifiedAgainst\": [\"https://url1\", \"https://url2\"], \"confidence\": \"high|medium|low\"}]}\n\n- For claim issues: \"fix\" must be the FULL replacement value.\n- For citation alignment (field=sources): \"fix\" can be a suggestion; UI will skip auto-apply.\n- \"verifiedAgainst\" must include at least one URL per high/medium-confidence issue.\n- \"confidence\": high = primary source contradicts, medium = secondary source, low = pattern concern.\n- Skip stylistic/opinion concerns; only factual problems and citation mismatches.";
       var vr = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 8000, tools: [{ type: "web_search_20250305", name: "web_search" }], messages: [{ role: "user", content: verifyPrompt }] }) });
       var vd = await vr.json();
       if (vd.error) { setFactCheckResult({ score: 0, summary: "Deep check (verify pass) failed: " + (vd.error.message || JSON.stringify(vd.error)), issues: [], _failed: true }); return; }
@@ -3927,11 +3950,56 @@ export default function LoathrMediaGenerator() {
       var verified = JSON.parse(vText);
       verified._deep = true;
       verified._claimCount = claims.length;
-      if (verified.summary) verified.summary = "Deep check (" + claims.length + " claims): " + verified.summary;
+
+      // PASS 3 — portrait grounding: for each slide with a 'person' field and an attached image, verify with vision.
+      var portraitChecks = [];
+      cur.slides.forEach(function(sl, sIdx) {
+        if (!sl || sl._deleted || !sl.person) return;
+        var imgEntry = images && images[sIdx];
+        var url = imgEntry && imgEntry.url;
+        if (!url) return;
+        portraitChecks.push({ slide: sIdx, person: sl.person, url: url });
+      });
+      if (portraitChecks.length > 0) {
+        setFactCheckResult(Object.assign({}, verified, { summary: "Verifying " + portraitChecks.length + " portraits…", _phase: "portrait", _claimCount: claims.length }));
+        try {
+          var portraitResults = await Promise.all(portraitChecks.map(function(pc) {
+            var portraitPrompt = "Does this image depict " + pc.person + "? Topic context: \"" + topic + "\".\nRespond ONLY with JSON, no prose:\n{\"depicts\": true|false|\"uncertain\", \"confidence\": \"high|medium|low\", \"reasoning\": \"one short sentence\"}";
+            return fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 250, messages: [{ role: "user", content: [{ type: "image", source: { type: "url", url: pc.url } }, { type: "text", text: portraitPrompt }] }] }) })
+              .then(function(r) { return r.json(); })
+              .then(function(pd) {
+                if (pd.error) return null;
+                var ptext = (pd.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("").replace(/```json|```/g, "").trim();
+                var pjs = ptext.indexOf("{"); var pje = ptext.lastIndexOf("}");
+                if (pjs >= 0 && pje > pjs) ptext = ptext.slice(pjs, pje + 1);
+                try { return Object.assign({}, pc, { result: JSON.parse(ptext) }); } catch (e) { return null; }
+              })
+              .catch(function() { return null; });
+          }));
+          var portraitIssues = portraitResults.filter(function(p) { return p && p.result && (p.result.depicts === false || p.result.depicts === "uncertain"); }).map(function(p) {
+            var isFalse = p.result.depicts === false;
+            return {
+              slide: p.slide,
+              field: "person",
+              issue: (isFalse ? "Image does not depict " : "Uncertain whether image depicts ") + p.person + (p.result.reasoning ? " — " + p.result.reasoning : ""),
+              fix: p.person,
+              verifiedAgainst: [],
+              confidence: isFalse ? (p.result.confidence || "medium") : "low"
+            };
+          });
+          if (portraitIssues.length > 0) {
+            verified.issues = (verified.issues || []).concat(portraitIssues);
+            verified._portraitFlagCount = portraitIssues.length;
+          }
+          verified._portraitCheckCount = portraitChecks.length;
+        } catch (pe) { console.error("Portrait grounding failed:", pe); }
+      }
+
+      if (verified.summary) verified.summary = "Deep check (" + claims.length + " claims" + (portraitChecks.length ? ", " + portraitChecks.length + " portraits" : "") + "): " + (verified.summary || "").replace(/^Deep check[^:]*:\s*/, "");
       setFactCheckResult(verified);
     } catch (e) { setFactCheckResult({ score: 0, summary: "Deep check parse error: " + e.message + ". Try Quick Check instead.", issues: [], _failed: true }); }
     finally { setFactCheckLoading(false); }
-  }, [options, selectedOption, topic]);
+  }, [options, selectedOption, topic, images]);
 
   // 4. Share link — encode carousel state as URL params
   var generateShareLink = _cb(function() {
@@ -5707,6 +5775,11 @@ export default function LoathrMediaGenerator() {
                   style={{ padding: "10px 14px", background: uiAccent, color: "#ffffff", border: "none", cursor: topic.trim() ? "pointer" : "default", ...CP, fontSize: 9, letterSpacing: "0.1em", fontWeight: 700, opacity: topic.trim() ? 1 : 0.4 }}>
                   {category === "enterprise" ? (enterpriseMode === "news" ? "SEARCH" : enterpriseMode === "tips" ? "BUILD" : "ANALYZE") : category === "newsdesk" ? "SEARCH" : "GENERATE"}
                 </button>
+                <button onClick={previewSources} disabled={!topic.trim() || sourcesPreviewLoading}
+                  title="Preview the source list the model would consult, before committing to a full generation"
+                  style={{ padding: "10px 10px", background: "transparent", color: topic.trim() ? "#8b5cf6" : "#ccc", border: "0.5px solid " + (topic.trim() ? "#8b5cf6" : "#ddd"), cursor: topic.trim() && !sourcesPreviewLoading ? "pointer" : "default", ...CP, fontSize: 7, letterSpacing: "0.08em", opacity: sourcesPreviewLoading ? 0.5 : 1 }}>
+                  {sourcesPreviewLoading ? "Loading..." : "✱ Preview sources"}
+                </button>
               </div>
             ) : (
               <button onClick={cancelGenerate}
@@ -5715,6 +5788,34 @@ export default function LoathrMediaGenerator() {
               </button>
             )}
           </div>
+          {/* Pre-flight source preview */}
+          {sourcesPreview && <div style={{ marginBottom: 8, padding: 8, border: "0.5px solid #8b5cf644", background: "#faf7ff", borderRadius: 3 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <span style={{ ...CP, fontSize: 6, color: "#8b5cf6", letterSpacing: "0.12em" }}>{"✱"} PROPOSED SOURCES{sourcesPreview.topic && sourcesPreview.topic !== topic ? " (for \"" + sourcesPreview.topic + "\")" : ""}</span>
+              <button onClick={function() { setSourcesPreview(null); }} style={{ padding: "1px 6px", border: "0.5px solid #8b5cf644", background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#8b5cf6" }}>{"×"}</button>
+            </div>
+            {sourcesPreview.error ? (
+              <div style={{ ...CP, fontSize: 7, color: "#dc2626" }}>Couldn't preview sources: {sourcesPreview.error}</div>
+            ) : sourcesPreview.sources.length === 0 ? (
+              <div style={{ ...CP, fontSize: 7, color: "#888", fontStyle: "italic" }}>The model returned no sources for this topic. Consider rephrasing or narrowing the topic.</div>
+            ) : (
+              <div>
+                <div style={{ ...CP, fontSize: 6, color: "#666", marginBottom: 4 }}>The model would consult these {sourcesPreview.sources.length} sources to write this carousel. Review before clicking Generate.</div>
+                {sourcesPreview.sources.map(function(src, i) {
+                  return <div key={i} style={{ marginBottom: 4, padding: "4px 6px", border: "0.5px solid #8b5cf622", background: "#ffffff", borderRadius: 2 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 6 }}>
+                      <span style={{ ...CP, fontSize: 7, color: "#1a1a1a", fontWeight: 700 }}>{src.publication || "—"}</span>
+                      <span style={{ ...CP, fontSize: 5, color: "#888" }}>{src.date || ""}{src.author ? " · " + src.author : ""}</span>
+                    </div>
+                    <div style={{ ...CP, fontSize: 7, color: "#333", marginTop: 2, fontStyle: "italic" }}>{src.title || ""}</div>
+                    {src.why && <div style={{ ...CP, fontSize: 6, color: "#666", marginTop: 2 }}>{src.why}</div>}
+                    {src.url && <a href={src.url} target="_blank" rel="noopener noreferrer"
+                      style={{ display: "inline-block", marginTop: 3, ...CP, fontSize: 5, color: "#8b5cf6", textDecoration: "underline" }}>{String(src.url).replace(/^https?:\/\//, "").split("/")[0].replace(/^www\./, "")}</a>}
+                  </div>;
+                })}
+              </div>
+            )}
+          </div>}
           {/* Type-ahead suggestions */}
           {suggestions.length > 0 && <div style={{ marginBottom: 6, border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)", padding: 4 }}>
             {suggestions.map(function(s, i) { return (
@@ -6478,7 +6579,7 @@ export default function LoathrMediaGenerator() {
             {shareLink ? "\u2713 Copied" : "\u21E7 Share"}</button>
           <button onClick={factCheck} disabled={factCheckLoading}
             style={{ padding: "4px 10px", border: "0.5px solid #ccc", background: factCheckResult ? (factCheckResult._failed ? "#f59e0b22" : factCheckResult.score >= 7 ? "#22c55e22" : "#ef444422") : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: factCheckResult ? (factCheckResult._failed ? "#b45309" : factCheckResult.score >= 7 ? "#22c55e" : "#ef4444") : "#999" }}>
-            {factCheckLoading && (!factCheckResult || factCheckResult._phase !== "verify" && factCheckResult._phase !== "extract") ? "Checking..." : factCheckLoading && factCheckResult && factCheckResult._phase ? (factCheckResult._phase === "extract" ? "Extracting..." : "Verifying " + (factCheckResult._claimCount || "") + "...") : factCheckResult ? (factCheckResult._failed ? "! Retry" : factCheckResult.score + "/10" + (factCheckResult._deep ? " \u2731" : "")) : "\u2713 Fact Check"}</button>
+            {factCheckLoading ? (factCheckResult && factCheckResult._phase === "extract" ? "Extracting..." : factCheckResult && factCheckResult._phase === "verify" ? "Verifying " + (factCheckResult._claimCount || "") + "..." : factCheckResult && factCheckResult._phase === "portrait" ? "Portraits..." : "Checking...") : factCheckResult ? (factCheckResult._failed ? "! Retry" : factCheckResult.score + "/10" + (factCheckResult._deep ? " \u2731" : "")) : "\u2713 Fact Check"}</button>
           <button onClick={factCheckDeep} disabled={factCheckLoading}
             title="Two-pass fact-check: extracts every claim then verifies each via web search. Slower but catches more issues."
             style={{ padding: "4px 8px", border: "0.5px solid #8b5cf6", background: factCheckResult && factCheckResult._deep ? "#8b5cf622" : "transparent", cursor: factCheckLoading ? "default" : "pointer", ...CP, fontSize: 7, color: "#8b5cf6", opacity: factCheckLoading ? 0.5 : 1 }}>{"\u2731"} Deep</button>
