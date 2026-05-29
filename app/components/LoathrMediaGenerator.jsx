@@ -2639,6 +2639,7 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
       category: category,
       segment: m.segment || null,
       template: m.template || null,
+      publishDate: m.publishDate || null,
       slides: slides,
       images: imgsOut,
       mosaics: Object.keys(_mosaicSlides).length > 0 ? _mosaicSlides : undefined,
@@ -2684,14 +2685,25 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
 };
 
 // --- DIFFERENTIATED PROMPTS ---
+// Module-level publish date — set by the component when the user picks a publish date in the UI.
+// Empty string means use today. Format: "YYYY-MM-DD".
+var _publishDate = "";
+function getEffectiveDate() {
+  if (_publishDate) {
+    var d = new Date(_publishDate + "T12:00:00");
+    if (!isNaN(d.getTime())) return d;
+  }
+  return new Date();
+}
 // Today's date as ISO + readable — injected into every prompt so the model doesn't default to its training cutoff
 function todayDateStr() {
-  var d = new Date();
+  var d = getEffectiveDate();
   var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   return months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() + " (" + d.toISOString().slice(0, 10) + ")";
 }
 function dateAnchor() {
-  return "\n\nTODAY'S DATE: " + todayDateStr() + ". Treat this as 'today' / 'now' / 'currently' for any time-sensitive references. Do NOT default to your training cutoff. Use web search to verify current facts when needed.";
+  var schedNote = _publishDate ? "\nThis carousel is scheduled to PUBLISH on " + todayDateStr() + ". Web_search will return whatever is current at the time you read this, but anchor 'today', 'now', 'this week', and 'recently' to the publish date when writing prose. Prefer stories from the most recent days/weeks BEFORE the publish date." : "";
+  return "\n\nTODAY'S DATE: " + todayDateStr() + ". Treat this as 'today' / 'now' / 'currently' for any time-sensitive references. Do NOT default to your training cutoff. Use web search to verify current facts when needed." + schedNote;
 }
 
 function buildPrompt(catLabel, topic, editionSeed, picks, hasPersonImage, secondaryCatLabel, tertiaryCatLabel, secCount, terCount) {
@@ -2884,6 +2896,7 @@ export default function LoathrMediaGenerator() {
   var clr = _s(false), closerLoading = clr[0], setCloserLoading = clr[1];
   var spv = _s(null), sourcesPreview = spv[0], setSourcesPreview = spv[1]; // pre-flight source list { topic, sources: [{publication, title, date, url}], error? }
   var spvl = _s(false), sourcesPreviewLoading = spvl[0], setSourcesPreviewLoading = spvl[1];
+  var pdt = _s(""), publishDate = pdt[0], setPublishDate = pdt[1]; // "" = use today, else YYYY-MM-DD
   var sas = _s([]), smartAngles = sas[0], setSmartAngles = sas[1];
   var ccr = _s([]), crossCatRelated = ccr[0], setCrossCatRelated = ccr[1];
   var shp = _s(false), showPastGen = shp[0], setShowPastGen = shp[1];
@@ -2980,6 +2993,8 @@ export default function LoathrMediaGenerator() {
   var trendingAbortRef = _ref(null);
 
   _ef(function() { selectedOptionRef.current = selectedOption; }, [selectedOption]);
+  // Sync component publishDate to module-level _publishDate so dateAnchor()/todayDateStr() use it everywhere
+  _ef(function() { _publishDate = publishDate || ""; }, [publishDate]);
   // When Enterprise force/sector/mode changes, clear trending so preset topics show instead
   // User must click Trending deliberately to fetch fresh ideas
   _ef(function() {
@@ -4051,6 +4066,7 @@ export default function LoathrMediaGenerator() {
       category: category,
       segment: activeSegment,
       template: activeTemplate || null,
+      publishDate: publishDate || null,
       slides: cur.slides,
       images: imgUrls,
       mosaics: Object.keys(_mosaicSlides).length > 0 ? _mosaicSlides : undefined,
@@ -4105,6 +4121,7 @@ export default function LoathrMediaGenerator() {
       if (data.segment) { setActiveSegment(data.segment); }
       if (data.topic) { setTopic(data.topic); }
       if (data.template) { setActiveTemplate(data.template); localStorage.setItem("loathr_active_template", data.template); }
+      if (data.publishDate) { setPublishDate(data.publishDate); }
       // Load slides
       setOptions([{ angle: "Imported", slides: data.slides }]);
       setCurrentSlide(0); setSelectedOption(0);
@@ -4189,14 +4206,16 @@ export default function LoathrMediaGenerator() {
       if (category === "enterprise") {
         var force = enterpriseForce ? ENTERPRISE_FORCES.find(function(f) { return f.id === enterpriseForce; }) : null;
         var sectorObj = enterpriseSector ? ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) : null;
-        if (enterpriseMode === "news") { prompt = buildEnterpriseNewsPrompt(topic, force, edition.seed, editionPicks, sectorObj); }
-        else if (enterpriseMode === "tips") { prompt = buildEnterpriseTipsPrompt(topic, force, edition.seed, editionPicks, sectorObj); }
-        else { prompt = buildEnterprisePrompt(topic, force, edition.seed, editionPicks, sectorObj); }
+        var entPicks = Object.assign({}, editionPicks, { publishDate: publishDate || null });
+        if (enterpriseMode === "news") { prompt = buildEnterpriseNewsPrompt(topic, force, edition.seed, entPicks, sectorObj); }
+        else if (enterpriseMode === "tips") { prompt = buildEnterpriseTipsPrompt(topic, force, edition.seed, entPicks, sectorObj); }
+        else { prompt = buildEnterprisePrompt(topic, force, edition.seed, entPicks, sectorObj); }
       } else if (category === "newsdesk") {
         var nfObj = newsFilter ? NEWSDESK_FILTERS.find(function(f) { return f.id === newsFilter; }) : null;
         var nrObj = NEWSDESK_REGIONS.find(function(r) { return r.id === newsRegion; }) || null;
         var ntObj = NEWSDESK_TIMEFRAMES.find(function(t) { return t.id === newsTimeframe; }) || null;
-        prompt = buildNewsDeskPrompt(topic, nfObj, nrObj, ntObj, newsCountry, editionPicks);
+        var newsPicks = Object.assign({}, editionPicks, { publishDate: publishDate || null });
+        prompt = buildNewsDeskPrompt(topic, nfObj, nrObj, ntObj, newsCountry, newsPicks);
       } else {
         prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, Object.keys(lockedRef.current || {}).length > 0, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null, secondaryCount, tertiaryCount);
       }
@@ -4854,6 +4873,27 @@ export default function LoathrMediaGenerator() {
             style={{ padding: "8px 16px", cursor: "pointer", border: "none", borderBottom: "2px solid " + (sel ? (s.color || uiAccent) : "transparent"), background: sel ? (activeSegment === "enterprise" ? "#ffffff08" : activeSegment === "newsdesk" ? "#c41e1e08" : "transparent") : "transparent", ...CP, fontSize: 9, letterSpacing: "0.12em", color: sel ? (s.color || (category ? (PALETTES[category] || {}).accent : "#666")) : (activeSegment === "enterprise" ? "#bbb" : "#555"), fontWeight: sel ? 700 : 400, textTransform: "uppercase" }}>{s.label}</button>;
         })}
       </div>
+
+      {/* Publish date picker — always visible; "" means use today */}
+      {(function() {
+        var today = new Date().toISOString().slice(0, 10);
+        var isScheduled = !!publishDate && publishDate !== today;
+        var displayDate = publishDate || today;
+        var d = new Date(displayDate + "T12:00:00");
+        var weekday = isNaN(d.getTime()) ? "" : ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()];
+        var dateAccent = activeSegment === "enterprise" ? "#bbb" : activeSegment === "newsdesk" ? "#c41e1e" : "#555";
+        return <div style={{ display: "flex", gap: 6, marginBottom: 10, justifyContent: "center", alignItems: "center", padding: "4px 0" }}>
+          <span style={{ ...CP, fontSize: 6, color: dateAccent, letterSpacing: "0.15em" }}>PUBLISH DATE</span>
+          <input type="date" value={publishDate || today} min={today} onChange={function(e) {
+            var v = e.target.value;
+            setPublishDate(v && v !== today ? v : "");
+          }}
+            style={{ padding: "3px 6px", border: "0.5px solid " + (isScheduled ? "#8b5cf6" : (activeSegment === "enterprise" ? "#444" : "#ccc")), background: activeSegment === "enterprise" ? "#1a1a1a" : "transparent", color: activeSegment === "enterprise" ? "#eee" : "#333", ...CP, fontSize: 8, cursor: "pointer", colorScheme: activeSegment === "enterprise" ? "dark" : "light" }} />
+          {weekday && <span style={{ ...CP, fontSize: 6, color: dateAccent, opacity: 0.7 }}>{weekday}</span>}
+          {isScheduled && <button onClick={function() { setPublishDate(""); }} title="Reset to today"
+            style={{ padding: "2px 6px", border: "0.5px solid #8b5cf644", background: "transparent", cursor: "pointer", ...CP, fontSize: 5, color: "#8b5cf6" }}>{"✱ scheduled · today"}</button>}
+        </div>;
+      })()}
 
       {/* Editorial category pills — only when Editorial segment is active */}
       {activeSegment === "editorial" && <div style={{ display: "flex", gap: 6, marginBottom: 12, justifyContent: "center", flexWrap: "wrap" }}>
@@ -6461,12 +6501,12 @@ export default function LoathrMediaGenerator() {
               {"\u2B07"} SAVE
             </button>
             {/* Export all — JPEG */}
-            <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus, "jpeg", { topic: topic, segment: activeSegment, template: activeTemplate, images: images }); }} disabled={!!exportStatus}
+            <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus, "jpeg", { topic: topic, segment: activeSegment, template: activeTemplate, images: images, publishDate: publishDate || null }); }} disabled={!!exportStatus}
               style={{ padding: "6px 8px", border: "1px solid " + uiAccent, background: uiAccent + "15", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 7, color: uiAccent, opacity: exportStatus ? 0.5 : 1 }}>
               {exportStatus || "\u2B07 Download All (JPG)"}
             </button>
             {/* Export all — PNG */}
-            <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus, "png", { topic: topic, segment: activeSegment, template: activeTemplate, images: images }); }} disabled={!!exportStatus}
+            <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus, "png", { topic: topic, segment: activeSegment, template: activeTemplate, images: images, publishDate: publishDate || null }); }} disabled={!!exportStatus}
               style={{ padding: "6px 8px", border: "0.5px solid #ccc", background: "transparent", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 7, color: "#999", opacity: exportStatus ? 0.5 : 1 }}>
               {"\u2B07"} Download All (PNG)
             </button>

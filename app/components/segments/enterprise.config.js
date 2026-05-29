@@ -146,12 +146,15 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks, sector) 
   var slideCount = (typeof ep.slideCount === "number" && ep.slideCount >= 4 && ep.slideCount <= 12)
     ? ep.slideCount
     : (depth ? depth.slides : (isBreaking ? 5 : 8));
-  var d = new Date();
+  // Use scheduled publishDate (YYYY-MM-DD) when set so "today" / dateline references reflect the post date, not generation date
+  var d = ep.publishDate ? new Date(ep.publishDate + "T12:00:00") : new Date();
+  if (isNaN(d.getTime())) d = new Date();
   var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var timestamp = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() + " at " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+  var scheduleNote = ep.publishDate ? "\nNOTE: This carousel is scheduled to publish on " + timestamp + ". Web search returns what is current as you read this, but anchor 'today' / 'now' / 'this week' to the publish date when writing prose. Prefer stories from the days/weeks before the publish date.\n" : "";
 
   return "You are a senior business analyst writing for LOATHR ENTERPRISE, a black-and-white editorial Instagram brand focused on business intelligence.\n\n" +
-    "TODAY'S DATE: " + timestamp + ". Treat this as 'today' / 'now' / 'currently'. Do NOT default to your training cutoff. Use web search to verify current facts.\n\n" +
+    "TODAY'S DATE: " + timestamp + ". Treat this as 'today' / 'now' / 'currently'. Do NOT default to your training cutoff. Use web search to verify current facts." + scheduleNote + "\n\n" +
     "Industry/Topic: \"" + topic + "\"\n" +
     "Force: \"" + forceLabel + "\"\n" +
     (sectorLabel ? "Sector: \"" + sectorLabel + "\"\n" : "") +
@@ -212,14 +215,16 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks, sector) 
 export function buildEnterpriseNewsPrompt(keywords, force, editionSeed, picks, sector) {
   var forceLabel = force ? force.label : "business";
   var closerLine = ENTERPRISE_CLOSERS[Math.abs(editionSeed || 0) % ENTERPRISE_CLOSERS.length];
-  var d = new Date();
+  var ep = picks || {};
+  var d = ep.publishDate ? new Date(ep.publishDate + "T12:00:00") : new Date();
+  if (isNaN(d.getTime())) d = new Date();
   var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var timestamp = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() + " at " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
-  var ep = picks || {};
+  var scheduleNote = ep.publishDate ? "\nNOTE: This carousel is scheduled to publish on " + timestamp + ". Anchor 'today' / 'now' to the publish date in prose; web_search still returns current state.\n" : "";
   var tone = ep.enterpriseTone ? ENTERPRISE_TONES.find(function(t) { return t.id === ep.enterpriseTone; }) : null;
 
   return "You are a senior business news editor writing for LOATHR ENTERPRISE, a black-and-white editorial Instagram brand.\n\n" +
-    "TODAY'S DATE: " + timestamp + ". Treat this as 'today' / 'now'. Do NOT default to your training cutoff. Always use web_search for current facts.\n\n" +
+    "TODAY'S DATE: " + timestamp + ". Treat this as 'today' / 'now'. Do NOT default to your training cutoff. Always use web_search for current facts." + scheduleNote + "\n\n" +
     "SEARCH KEYWORDS: \"" + keywords + "\"\n" +
     "BUSINESS SECTOR: " + forceLabel + (sector ? " (" + sector.label + ")" : "") + "\n" +
     "TIMESTAMP: " + timestamp + "\n\n" +
@@ -257,11 +262,13 @@ export function buildEnterpriseTipsPrompt(topic, force, editionSeed, picks, sect
   var focus = ep.enterpriseFocus ? ENTERPRISE_FOCUS.find(function(f) { return f.id === ep.enterpriseFocus; }) : null;
   var tone = ep.enterpriseTone ? ENTERPRISE_TONES.find(function(t) { return t.id === ep.enterpriseTone; }) : null;
 
-  var d = new Date();
+  var d = ep.publishDate ? new Date(ep.publishDate + "T12:00:00") : new Date();
+  if (isNaN(d.getTime())) d = new Date();
   var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var today = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
+  var scheduleNote = ep.publishDate ? "\nNOTE: This carousel is scheduled to publish on " + today + ". Anchor 'today' / 'this week' to the publish date in prose; web_search still returns current state.\n" : "";
   return "You are a senior business strategist writing for LOATHR ENTERPRISE, a black-and-white editorial Instagram brand.\n\n" +
-    "TODAY'S DATE: " + today + ". Treat this as 'today' / 'now'. Do NOT default to your training cutoff. Use web_search for current best practices and tools.\n\n" +
+    "TODAY'S DATE: " + today + ". Treat this as 'today' / 'now'. Do NOT default to your training cutoff. Use web_search for current best practices and tools." + scheduleNote + "\n\n" +
     "Industry: \"" + topic + "\"\n" +
     "Focus Area: " + forceLabel + (sector ? " (" + sector.label + ")" : "") + "\n\n" +
     "SOURCE-FIRST WORKFLOW (mandatory):\n" +

@@ -123,7 +123,9 @@ export function buildNewsDeskPrompt(keywords, filter, region, timeframe, country
   var angle = np.newsdeskAngle ? NEWSDESK_ANGLES.find(function(a) { return a.id === np.newsdeskAngle; }) : null;
   var emphasis = np.newsdeskEmphasis ? NEWSDESK_EMPHASIS.find(function(e) { return e.id === np.newsdeskEmphasis; }) : null;
   var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-  var d = new Date();
+  // Use scheduled publishDate (YYYY-MM-DD) when set so the dateline + 'today' anchor reflect the post date, not generation date
+  var d = np.publishDate ? new Date(np.publishDate + "T12:00:00") : new Date();
+  if (isNaN(d.getTime())) d = new Date();
   var dateline = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
 
   var filterId = filter ? filter.id : null;
@@ -131,12 +133,13 @@ export function buildNewsDeskPrompt(keywords, filter, region, timeframe, country
   var isDeveloping = filterId === "developing";
   var isUrgent = isBreaking || isDeveloping;
   var timestamp = dateline + " at " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+  var scheduleNote = np.publishDate ? "\nNOTE: This brief is scheduled to publish on " + dateline + ". Web_search returns what is current as you read this, but the dateline and 'today' / 'this week' references in prose should reflect the publish date. For breaking/developing tags, the relevant question is: what was the most recent breaking story leading up to the publish date?\n" : "";
 
   // Force today for breaking/developing regardless of user timeframe selection
   var effectiveTime = isUrgent ? "today" : timeLabel;
 
   return "You are a senior news editor writing for LOATHR NEWS DESK, an editorial Instagram brand that presents news in a newspaper-style carousel format.\n\n" +
-    "TODAY'S DATE: " + timestamp + ". Treat this as 'today' / 'now'. Do NOT default to your training cutoff — that data is stale. Always use web_search to find CURRENT news.\n\n" +
+    "TODAY'S DATE: " + timestamp + ". Treat this as 'today' / 'now'. Do NOT default to your training cutoff — that data is stale. Always use web_search to find CURRENT news." + scheduleNote + "\n\n" +
     "SEARCH KEYWORDS: \"" + keywords + "\"\n" +
     "FILTER: " + filterLabel + "\n" +
     "LOCATION: " + locationLabel + "\n" +
