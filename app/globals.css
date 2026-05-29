@@ -190,3 +190,10 @@
   margin: 0;
   padding: 0;
 }
+
+/* Enterprise dark inputs — browser default placeholder is too dim against #1a1a1a bg. Explicit mid-gray reads clearly. */
+input.loathr-dark-input::placeholder,
+textarea.loathr-dark-input::placeholder {
+  color: #888;
+  opacity: 1;
+}

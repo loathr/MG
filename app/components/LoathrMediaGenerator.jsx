@@ -3037,8 +3037,9 @@ export default function LoathrMediaGenerator() {
 
   var cat = CATEGORIES.find(function(c) { return c.id === category; });
   var pal = category ? PALETTES[category] : null;
-  // UI-safe accent color (grey for photo since white/black disappear on UI)
-  var uiAccent = category === "photo" ? "#888888" : (pal ? pal.accent : "#888888");
+  // UI-safe accent color — white/black palette accents disappear on UI backgrounds (the editor panel is #f8f8f8,
+  // the Generate button paints uiAccent as bg with white text). Substitute a readable color for those palettes.
+  var uiAccent = category === "photo" ? "#888888" : category === "enterprise" ? "#1a1a1a" : (pal ? pal.accent : "#888888");
   var cur = options ? options[selectedOption] : null;
   var total = cur && cur.slides ? cur.slides.length : 0;
   // Visible-only counts for navigation (excludes soft-deleted slides)
@@ -4850,7 +4851,7 @@ export default function LoathrMediaGenerator() {
             else { setCategory(null); }
             setOptions(null); setTrending([]); setSubcat(null); setShuffleKey(0); setRefinedAngles([]); setLockedPersonImages({}); setLockedLocationImages({}); setPreviewLocked({}); lockedRef.current = {}; setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({}); setDroppedImage(null); setReverseTopics([]); setEnterpriseForce(null); setEnterpriseSector(null); setNewsFilter(null); setNewsUrgency(null); setNewsDesk(null); setSecondaryCategory(null); setTertiaryCategory(null);
           }}
-            style={{ padding: "8px 16px", cursor: "pointer", border: "none", borderBottom: "2px solid " + (sel ? (s.color || uiAccent) : "transparent"), background: sel ? (activeSegment === "enterprise" ? "#ffffff08" : activeSegment === "newsdesk" ? "#c41e1e08" : "transparent") : "transparent", ...CP, fontSize: 9, letterSpacing: "0.12em", color: sel ? (s.color || (category ? (PALETTES[category] || {}).accent : "#666")) : (activeSegment === "enterprise" ? "#666" : "#999"), fontWeight: sel ? 700 : 400, textTransform: "uppercase" }}>{s.label}</button>;
+            style={{ padding: "8px 16px", cursor: "pointer", border: "none", borderBottom: "2px solid " + (sel ? (s.color || uiAccent) : "transparent"), background: sel ? (activeSegment === "enterprise" ? "#ffffff08" : activeSegment === "newsdesk" ? "#c41e1e08" : "transparent") : "transparent", ...CP, fontSize: 9, letterSpacing: "0.12em", color: sel ? (s.color || (category ? (PALETTES[category] || {}).accent : "#666")) : (activeSegment === "enterprise" ? "#bbb" : "#555"), fontWeight: sel ? 700 : 400, textTransform: "uppercase" }}>{s.label}</button>;
         })}
       </div>
 
@@ -5750,6 +5751,7 @@ export default function LoathrMediaGenerator() {
               }
             }}>
             <input value={topic} onChange={function(e) { var v = e.target.value; setTopic(v); setRefinedAngles([]); setSuggestions(filterSuggestions(v, category)); setCrossCatSuggestions(searchAllCategories(v, category)); triggerSearch(v); }}
+              className={activeSegment === "enterprise" ? "loathr-dark-input" : undefined}
               placeholder={category === "newsdesk" ? "Search keywords: oil, election, LeBron..." : category === "enterprise" ? (function() { var sLabel = enterpriseSector ? (ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) || {}).label : null; if (enterpriseMode === "news") return sLabel ? "Search " + sLabel + " news..." : "Search business news: tariffs, IPO, merger..."; if (enterpriseMode === "tips") return sLabel ? "Advise " + sLabel + " businesses on..." : "Industry to advise: restaurants, SaaS, retail..."; if (sLabel) return "Topic in " + sLabel + "..."; var hints = { tech: "e.g. Healthcare, Retail, Banking...", policy: "e.g. Pharma, Energy, Cannabis...", ai: "e.g. Legal services, Call centers, Education...", markets: "e.g. Real estate, Crypto, Commodities...", culture: "e.g. Luxury brands, Fast food, Streaming..." }; return hints[enterpriseForce] || "Industry or topic to analyze..."; })() : "Topic for " + cat.label + "... (or drop an image)"}
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ffffff" : "var(--color-background-primary)", color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : "var(--color-text-primary)", fontSize: 12, ...CP }} />
             {topic && <button onClick={function() { setTopic(""); setOptions(null); setSmartAngles([]); setWebResults([]); setViralScore(null); setTrending([]); setSuggestions([]); setCrossCatSuggestions([]); setRefinedAngles([]); }}
