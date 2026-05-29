@@ -99,6 +99,11 @@ export var HIGHLIGHT_STYLES = [
 ];
 
 // Render highlight with style variants — used by Enterprise directly, exported for others
+// Per-style base sizing keeps highlights visually distinct from body text (~9pt) on every layout.
+// pill is compact (high-contrast color carries weight); box/bar are mid; underline and quote run largest
+// because they use the least decoration so size has to do the lifting. tag stays small as a label/role marker.
+var HIGHLIGHT_STYLE_SIZE = { pill: 10, box: 11.5, bar: 11.5, underline: 12.5, quote: 13.5, tag: 8 };
+var HIGHLIGHT_STYLE_WEIGHT = { pill: 700, box: 600, bar: 500, underline: 500, quote: 500, tag: 700 };
 export function styledHighlight(t, slide, opts) {
   if (!t) return null;
   var o = opts || {};
@@ -108,15 +113,17 @@ export function styledHighlight(t, slide, opts) {
   var accent = o.accent || "#ffffff";
   var bg = o.bg || "transparent";
   var font = highlightFont(slide);
-  var sz = 8 + (slide && slide.highlightSize || 0);
+  var baseSz = HIGHLIGHT_STYLE_SIZE[style] != null ? HIGHLIGHT_STYLE_SIZE[style] : 11.5;
+  var sz = baseSz + (slide && slide.highlightSize || 0);
+  var fw = HIGHLIGHT_STYLE_WEIGHT[style] || 500;
   var ht = slide ? elementTransform(slide, "highlight") : {};
-  var textStyle = Object.assign({}, font, { fontSize: sz, color: fg, lineHeight: 1.4 });
+  var textStyle = Object.assign({}, font, { fontSize: sz, color: fg, lineHeight: 1.35, fontWeight: fw });
 
-  if (style === "pill") return <div style={Object.assign({}, { marginTop: 6 }, ht)}><span style={Object.assign({}, textStyle, { background: accent, color: userColor || o.pillText || "#0a0a0a", padding: "2px 8px", fontWeight: 700, fontStyle: "italic", display: "inline-block" })}>{t}</span></div>;
+  if (style === "pill") return <div style={Object.assign({}, { marginTop: 6 }, ht)}><span style={Object.assign({}, textStyle, { background: accent, color: userColor || o.pillText || "#0a0a0a", padding: "2px 8px", fontStyle: "italic", display: "inline-block" })}>{t}</span></div>;
   if (style === "underline") return <div style={Object.assign({}, { marginTop: 6 }, ht)}><div style={Object.assign({}, textStyle, { borderBottom: "2px solid " + accent, paddingBottom: 2, fontStyle: "italic", display: "inline", background: "rgba(0,0,0,0.6)", padding: "2px 6px", color: userColor || "#ffffff" })}>{t}</div></div>;
   if (style === "box") return <div style={Object.assign({}, { marginTop: 6, border: "1px solid " + accent + "44", padding: "4px 8px" }, ht)}><div style={Object.assign({}, textStyle, { fontStyle: "italic" })}>{t}</div></div>;
   if (style === "quote") return <div style={Object.assign({}, { marginTop: 6, paddingLeft: 4 }, ht)}><span style={Object.assign({}, font, { fontSize: sz + 6, color: accent + "44", lineHeight: 0.8, verticalAlign: "top" })}>{"\u201C"}</span><span style={Object.assign({}, textStyle, { fontStyle: "italic" })}>{t}</span><span style={Object.assign({}, font, { fontSize: sz + 6, color: accent + "44", lineHeight: 0.8, verticalAlign: "bottom" })}>{"\u201D"}</span></div>;
-  if (style === "tag") return <div style={Object.assign({}, { marginTop: 6, display: "flex", alignItems: "center", gap: 4 }, ht)}><div style={{ width: 2, height: 14, background: accent, flexShrink: 0 }} /><div style={Object.assign({}, textStyle, { textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700, fontSize: sz - 1 })}>{t}</div></div>;
+  if (style === "tag") return <div style={Object.assign({}, { marginTop: 6, display: "flex", alignItems: "center", gap: 4 }, ht)}><div style={{ width: 2, height: 14, background: accent, flexShrink: 0 }} /><div style={Object.assign({}, textStyle, { textTransform: "uppercase", letterSpacing: "0.05em" })}>{t}</div></div>;
   // default: bar — inline-flex wrapper + alignSelf so the bar stays flush against the text even inside a flex-column parent
   return <div style={Object.assign({}, { marginTop: 6, display: "inline-flex", alignItems: "stretch", gap: 8, maxWidth: "100%", alignSelf: "flex-start", width: "fit-content" }, ht)}>
     <div style={{ width: 2, background: accent + "44", flexShrink: 0 }} />
