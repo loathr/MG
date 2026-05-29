@@ -29,11 +29,11 @@ function bodyAlign(slide) { return slide.bodyAlign ? { textAlign: slide.bodyAlig
 function srcAlign(slide) { return slide.sourcesAlign ? { textAlign: slide.sourcesAlign } : {}; }
 var IMG_FILTERS = {
   none: "none",
-  bw: "grayscale(1) contrast(1.1) brightness(0.85)",
-  grain: "saturate(0.8) contrast(1.05) brightness(0.95)",
-  contrast: "contrast(1.4) brightness(0.8) saturate(0.9)",
-  muted: "saturate(0.5) contrast(0.95) brightness(1.05) sepia(0.1)",
-  duotone: "grayscale(1) contrast(1.2) brightness(0.9) sepia(0.15)",
+  bw: "grayscale(1) contrast(1.05) brightness(0.9)",
+  grain: "saturate(0.85) contrast(1.03) brightness(0.97)",
+  contrast: "contrast(1.25) brightness(0.85) saturate(0.95)",
+  muted: "saturate(0.55) contrast(0.97) brightness(1.04) sepia(0.08)",
+  duotone: "grayscale(1) contrast(1.1) brightness(0.92) sepia(0.12)",
 };
 export var ENTERPRISE_IMG_FILTERS = [
   { id: "none", label: "None" },
@@ -75,8 +75,9 @@ var srcLine = function(s, slide) {
   if (!s) return null;
   var sz = 4 + (slide && slide.sourcesSize || 0);
   var srcFont = slide && slide.sourcesFont ? (FONT_MAP[slide.sourcesFont] || CP) : CP;
-  // marginTop: auto pushes srcLine to the bottom of a flex-column panel so highlight stays glued to body, source anchors to panel bottom
-  return <div style={Object.assign({}, { ...srcFont, fontSize: sz, color: srcColor(slide), textAlign: "right", marginTop: "auto", paddingTop: 8 }, srcAlign(slide), elementTransform(slide, "sources"))}>{s}</div>;
+  // Absolute-position to the slide-root so source aligns with the corner LOATHR watermark baseline (bottom: 5).
+  // SlideRenderer wraps each slide in a position:relative div, so absolute children attach to the slide edges.
+  return <div style={Object.assign({}, { ...srcFont, fontSize: sz, color: srcColor(slide), position: "absolute", bottom: 5, right: 14, zIndex: 11, textAlign: "right", maxWidth: "70%", lineHeight: 1.2 }, srcAlign(slide), elementTransform(slide, "sources"))}>{s}</div>;
 };
 var dividerLine = function(slide) {
   if (slide && slide.dividerHidden) return null;

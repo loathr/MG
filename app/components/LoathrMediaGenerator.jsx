@@ -367,7 +367,7 @@ function getSlideImageQuery(slide, categoryLabel, topic) {
 
 var PALETTES = {
   film:   { bg: "#1a1a2e", accent: "#e6a817", accent2: "#c8a050", text: "#f5f0e4" },
-  photo:  { bg: "#0a0a0a", accent: "#ffffff", accent2: "#888888", text: "#ffffff" },
+  photo:  { bg: "#0a0a0a", accent: "#ffffff", accent2: "#888888", text: "#ffffff", pillBg: "#1a1a1a", pillFg: "#ffffff" },
   sports: { bg: "#111111", accent: "#e63946", accent2: "#f2e307", text: "#ffffff" },
   trivia: { bg: "#0d1f2d", accent: "#1abc9c", accent2: "#8e44ad", text: "#ffffff" },
   art:    { bg: "#1a0a3e", accent: "#ff2d55", accent2: "#0984e3", text: "#f8f0ff" },
@@ -1429,7 +1429,7 @@ function S4Emigre({ slide, index, category, images }) {
     var maxLen = Math.max(String(beforeVal).length, String(afterVal).length);
     var numSize = maxLen > 7 ? 28 : maxLen > 5 ? 34 : 42;
     var compLayout = index % 2;
-    var compScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : 0.65;
+    var compScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : (category === "photo" ? 0.78 : 0.65);
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + compScrim + ")"}>
         {compLayout === 0 ? (
@@ -1475,7 +1475,7 @@ function S4Emigre({ slide, index, category, images }) {
     var killerColor = slide.statColor || p.accent;
     var killerLS = killerSize > 36 ? -2 : -1;
     var killerLayout = typeof slide.statLayoutFlip === "boolean" ? (slide.statLayoutFlip ? 1 : 0) : (index % 2);
-    var killerScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : 0.6;
+    var killerScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : (category === "photo" ? 0.75 : 0.6);
     var statStyle = { ...WS, fontSize: killerSize, color: killerColor, lineHeight: 0.85, letterSpacing: killerLS, wordBreak: "break-word", overflowWrap: "break-word" };
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + killerScrim + ")"}>
@@ -1502,7 +1502,7 @@ function S4Emigre({ slide, index, category, images }) {
   if (fmt === "story") {
     var stats = slide.stats || [{ num: slide.stat, label: slide.statLabel }, { num: slide.stat2, label: slide.stat2Label }, { num: "—", label: "—" }];
     var storyLayout = index % 2;
-    var storyScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : 0.7;
+    var storyScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : (category === "photo" ? 0.82 : 0.7);
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + storyScrim + ")"}>
         {storyLayout === 0 ? (
@@ -1545,7 +1545,7 @@ function S4Emigre({ slide, index, category, images }) {
     var rStat = slide.rightStat || slide.stat2 || "";
     var vsMaxLen = Math.max(String(lStat).length, String(rStat).length);
     var vsSize = vsMaxLen > 7 ? 24 : vsMaxLen > 5 ? 30 : 36;
-    var vsScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : 0.65;
+    var vsScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : (category === "photo" ? 0.78 : 0.65);
     return (
       <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + vsScrim + ")"}>
         <div style={{ position: "absolute", top: "20%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", alignItems: "center" }}>
@@ -1562,7 +1562,7 @@ function S4Emigre({ slide, index, category, images }) {
           </div>
         </div>
         <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3, textAlign: "center" }}>
-          <div style={{ display: "inline-block" }}><span style={{ ...HD, fontSize: 9, color: "#ffffff", fontWeight: 700, background: p.accent + "cc", padding: "3px 8px" }}>{slide.verdict || slide.body}</span></div>
+          <div style={{ display: "inline-block" }}><span style={{ ...HD, fontSize: 9, color: p.pillFg || "#ffffff", fontWeight: 700, background: (p.pillBg || p.accent) + "cc", padding: "3px 8px" }}>{slide.verdict || slide.body}</span></div>
           <MicroCite sources={slide.sources} />
         </div>
       </ImgBg>
@@ -1570,7 +1570,7 @@ function S4Emigre({ slide, index, category, images }) {
   }
 
   // Format E: Timeline Number — brighter year with accent markers
-  var tlScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : 0.6;
+  var tlScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : (category === "photo" ? 0.75 : 0.6);
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + tlScrim + ")"}>
       <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", zIndex: 3, textAlign: "center", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1660,7 +1660,7 @@ function S6Purple({ slide, index, category, images }) {
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
       <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, getFramePosition(quoteText.length, index))}>
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 4}>
-          <div style={{ ...HD, fontSize: 11.5, fontStyle: "italic", color: "#ffffff", lineHeight: 1.8, textAlign: "left" }}><span style={{ background: p.accent + "cc", padding: "2px 5px", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</span></div>
+          <div style={{ ...HD, fontSize: 11.5, fontStyle: "italic", color: p.pillFg || "#ffffff", lineHeight: 1.8, textAlign: "left" }}><span style={{ background: (p.pillBg || p.accent) + "cc", padding: "2px 5px", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</span></div>
           <div style={{ width: 12, height: 1, background: p.accent + "66", margin: "8px 0 8px auto" }} />
           {slide.source && <div style={{ textAlign: "right", marginTop: 4 }}>
             <span style={{ ...WS, fontSize: 7, color: "#1a1a1a", background: "#ffffff", padding: "2px 6px", letterSpacing: "0.08em" }}>{"— " + slide.source}</span>
@@ -2078,7 +2078,8 @@ var searchWikimedia = async function(personName) {
 // Wikimedia Commons — massive free image library
 var searchWikiCommons = async function(query) {
   try {
-    var r = await fetchWithTimeout("https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=" + encodeURIComponent(query) + "&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1000&format=json&origin=*", 6000);
+    // iiurlwidth=1920 gives Wikimedia's high-res thumb (was 1000). Enterprise/News Desk export at 2160px width, so a 1920 source upscales much better than 1000.
+    var r = await fetchWithTimeout("https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=" + encodeURIComponent(query) + "&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1920&format=json&origin=*", 6000);
     if (!r.ok) return [];
     var d = await r.json();
     var pages = d.query && d.query.pages ? d.query.pages : {};
@@ -2487,6 +2488,17 @@ var searchVintage = async function(category, query) {
       } catch (e2) { /* continue */ }
     }
   }
+  // Enterprise / News Desk: supplement with modern stock for higher resolution than vintage thumbs (~800px) provide.
+  if ((category === "enterprise" || category === "newsdesk") && results.length < 8) {
+    var unsplashKey = (typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_UNSPLASH_KEY : "") || "";
+    var pexelsKey = (typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_PEXELS_KEY : "") || "";
+    if (unsplashKey) {
+      try { var us = await searchUnsplash(query, unsplashKey); results = results.concat(us.slice(0, 3)); } catch (e) {}
+    }
+    if (pexelsKey && results.length < 10) {
+      try { var px = await searchPexels(query, pexelsKey); results = results.concat(px.slice(0, 3)); } catch (e) {}
+    }
+  }
   return results.slice(0, 8);
 };
 
@@ -2502,12 +2514,36 @@ var loadScript = function(src) {
   });
 };
 
+// Wait for every <img> inside el to fully decode before snapshotting. Replaces the old fixed 800ms wait.
+var waitForImages = function(el, timeoutMs) {
+  if (!el) return Promise.resolve();
+  var imgs = Array.prototype.slice.call(el.querySelectorAll("img"));
+  if (imgs.length === 0) return Promise.resolve();
+  var t = timeoutMs || 5000;
+  var promises = imgs.map(function(img) {
+    if (img.complete && img.naturalWidth > 0) {
+      return img.decode ? img.decode().catch(function() {}) : Promise.resolve();
+    }
+    return new Promise(function(resolve) {
+      var done = false;
+      var finish = function() { if (!done) { done = true; resolve(); } };
+      var onLoad = function() { (img.decode ? img.decode().catch(function() {}) : Promise.resolve()).then(finish); };
+      img.addEventListener("load", onLoad, { once: true });
+      img.addEventListener("error", finish, { once: true });
+      setTimeout(finish, t);
+    });
+  });
+  return Promise.all(promises);
+};
+
 // Render a single slide to canvas
 var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) {
   setCurrentSlide(slideIndex);
-  await new Promise(function(r) { setTimeout(r, 800); });
+  // Short wait for React to commit the new slide, then wait for every image to decode
+  await new Promise(function(r) { setTimeout(r, 250); });
   var el = slideRef.current;
   if (!el) return null;
+  await waitForImages(el, 5000);
   // Export the inner slide div (child of the ref) to avoid border/padding mismatch
   var exportTarget = el;
   // Find the actual slide content div inside
@@ -2528,17 +2564,9 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
       // Force consistent dimensions — prevent black panel overflow
       clonedEl.style.width = exportTarget.offsetWidth + "px";
       clonedEl.style.height = exportTarget.offsetHeight + "px";
-      // Fix objectFit:cover — convert to background-image
-      var imgs = clonedEl.querySelectorAll("img[style*='object-fit']");
-      imgs.forEach(function(img) {
-        var parent = img.parentElement;
-        if (parent && img.src && img.style.objectFit === "cover") {
-          parent.style.backgroundImage = "url(" + img.src + ")";
-          parent.style.backgroundSize = "cover";
-          parent.style.backgroundPosition = "center";
-          img.style.opacity = "0";
-        }
-      });
+      // (Removed objectFit -> backgroundImage rewrite: it stripped the CSS filter chain on the live img,
+      //  which produced softer/grainier exports compared to the rendered preview. html2canvas handles
+      //  objectFit on <img> directly.)
       // Lock the outermost slide container to prevent any overflow
       clonedEl.style.overflow = "hidden";
       var innerDivs = clonedEl.querySelectorAll("div");
@@ -3835,7 +3863,7 @@ export default function LoathrMediaGenerator() {
         return lines.join("\n");
       }).filter(Boolean).join("\n\n");
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 2500,
+        body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 8000,
           tools: [{ type: "web_search_20250305", name: "web_search" }],
           messages: [{ role: "user", content: "You are a fact-checker reviewing an Instagram carousel about \"" + topic + "\"." + dateAnchor() + "\n\nThe carousel uses 0-based slide indices. Each slide lists its fields explicitly. The 'sources' field (if present) is provided as context for what the writer cited — do NOT propose a 'fix' for the sources field, only flag in the 'issue' text if a citation is wrong.\n\nContent:\n" + slideTexts + "\n\nFor each slide, verify:\n1. Are the facts accurate? Flag anything wrong or unverifiable.\n2. Are statistics real? Flag made-up numbers.\n3. Are quotes attributed correctly?\n4. Is the overall narrative fair or misleading?\n\nUse web_search to verify specific claims when uncertain.\n\nRespond ONLY with JSON (no prose, no markdown):\n{\"score\": 1-10, \"summary\": \"one sentence overall\", \"issues\": [{\"slide\": <0-based slide index>, \"field\": \"<exact field name from the slide listing — e.g. body, stat, quote, highlight; do NOT use 'sources'>\", \"issue\": \"what's wrong\", \"fix\": \"the corrected value to write into that field\"}]}\n\nThe \"fix\" must be the FULL replacement value for that field, not a description. Never propose a fix for 'sources'. If everything checks out, return an empty issues array." }] }) });
       var d = await r.json();
@@ -7444,33 +7472,42 @@ export default function LoathrMediaGenerator() {
         {factCheckResult && factCheckResult.issues && factCheckResult.issues.length > 0 && <div style={{ marginTop: 6, border: "0.5px solid " + (factCheckResult.score >= 7 ? "#22c55e44" : "#ef444444"), background: "#f8f8f8", padding: 6, borderRadius: 3 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
             <div style={{ ...CP, fontSize: 6, color: factCheckResult.score >= 7 ? "#22c55e" : "#ef4444" }}>{factCheckResult.summary}</div>
-            {factCheckResult.issues.some(function(is) { return is.fix; }) && <button onClick={function() {
+            {factCheckResult.issues.some(function(is) { return is.fix; }) && <div style={{ display: "flex", gap: 3 }}><button onClick={function() {
               var _fso = selectedOptionRef.current;
               var written = 0;
-              var skippedIdx = []; // indices of issues that didn't get applied
+              var skippedIdx = [];
+              var prevValues = [];
+              var snap = function(slideIdx, field, curSlide) { prevValues.push({ slide: slideIdx, field: field, prevValue: curSlide[field] }); };
               factCheckResult.issues.forEach(function(issue, idx) {
                 if (!issue.fix || typeof issue.slide !== "number") { skippedIdx.push(idx); return; }
                 var slideIdx = issue.slide;
                 var _fcur = options && options[_fso];
                 var curSlide = _fcur && _fcur.slides ? _fcur.slides[slideIdx] : null;
                 if (!curSlide) { skippedIdx.push(idx); return; }
-                // Bug 3 — never auto-apply sources fixes (would corrupt array shape)
                 if (issue.field === "sources") { skippedIdx.push(idx); return; }
                 if (issue.field && curSlide[issue.field] !== undefined) {
-                  updateSlideField(slideIdx, issue.field, issue.fix);
+                  snap(slideIdx, issue.field, curSlide); updateSlideField(slideIdx, issue.field, issue.fix);
                   written++; return;
                 }
                 var lc = (issue.issue || "").toLowerCase();
-                if (curSlide.body && lc.indexOf("body") > -1) { updateSlideField(slideIdx, "body", issue.fix); written++; }
-                else if (curSlide.stat && (lc.indexOf("stat") > -1 || lc.indexOf("number") > -1 || lc.indexOf("figure") > -1)) { updateSlideField(slideIdx, "stat", issue.fix); written++; }
-                else if (curSlide.quote && lc.indexOf("quote") > -1) { updateSlideField(slideIdx, "quote", issue.fix); written++; }
-                else if (curSlide.heading && lc.indexOf("heading") > -1) { updateSlideField(slideIdx, "heading", issue.fix); written++; }
+                if (curSlide.body && lc.indexOf("body") > -1) { snap(slideIdx, "body", curSlide); updateSlideField(slideIdx, "body", issue.fix); written++; }
+                else if (curSlide.stat && (lc.indexOf("stat") > -1 || lc.indexOf("number") > -1 || lc.indexOf("figure") > -1)) { snap(slideIdx, "stat", curSlide); updateSlideField(slideIdx, "stat", issue.fix); written++; }
+                else if (curSlide.quote && lc.indexOf("quote") > -1) { snap(slideIdx, "quote", curSlide); updateSlideField(slideIdx, "quote", issue.fix); written++; }
+                else if (curSlide.heading && lc.indexOf("heading") > -1) { snap(slideIdx, "heading", curSlide); updateSlideField(slideIdx, "heading", issue.fix); written++; }
                 else { skippedIdx.push(idx); }
               });
-              setFactCheckResult(Object.assign({}, factCheckResult, { _applied: true, _written: written, _skipped: skippedIdx.length, _skippedIdx: skippedIdx }));
+              setFactCheckResult(Object.assign({}, factCheckResult, { _applied: true, _written: written, _skipped: skippedIdx.length, _skippedIdx: skippedIdx, _prevValues: prevValues, _undone: false }));
             }}
-              style={{ padding: "2px 6px", border: "0.5px solid #22c55e", background: factCheckResult._applied ? "#22c55e22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#22c55e" }}>
-              {factCheckResult._applied ? ("\u2713 Applied " + (factCheckResult._written || 0) + (factCheckResult._skipped ? "/" + ((factCheckResult._written || 0) + factCheckResult._skipped) : "")) : "Apply Fixes"}</button>}
+              disabled={factCheckResult._applied && !factCheckResult._undone}
+              style={{ padding: "2px 6px", border: "0.5px solid #22c55e", background: (factCheckResult._applied && !factCheckResult._undone) ? "#22c55e22" : "transparent", cursor: (factCheckResult._applied && !factCheckResult._undone) ? "default" : "pointer", ...CP, fontSize: 6, color: "#22c55e", opacity: (factCheckResult._applied && !factCheckResult._undone) ? 0.7 : 1 }}>
+              {(factCheckResult._applied && !factCheckResult._undone) ? ("\u2713 Applied " + (factCheckResult._written || 0) + (factCheckResult._skipped ? "/" + ((factCheckResult._written || 0) + factCheckResult._skipped) : "")) : factCheckResult._undone ? "Re-apply" : "Apply Fixes"}</button>
+              {factCheckResult._applied && !factCheckResult._undone && factCheckResult._prevValues && factCheckResult._prevValues.length > 0 && <button onClick={function() {
+                (factCheckResult._prevValues || []).forEach(function(p) { updateSlideField(p.slide, p.field, p.prevValue); });
+                setFactCheckResult(Object.assign({}, factCheckResult, { _applied: false, _undone: true, _prevValues: [] }));
+              }}
+                title="Restore fields to their pre-fix values"
+                style={{ padding: "2px 6px", border: "0.5px solid #f59e0b", background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#f59e0b" }}>{"\u21ba"} Undo</button>}
+            </div>}
           </div>
           {factCheckResult.issues.map(function(issue, i) {
             var wasSkipped = factCheckResult._applied && factCheckResult._skippedIdx && factCheckResult._skippedIdx.indexOf(i) > -1;

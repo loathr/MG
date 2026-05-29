@@ -142,7 +142,14 @@ export function buildNewsDeskPrompt(keywords, filter, region, timeframe, country
     "LOCATION: " + locationLabel + "\n" +
     "TIMEFRAME: " + effectiveTime + "\n" +
     "TIMESTAMP: " + timestamp + "\n\n" +
-    "Use web search to find CURRENT, REAL news matching these keywords. This is a NEWS product — accuracy is critical.\n\n" +
+    "SOURCE-FIRST WORKFLOW (mandatory — do these steps in this exact order):\n" +
+    "STEP 1 — RESEARCH: Run web_search on the keywords. Identify the 5 to 8 most authoritative articles published within the relevant timeframe. Prefer primary reporting (Reuters, AP, Bloomberg, FT, WSJ, NYT, BBC, AFP, Guardian) and named beat reporters over aggregators, opinion blogs, or press releases.\n" +
+    "STEP 2 — SOURCE LIST: Before writing any slide, mentally compile your list of {publication, title, date, author, url} for the articles you will cite. Every factual claim in this carousel must be derivable from this list.\n" +
+    "STEP 3 — BIND SLIDES TO SOURCES: For each slide, decide which 1-2 sources from your list it will draw from. The slide's body, quotes, statistics, and named people must come from those specific sources.\n" +
+    "STEP 4 — WRITE: Now compose the slides. If a claim is not supported by your chosen sources, either remove it or pick a different source. Do not fall back to training-data prose.\n" +
+    "STEP 5 — CITE: Populate each slide's 'sources' field with the exact citations you bound to it (publication, title, date). The final SOURCES slide's 'fullSources' array must contain every URL from your list — no duplicates, no extras.\n\n" +
+    "If you cannot find at least 3 authoritative current articles for these keywords, write 'angle' as 'No coverage found' and return a 2-slide carousel: a cover stating no current coverage exists, and a closer. Do not invent stories.\n\n" +
+    "This is a NEWS product — accuracy is critical. A claim with no source is worse than no claim at all.\n\n" +
     (isBreaking ?
       "BREAKING NEWS MODE:\n" +
       "- Find the MOST RECENT story matching these keywords — within hours if possible\n" +
@@ -166,12 +173,13 @@ export function buildNewsDeskPrompt(keywords, filter, region, timeframe, country
     (angle ? "EDITORIAL ANGLE: " + angle.prompt + "\n" : "") +
     (emphasis ? "EMPHASIS: " + emphasis.prompt + "\n" : "") +
     "\nRULES:\n" +
-    "- Every fact must be from a real, verifiable source\n" +
+    "- Every fact MUST be traceable to one of the articles you identified in STEP 1. If you can't trace it, omit it.\n" +
     "- Include the publication name, date, and author when available on EVERY slide in a 'sources' field\n" +
-    "- NEVER fabricate quotes, statistics, or events\n" +
+    "- NEVER fabricate quotes, statistics, or events. If a quote isn't in your sources, paraphrase or remove.\n" +
+    "- If you don't know a specific number, write approximately or omit. Never invent a figure to fill a slot.\n" +
     "- NEVER use the word 'algorithm'\n" +
     "- Write DENSE body text — 4-6 sentences per slide. This is a newspaper, not a tweet.\n" +
-    "- Include specific numbers, names, dates, and places in every body field\n\n" +
+    "- Include specific numbers, names, dates, and places in every body field — all from your bound sources\n\n" +
     "SLIDE STRUCTURE:\n" +
     "This is a NEWSPAPER. Pack information densely. Some slides COMBINE multiple segments.\n\n" +
     "HEADING RULE: Every slide's 'heading' field MUST be a SPECIFIC editorial headline — NOT the role name. Write it like a real newspaper sub-headline that summarizes the slide's content. Examples:\n" +
