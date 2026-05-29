@@ -1859,7 +1859,7 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
   if (category === "enterprise") {
     if (slideIndex === 0) slide = <EnterpriseCover slide={slideData} images={images} index={slideIndex} />;
     else if (slideIndex === lastIdx) slide = <EnterpriseCloser slide={slideData} images={images} index={slideIndex} category={category} />;
-    else if (slideData.heading && slideData.heading.toUpperCase().indexOf("PLAYBOOK") > -1) slide = <EnterprisePlaybook slide={slideData} images={images} index={slideIndex} />;
+    else if ((slideData.type && String(slideData.type).toUpperCase() === "THE PLAYBOOK") || (slideData.role && String(slideData.role).toUpperCase() === "THE PLAYBOOK")) slide = <EnterprisePlaybook slide={slideData} images={images} index={slideIndex} />;
     else {
       // Detect enterprise slide role from position or content
       var eRoles = ["THE LANDSCAPE", "THE FORCE", "THE IMPACT", "THE WINNERS", "THE LOSERS", "THE DATA", "THE PLAYBOOK", "THE FORECAST"];
@@ -1868,7 +1868,7 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
       var eSlideData = Object.assign({}, slideData, { role: eRole });
       if ((slideData.statFormat || slideData.stat) && !slideData.body) {
         eSlideData.body = (slideData.stat || "") + (slideData.caption ? " — " + slideData.caption : slideData.statLabel ? " — " + slideData.statLabel : "");
-        if (!eSlideData.heading) eSlideData.heading = "THE DATA";
+        // Heading intentionally NOT force-set to 'THE DATA' — the sectionLabel(role) already shows it, so forcing it caused a duplicate header
       }
       var eMosaic = _mosaicSlides[slideIndex];
       var eMosaicLayout = eMosaic && typeof eMosaic._layoutIdx === "number" ? MOSAIC_LAYOUTS[eMosaic._layoutIdx] : null;
