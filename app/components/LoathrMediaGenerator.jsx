@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { extractCarouselPayload, MODE_MAPPING, CHARACTER_FOR_CATEGORY } from "../lib/scriptSchema";
 import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Palette, Zap, Star, BookOpen, CircleDot, Clapperboard, Aperture, Users, CheckCircle, AlertTriangle, Loader, Flame, Shuffle, Sparkles, ChevronRight, Archive, Scissors, UtensilsCrossed, Wine, MessageCircle, Briefcase, Newspaper } from "lucide-react";
 import { ENTERPRISE_FORCES, ENTERPRISE_SECTORS, ENTERPRISE_TOPICS, ENTERPRISE_GENERAL_TOPICS, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
-import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS, styledHighlight, HIGHLIGHT_STYLES, ENTERPRISE_IMG_FILTERS, setGlobalImgFilter } from "./segments/EnterpriseSlides";
+import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS, styledHighlight, HIGHLIGHT_STYLES, ENTERPRISE_IMG_FILTERS, setGlobalImgFilter, CLOSER_TEMPLATES, CLOSER_DIVIDER_STYLES, CLOSER_BG_MODES, CLOSER_ALIGNS, CLOSER_DISCLAIMER_POS } from "./segments/EnterpriseSlides";
 import { NEWSDESK_FILTERS, NEWSDESK_URGENCY, NEWSDESK_DESKS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
 import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser, NEWS_COVER_LABELS, NEWS_LAYOUT_LABELS, NEWS_COVER_COUNT, NEWS_LAYOUT_COUNT } from "./segments/NewsDeskSlides";
 
@@ -2851,6 +2851,8 @@ export default function LoathrMediaGenerator() {
   var xcs = _s([]), crossCatSuggestions = xcs[0], setCrossCatSuggestions = xcs[1];
   var rcs = _s([]), recentTopics = rcs[0], setRecentTopics = rcs[1];
   var ths = _s([]), topicHistory = ths[0], setTopicHistory = ths[1];
+  var clb = _s([]), closerLibrary = clb[0], setCloserLibrary = clb[1];
+  var clr = _s(false), closerLoading = clr[0], setCloserLoading = clr[1];
   var sas = _s([]), smartAngles = sas[0], setSmartAngles = sas[1];
   var ccr = _s([]), crossCatRelated = ccr[0], setCrossCatRelated = ccr[1];
   var shp = _s(false), showPastGen = shp[0], setShowPastGen = shp[1];
@@ -2990,6 +2992,9 @@ export default function LoathrMediaGenerator() {
       setStudioTemplates(tmpls);
       var active = localStorage.getItem("loathr_active_template");
       if (active) setActiveTemplate(active);
+      // Load saved enterprise closer library
+      var clib = JSON.parse(localStorage.getItem("loathr_closer_library") || "[]");
+      if (Array.isArray(clib)) setCloserLibrary(clib);
     } catch (e) {}
     // Read shared link params
     try {
@@ -5932,6 +5937,17 @@ export default function LoathrMediaGenerator() {
                 </div>
               </div>
               <div style={{ marginBottom: 8 }}>
+                <div style={{ ...CP, fontSize: 6, color: "#888", letterSpacing: "0.1em", marginBottom: 3 }}>PAGES <span style={{ color: "#555", marginLeft: 4 }}>(overrides depth)</span></div>
+                <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                  <button onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: 0 }); }); }}
+                    style={{ padding: "3px 8px", border: "0.5px solid " + (!editionPicks.slideCount ? "#fff" : "#444"), background: !editionPicks.slideCount ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: !editionPicks.slideCount ? "#fff" : "#888" }}>Auto</button>
+                  {[4, 5, 6, 7, 8, 9, 10, 11, 12].map(function(n) { return (
+                    <button key={n} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: n }); }); }}
+                      style={{ padding: "3px 7px", border: "0.5px solid " + (editionPicks.slideCount === n ? "#fff" : "#444"), background: editionPicks.slideCount === n ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: editionPicks.slideCount === n ? "#fff" : "#888", minWidth: 18, textAlign: "center" }}>{n}</button>
+                  ); })}
+                </div>
+              </div>
+              <div style={{ marginBottom: 8 }}>
                 <div style={{ ...CP, fontSize: 6, color: "#888", letterSpacing: "0.1em", marginBottom: 3 }}>TONE</div>
                 <div style={{ display: "flex", gap: 3 }}>
                   {ENTERPRISE_TONES.map(function(t) { var sel = editionPicks.enterpriseTone === t.id; return (
@@ -6800,6 +6816,210 @@ export default function LoathrMediaGenerator() {
 
             {/* === LAYOUT === */}
             {editSection === "layout" && <div>
+              {/* CLOSER STUDIO — enterprise closer only */}
+              {activeSegment === "enterprise" && isCloser && (function() {
+                var pool = [s.funnyLine].concat(Array.isArray(s.funnyLineAlts) ? s.funnyLineAlts : []).filter(function(x) { return x && String(x).trim(); });
+                var poolUnique = []; var seen = {};
+                pool.forEach(function(x) { var k = String(x).trim(); if (!seen[k]) { seen[k] = true; poolUnique.push(k); } });
+                var hasAlts = poolUnique.length > 1;
+                var currentIdx = Math.max(0, poolUnique.indexOf(String(s.funnyLine || "").trim()));
+                var cycle = function(dir) {
+                  if (!poolUnique.length) return;
+                  var next = (currentIdx + dir + poolUnique.length) % poolUnique.length;
+                  updateSlideField(currentSlide, "funnyLine", poolUnique[next]);
+                };
+                var regenTone = async function(toneLabel) {
+                  if (closerLoading) return;
+                  setCloserLoading(true);
+                  try {
+                    var topicCtx = topic || "this business analysis";
+                    var promptText = "Write ONE short closer tagline (no longer than 90 characters) for an Instagram carousel about \"" + topicCtx + "\". Tone: " + toneLabel + ".\n- No quotation marks around the line.\n- One single line, no preamble, no explanation.\n- Output ONLY the line itself.";
+                    var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 120, messages: [{ role: "user", content: promptText }] }) });
+                    var d = await r.json();
+                    var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text; }).join("").trim().replace(/^["'“”]+|["'“”]+$/g, "").split("\n")[0].trim();
+                    if (text) updateSlideField(currentSlide, "funnyLine", text);
+                  } catch (e) { console.error("Closer tone regen failed", e); }
+                  finally { setCloserLoading(false); }
+                };
+                var saveToLibrary = function() {
+                  var line = String(s.funnyLine || "").trim();
+                  if (!line) return;
+                  if (closerLibrary.indexOf(line) > -1) return;
+                  var next = [line].concat(closerLibrary).slice(0, 40);
+                  setCloserLibrary(next);
+                  try { localStorage.setItem("loathr_closer_library", JSON.stringify(next)); } catch (e) {}
+                };
+                var removeFromLibrary = function(line) {
+                  var next = closerLibrary.filter(function(x) { return x !== line; });
+                  setCloserLibrary(next);
+                  try { localStorage.setItem("loathr_closer_library", JSON.stringify(next)); } catch (e) {}
+                };
+                var shuffle = function() {
+                  var bank = poolUnique.concat(ENTERPRISE_CLOSERS).concat(closerLibrary);
+                  bank = bank.filter(function(x) { return x && x !== s.funnyLine; });
+                  if (!bank.length) return;
+                  updateSlideField(currentSlide, "funnyLine", bank[Math.floor(Math.random() * bank.length)]);
+                };
+                var sectionHdr = { ...CP, fontSize: 4, color: "#fff", marginBottom: 4, letterSpacing: "0.12em", opacity: 0.55 };
+                var sectionBox = { marginBottom: 8, paddingBottom: 8, borderBottom: "0.5px solid #2a2a2a" };
+                var inputStyle = { padding: "3px 6px", border: "0.5px solid #333", background: "#0a0a0a", color: "#ffffffdd", ...CP, fontSize: 7, width: "100%" };
+                var pillStyle = function(sel) { return { padding: "2px 7px", border: "0.5px solid " + (sel ? "#fff" : "#444"), background: sel ? "#ffffff22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? "#fff" : "#888", letterSpacing: "0.05em" }; };
+                var tpl = s.closerTemplate || "minimal";
+                var bgMode = s.closerBgMode || "solid";
+                var divider = s.dividerStyle || "hairline";
+                var align = s.closerAlign || "center";
+                var discPos = s.disclaimerPos || "center";
+                return <div style={{ marginBottom: 8, padding: 10, background: "#0d0d0d", border: "0.5px solid #fff3", borderRadius: 2 }}>
+                  <div style={{ ...CP, fontSize: 6, color: "#fff", marginBottom: 8, letterSpacing: "0.18em", fontWeight: 700 }}>CLOSER STUDIO</div>
+
+                  {/* TEMPLATE */}
+                  <div style={sectionBox}>
+                    <div style={sectionHdr}>TEMPLATE</div>
+                    <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                      {CLOSER_TEMPLATES.map(function(t) {
+                        return <button key={t.id} onClick={function() { updateSlideField(currentSlide, "closerTemplate", t.id); }} style={pillStyle(tpl === t.id)}>{t.label}</button>;
+                      })}
+                    </div>
+                  </div>
+
+                  {/* END MESSAGE */}
+                  <div style={sectionBox}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <span style={sectionHdr}>END MESSAGE</span>
+                      {hasAlts && <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <button onClick={function() { cycle(-1); }} style={Object.assign({}, pillStyle(false), { padding: "2px 6px" })}>{"‹"}</button>
+                        <span style={{ ...CP, fontSize: 5, color: "#888" }}>{(currentIdx + 1) + "/" + poolUnique.length}</span>
+                        <button onClick={function() { cycle(1); }} style={Object.assign({}, pillStyle(false), { padding: "2px 6px" })}>{"›"}</button>
+                      </div>}
+                    </div>
+                    <textarea value={s.funnyLine || ""} rows={2} placeholder="The closer tagline shown above the wordmark…"
+                      onChange={function(e) { updateSlideField(currentSlide, "funnyLine", e.target.value); }}
+                      style={Object.assign({}, inputStyle, { resize: "vertical", fontFamily: "'Matina','Maheni',serif", fontStyle: "italic" })} />
+                    {/* Preset taglines */}
+                    <div style={{ marginTop: 4 }}>
+                      <div style={{ ...CP, fontSize: 4, color: "#666", marginBottom: 2 }}>PRESETS</div>
+                      <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                        {ENTERPRISE_CLOSERS.map(function(line, li) {
+                          var sel = String(s.funnyLine || "").trim() === line;
+                          return <button key={li} onClick={function() { updateSlideField(currentSlide, "funnyLine", line); }} title={line}
+                            style={Object.assign({}, pillStyle(sel), { maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 5 })}>{line}</button>;
+                        })}
+                      </div>
+                    </div>
+                    {/* Tone regen */}
+                    <div style={{ marginTop: 6 }}>
+                      <div style={{ ...CP, fontSize: 4, color: "#666", marginBottom: 2 }}>REGENERATE IN TONE {closerLoading ? "… working" : ""}</div>
+                      <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                        {["Manifesto", "Skeptical", "Inspirational", "Dry", "Question"].map(function(t) {
+                          return <button key={t} disabled={closerLoading} onClick={function() { regenTone(t); }}
+                            style={Object.assign({}, pillStyle(false), { opacity: closerLoading ? 0.4 : 1 })}>{t}</button>;
+                        })}
+                      </div>
+                    </div>
+                    {/* Actions */}
+                    <div style={{ marginTop: 6, display: "flex", gap: 3, flexWrap: "wrap" }}>
+                      <button onClick={shuffle} style={Object.assign({}, pillStyle(false))}>{"↻"} Shuffle</button>
+                      <button onClick={saveToLibrary} disabled={!s.funnyLine} style={Object.assign({}, pillStyle(false), { opacity: !s.funnyLine ? 0.4 : 1 })}>{"☆"} Save to library</button>
+                    </div>
+                    {/* Library */}
+                    {closerLibrary.length > 0 && <div style={{ marginTop: 6, borderTop: "0.5px solid #2a2a2a", paddingTop: 4 }}>
+                      <div style={{ ...CP, fontSize: 4, color: "#666", marginBottom: 2 }}>LIBRARY ({closerLibrary.length})</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 120, overflowY: "auto" }}>
+                        {closerLibrary.map(function(line, li) {
+                          var sel = String(s.funnyLine || "").trim() === line;
+                          return <div key={li} style={{ display: "flex", alignItems: "stretch", gap: 0 }}>
+                            <button onClick={function() { updateSlideField(currentSlide, "funnyLine", line); }} title={line}
+                              style={Object.assign({}, pillStyle(sel), { flex: 1, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 5 })}>{line}</button>
+                            <button onClick={function() { removeFromLibrary(line); }} title="Remove"
+                              style={{ padding: "2px 6px", border: "0.5px solid #444", borderLeft: "none", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#666" }}>{"×"}</button>
+                          </div>;
+                        })}
+                      </div>
+                    </div>}
+                  </div>
+
+                  {/* WORDMARK */}
+                  <div style={sectionBox}>
+                    <div style={sectionHdr}>WORDMARK</div>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ ...CP, fontSize: 4, color: "#666", marginBottom: 2 }}>BRAND</div>
+                        <input value={s.wordmark != null ? s.wordmark : "LOATHR"} placeholder="LOATHR" onChange={function(e) { updateSlideField(currentSlide, "wordmark", e.target.value); }} style={inputStyle} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ ...CP, fontSize: 4, color: "#666", marginBottom: 2 }}>SUB</div>
+                        <input value={s.wordmarkSub != null ? s.wordmarkSub : "ENTERPRISE"} placeholder="ENTERPRISE" onChange={function(e) { updateSlideField(currentSlide, "wordmarkSub", e.target.value); }} style={inputStyle} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CTA */}
+                  <div style={sectionBox}>
+                    <div style={sectionHdr}>CTA</div>
+                    <input value={s.ctaText || ""} placeholder="Follow @LOATHR for the next brief" onChange={function(e) { updateSlideField(currentSlide, "ctaText", e.target.value); }} style={Object.assign({}, inputStyle, { marginBottom: 3 })} />
+                    <input value={s.ctaUrl || ""} placeholder="https://loathr.com" onChange={function(e) { updateSlideField(currentSlide, "ctaUrl", e.target.value); }} style={inputStyle} />
+                  </div>
+
+                  {/* LAYOUT */}
+                  <div style={sectionBox}>
+                    <div style={sectionHdr}>LAYOUT</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                      <span style={{ ...CP, fontSize: 4, color: "#666", width: 56 }}>ALIGN</span>
+                      {CLOSER_ALIGNS.map(function(a) { return <button key={a.id} onClick={function() { updateSlideField(currentSlide, "closerAlign", a.id); }} style={pillStyle(align === a.id)}>{a.label}</button>; })}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4, flexWrap: "wrap" }}>
+                      <span style={{ ...CP, fontSize: 4, color: "#666", width: 56 }}>DIVIDER</span>
+                      {CLOSER_DIVIDER_STYLES.map(function(d) { return <button key={d.id} onClick={function() { updateSlideField(currentSlide, "dividerStyle", d.id); }} style={pillStyle(divider === d.id)}>{d.label}</button>; })}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <span style={{ ...CP, fontSize: 4, color: "#666", width: 56 }}>WATERMARK</span>
+                      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
+                        <input type="checkbox" checked={!s.hideWatermark} onChange={function(e) { updateSlideField(currentSlide, "hideWatermark", !e.target.checked); }} />
+                        <span style={{ ...CP, fontSize: 5, color: "#888" }}>Show corner LOATHR mark</span>
+                      </label>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ ...CP, fontSize: 4, color: "#666", width: 56 }}>DISCLAIMER</span>
+                      {CLOSER_DISCLAIMER_POS.map(function(d) { return <button key={d.id} onClick={function() { updateSlideField(currentSlide, "disclaimerPos", d.id); }} style={pillStyle(discPos === d.id)}>{d.label}</button>; })}
+                    </div>
+                  </div>
+
+                  {/* BACKGROUND */}
+                  <div style={sectionBox}>
+                    <div style={sectionHdr}>BACKGROUND</div>
+                    <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginBottom: 4 }}>
+                      {CLOSER_BG_MODES.map(function(b) { return <button key={b.id} onClick={function() { updateSlideField(currentSlide, "closerBgMode", b.id); }} style={pillStyle(bgMode === b.id)}>{b.label}</button>; })}
+                    </div>
+                    {bgMode === "accent" && <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                      <span style={{ ...CP, fontSize: 4, color: "#666" }}>COLOR</span>
+                      <input type="color" value={s.closerBgColor || "#1a1a1a"} onChange={function(e) { updateSlideField(currentSlide, "closerBgColor", e.target.value); }} style={{ width: 30, height: 20, padding: 0, border: "0.5px solid #444", cursor: "pointer", background: "#000" }} />
+                    </div>}
+                    {bgMode === "image" && <div>
+                      <input value={s.closerBgImage || ""} placeholder="https://image-url.jpg" onChange={function(e) { updateSlideField(currentSlide, "closerBgImage", e.target.value); }} style={Object.assign({}, inputStyle, { marginBottom: 3 })} />
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ ...CP, fontSize: 4, color: "#666", width: 56 }}>SCRIM</span>
+                        <input type="range" min={0} max={95} step={5} value={typeof s.closerScrimOpacity === "number" ? s.closerScrimOpacity : 72} onChange={function(e) { updateSlideField(currentSlide, "closerScrimOpacity", parseInt(e.target.value, 10)); }} style={{ flex: 1 }} />
+                        <span style={{ ...CP, fontSize: 5, color: "#888", width: 28 }}>{typeof s.closerScrimOpacity === "number" ? s.closerScrimOpacity : 72}%</span>
+                      </div>
+                    </div>}
+                  </div>
+
+                  {/* STAT PUNCH — only when statpunch template */}
+                  {tpl === "statpunch" && <div>
+                    <div style={sectionHdr}>STAT PUNCH</div>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ ...CP, fontSize: 4, color: "#666", marginBottom: 2 }}>STAT</div>
+                        <input value={s.closerStat || ""} placeholder="3.4M" onChange={function(e) { updateSlideField(currentSlide, "closerStat", e.target.value); }} style={Object.assign({}, inputStyle, { fontSize: 11, fontWeight: 700 })} />
+                      </div>
+                      <div style={{ flex: 2 }}>
+                        <div style={{ ...CP, fontSize: 4, color: "#666", marginBottom: 2 }}>CAPTION</div>
+                        <input value={s.closerStatLabel || ""} placeholder="Jobs displaced by AI by 2030" onChange={function(e) { updateSlideField(currentSlide, "closerStatLabel", e.target.value); }} style={inputStyle} />
+                      </div>
+                    </div>
+                  </div>}
+                </div>;
+              })()}
               {/* Enterprise layout picker — content slides only */}
               {activeSegment === "enterprise" && isContent && <div style={{ marginBottom: 6 }}>
                 <div style={{ ...CP, fontSize: 5, color: "#888", marginBottom: 3 }}>SLIDE LAYOUT</div>

@@ -142,7 +142,10 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks, sector) 
   var depth = ep.enterpriseDepth ? ENTERPRISE_DEPTHS.find(function(d) { return d.id === ep.enterpriseDepth; }) : null;
   var tone = ep.enterpriseTone ? ENTERPRISE_TONES.find(function(t) { return t.id === ep.enterpriseTone; }) : null;
   var focus = ep.enterpriseFocus ? ENTERPRISE_FOCUS.find(function(f) { return f.id === ep.enterpriseFocus; }) : null;
-  var slideCount = depth ? depth.slides : (isBreaking ? 5 : 8);
+  // Explicit pages picker (picks.slideCount) wins over depth preset; fallback to breaking/standard default
+  var slideCount = (typeof ep.slideCount === "number" && ep.slideCount >= 4 && ep.slideCount <= 12)
+    ? ep.slideCount
+    : (depth ? depth.slides : (isBreaking ? 5 : 8));
   var d = new Date();
   var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var timestamp = months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear() + " at " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
@@ -185,7 +188,7 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks, sector) 
     "- \"THE DATA\" — key statistic. Use statFormat \"killer\" with stat and caption. sources\n" +
     "- \"THE PLAYBOOK\" — 3-5 numbered actionable steps. heading, body (numbered list), sources. Each step specific enough to act on this week.\n" +
     "- \"THE FORECAST\" — prediction for 2-5 years. heading, body, highlight, sources\n" +
-    "- LAST SLIDE: \"CLOSER\" — hashtags string. MUST include in the slide data: funnyLine: \"" + closerLine + "\", disclaimer: \"This carousel is for entertainment and educational purposes only. Not professional advice.\"\n\n" +
+    "- LAST SLIDE: \"CLOSER\" — hashtags string. MUST include in the slide data: funnyLine: \"" + closerLine + "\", funnyLineAlts: [array of 4 ALTERNATE closer taglines you'd write for this brief — one manifesto-style, one skeptical/dry, one inspirational/punchy, one question-style. Each ≤ 90 chars, no quote marks], disclaimer: \"This carousel is for entertainment and educational purposes only. Not professional advice.\"\n\n" +
     "TEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'.\n\n" +
     "On 2-3 content slides, add '\"mosaic\": true' for photo collage backgrounds.\n\n" +
     "CRITICAL: After searching the web, you MUST respond with valid JSON. Do NOT write commentary, analysis, or explanation outside the JSON. Your ENTIRE text response must be the JSON object.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Enterprise Analysis\",\"slides\":[{...slides...}]}";
@@ -209,7 +212,7 @@ export function buildEnterpriseNewsPrompt(keywords, force, editionSeed, picks, s
     "Search the web for the MOST RECENT business news matching these keywords. Focus on the business and industry IMPACT of the news.\n\n" +
     (tone ? "TONE: " + tone.prompt + "\n" : "") +
     (ep.customVoice ? "CUSTOM VOICE: " + ep.customVoice + "\n" : "") +
-    "\nSLIDE COUNT: 5-6 slides.\n\n" +
+    "\nSLIDE COUNT: " + ((typeof ep.slideCount === "number" && ep.slideCount >= 4 && ep.slideCount <= 12) ? (ep.slideCount + " slides.") : "5-6 slides.") + "\n\n" +
     "RULES:\n" +
     "- Every fact must be from a real, verifiable source with 'sources' field\n" +
     "- Focus on BUSINESS IMPACT — not just what happened, but who profits, who loses, what changes\n" +
@@ -222,7 +225,7 @@ export function buildEnterpriseNewsPrompt(keywords, force, editionSeed, picks, s
     "- \"WHO'S AFFECTED\" — heading, body (industries, companies, roles impacted), keywords, sources\n" +
     "- \"THE NUMBERS\" — statFormat \"killer\", stat, caption, sources\n" +
     "- \"WHAT TO DO\" — heading, body (immediate action items for businesses), sources\n" +
-    "- CLOSER — hashtags, funnyLine: \"" + closerLine + "\", disclaimer: \"For entertainment and educational purposes only.\"\n\n" +
+    "- CLOSER — hashtags, funnyLine: \"" + closerLine + "\", funnyLineAlts: [array of 3 alternate closer taglines — one dry, one punchy, one question-style. Each ≤ 90 chars], disclaimer: \"For entertainment and educational purposes only.\"\n\n" +
     "CRITICAL: Your ENTIRE text response must be valid JSON.\n\nRespond ONLY with JSON:\n{\"angle\":\"Business News\",\"slides\":[{...}]}";
 }
 
@@ -245,7 +248,7 @@ export function buildEnterpriseTipsPrompt(topic, force, editionSeed, picks, sect
     (tone ? "TONE: " + tone.prompt + "\n" : "") +
     (focus ? "FOCUS: " + focus.prompt + "\n" : "") +
     (ep.customVoice ? "CUSTOM VOICE: " + ep.customVoice + "\n" : "") +
-    "\nSLIDE COUNT: 7-8 slides.\n\n" +
+    "\nSLIDE COUNT: " + ((typeof ep.slideCount === "number" && ep.slideCount >= 4 && ep.slideCount <= 12) ? (ep.slideCount + " slides.") : "7-8 slides.") + "\n\n" +
     "RULES:\n" +
     "- Each tip must be SPECIFIC — not 'use social media' but 'post LinkedIn carousels 3x/week targeting procurement managers'\n" +
     "- Include a real tool, platform, or resource name where relevant\n" +
@@ -257,6 +260,6 @@ export function buildEnterpriseTipsPrompt(topic, force, editionSeed, picks, sect
     "- COVER — title (e.g. \"5 Things Every [Industry] Should Do Now\"), subtitle\n" +
     "- \"TIP 1\" through \"TIP 5\" — each slide: heading (the tip as a command), body (why + how + example), highlight (the tool/resource), keywords, sources\n" +
     "- \"THE WHY\" — heading, body (data/context backing the tips), statFormat \"killer\" with stat and caption, sources\n" +
-    "- CLOSER — hashtags, funnyLine: \"" + closerLine + "\", disclaimer: \"For entertainment and educational purposes only. Not professional advice.\"\n\n" +
+    "- CLOSER — hashtags, funnyLine: \"" + closerLine + "\", funnyLineAlts: [array of 3 alternate closer taglines — one tactical, one inspirational, one dry/skeptical. Each ≤ 90 chars], disclaimer: \"For entertainment and educational purposes only. Not professional advice.\"\n\n" +
     "CRITICAL: Your ENTIRE text response must be valid JSON.\n\nRespond ONLY with JSON:\n{\"angle\":\"Industry Tips\",\"slides\":[{...}]}";
 }
