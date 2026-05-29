@@ -151,8 +151,8 @@ function Masthead({ isBreaking, align, slide }) {
   return <>
     <div style={{ padding: "8px 16px 4px", borderBottom: "1px solid #ffffff33", textAlign: align || "right", flexShrink: 0 }}>
       {showLogo && <img src={logo} alt="" style={{ maxHeight: 24, maxWidth: "40%", objectFit: "contain", marginBottom: 2, filter: "brightness(2)" }} />}
-      {brandMode !== "logo" && <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff66" }}>LOATHR</div>}
-      {brandMode !== "logo" && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffff44", marginTop: 1 }}>ENTERPRISE</div>}
+      {brandMode !== "logo" && <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", marginRight: "-0.25em", color: "#ffffff66" }}>LOATHR</div>}
+      {brandMode !== "logo" && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", marginRight: "-0.15em", color: "#ffffff44", marginTop: 1 }}>ENTERPRISE</div>}
     </div>
     {isBreaking && <div style={{ background: "#ffffff", padding: "3px 16px", textAlign: "center", flexShrink: 0 }}>
       <div style={{ ...CP, fontSize: 6, letterSpacing: "0.25em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
@@ -198,8 +198,8 @@ export function EnterpriseCover({ slide, images, index }) {
       {url && <img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />}
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.85) 70%, rgba(0,0,0,0.95))" }} />
       <div style={{ position: "absolute", top: 10, right: 16, zIndex: 2 }}>
-        <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff66", textAlign: "right" }}>LOATHR</div>
-        <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffff44", textAlign: "right" }}>ENTERPRISE</div>
+        <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", marginRight: "-0.25em", color: "#ffffff66", textAlign: "right" }}>LOATHR</div>
+        <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", marginRight: "-0.15em", color: "#ffffff44", textAlign: "right" }}>ENTERPRISE</div>
       </div>
       {isBreaking && <div style={{ position: "absolute", top: 36, left: 0, right: 0, background: "#ffffff", padding: "3px 16px", textAlign: "center", zIndex: 2 }}>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.25em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
@@ -218,8 +218,8 @@ export function EnterpriseCover({ slide, images, index }) {
         : <div style={{ width: sp + "%", background: "#111" }} />}
       <div style={{ width: (100 - sp) + "%", padding: "10px 14px", display: "flex", flexDirection: "column" }}>
         <div style={{ textAlign: "right", marginBottom: 8 }}>
-          <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", color: "#ffffff55" }}>LOATHR</div>
-          <div style={{ ...CP, fontSize: 4, letterSpacing: "0.12em", color: "#ffffff33" }}>ENTERPRISE</div>
+          <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", marginRight: "-0.2em", color: "#ffffff55" }}>LOATHR</div>
+          <div style={{ ...CP, fontSize: 4, letterSpacing: "0.12em", marginRight: "-0.12em", color: "#ffffff33" }}>ENTERPRISE</div>
         </div>
         {isBreaking && <div style={{ background: "#ffffff", padding: "2px 8px", textAlign: "center", marginBottom: 8 }}>
           <div style={{ ...CP, fontSize: 5, letterSpacing: "0.2em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
@@ -247,8 +247,8 @@ export function EnterpriseCover({ slide, images, index }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column", alignItems: "center" }}>
       <div style={{ padding: "10px 16px 6px", textAlign: "center", flexShrink: 0 }}>
-        <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff66" }}>LOATHR</div>
-        <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffff44", marginTop: 1 }}>ENTERPRISE</div>
+        <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", marginRight: "-0.25em", color: "#ffffff66" }}>LOATHR</div>
+        <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", marginRight: "-0.15em", color: "#ffffff44", marginTop: 1 }}>ENTERPRISE</div>
       </div>
       {isBreaking && <div style={{ background: "#ffffff", padding: "3px 16px", textAlign: "center", flexShrink: 0, width: "100%" }}>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.25em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
@@ -555,8 +555,8 @@ function closerWordmark(slide) {
   var w = slide.wordmark || "LOATHR";
   var ws = slide.wordmarkSub != null ? slide.wordmarkSub : "ENTERPRISE";
   return <div>
-    <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff77", fontWeight: 700 }}>{w}</div>
-    {ws && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.12em", color: "#ffffff44", marginTop: 2 }}>{ws}</div>}
+    <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", marginRight: "-0.25em", color: "#ffffff77", fontWeight: 700 }}>{w}</div>
+    {ws && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.12em", marginRight: "-0.12em", color: "#ffffff44", marginTop: 2 }}>{ws}</div>}
   </div>;
 }
 
