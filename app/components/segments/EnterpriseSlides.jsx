@@ -23,7 +23,7 @@ function bodyFont(slide) { return FONT_MAP[slide.bodyFont] || QG; }
 function headFont(slide) { return FONT_MAP[slide.headingFont] || OT; }
 function headColor(slide, def) { return slide.headingColor || def || "#ffffff"; }
 function bodyColor(slide, def) { return slide.bodyColor || def || "#ffffffcc"; }
-function srcColor(slide, def) { return slide.sourcesColor || def || "#ffffff33"; }
+function srcColor(slide, def) { return slide.sourcesColor || def || "#ffffff"; }
 function headAlign(slide) { return slide.headingAlign ? { textAlign: slide.headingAlign } : {}; }
 function bodyAlign(slide) { return slide.bodyAlign ? { textAlign: slide.bodyAlign } : {}; }
 function srcAlign(slide) { return slide.sourcesAlign ? { textAlign: slide.sourcesAlign } : {}; }
