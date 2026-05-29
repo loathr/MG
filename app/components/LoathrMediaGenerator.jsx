@@ -542,11 +542,12 @@ var MOSAIC_LAYOUTS = [
 function MosaicBg({ urls, pal, children, category, slideIndex, darken }) {
   if (!urls || urls.length < 2) return null;
   var preset = _activeImageStyle && IMAGE_STYLE_PRESETS[_activeImageStyle] ? IMAGE_STYLE_PRESETS[_activeImageStyle] : null;
-  // Pick layout — manual override via _layoutIdx, or auto based on image count
-  var availCount = Math.min(urls.length, 4);
+  // Enterprise caps mosaic at 3 panels — the 4-panel layouts read as cluttered against the B&W aesthetic
+  var maxPanels = category === "enterprise" ? 3 : 4;
+  var availCount = Math.min(urls.length, maxPanels);
   var manualIdx = urls._layoutIdx;
   var layout;
-  if (typeof manualIdx === "number" && MOSAIC_LAYOUTS[manualIdx]) {
+  if (typeof manualIdx === "number" && MOSAIC_LAYOUTS[manualIdx] && MOSAIC_LAYOUTS[manualIdx].count <= maxPanels) {
     layout = MOSAIC_LAYOUTS[manualIdx];
   } else {
     var candidates = MOSAIC_LAYOUTS.filter(function(l) { return l.count <= availCount; });
@@ -7388,6 +7389,8 @@ export default function LoathrMediaGenerator() {
               <div style={{ ...CP, fontSize: 5, color: "#999", marginBottom: 2 }}>MOSAIC</div>
               <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
                 {MOSAIC_LAYOUTS.map(function(layout, li) {
+                  // Enterprise caps mosaic at 3 panels — hide 4-panel layout buttons
+                  if (activeSegment === "enterprise" && layout.count > 3) return null;
                   var isMosaic = _mosaicSlides[currentSlide];
                   var active = isMosaic && isMosaic._layoutIdx === li;
                   return <button key={layout.id} onClick={function() {
