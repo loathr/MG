@@ -115,8 +115,11 @@ export function styledHighlight(t, slide, opts) {
   if (style === "box") return <div style={Object.assign({}, { marginTop: 6, border: "1px solid " + accent + "44", padding: "4px 8px" }, ht)}><div style={Object.assign({}, textStyle, { fontStyle: "italic" })}>{t}</div></div>;
   if (style === "quote") return <div style={Object.assign({}, { marginTop: 6, paddingLeft: 4 }, ht)}><span style={Object.assign({}, font, { fontSize: sz + 6, color: accent + "44", lineHeight: 0.8, verticalAlign: "top" })}>{"\u201C"}</span><span style={Object.assign({}, textStyle, { fontStyle: "italic" })}>{t}</span><span style={Object.assign({}, font, { fontSize: sz + 6, color: accent + "44", lineHeight: 0.8, verticalAlign: "bottom" })}>{"\u201D"}</span></div>;
   if (style === "tag") return <div style={Object.assign({}, { marginTop: 6, display: "flex", alignItems: "center", gap: 4 }, ht)}><div style={{ width: 2, height: 14, background: accent, flexShrink: 0 }} /><div style={Object.assign({}, textStyle, { textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700, fontSize: sz - 1 })}>{t}</div></div>;
-  // default: bar
-  return <div style={Object.assign({}, { marginTop: 6, borderLeft: "2px solid " + accent + "44", paddingLeft: 8 }, ht)}><div style={Object.assign({}, textStyle, { fontStyle: "italic" })}>{t}</div></div>;
+  // default: bar — inline-flex wrapper + alignSelf so the bar stays flush against the text even inside a flex-column parent
+  return <div style={Object.assign({}, { marginTop: 6, display: "inline-flex", alignItems: "stretch", gap: 8, maxWidth: "100%", alignSelf: "flex-start", width: "fit-content" }, ht)}>
+    <div style={{ width: 2, background: accent + "44", flexShrink: 0 }} />
+    <div style={Object.assign({}, textStyle, { fontStyle: "italic" })}>{t}</div>
+  </div>;
 }
 
 var highlightBlock = function(t, slide) { return styledHighlight(t, slide, { fg: "#ffffff88", accent: "#ffffff", pillText: "#0a0a0a", defaultStyle: "bar" }); };
@@ -353,7 +356,7 @@ function Layout5({ slide, url, mosaic, mosaicLayout }) {
         {sectionLabel(slide.role || "")}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
         {dividerLine(slide)}
-        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: bodyColor(slide), lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #ffffff11" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body, slide.keywords, slide.underlineWeight)}</div>
+        <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: bodyColor(slide), lineHeight: 1.55, columnCount: 2, columnGap: 10, columnRule: "0.5px solid #ffffff11", flex: 1, overflow: "hidden" }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body, slide.keywords, slide.underlineWeight)}</div>
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources, slide)}
       </div>
@@ -516,18 +519,181 @@ export function EnterprisePlaybook({ slide, images, index }) {
   );
 }
 
-// Closer
-export function EnterpriseCloser({ slide }) {
-  return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-      <div style={{ textAlign: "center", padding: "0 24px", maxWidth: "85%" }}>
-        {slide.funnyLine && <div style={{ ...MT, fontSize: 10, color: "#ffffff99", fontStyle: "italic", lineHeight: 1.5, marginBottom: 16 }}>"{slide.funnyLine}"</div>}
-        <div style={{ height: 0.5, background: "#ffffff22", width: "40%", margin: "0 auto 14px" }} />
-        <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff66" }}>LOATHR</div>
-        <div style={{ ...CP, fontSize: 5, letterSpacing: "0.12em", color: "#ffffff44", marginTop: 2 }}>ENTERPRISE</div>
-        {slide.disclaimer && <div style={{ ...CP, fontSize: 4.5, color: "#ffffff33", marginTop: 12, lineHeight: 1.5 }}>{slide.disclaimer}</div>}
+// Closer — supports 5 templates + layout/wordmark/background/divider/cta overrides
+export var CLOSER_TEMPLATES = [
+  { id: "minimal", label: "Minimal" },
+  { id: "manifesto", label: "Manifesto" },
+  { id: "statpunch", label: "Stat Punch" },
+  { id: "cta", label: "CTA" },
+  { id: "split", label: "Split" },
+];
+export var CLOSER_DIVIDER_STYLES = [
+  { id: "none", label: "None" },
+  { id: "hairline", label: "Hairline" },
+  { id: "dotted", label: "Dotted" },
+  { id: "decorative", label: "Decorative" },
+  { id: "accent", label: "Accent" },
+];
+export var CLOSER_BG_MODES = [
+  { id: "solid", label: "Solid" },
+  { id: "gradient", label: "Gradient" },
+  { id: "accent", label: "Accent" },
+  { id: "image", label: "Image" },
+];
+export var CLOSER_ALIGNS = [
+  { id: "top", label: "Top" },
+  { id: "center", label: "Center" },
+  { id: "bottom", label: "Bottom" },
+];
+export var CLOSER_DISCLAIMER_POS = [
+  { id: "center", label: "Center" },
+  { id: "left", label: "Left" },
+  { id: "corner", label: "Corner" },
+];
+
+function closerWordmark(slide) {
+  var w = slide.wordmark || "LOATHR";
+  var ws = slide.wordmarkSub != null ? slide.wordmarkSub : "ENTERPRISE";
+  return <div>
+    <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", color: "#ffffff77", fontWeight: 700 }}>{w}</div>
+    {ws && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.12em", color: "#ffffff44", marginTop: 2 }}>{ws}</div>}
+  </div>;
+}
+
+function closerDivider(slide) {
+  var style = slide.dividerStyle || "hairline";
+  if (style === "none") return null;
+  if (style === "dotted") return <div style={{ borderTop: "1px dotted #ffffff44", width: "40%", margin: "0 auto 14px" }} />;
+  if (style === "decorative") return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", gap: 6 }}>
+    <div style={{ width: 30, height: 0.5, background: "#ffffff33" }} />
+    <div style={{ width: 4, height: 4, background: "#ffffff77" }} />
+    <div style={{ width: 30, height: 0.5, background: "#ffffff33" }} />
+  </div>;
+  if (style === "accent") return <div style={{ height: 1, background: "#ffffff88", width: "20%", margin: "0 auto 14px" }} />;
+  return <div style={{ height: 0.5, background: "#ffffff22", width: "40%", margin: "0 auto 14px" }} />;
+}
+
+function closerBgLayer(slide) {
+  var mode = slide.closerBgMode || "solid";
+  if (mode === "gradient") return <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, #1a1a1a 0%, #050505 100%)" }} />;
+  if (mode === "accent") return <div style={{ position: "absolute", inset: 0, background: slide.closerBgColor || "#1a1a1a" }} />;
+  if (mode === "image" && slide.closerBgImage) {
+    var scrim = typeof slide.closerScrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.closerScrimOpacity / 100)) : 0.72;
+    return <>
+      <img src={slide.closerBgImage} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.55) brightness(0.7)" }} onError={function(e) { e.target.style.display = "none"; }} />
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0," + scrim + ")" }} />
+    </>;
+  }
+  return null;
+}
+
+function closerDisclaimer(slide) {
+  if (!slide.disclaimer) return null;
+  var pos = slide.disclaimerPos || "center";
+  var base = { ...CP, fontSize: 4.5, color: "#ffffff44", lineHeight: 1.5, position: "absolute", zIndex: 5 };
+  if (pos === "left") return <div style={Object.assign({}, base, { bottom: 14, left: 18, right: 18, textAlign: "left" })}>{slide.disclaimer}</div>;
+  if (pos === "corner") return <div style={Object.assign({}, base, { bottom: 14, left: 18, maxWidth: "55%", textAlign: "left" })}>{slide.disclaimer}</div>;
+  return <div style={Object.assign({}, base, { bottom: 14, left: 18, right: 18, textAlign: "center" })}>{slide.disclaimer}</div>;
+}
+
+function closerCta(slide) {
+  if (!slide.ctaText) return null;
+  return <div style={{ marginTop: 18, padding: "5px 12px", border: "0.5px solid #ffffff44", display: "inline-block" }}>
+    <span style={{ ...CP, fontSize: 7, letterSpacing: "0.12em", color: "#ffffffcc", textTransform: "uppercase" }}>{slide.ctaText}</span>
+    {slide.ctaUrl && <div style={{ ...CP, fontSize: 5, color: "#ffffff66", marginTop: 2, letterSpacing: "0.05em" }}>{slide.ctaUrl}</div>}
+  </div>;
+}
+
+function closerAlignStyle(align) {
+  if (align === "top") return { justifyContent: "flex-start", paddingTop: 56 };
+  if (align === "bottom") return { justifyContent: "flex-end", paddingBottom: 64 };
+  return { justifyContent: "center" };
+}
+
+export function EnterpriseCloser({ slide, images, index }) {
+  var tpl = slide.closerTemplate || "minimal";
+  var align = slide.closerAlign || "center";
+  var alignStyle = closerAlignStyle(align);
+  var rootBase = { width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column", alignItems: "center" };
+  var showWm = !slide.hideWatermark;
+
+  if (tpl === "split") {
+    var imgUrl = slide.closerBgImage || (images && images[index] ? images[index].url : null) || (images && images[0] ? images[0].url : null);
+    return <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
+      <div style={{ height: "50%", overflow: "hidden", position: "relative" }}>
+        {imgUrl ? <img src={imgUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(0.55) brightness(0.7)" }} onError={function(e) { e.target.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", background: "#1a1a1a" }} />}
       </div>
-      {watermark()}
+      <div style={{ height: "50%", padding: "24px 24px 36px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", position: "relative" }}>
+        {slide.funnyLine && <div style={{ ...MT, fontSize: 10, color: "#ffffffbb", fontStyle: "italic", lineHeight: 1.4, marginBottom: 14, maxWidth: "85%" }}>{"“" + slide.funnyLine + "”"}</div>}
+        {closerDivider(slide)}
+        {closerWordmark(slide)}
+        {closerCta(slide)}
+      </div>
+      {showWm && watermark()}
+      {closerDisclaimer(slide)}
+    </div>;
+  }
+
+  if (tpl === "manifesto") {
+    return <div style={Object.assign({}, rootBase, { justifyContent: "space-between", padding: "44px 28px 56px" })}>
+      {closerBgLayer(slide)}
+      <div style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", alignItems: "center", maxWidth: "92%" }}>
+        {slide.funnyLine && <div style={{ ...MT, fontSize: 17, color: "#ffffff", fontStyle: "italic", lineHeight: 1.28, textAlign: "left" }}>{"“" + slide.funnyLine + "”"}</div>}
+      </div>
+      <div style={{ position: "relative", zIndex: 2, textAlign: "center" }}>
+        {closerDivider(slide)}
+        {closerWordmark(slide)}
+        {closerCta(slide)}
+      </div>
+      {showWm && watermark()}
+      {closerDisclaimer(slide)}
+    </div>;
+  }
+
+  if (tpl === "statpunch") {
+    var stat = slide.closerStat || "—";
+    var caption = slide.closerStatLabel || slide.funnyLine || "";
+    return <div style={Object.assign({}, rootBase, alignStyle, { padding: "0 24px" })}>
+      {closerBgLayer(slide)}
+      <div style={{ textAlign: "center", position: "relative", zIndex: 2, maxWidth: "90%" }}>
+        <div style={{ ...WS, fontSize: 56, color: "#ffffff", letterSpacing: -2, lineHeight: 0.85 }}>{stat}</div>
+        {caption && <div style={{ ...HD, fontSize: 9.5, color: "#ffffffcc", marginTop: 14, lineHeight: 1.45, maxWidth: 280, marginLeft: "auto", marginRight: "auto" }}>{caption}</div>}
+        <div style={{ height: 14 }} />
+        {closerDivider(slide)}
+        {closerWordmark(slide)}
+        {closerCta(slide)}
+      </div>
+      {showWm && watermark()}
+      {closerDisclaimer(slide)}
+    </div>;
+  }
+
+  if (tpl === "cta") {
+    var ctaPrimary = slide.ctaText || "Follow @LOATHR for the next brief";
+    return <div style={Object.assign({}, rootBase, alignStyle, { padding: "0 24px" })}>
+      {closerBgLayer(slide)}
+      <div style={{ textAlign: "center", position: "relative", zIndex: 2, maxWidth: "90%" }}>
+        {slide.funnyLine && <div style={{ ...MT, fontSize: 10, color: "#ffffff88", fontStyle: "italic", lineHeight: 1.4, marginBottom: 20 }}>{slide.funnyLine}</div>}
+        <div style={{ ...FN, fontSize: 22, color: "#ffffff", lineHeight: 1.18, textTransform: "uppercase", marginBottom: 12, letterSpacing: "0.02em" }}>{ctaPrimary}</div>
+        {slide.ctaUrl && <div style={{ ...CP, fontSize: 8, color: "#ffffffaa", letterSpacing: "0.06em", marginBottom: 20 }}>{slide.ctaUrl}</div>}
+        {closerDivider(slide)}
+        {closerWordmark(slide)}
+      </div>
+      {showWm && watermark()}
+      {closerDisclaimer(slide)}
+    </div>;
+  }
+
+  // minimal (default)
+  return <div style={Object.assign({}, rootBase, alignStyle)}>
+    {closerBgLayer(slide)}
+    <div style={{ textAlign: "center", padding: "0 24px", maxWidth: "85%", position: "relative", zIndex: 2 }}>
+      {slide.funnyLine && <div style={{ ...MT, fontSize: 10, color: "#ffffff99", fontStyle: "italic", lineHeight: 1.5, marginBottom: 16 }}>{"“" + slide.funnyLine + "”"}</div>}
+      {closerDivider(slide)}
+      {closerWordmark(slide)}
+      {closerCta(slide)}
     </div>
-  );
+    {showWm && watermark()}
+    {closerDisclaimer(slide)}
+  </div>;
 }

@@ -682,7 +682,7 @@ var FORMAL_CATS = { film: true, photo: true, sports: true, nightlife: true, ente
 // Formal frame styles for editorial categories
 function FormalFrame({ children, style, accent, accent2, seed, bg: bgProp }) {
   var variant = seed % 5;
-  var bg = bgProp || "rgba(0,0,0,0.8)";
+  var bg = bgProp || "rgba(0,0,0,0.92)";
   var maxH = { maxHeight: 260, overflow: "hidden" };
 
   if (variant === 0) {
@@ -1428,8 +1428,9 @@ function S4Emigre({ slide, index, category, images }) {
     var maxLen = Math.max(String(beforeVal).length, String(afterVal).length);
     var numSize = maxLen > 7 ? 28 : maxLen > 5 ? 34 : 42;
     var compLayout = index % 2;
+    var compScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : 0.65;
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.65)">
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + compScrim + ")"}>
         {compLayout === 0 ? (
           <div style={{ position: "absolute", top: "25%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", alignItems: "center" }}>
             <div style={{ flex: 1, textAlign: "center" }}>
@@ -1457,7 +1458,7 @@ function S4Emigre({ slide, index, category, images }) {
         )}
         <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3, textAlign: "center" }}>
           <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 5}>
-            <div style={{ ...HD, fontSize: 8, color: "#ffffffcc", fontStyle: "italic" }}>{slide.shift || slide.body}</div>
+            <div style={{ ...HD, fontSize: 8, color: "#ffffff", fontWeight: 600, fontStyle: "italic", textShadow: "0 1px 3px rgba(0,0,0,0.85)" }}>{slide.shift || slide.body}</div>
           </FormalFrame>
           <MicroCite sources={slide.sources} />
         </div>
@@ -1469,12 +1470,14 @@ function S4Emigre({ slide, index, category, images }) {
   if (fmt === "killer") {
     var killerVal = String(slide.stat || "");
     var killerAutoFit = slide.statAutoFit !== false; // default ON
-    var killerSize = killerFontSize(killerVal, killerAutoFit);
+    var killerSize = typeof slide.statFontSize === "number" && slide.statFontSize > 0 ? slide.statFontSize : killerFontSize(killerVal, killerAutoFit);
+    var killerColor = slide.statColor || p.accent;
     var killerLS = killerSize > 36 ? -2 : -1;
-    var killerLayout = index % 2;
-    var statStyle = { ...WS, fontSize: killerSize, color: p.accent, lineHeight: 0.85, letterSpacing: killerLS, wordBreak: "break-word", overflowWrap: "break-word" };
+    var killerLayout = typeof slide.statLayoutFlip === "boolean" ? (slide.statLayoutFlip ? 1 : 0) : (index % 2);
+    var killerScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : 0.6;
+    var statStyle = { ...WS, fontSize: killerSize, color: killerColor, lineHeight: 0.85, letterSpacing: killerLS, wordBreak: "break-word", overflowWrap: "break-word" };
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.6)">
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + killerScrim + ")"}>
         {killerLayout === 0 ? (
           <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 3, textAlign: "center", width: "85%", maxHeight: "62%", overflow: "hidden" }}>
             <div style={statStyle}>{slide.stat}</div>
@@ -1498,8 +1501,9 @@ function S4Emigre({ slide, index, category, images }) {
   if (fmt === "story") {
     var stats = slide.stats || [{ num: slide.stat, label: slide.statLabel }, { num: slide.stat2, label: slide.stat2Label }, { num: "—", label: "—" }];
     var storyLayout = index % 2;
+    var storyScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : 0.7;
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.7)">
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + storyScrim + ")"}>
         {storyLayout === 0 ? (
           <div style={{ position: "absolute", top: "18%", left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
             {stats.slice(0, 3).map(function(s, i) {
@@ -1526,7 +1530,7 @@ function S4Emigre({ slide, index, category, images }) {
         )}
         <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
           <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>
-            <div style={{ ...HD, fontSize: 8, color: "#ffffffcc", fontStyle: "italic" }}>{slide.narrative || slide.body}</div>
+            <div style={{ ...HD, fontSize: 8, color: "#ffffff", fontWeight: 600, fontStyle: "italic", textShadow: "0 1px 3px rgba(0,0,0,0.85)" }}>{slide.narrative || slide.body}</div>
           </FormalFrame>
           <MicroCite sources={slide.sources} />
         </div>
@@ -1540,8 +1544,9 @@ function S4Emigre({ slide, index, category, images }) {
     var rStat = slide.rightStat || slide.stat2 || "";
     var vsMaxLen = Math.max(String(lStat).length, String(rStat).length);
     var vsSize = vsMaxLen > 7 ? 24 : vsMaxLen > 5 ? 30 : 36;
+    var vsScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : 0.65;
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.65)">
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + vsScrim + ")"}>
         <div style={{ position: "absolute", top: "20%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", alignItems: "center" }}>
           <div style={{ flex: 1, textAlign: "center" }}>
             <div style={{ ...FN, fontSize: 10, color: "#ffffffcc", textTransform: "uppercase", marginBottom: 6 }}>{slide.left || "A"}</div>
@@ -1564,8 +1569,9 @@ function S4Emigre({ slide, index, category, images }) {
   }
 
   // Format E: Timeline Number — brighter year with accent markers
+  var tlScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : 0.6;
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.6)">
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + tlScrim + ")"}>
       <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", zIndex: 3, textAlign: "center", display: "flex", alignItems: "center", gap: 8 }}>
         <div style={{ width: 6, height: 6, background: p.accent }} />
         <div style={{ ...CP, fontSize: 12, color: "#ffffffcc", letterSpacing: "0.3em" }}>{slide.year || ""}</div>
@@ -1577,7 +1583,7 @@ function S4Emigre({ slide, index, category, images }) {
       </div>
       <div style={{ position: "absolute", bottom: M_BOT, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 3}>
-          <div style={{ ...HD, fontSize: 8, color: "#ffffffcc", textAlign: "center" }}>{slide.context || slide.body}</div>
+          <div style={{ ...HD, fontSize: 8, color: "#ffffff", fontWeight: 600, textAlign: "center", textShadow: "0 1px 3px rgba(0,0,0,0.85)" }}>{slide.context || slide.body}</div>
         </FormalFrame>
         <MicroCite sources={slide.sources} />
       </div>
@@ -1589,6 +1595,7 @@ function S4Emigre({ slide, index, category, images }) {
 function S5Face({ slide, index, category, images }) {
   var p = PALETTES[category];
   var url = getImg(images, index);
+  var s5Mosaic = _mosaicSlides[index];
   var useBubble = BUBBLE_CATS[category];
   var useSticky = STICKY_CATS[category];
   var useFormal = FORMAL_CATS[category];
@@ -1609,6 +1616,11 @@ function S5Face({ slide, index, category, images }) {
   var s5Op = typeof slide.containerOpacity === "number" ? slide.containerOpacity : null;
   var s5Style = s5Bg || s5Op !== null ? { background: s5Bg || undefined, opacity: s5Op !== null ? s5Op : undefined } : undefined;
   var s5Wrapped = CC5 ? <CC5 accent={p.accent} accent2={p.accent2} seed={s5Seed} style={s5Style}>{s5Text}</CC5> : s5Text;
+  var s5Bgfill = (s5Mosaic && s5Mosaic.length >= 2)
+    ? <MosaicBg urls={s5Mosaic} pal={p} category={category} slideIndex={index || 0}>{null}</MosaicBg>
+    : url
+      ? <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />
+      : <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>;
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: M_TOP + 5, background: p.accent, display: "flex", alignItems: "center", padding: "0 " + M_SIDE + "px", zIndex: 4 }}>
@@ -1618,16 +1630,14 @@ function S5Face({ slide, index, category, images }) {
       </div>
       {styled ? (
         <div style={{ position: "absolute", top: M_TOP + 5, left: 0, right: 0, bottom: 0 }}>
-          {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
-          {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
+          {s5Bgfill}
           <div style={slide.customPosition && (slide.customPosition.all || slide.customPosition.heading) ? (function() { var o = slide.customPosition.all || slide.customPosition.heading; return { position: "absolute", top: o.top, left: o.left, maxWidth: "65%", zIndex: 3 }; })() : { position: "absolute", bottom: M_BOT, right: M_SIDE, left: "50%", zIndex: 3 }}>
             {s5Wrapped}
           </div>
         </div>
       ) : (
         <div style={{ position: "absolute", top: M_TOP + 5, left: 0, right: 0, bottom: 0 }}>
-          {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
-          {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
+          {s5Bgfill}
           <div style={{ position: "absolute", bottom: M_BOT, right: M_SIDE, left: "50%", zIndex: 3 }}>
             <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 2}>{s5Text}</FormalFrame>
           </div>
@@ -1651,7 +1661,10 @@ function S6Purple({ slide, index, category, images }) {
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 4}>
           <div style={{ ...HD, fontSize: 11.5, fontStyle: "italic", color: "#ffffff", lineHeight: 1.8, textAlign: "left" }}><span style={{ background: p.accent + "cc", padding: "2px 5px", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</span></div>
           <div style={{ width: 12, height: 1, background: p.accent + "66", margin: "8px 0 8px auto" }} />
-          {slide.source && <div style={{ textAlign: "right", marginTop: 4 }}><span style={{ ...WS, fontSize: 7, color: "#1a1a1a", background: "#ffffff", padding: "2px 6px", letterSpacing: "0.08em" }}>{"— " + slide.source}</span></div>}
+          {slide.source && <div style={{ textAlign: "right", marginTop: 4 }}>
+            <span style={{ ...WS, fontSize: 7, color: "#1a1a1a", background: "#ffffff", padding: "2px 6px", letterSpacing: "0.08em" }}>{"— " + slide.source}</span>
+            {slide.credential && <div style={{ ...HD, fontSize: 6.5, color: "#ffffffaa", marginTop: 3, fontStyle: "italic", letterSpacing: "0.04em" }}>{slide.credential}</div>}
+          </div>}
         </FormalFrame>
       </div>
     </ImgBg>
@@ -1988,36 +2001,58 @@ var searchEuropeana = async function(query) {
 };
 
 // Wikimedia Commons — for famous people portraits
-// Wikipedia REST API — best source for celebrity photos (high-res, 100% hit rate)
+// Wikidata P18 — canonical "main image" claim for the entity. Highest-confidence portrait source.
+var searchWikidataP18 = async function(personName) {
+  if (!personName || personName.length < 2) return [];
+  try {
+    var sr = await fetchWithTimeout("https://www.wikidata.org/w/api.php?action=wbsearchentities&search=" + encodeURIComponent(personName) + "&language=en&type=item&limit=3&format=json&origin=*", 5000);
+    if (!sr.ok) return [];
+    var sd = await sr.json();
+    if (!sd.search || sd.search.length === 0) return [];
+    var qids = sd.search.slice(0, 3).map(function(e) { return e.id; }).join("|");
+    var er = await fetchWithTimeout("https://www.wikidata.org/w/api.php?action=wbgetentities&ids=" + qids + "&props=claims|labels&languages=en&format=json&origin=*", 6000);
+    if (!er.ok) return [];
+    var ed = await er.json();
+    var results = [];
+    Object.values(ed.entities || {}).forEach(function(ent) {
+      var claims = ent.claims || {};
+      // Only keep humans (P31 = Q5)
+      var isHuman = (claims.P31 || []).some(function(c) { return c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value && c.mainsnak.datavalue.value.id === "Q5"; });
+      if (!isHuman) return;
+      var p18 = claims.P18 && claims.P18[0] && claims.P18[0].mainsnak && claims.P18[0].mainsnak.datavalue ? claims.P18[0].mainsnak.datavalue.value : null;
+      if (!p18) return;
+      var label = (ent.labels && ent.labels.en) ? ent.labels.en.value : personName;
+      var fname = encodeURIComponent(p18.replace(/ /g, "_"));
+      results.push({ url: "https://commons.wikimedia.org/wiki/Special:FilePath/" + fname + "?width=1600", thumb: "https://commons.wikimedia.org/wiki/Special:FilePath/" + fname + "?width=400", alt: label, credit: "Wikidata", source: "Wikidata", confidence: 5 });
+    });
+    return results;
+  } catch (e) { return []; }
+};
+
+// Resolve a person's canonical Wikipedia title via opensearch (handles hyphens, particles, casing)
+var resolveWikiTitle = async function(personName) {
+  try {
+    var sr = await fetchWithTimeout("https://en.wikipedia.org/w/api.php?action=opensearch&search=" + encodeURIComponent(personName) + "&limit=1&format=json&origin=*", 5000);
+    if (!sr.ok) return null;
+    var sd = await sr.json();
+    if (sd[1] && sd[1][0]) return sd[1][0].replace(/ /g, "_");
+    return null;
+  } catch (e) { return null; }
+};
+
+// Wikipedia REST API — opensearch-first to avoid title-casing fragility
 var searchWikiRest = async function(personName) {
   if (!personName || personName.length < 2) return [];
   try {
-    var title = personName.trim().split(" ").map(function(w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join("_");
-    var r = await fetchWithTimeout("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(title), 5000);
-    if (r.ok) {
-      var d = await r.json();
-      if (d.thumbnail && d.thumbnail.source) {
-        var origUrl = d.originalimage && d.originalimage.source ? d.originalimage.source : d.thumbnail.source;
-        return [{ url: origUrl, thumb: d.thumbnail.source, alt: d.title || personName, credit: "Wikipedia", source: "Wikipedia" }];
-      }
-    }
-    // If exact title failed, search for it first then get summary
-    var sr = await fetchWithTimeout("https://en.wikipedia.org/w/api.php?action=opensearch&search=" + encodeURIComponent(personName) + "&limit=1&format=json&origin=*", 5000);
-    if (sr.ok) {
-      var sd = await sr.json();
-      if (sd[1] && sd[1][0]) {
-        var foundTitle = sd[1][0].replace(/ /g, "_");
-        var r2 = await fetchWithTimeout("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(foundTitle), 5000);
-        if (r2.ok) {
-          var d2 = await r2.json();
-          if (d2.thumbnail && d2.thumbnail.source) {
-            var origUrl2 = d2.originalimage && d2.originalimage.source ? d2.originalimage.source : d2.thumbnail.source;
-            return [{ url: origUrl2, thumb: d2.thumbnail.source, alt: d2.title || personName, credit: "Wikipedia", source: "Wikipedia" }];
-          }
-        }
-      }
-    }
-    return [];
+    var canonicalTitle = await resolveWikiTitle(personName);
+    if (!canonicalTitle) return [];
+    var r = await fetchWithTimeout("https://en.wikipedia.org/api/rest_v1/page/summary/" + encodeURIComponent(canonicalTitle), 5000);
+    if (!r.ok) return [];
+    var d = await r.json();
+    if (!d.thumbnail || !d.thumbnail.source) return [];
+    // Prefer originalimage but cap PNG/huge files to a sized thumb to avoid multi-MB loads
+    var origUrl = d.originalimage && d.originalimage.source ? d.originalimage.source : d.thumbnail.source;
+    return [{ url: origUrl, thumb: d.thumbnail.source, alt: d.title || personName, credit: "Wikipedia", source: "Wikipedia", confidence: 4, w: d.originalimage ? d.originalimage.width : null, h: d.originalimage ? d.originalimage.height : null }];
   } catch (e) { console.error("Wiki REST error for " + personName + ":", e); return []; }
 };
 
@@ -2099,32 +2134,39 @@ var searchITunes = async function(personName) {
   } catch (e) { return []; }
 };
 
+// Sanity check: reject obvious non-portraits (banners, logos, maps, signatures, charts, etc.)
+var isLikelyPortrait = function(img) {
+  if (!img || !img.url) return false;
+  var u = String(img.url).toLowerCase();
+  // URL-pattern blocklist for non-portrait imagery
+  if (/(logo|coat[_-]of[_-]arms|coat_of_arms|coa[_-]|shield|flag[_-]of|map[_-]of|chart|diagram|signature|seal|crest|emblem|banner|cover[_-]art|album[_-]cover)/.test(u)) return false;
+  // Aspect-ratio check when dimensions are known — reject anything wider than 2:1 (banner) or 1:3 (vertical sliver)
+  if (img.w && img.h) {
+    var ratio = img.w / img.h;
+    if (ratio > 2 || ratio < 0.33) return false;
+    if (img.w < 300 || img.h < 300) return false;
+  }
+  return true;
+};
+
 // Search multiple sources for a person — returns best options
 var searchPersonImages = async function(personName) {
   if (!personName || personName.length < 2) return [];
   var results = [];
-  // 1. Wikipedia REST API — best quality, handles nicknames via opensearch
-  try { var wr = await searchWikiRest(personName); results = results.concat(wr); } catch (e) {}
-  // 2. Wikipedia pageimages search — multiple results for variety
-  try { var wp = await searchWikimedia(personName); results = results.concat(wp); } catch (e) {}
-  // 3. TMDb — actors, directors, TV personalities
-  if (results.length < 3) { try { var tm = await searchTMDb(personName); results = results.concat(tm); } catch (e) {} }
-  // 4. iTunes — musicians, artists
+  // 1. Wikidata P18 — canonical entity image, highest confidence (filters to humans only)
+  try { var wd = await searchWikidataP18(personName); results = results.concat(wd); } catch (e) {}
+  // 2. Wikipedia REST API — opensearch-first, handles nicknames and odd casing
+  if (results.length < 3) { try { var wr = await searchWikiRest(personName); results = results.concat(wr); } catch (e) {} }
+  // 3. Wikipedia pageimages search — multiple results for variety
+  if (results.length < 4) { try { var wp = await searchWikimedia(personName); results = results.concat(wp); } catch (e) {} }
+  // 4. TMDb — actors, directors, TV personalities
+  if (results.length < 4) { try { var tm = await searchTMDb(personName); results = results.concat(tm); } catch (e) {} }
+  // 5. iTunes — musicians (artist images / album art, lower confidence for portraits)
   if (results.length < 3) { try { var it = await searchITunes(personName); results = results.concat(it); } catch (e) {} }
-  // 5. Wikimedia Commons — high-quality portraits
+  // 6. Wikimedia Commons — high-quality portraits as final fallback
   if (results.length < 4) { try { var wc = await searchWikiCommons(personName + " portrait"); results = results.concat(wc.slice(0, 3)); } catch (e) {} }
-  // 6. Pexels — editorial portraits
-  if (results.length < 3) {
-    var pexelsKey = typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_PEXELS_KEY : "";
-    if (pexelsKey) { try { var px = await searchPexels(personName + " portrait", pexelsKey); results = results.concat(px.slice(0, 2)); } catch (e) {} }
-  }
-  // 7. Unsplash — last resort
-  if (results.length < 3) {
-    var unsplashKey = typeof process !== "undefined" && process.env ? process.env.NEXT_PUBLIC_UNSPLASH_KEY : "";
-    if (unsplashKey) { try { var us = await searchUnsplash(personName + " portrait", unsplashKey); results = results.concat(us.slice(0, 2)); } catch (e) {} }
-  }
-  // Deduplicate across sources
-  results = dedupeImages(results);
+  // Deduplicate across sources, then apply portrait sanity filter (drops banners/logos/maps)
+  results = dedupeImages(results).filter(isLikelyPortrait);
   return results.slice(0, 6);
 };
 
@@ -2524,7 +2566,7 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
   });
 };
 
-var exportSlides = async function(slides, category, slideRef, setCurrentSlide, setExportStatus, format) {
+var exportSlides = async function(slides, category, slideRef, setCurrentSlide, setExportStatus, format, meta) {
   var useJpeg = format === "jpeg";
   var mimeType = useJpeg ? "image/jpeg" : "image/png";
   var ext = useJpeg ? ".jpg" : ".png";
@@ -2540,15 +2582,41 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
   }
   var zip = new window.JSZip();
   var imgFolder = zip.folder("LOATHR-" + category.toUpperCase());
-  for (var i = 0; i < slides.length; i++) {
-    setExportStatus("Rendering " + (i + 1) + "/" + slides.length + "...");
+  // Skip soft-deleted slides for the image export; renumber output sequentially.
+  // carousel.json below still carries deleted slides (with _deleted flag) for round-trip undelete on re-import.
+  var visiblePairs = [];
+  slides.forEach(function(s, si) { if (s && !s._deleted) visiblePairs.push({ slide: s, idx: si }); });
+  for (var i = 0; i < visiblePairs.length; i++) {
+    var p = visiblePairs[i];
+    setExportStatus("Rendering " + (i + 1) + "/" + visiblePairs.length + "...");
     try {
-      var canvas = await renderSlideToCanvas(slideRef, i, setCurrentSlide);
+      var canvas = await renderSlideToCanvas(slideRef, p.idx, setCurrentSlide);
       if (!canvas) continue;
       var blob = await new Promise(function(r) { canvas.toBlob(r, mimeType, quality); });
       if (blob) imgFolder.file("slide-" + String(i + 1).padStart(2, "0") + ext, blob);
-    } catch (err) { console.error("Failed slide " + (i + 1), err); }
+    } catch (err) { console.error("Failed slide " + (i + 1) + " (orig idx " + p.idx + ")", err); }
   }
+  // Bundle the carousel JSON alongside the slide images so the folder can be re-imported
+  try {
+    var m = meta || {};
+    var imgsOut = {};
+    var srcImgs = m.images || {};
+    Object.keys(srcImgs).forEach(function(k) {
+      if (srcImgs[k] && srcImgs[k].url) imgsOut[k] = { url: srcImgs[k].url, thumb: srcImgs[k].thumb || srcImgs[k].url, source: srcImgs[k].source || "" };
+    });
+    var carouselJson = {
+      version: 1,
+      topic: m.topic || "",
+      category: category,
+      segment: m.segment || null,
+      template: m.template || null,
+      slides: slides,
+      images: imgsOut,
+      mosaics: Object.keys(_mosaicSlides).length > 0 ? _mosaicSlides : undefined,
+      exportDate: new Date().toISOString()
+    };
+    imgFolder.file("carousel.json", JSON.stringify(carouselJson, null, 2));
+  } catch (jsonErr) { console.error("Failed to bundle carousel.json", jsonErr); }
   setExportStatus("Creating ZIP...");
   try {
     var content = await zip.generateAsync({ type: "blob" });
@@ -2676,7 +2744,7 @@ function buildPrompt(catLabel, topic, editionSeed, picks, hasPersonImage, second
   var angleLine = "\n\nEDITORIAL ANGLE: " + freshness;
   var driftRules = "\n\nUNIQUENESS RULES:\n- NO two slides may share the same core fact, statistic, or argument\n- Each slide must pass the 'so what?' test — if a reader skipped every other slide, each one should teach something new\n- Where natural, slide 3 may offer a counterpoint or complication to slides 1-2 — but only if it serves the topic, not as a forced contradiction\n- Later slides may connect the topic to a different field or unexpected consequence WHEN it deepens the story — don't force a tangent if the topic doesn't support one\n- If you mention a person's full name on any slide, add a 'person' field with their name for image matching";
 
-  return persona.voice + dateAnchor() + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + angleLine + "\nWRITING STYLE for content slides: " + style + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nWRITING RULES:\n- NEVER use the word 'algorithm' or 'algorithmic' — it's overused and lazy. Find a more specific way to describe what you mean.\n- Avoid cliché tech/media phrases: 'broke the internet', 'went viral', 'changed the game', 'disrupted'. Use fresh language.\n- HIGHLIGHT FIELD: The 'highlight' on each slide must be an ADDITIONAL INSIGHT — a fact, statistic, or perspective NOT already stated in the body text. Think of it as a newspaper pull-quote or sidebar fact that adds new value. BAD: repeating a phrase from the body. GOOD: a surprising related fact, a contrasting data point, or an expert opinion that deepens understanding." + driftRules + "\n\nSLIDE ROLES (use as many as the topic warrants — pick what genuinely fits, don't force every role):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person name), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nMOSAIC LAYOUT: You may add '\"mosaic\": true' on 1-2 content slides where a photo collage adds visual variety. Do NOT overuse — most slides should be single image. Good candidates: THE ORIGIN or THE RIPPLE EFFECT. Do NOT use mosaic on Cover, Closer, stat slides (THE EVIDENCE), or quote slides (THE VOICE).\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
+  return persona.voice + dateAnchor() + "\n\nYou are writing for LOATHR, an editorial Instagram brand.\nCategory: \"" + catLabel + "\"\nTopic: \"" + topic + "\"" + crossCatInstr + angleLine + "\nWRITING STYLE for content slides: " + style + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\nYou MUST include at minimum: Cover, 1 content slide, Closer.\n\nThis is a magazine issue — each slide has a SPECIFIC editorial role. Keep body text to 2-3 sentences MAX per slide. Be concise and impactful.\n\nWRITING RULES:\n- NEVER use the word 'algorithm' or 'algorithmic' — it's overused and lazy. Find a more specific way to describe what you mean.\n- Avoid cliché tech/media phrases: 'broke the internet', 'went viral', 'changed the game', 'disrupted'. Use fresh language.\n- HIGHLIGHT FIELD: The 'highlight' on each slide must be an ADDITIONAL INSIGHT — a fact, statistic, or perspective NOT already stated in the body text. Think of it as a newspaper pull-quote or sidebar fact that adds new value. BAD: repeating a phrase from the body. GOOD: a surprising related fact, a contrasting data point, or an expert opinion that deepens understanding." + driftRules + "\n\nSLIDE ROLES (use as many as the topic warrants — pick what genuinely fits, don't force every role):\n- FIRST SLIDE: \"COVER\" — title, titleHighlight (exact substring of title to emphasize), subtitle, heading\n- \"THE ORIGIN\" — backstory nobody knows. heading, body, highlight, sources. Deep Dive tone.\n- \"THE TURNING POINT\" — the single moment that changed everything. heading, year (REQUIRED), body, highlight, sources. Timeline tone.\n- \"THE HOT TAKE\" — a provocative opinion. heading, body (SHORT, 2 sentences max), highlight, sources. Hot Take tone.\n- \"THE HUMAN STORY\" — a specific person at the center. heading, body, highlight, person (full name), sources. Deep Dive tone.\n- \"THE EVIDENCE\" — " + forcedStat + " Include sources.\n- \"THE VOICE\" — a powerful quote. quote, source (person's name), credential (their title + organization, e.g. \"CEO, Apple\" or \"Senior Editor, Vogue\" or \"Pulitzer Prize-winning journalist\" — must be specific and real), person (full name), sources.\n- \"THE RIPPLE EFFECT\" — unexpected consequence in a DIFFERENT field. heading, body, highlight, sources. Deep Dive tone.\n- \"THE COUNTER\" (optional) — the opposing argument or what critics say. heading, body, highlight, sources. Hot Take tone.\n- \"THE DEEP CUT\" (optional) — a niche detail only insiders know. heading, body, highlight, sources. Deep Dive tone.\n- \"THE NOW\" — where this stands today + prediction. heading, body, highlight, sources. Hot Take tone.\n- LAST SLIDE: \"CLOSER\" — hashtags string\n\nIMPORTANT: Include a 'sources' field on each content slide with 1-2 brief real citations.\n\nTEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'. If the slide has a 'person' field, use split-corners or side positions to avoid covering the face.\n\nMOSAIC LAYOUT: You may add '\"mosaic\": true' on 1-2 content slides where a photo collage adds visual variety. Do NOT overuse — most slides should be single image. Good candidates: THE ORIGIN or THE RIPPLE EFFECT. Do NOT use mosaic on Cover, Closer, stat slides (THE EVIDENCE), or quote slides (THE VOICE).\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Edition\"," + (hasPersonImage ? "\"personImageSlide\":NUMBER_OF_BEST_SLIDE_FOR_PORTRAIT," : "") + "\"slides\":[{...slides...}]}\n" + (hasPersonImage ? "\nPERSON IMAGE: The user has selected a portrait image. Add a 'personImageSlide' field (number 0-8) indicating which slide this portrait should appear on. Consider: cover (0) for biographical topics, THE HUMAN STORY slide for part-of-a-larger-story, THE VOICE slide if they are quoted." : "");
 }
 
 function buildRecPrompt(catLabel, topic) {
@@ -3744,7 +3812,7 @@ export default function LoathrMediaGenerator() {
     setFactCheckLoading(true); setFactCheckResult(null);
     try {
       // Bug 3 — sources is sent as context but not auto-fixable (array shape)
-      var FACT_FIELDS = ["title", "subtitle", "heading", "leadParagraph", "body", "highlight", "relatedBody", "stat", "statCaption", "caption", "quote", "person", "sources"];
+      var FACT_FIELDS = ["title", "subtitle", "heading", "leadParagraph", "body", "highlight", "relatedBody", "stat", "statCaption", "caption", "quote", "person", "credential", "sources"];
       // Bug 4 — skip closer slide (no factual claims, just hashtags/funnyLine/disclaimer)
       var slideTexts = cur.slides.map(function(s, i) {
         if (s && s._deleted) return null;
@@ -4426,7 +4494,7 @@ export default function LoathrMediaGenerator() {
       var toneObj = TONES.find(function(t) { return t.id === toneId; });
       var toneInstr = toneObj ? "\nTONE: " + toneObj.prompt : "";
       var customVoiceInstr = editionPicks.customVoice ? "\nCUSTOM VOICE: " + editionPicks.customVoice : "";
-      var customPrompt = "You are writing for LOATHR, an editorial Instagram brand." + dateAnchor() + "\nCategory: \"" + catInfo.label + "\"\n\nCUSTOM STORY MODE — this is an ORIGINAL story not yet on the internet.\n\nSubject: \"" + customSubject + "\"\n" + (customHook ? "Hook: \"" + customHook + "\"\n" : "") + "\nRAW CONTEXT (from the user):\n" + customContext + "\n\n" + freedomInstr + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\n\nThe user has uploaded " + customImages.length + " image(s):\n" + imgRoles + "\n\nKeep body text to 2-3 sentences MAX per slide.\n\nSLIDE ROLES (adapt to fit the story):\n- COVER — title, titleHighlight, subtitle\n- Content slides — heading, body, highlight, textPosition\n- THE EVIDENCE — stat/number slide if any numbers exist in the context. Use statFormat \"killer\" with stat and caption.\n- THE VOICE — quote slide if any quotes exist. quote, source fields.\n- CLOSER — hashtags string\n- On 1 content slide where it fits, add \"mosaic\": true for a photo collage background.\n\nFor design: choose textPosition per slide from: bottom-left, bottom-right, top-left, top-right, split-corners, side-left, side-right, l-shape\n\nRespond ONLY with valid JSON:\n{\"angle\":\"Custom Story\",\"slides\":[{...slides...}]}";
+      var customPrompt = "You are writing for LOATHR, an editorial Instagram brand." + dateAnchor() + "\nCategory: \"" + catInfo.label + "\"\n\nCUSTOM STORY MODE — this is an ORIGINAL story not yet on the internet.\n\nSubject: \"" + customSubject + "\"\n" + (customHook ? "Hook: \"" + customHook + "\"\n" : "") + "\nRAW CONTEXT (from the user):\n" + customContext + "\n\n" + freedomInstr + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\n\nThe user has uploaded " + customImages.length + " image(s):\n" + imgRoles + "\n\nKeep body text to 2-3 sentences MAX per slide.\n\nSLIDE ROLES (adapt to fit the story):\n- COVER — title, titleHighlight, subtitle\n- Content slides — heading, body, highlight, textPosition\n- THE EVIDENCE — stat/number slide if any numbers exist in the context. Use statFormat \"killer\" with stat and caption.\n- THE VOICE — quote slide if any quotes exist. quote, source (name), credential (title + organization), person (full name) fields.\n- CLOSER — hashtags string\n- On 1 content slide where it fits, add \"mosaic\": true for a photo collage background.\n\nFor design: choose textPosition per slide from: bottom-left, bottom-right, top-left, top-right, split-corners, side-left, side-right, l-shape\n\nRespond ONLY with valid JSON:\n{\"angle\":\"Custom Story\",\"slides\":[{...slides...}]}";
 
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
@@ -6191,12 +6259,12 @@ export default function LoathrMediaGenerator() {
               {"\u2B07"} SAVE
             </button>
             {/* Export all — JPEG */}
-            <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus, "jpeg"); }} disabled={!!exportStatus}
+            <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus, "jpeg", { topic: topic, segment: activeSegment, template: activeTemplate, images: images }); }} disabled={!!exportStatus}
               style={{ padding: "6px 8px", border: "1px solid " + uiAccent, background: uiAccent + "15", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 7, color: uiAccent, opacity: exportStatus ? 0.5 : 1 }}>
               {exportStatus || "\u2B07 Download All (JPG)"}
             </button>
             {/* Export all — PNG */}
-            <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus, "png"); }} disabled={!!exportStatus}
+            <button onClick={function() { exportSlides(cur.slides, category, slideRef, setCurrentSlide, setExportStatus, "png", { topic: topic, segment: activeSegment, template: activeTemplate, images: images }); }} disabled={!!exportStatus}
               style={{ padding: "6px 8px", border: "0.5px solid #ccc", background: "transparent", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 7, color: "#999", opacity: exportStatus ? 0.5 : 1 }}>
               {"\u2B07"} Download All (PNG)
             </button>
@@ -6383,7 +6451,7 @@ export default function LoathrMediaGenerator() {
           var statFmt = isStat ? detectStatFormat(s) : null;
           if (isCover) { fields = [["title", s.title], ["subtitle", s.subtitle], ["titleHighlight", s.titleHighlight]]; }
           else if (isCloser) { fields = [["hashtags", s.hashtags], ["funnyLine", s.funnyLine], ["disclaimer", s.disclaimer]]; }
-          else if (s.quote) { fields = [["quote", s.quote], ["source", s.source]]; }
+          else if (s.quote) { fields = [["quote", s.quote], ["source", s.source], ["credential", s.credential], ["person", s.person]]; }
           else if (isStat) {
             var statKeys = STAT_FORMAT_FIELDS[statFmt] || ["stat", "caption"];
             fields = [["heading", s.heading]].concat(statKeys.map(function(k) { return [k, s[k]]; }));
@@ -6419,7 +6487,7 @@ export default function LoathrMediaGenerator() {
                   <button onClick={function() { setEditField(null); }} style={{ padding: "2px 8px", background: "transparent", border: "0.5px solid #ccc", cursor: "pointer", ...CP, fontSize: 6, color: "#999" }}>Cancel</button>
                 </div>
               </div> : null}
-              <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
+              {!isStat && <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 3 }}>
                 {fields.map(function(f) { return f[1] !== undefined ? (
                   <span key={f[0]} style={{ display: "inline-flex", alignItems: "stretch" }}>
                     <button onClick={function() { startEdit(currentSlide, f[0], f[1] || ""); }}
@@ -6433,24 +6501,95 @@ export default function LoathrMediaGenerator() {
                     ) : null}
                   </span>
                 ) : null; })}
-              </div>
-              {/* Stat-slide controls: format switcher, char counter, split, auto-fit, stats[] editor */}
+              </div>}
+              {/* STAT STUDIO — comprehensive editor for stat slides */}
               {isStat && (function() {
                 var statVal = String(s.stat || "");
                 var killerStat = statFmt === "killer" || statFmt === "timeline";
                 var tooLong = killerStat && statVal.length > 14;
-                return <div style={{ marginBottom: 4, padding: 6, background: "#fff", border: "0.5px solid " + uiAccent + "33" }}>
-                  <div style={{ ...CP, fontSize: 4, color: uiAccent + "88", marginBottom: 2 }}>STAT FORMAT</div>
-                  <div style={{ display: "flex", gap: 2, flexWrap: "wrap", marginBottom: 4 }}>
-                    {STAT_FORMATS.map(function(fmtId) {
-                      var sel = statFmt === fmtId;
-                      return <button key={fmtId} onClick={function() { updateSlideField(currentSlide, "statFormat", fmtId); }}
-                        style={{ padding: "2px 6px", border: "0.5px solid " + (sel ? uiAccent : "#ddd"), background: sel ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: sel ? uiAccent : "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>{fmtId}</button>;
+                var pal = PALETTES[category] || { accent: "#000000", accent2: "#666666" };
+                var defaultColor = pal.accent;
+                var currentColor = s.statColor || defaultColor;
+                var currentSize = typeof s.statFontSize === "number" ? s.statFontSize : 0; // 0 = auto
+                var currentScrim = typeof s.scrimOpacity === "number" ? s.scrimOpacity : (statFmt === "story" ? 70 : statFmt === "comparison" || statFmt === "versus" ? 65 : 60);
+                var sectionHdr = { ...CP, fontSize: 4, color: uiAccent + "88", marginBottom: 3, letterSpacing: "0.08em" };
+                var sectionBox = { marginBottom: 6, paddingBottom: 6, borderBottom: "0.5px solid #eee" };
+                var smallInput = { padding: "3px 5px", border: "0.5px solid #ddd", ...CP, fontSize: 7, background: "#fff", color: "#222" };
+                var pairLabel = { ...CP, fontSize: 5, color: "#888", marginBottom: 1, textTransform: "uppercase", letterSpacing: "0.06em" };
+                var pairRow = function(items) {
+                  return <div style={{ display: "flex", gap: 4, marginBottom: 3 }}>
+                    {items.map(function(it, ii) {
+                      return <div key={ii} style={{ flex: it.flex || 1 }}>
+                        <div style={pairLabel}>{it.label}</div>
+                        <input value={s[it.field] || ""} placeholder={it.placeholder || ""}
+                          onChange={function(e) { updateSlideField(currentSlide, it.field, e.target.value); }}
+                          style={Object.assign({}, smallInput, { width: "100%" })} />
+                      </div>;
                     })}
+                  </div>;
+                };
+                var captionField = statFmt === "comparison" ? "shift" : statFmt === "versus" ? "verdict" : statFmt === "story" ? "narrative" : statFmt === "timeline" ? "context" : "caption";
+                var captionLabel = statFmt === "comparison" ? "WHAT CHANGED" : statFmt === "versus" ? "VERDICT" : statFmt === "story" ? "NARRATIVE" : statFmt === "timeline" ? "CONTEXT" : "CAPTION";
+                return <div style={{ marginBottom: 6, padding: 8, background: "#fafafa", border: "0.5px solid " + uiAccent + "44", borderRadius: 2 }}>
+                  <div style={{ ...CP, fontSize: 6, color: uiAccent, marginBottom: 6, letterSpacing: "0.15em", fontWeight: 700 }}>STAT STUDIO</div>
+
+                  {/* FORMAT */}
+                  <div style={sectionBox}>
+                    <div style={sectionHdr}>FORMAT</div>
+                    <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                      {STAT_FORMATS.map(function(fmtId) {
+                        var sel = statFmt === fmtId;
+                        return <button key={fmtId} onClick={function() { updateSlideField(currentSlide, "statFormat", fmtId); }}
+                          style={{ padding: "3px 7px", border: "0.5px solid " + (sel ? uiAccent : "#ddd"), background: sel ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 6, color: sel ? uiAccent : "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>{fmtId}</button>;
+                      })}
+                    </div>
                   </div>
-                  {killerStat && s.stat !== undefined && (
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                      <span style={{ ...CP, fontSize: 5, color: tooLong ? "#c41e1e" : "#888" }}>stat length: {statVal.length}/14{tooLong ? " ⚠" : ""}</span>
+
+                  {/* NUMBERS — format-specific paired inputs, always visible */}
+                  <div style={sectionBox}>
+                    <div style={sectionHdr}>NUMBERS</div>
+                    {statFmt === "killer" && <div>
+                      <div style={pairLabel}>STAT</div>
+                      <input value={s.stat || ""} placeholder="$100,000" onChange={function(e) { updateSlideField(currentSlide, "stat", e.target.value); }}
+                        style={Object.assign({}, smallInput, { width: "100%", fontSize: 11, fontWeight: 700, color: currentColor })} />
+                    </div>}
+                    {statFmt === "comparison" && <div>
+                      {pairRow([{ field: "before", label: "BEFORE", placeholder: "75K" }, { field: "beforeLabel", label: "LABEL", placeholder: "2025 cost" }])}
+                      {pairRow([{ field: "after", label: "AFTER", placeholder: "100K" }, { field: "afterLabel", label: "LABEL", placeholder: "2026 cost" }])}
+                    </div>}
+                    {statFmt === "versus" && <div>
+                      {pairRow([{ field: "left", label: "A · NAME", flex: 1, placeholder: "Apple" }, { field: "leftStat", label: "A · VALUE", flex: 1, placeholder: "$3.4T" }, { field: "leftLabel", label: "A · LABEL", flex: 1.2, placeholder: "market cap" }])}
+                      {pairRow([{ field: "right", label: "B · NAME", flex: 1, placeholder: "Microsoft" }, { field: "rightStat", label: "B · VALUE", flex: 1, placeholder: "$3.1T" }, { field: "rightLabel", label: "B · LABEL", flex: 1.2, placeholder: "market cap" }])}
+                    </div>}
+                    {statFmt === "story" && (function() {
+                      var stats = Array.isArray(s.stats) ? s.stats : [{ num: s.stat || "", label: s.statLabel || "" }, { num: s.stat2 || "", label: s.stat2Label || "" }, { num: "", label: "" }];
+                      return <div>{[0, 1, 2].map(function(i) {
+                        var item = stats[i] || { num: "", label: "" };
+                        return <div key={i} style={{ display: "flex", gap: 4, marginBottom: 3, alignItems: "flex-end" }}>
+                          <div style={{ ...CP, fontSize: 5, color: "#aaa", paddingBottom: 4, width: 14 }}>{String(i + 1).padStart(2, "0")}</div>
+                          <div style={{ width: 80 }}>
+                            <div style={pairLabel}>NUM</div>
+                            <input value={item.num || ""} placeholder="42" onChange={function(e) {
+                              var arr = stats.slice(); arr[i] = Object.assign({}, arr[i] || {}, { num: e.target.value });
+                              updateSlideField(currentSlide, "stats", arr);
+                            }} style={Object.assign({}, smallInput, { width: "100%" })} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={pairLabel}>LABEL</div>
+                            <input value={item.label || ""} placeholder="description" onChange={function(e) {
+                              var arr = stats.slice(); arr[i] = Object.assign({}, arr[i] || {}, { label: e.target.value });
+                              updateSlideField(currentSlide, "stats", arr);
+                            }} style={Object.assign({}, smallInput, { width: "100%" })} />
+                          </div>
+                        </div>;
+                      })}</div>;
+                    })()}
+                    {statFmt === "timeline" && <div>
+                      {pairRow([{ field: "year", label: "YEAR", placeholder: "2026", flex: 1 }, { field: "stat", label: "STAT", placeholder: "$100K", flex: 1.5 }, { field: "statLabel", label: "LABEL", placeholder: "ticket cost", flex: 2 }])}
+                    </div>}
+                    {/* Char counter + split (killer/timeline) */}
+                    {killerStat && s.stat !== undefined && <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 3 }}>
+                      <span style={{ ...CP, fontSize: 5, color: tooLong ? "#c41e1e" : "#888" }}>length: {statVal.length}/14{tooLong ? " ⚠ too long" : ""}</span>
                       {tooLong && <button onClick={function() {
                         var sp = splitLongStat(statVal);
                         updateSlideField(currentSlide, "stat", sp.stat);
@@ -6458,34 +6597,72 @@ export default function LoathrMediaGenerator() {
                           var existingCap = s.caption || s.statLabel || "";
                           updateSlideField(currentSlide, "caption", existingCap ? sp.rest + " — " + existingCap : sp.rest);
                         }
-                      }} style={{ padding: "2px 6px", background: "#c41e1e", color: "#fff", border: "none", cursor: "pointer", ...CP, fontSize: 5 }}>Split overflow {"→"} caption</button>}
-                    </div>
-                  )}
-                  {statFmt === "killer" && <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
-                    <input type="checkbox" checked={s.statAutoFit !== false} onChange={function(e) { updateSlideField(currentSlide, "statAutoFit", e.target.checked); }} />
-                    <span style={{ ...CP, fontSize: 6, color: "#666" }}>Auto-fit text to box</span>
-                  </label>}
-                  {statFmt === "story" && (function() {
-                    var stats = Array.isArray(s.stats) ? s.stats : [{ num: s.stat || "", label: s.statLabel || "" }, { num: s.stat2 || "", label: s.stat2Label || "" }, { num: "", label: "" }];
-                    return <div style={{ marginTop: 4, borderTop: "0.5px solid #eee", paddingTop: 4 }}>
-                      <div style={{ ...CP, fontSize: 4, color: uiAccent + "88", marginBottom: 2 }}>STATS (3 ROWS)</div>
-                      {[0, 1, 2].map(function(i) {
-                        var item = stats[i] || { num: "", label: "" };
-                        return <div key={i} style={{ display: "flex", gap: 3, marginBottom: 2 }}>
-                          <input value={item.num || ""} placeholder={"#" + (i + 1) + " num"} onChange={function(e) {
-                            var arr = stats.slice();
-                            arr[i] = Object.assign({}, arr[i] || {}, { num: e.target.value });
-                            updateSlideField(currentSlide, "stats", arr);
-                          }} style={{ width: 72, padding: "2px 4px", border: "0.5px solid #ddd", ...CP, fontSize: 7, background: "#fff" }} />
-                          <input value={item.label || ""} placeholder="label" onChange={function(e) {
-                            var arr = stats.slice();
-                            arr[i] = Object.assign({}, arr[i] || {}, { label: e.target.value });
-                            updateSlideField(currentSlide, "stats", arr);
-                          }} style={{ flex: 1, padding: "2px 4px", border: "0.5px solid #ddd", ...CP, fontSize: 7, background: "#fff" }} />
-                        </div>;
+                      }} style={{ padding: "2px 6px", background: "#c41e1e", color: "#fff", border: "none", cursor: "pointer", ...CP, fontSize: 5 }}>Split → caption</button>}
+                    </div>}
+                  </div>
+
+                  {/* CAPTION / CONTEXT */}
+                  <div style={sectionBox}>
+                    <div style={sectionHdr}>{captionLabel}</div>
+                    <textarea value={s[captionField] || ""} rows={2} placeholder={"Add " + captionLabel.toLowerCase() + "..."}
+                      onChange={function(e) { updateSlideField(currentSlide, captionField, e.target.value); }}
+                      style={Object.assign({}, smallInput, { width: "100%", resize: "vertical", fontFamily: "'Maheni',Georgia,serif" })} />
+                  </div>
+
+                  {/* TYPE & LAYOUT */}
+                  <div style={sectionBox}>
+                    <div style={sectionHdr}>TYPE & LAYOUT</div>
+                    {/* Color */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <span style={{ ...CP, fontSize: 5, color: "#888", width: 50 }}>COLOR</span>
+                      <input type="color" value={currentColor} onChange={function(e) { updateSlideField(currentSlide, "statColor", e.target.value); }}
+                        style={{ width: 28, height: 18, padding: 0, border: "0.5px solid #ddd", cursor: "pointer" }} />
+                      {[pal.accent, pal.accent2, "#ffffff", "#000000"].filter(Boolean).map(function(c, ci) {
+                        return <button key={ci} onClick={function() { updateSlideField(currentSlide, "statColor", c); }} title={c}
+                          style={{ width: 16, height: 16, border: currentColor === c ? "1.5px solid " + uiAccent : "0.5px solid #ccc", background: c, cursor: "pointer", padding: 0 }} />;
                       })}
-                    </div>;
-                  })()}
+                      {s.statColor && <button onClick={function() { updateSlideField(currentSlide, "statColor", null); }}
+                        style={{ ...CP, fontSize: 5, color: "#999", padding: "1px 4px", border: "0.5px solid #eee", background: "#fff", cursor: "pointer" }}>reset</button>}
+                    </div>
+                    {/* Font size (killer only — other formats compute their own) */}
+                    {statFmt === "killer" && <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <span style={{ ...CP, fontSize: 5, color: "#888", width: 50 }}>SIZE</span>
+                      <input type="range" min={14} max={88} step={2} value={currentSize || killerFontSize(statVal, s.statAutoFit !== false)}
+                        onChange={function(e) { updateSlideField(currentSlide, "statFontSize", parseInt(e.target.value, 10)); }}
+                        style={{ flex: 1 }} />
+                      <span style={{ ...CP, fontSize: 5, color: "#666", width: 32 }}>{currentSize || "auto"}</span>
+                      <label style={{ display: "flex", alignItems: "center", gap: 3, cursor: "pointer" }}>
+                        <input type="checkbox" checked={s.statAutoFit !== false} disabled={currentSize > 0}
+                          onChange={function(e) { updateSlideField(currentSlide, "statAutoFit", e.target.checked); }} />
+                        <span style={{ ...CP, fontSize: 5, color: currentSize > 0 ? "#bbb" : "#666" }}>auto-fit</span>
+                      </label>
+                      {currentSize > 0 && <button onClick={function() { updateSlideField(currentSlide, "statFontSize", null); }}
+                        style={{ ...CP, fontSize: 5, color: "#999", padding: "1px 4px", border: "0.5px solid #eee", background: "#fff", cursor: "pointer" }}>reset</button>}
+                    </div>}
+                    {/* Layout flip (killer only) */}
+                    {statFmt === "killer" && <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ ...CP, fontSize: 5, color: "#888", width: 50 }}>LAYOUT</span>
+                      {[{ id: false, l: "Centered" }, { id: true, l: "Left-anchored" }].map(function(li, lii) {
+                        var sel = (typeof s.statLayoutFlip === "boolean" ? s.statLayoutFlip : (currentSlide % 2 === 1)) === li.id;
+                        return <button key={lii} onClick={function() { updateSlideField(currentSlide, "statLayoutFlip", li.id); }}
+                          style={{ padding: "2px 6px", border: "0.5px solid " + (sel ? uiAccent : "#ddd"), background: sel ? uiAccent + "22" : "#fff", cursor: "pointer", ...CP, fontSize: 5, color: sel ? uiAccent : "#666" }}>{li.l}</button>;
+                      })}
+                    </div>}
+                  </div>
+
+                  {/* IMAGE SCRIM */}
+                  <div>
+                    <div style={sectionHdr}>IMAGE SCRIM</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ ...CP, fontSize: 5, color: "#888", width: 50 }}>DARKNESS</span>
+                      <input type="range" min={0} max={95} step={5} value={currentScrim}
+                        onChange={function(e) { updateSlideField(currentSlide, "scrimOpacity", parseInt(e.target.value, 10)); }}
+                        style={{ flex: 1 }} />
+                      <span style={{ ...CP, fontSize: 5, color: "#666", width: 28 }}>{currentScrim}%</span>
+                      {typeof s.scrimOpacity === "number" && <button onClick={function() { updateSlideField(currentSlide, "scrimOpacity", null); }}
+                        style={{ ...CP, fontSize: 5, color: "#999", padding: "1px 4px", border: "0.5px solid #eee", background: "#fff", cursor: "pointer" }}>reset</button>}
+                    </div>
+                  </div>
                 </div>;
               })()}
               {/* Highlight / Insight — separate from body */}
