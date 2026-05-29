@@ -165,6 +165,16 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks, sector) 
       "Write a carousel analyzing how " + forceLabel.toLowerCase() + " impacts this industry/topic.\n" +
       "SLIDE COUNT: " + slideCount + " slides.\n\n"
     ) +
+    "SOURCE-FIRST WORKFLOW (mandatory):\n" +
+    "1. RESEARCH — Run web_search on the industry/topic + force. Identify 5 to 8 authoritative recent articles (Bloomberg, FT, Reuters, WSJ, Economist, sector trade press, SEC filings). Prefer primary financial/regulatory documents over secondary coverage.\n" +
+    "2. SOURCE LIST — Compile {publication, title, date, author, url} for each before drafting. Every numeric claim, named executive, market cap, growth rate, and quote must be derivable from this list.\n" +
+    "3. BIND SLIDES — Decide which 1-2 sources will ground each slide. Put short citations in that slide's 'sources' field.\n" +
+    "4. WRITE — Compose the slides. If a specific number isn't in your sources, write 'approximately' or omit. Never invent a figure.\n\n" +
+    "ANTI-CONFABULATION:\n" +
+    "- If you don't know an exact number, write 'approximately X' or omit. Never invent a figure to fill a stat slot.\n" +
+    "- Quotes must be attributed to real, verifiable speakers from real sources. Otherwise paraphrase.\n" +
+    "- If a named executive on a slide isn't verified, leave the 'person' field out.\n" +
+    "- Standardize formatting: dollars with $, billions as B, percentages with %.\n\n" +
     "Use REAL company names, REAL numbers, REAL market data. Every claim must be specific and citable.\n" +
     "Use web search to find current data when available.\n" +
     (tone ? "\nTONE: " + tone.prompt + "\n" : "") +
@@ -191,6 +201,10 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks, sector) 
     "- LAST SLIDE: \"CLOSER\" — hashtags string. MUST include in the slide data: funnyLine: \"" + closerLine + "\", funnyLineAlts: [array of 4 ALTERNATE closer taglines you'd write for this brief — one manifesto-style, one skeptical/dry, one inspirational/punchy, one question-style. Each ≤ 90 chars, no quote marks], disclaimer: \"This carousel is for entertainment and educational purposes only. Not professional advice.\"\n\n" +
     "TEXT PLACEMENT: On each content slide, include a 'textPosition' field. Options: 'bottom-left', 'bottom-right', 'top-left', 'top-right', 'split-corners', 'side-left', 'side-right', 'l-shape'.\n\n" +
     "On 2-3 content slides, add '\"mosaic\": true' for photo collage backgrounds.\n\n" +
+    "SELF-CONSISTENCY CHECK (do this BEFORE returning):\n" +
+    "- Re-read your slides. If a number (revenue, market share, valuation) appears on more than one slide, normalize to the most accurate value across all occurrences.\n" +
+    "- If two slides make contradictory factual claims, fix one or remove.\n" +
+    "- Confirm every 'sources' field cites material that actually supports the slide's body.\n\n" +
     "CRITICAL: After searching the web, you MUST respond with valid JSON. Do NOT write commentary, analysis, or explanation outside the JSON. Your ENTIRE text response must be the JSON object.\n\nRespond ONLY with valid JSON, no markdown:\n{\"angle\":\"Enterprise Analysis\",\"slides\":[{...slides...}]}";
 }
 
@@ -209,6 +223,12 @@ export function buildEnterpriseNewsPrompt(keywords, force, editionSeed, picks, s
     "SEARCH KEYWORDS: \"" + keywords + "\"\n" +
     "BUSINESS SECTOR: " + forceLabel + (sector ? " (" + sector.label + ")" : "") + "\n" +
     "TIMESTAMP: " + timestamp + "\n\n" +
+    "SOURCE-FIRST WORKFLOW (mandatory):\n" +
+    "1. RESEARCH — Run web_search for the most recent business news matching these keywords. Identify 4 to 6 authoritative articles (Bloomberg, FT, Reuters, WSJ, named beat reporters).\n" +
+    "2. SOURCE LIST — Compile {publication, title, date, author, url} before drafting. Every fact must trace to this list.\n" +
+    "3. BIND SLIDES — Decide which source(s) ground each slide. Cite them in the 'sources' field.\n" +
+    "4. WRITE — Compose with focus on business IMPACT. If a specific number isn't in your sources, write 'approximately' or omit. Never fabricate.\n\n" +
+    "ANTI-CONFABULATION: No invented quotes, statistics, or events. Standardize $ B %.\n\n" +
     "Search the web for the MOST RECENT business news matching these keywords. Focus on the business and industry IMPACT of the news.\n\n" +
     (tone ? "TONE: " + tone.prompt + "\n" : "") +
     (ep.customVoice ? "CUSTOM VOICE: " + ep.customVoice + "\n" : "") +
@@ -244,6 +264,12 @@ export function buildEnterpriseTipsPrompt(topic, force, editionSeed, picks, sect
     "TODAY'S DATE: " + today + ". Treat this as 'today' / 'now'. Do NOT default to your training cutoff. Use web_search for current best practices and tools.\n\n" +
     "Industry: \"" + topic + "\"\n" +
     "Focus Area: " + forceLabel + (sector ? " (" + sector.label + ")" : "") + "\n\n" +
+    "SOURCE-FIRST WORKFLOW (mandatory):\n" +
+    "1. RESEARCH — Run web_search for current best practices, tools, and tactics in this industry. Identify 4 to 6 authoritative sources (industry publications, expert blogs with named authors, tool documentation, case studies).\n" +
+    "2. SOURCE LIST — Compile {publication/source, title, date, url} before drafting. Every tool name, statistic, and claim must trace to this list.\n" +
+    "3. BIND TIPS — Each tip slide should ground at least one specific source. Cite them in 'sources'.\n" +
+    "4. WRITE — Compose actionable tips. If you can't verify a tool's pricing or specific feature, write 'approximately' or omit specifics. Never invent vendor claims.\n\n" +
+    "ANTI-CONFABULATION: No invented tool names, pricing, or features. If unsure, describe the category rather than naming a specific product.\n\n" +
     "Write an ACTIONABLE TIPS carousel for businesses in this industry. Every slide should contain a specific, tactical tip that a business owner could implement this week.\n\n" +
     (tone ? "TONE: " + tone.prompt + "\n" : "") +
     (focus ? "FOCUS: " + focus.prompt + "\n" : "") +
