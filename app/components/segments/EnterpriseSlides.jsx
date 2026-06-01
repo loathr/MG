@@ -89,7 +89,7 @@ var srcLine = function(s, slide) {
   return <div style={Object.assign({}, { ...srcFont, fontSize: sz, color: srcColor(slide), position: "absolute", bottom: 5, right: 14, zIndex: 11, textAlign: "right", maxWidth: "70%", lineHeight: 1.2 }, srcAlign(slide), elementTransform(slide, "sources"))}>{s}</div>;
 };
 var dividerLine = function(slide) {
-  if (slide && slide.dividerHidden) return null;
+  if (slide && (slide.dividerHidden || slide.allDividersHidden)) return null;
   var w = slide && typeof slide.dividerWeight === "number" ? slide.dividerWeight : 0.5;
   var c = slide && slide.dividerColor ? slide.dividerColor : "#ffffff22";
   return <div style={{ height: w, background: c, marginBottom: 6 }} />;

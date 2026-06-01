@@ -539,6 +539,49 @@ function slideImgLetterbox(slide) {
   return slide.imgLetterbox || "#000000";
 }
 
+// Divider helpers — every decorative line in a slide can be hidden, recolored, or thickened
+// per slide. Each call site passes a `role` so the slide-edit panel can list and toggle each
+// divider independently. Overrides live on slide.dividers = { [role]: { hidden, color, weight } }
+// (back-compat: legacy slide.dividerHidden / dividerColor / dividerWeight act as the role=main override).
+function divOverride(slide, role) {
+  if (!slide) return null;
+  if (role === "main" || !role) {
+    if (slide.dividerHidden || slide.dividerColor || typeof slide.dividerWeight === "number") {
+      return { hidden: slide.dividerHidden, color: slide.dividerColor, weight: slide.dividerWeight };
+    }
+  }
+  if (slide.allDividersHidden) return { hidden: true };
+  var d = slide.dividers && slide.dividers[role];
+  return d || null;
+}
+// Returns a style fragment for an inline divider (border-* on an existing element).
+// Use like: var st = divStyle(slide, "statCompare", { side: "right", weight: 1, color: accent+"33" });
+// then spread into element style: <div style={{ ...elStyle, ...st }}>...</div>. Returns {} when hidden.
+function divStyle(slide, role, defaults) {
+  if (slide && slide.allDividersHidden) return {};
+  var o = divOverride(slide, role) || {};
+  if (o.hidden) return {};
+  var d = defaults || {};
+  var side = d.side || "right"; // top|right|bottom|left
+  var w = typeof o.weight === "number" ? o.weight : (typeof d.weight === "number" ? d.weight : 1);
+  var c = o.color || d.color || "#1a1a1a22";
+  var prop = "border" + side.charAt(0).toUpperCase() + side.slice(1);
+  var v = {};
+  v[prop] = w + "px " + (d.dashed ? "dashed " : "solid ") + c;
+  return v;
+}
+// Returns a JSX <div /> styled as a standalone divider, or null when hidden.
+function divEl(slide, role, defaults) {
+  if (slide && slide.allDividersHidden) return null;
+  var o = divOverride(slide, role) || {};
+  if (o.hidden) return null;
+  var d = defaults || {};
+  var w = typeof o.weight === "number" ? o.weight : (typeof d.weight === "number" ? d.weight : 1);
+  var c = o.color || d.color || "#1a1a1a22";
+  var style = Object.assign({ width: d.width || "100%", height: w, background: c, margin: d.margin || 0 }, d.style || {});
+  return <div style={style} />;
+}
+
 // Mosaic layouts — CSS grid templates for collage backgrounds
 var MOSAIC_LAYOUTS = [
   // 2-panel layouts
@@ -1548,7 +1591,8 @@ function S4Emigre({ slide, index, category, images }) {
           <div style={{ position: "absolute", top: "22%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", gap: 4 }}>
             {stats.slice(0, 3).map(function(s, i) {
               var c = i % 2 === 0 ? p.accent : p.accent2;
-              return <div key={i} style={{ flex: 1, textAlign: "center", borderRight: i < 2 ? "1px solid " + p.accent + "33" : "none", paddingRight: i < 2 ? 4 : 0 }}>
+              var compDiv = i < 2 ? divStyle(slide, "statCompare", { side: "right", weight: 1, color: p.accent + "33" }) : {};
+              return <div key={i} style={Object.assign({ flex: 1, textAlign: "center", paddingRight: i < 2 ? 4 : 0 }, compDiv)}>
                 <div style={{ ...WS, fontSize: 22, color: c, lineHeight: 0.9 }}>{s.num}</div>
                 <div style={{ ...HD, fontSize: 5, color: "#ffffffcc", marginTop: 3 }}>{s.label}</div>
               </div>;
@@ -1580,7 +1624,13 @@ function S4Emigre({ slide, index, category, images }) {
             <div style={{ ...WS, fontSize: vsSize, color: p.accent, lineHeight: 0.85 }}>{lStat}</div>
             <div style={{ ...HD, fontSize: 7, color: "#ffffffcc", marginTop: 6 }}>{slide.leftLabel || slide.statLabel}</div>
           </div>
-          <div style={{ width: 2, height: 70, background: p.accent, flexShrink: 0, margin: "0 6px" }} />
+          {(function() {
+            var o = divOverride(slide, "versusBar") || {};
+            if (o.hidden) return null;
+            var w = typeof o.weight === "number" ? o.weight : 2;
+            var c = o.color || p.accent;
+            return <div style={{ width: w, height: 70, background: c, flexShrink: 0, margin: "0 6px" }} />;
+          })()}
           <div style={{ flex: 1, textAlign: "center" }}>
             <div style={{ ...FN, fontSize: 10, color: "#ffffffcc", textTransform: "uppercase", marginBottom: 6 }}>{slide.right || "B"}</div>
             <div style={{ ...WS, fontSize: vsSize, color: p.accent2 || p.accent, lineHeight: 0.85 }}>{rStat}</div>
@@ -1632,7 +1682,7 @@ function S5Face({ slide, index, category, images }) {
   var hl5t = (cp5.highlight && (cp5.highlight.top || cp5.highlight.left)) ? { transform: "translate(" + (cp5.highlight.left||0) + "px," + (cp5.highlight.top||0) + "px)" } : {};
   var s5Text = <div style={{ overflow: "hidden" }}>
     <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 8.5 + (slide.bodySize || 0), color: slide.bodyColor || (useSticky ? "inherit" : "#ffffffe6"), lineHeight: 1.45, textAlign: slide.bodyAlign || "right" }, b5t)}>{styleBody(slide.body, p.accent, p.accent2)}</div>
-    {!styled && <div style={{ width: "100%", height: 1, background: p.accent + "33", margin: "6px 0" }} />}
+    {!styled && divEl(slide, "s5Inline", { weight: 1, color: p.accent + "33", margin: "6px 0" })}
     {styledHighlight(slide.highlight, slide, { fg: useSticky ? "inherit" : "#ffffff", accent: "#ffffff", pillText: "#1a1a1a", defaultStyle: index % 2 === 0 ? "pill" : "box" })}
   </div>;
   var CONTAINER_MAP5 = { bubble: BubbleBox, sticky: StickyNote, formal: FormalFrame, glass: GlassBox, tape: TapeStrip, cutout: CutoutBox, minimal: MinimalBox, none: null };
@@ -1746,7 +1796,7 @@ function RecHiddenGem({ slide, category, images }) {
   var url = getImg(images, 1);
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "55%", borderBottom: "2px solid " + p.accent }}>
+      <div style={Object.assign({ position: "absolute", top: 0, left: 0, right: 0, height: "55%" }, divStyle(slide, "recHiddenSplit", { side: "bottom", weight: 2, color: p.accent }))}>
         {url && <img src={url} alt="" style={Object.assign({ width: "100%", height: "100%", filter: "saturate(0.85) brightness(0.75)" }, slideImgStyle(slide))} onError={function(e) { e.target.style.display = "none"; }} />}
         {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
         <div style={{ position: "absolute", top: 8, left: M_SIDE, zIndex: 2 }}>
@@ -1756,7 +1806,7 @@ function RecHiddenGem({ slide, category, images }) {
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "45%", background: "#000000", padding: M_TOP + "px " + M_SIDE + "px " + M_BOT + "px", overflow: "hidden" }}>
         <div style={{ ...FN, fontSize: 13, color: "#ffffff", textTransform: "uppercase" }}>{slide.name}</div>
         <div style={{ ...WS, fontSize: 5.3, color: p.accent + "cc", marginTop: 2 }}>{slide.neighborhood}</div>
-        <div style={{ ...HD, fontSize: 8, color: "#ffffffdd", marginTop: 6, fontStyle: "italic", lineHeight: 1.5, borderLeft: "3px solid " + p.accent, paddingLeft: 6 }}>{slide.hook}</div>
+        <div style={Object.assign({ ...HD, fontSize: 8, color: "#ffffffdd", marginTop: 6, fontStyle: "italic", lineHeight: 1.5, paddingLeft: 6 }, divStyle(slide, "recHiddenQuote", { side: "left", weight: 3, color: p.accent }))}>{slide.hook}</div>
         <div style={{ ...HD, fontSize: 8, color: "#ffffffbb", marginTop: 6, lineHeight: 1.4 }}>{slide.body}</div>
         {slide.detail && <div style={{ marginTop: 6, border: "1px solid " + p.accent + "44", padding: "3px 6px", background: "rgba(255,255,255,0.03)", display: "inline-block" }}><div style={{ ...WS, fontSize: 5, color: "#ffffffaa" }}>{slide.established} · {slide.detail}{slide.priceRange ? " · " + slide.priceRange : ""}</div></div>}
       </div>
@@ -1777,7 +1827,7 @@ function RecNewOpening({ slide, category, images, index }) {
         <div style={{ ...FN, fontSize: 14, color: "#ffffff", textTransform: "uppercase", textAlign: "right" }}>{slide.name}</div>
         <div style={{ ...WS, fontSize: 5.3, color: p.accent2 + "cc", textAlign: "right", marginTop: 2 }}>{slide.neighborhood}</div>
         <div style={{ ...HD, fontSize: 8, color: "#ffffffcc", marginTop: 8, lineHeight: 1.4, textAlign: "left" }}>{slide.body}</div>
-        {slide.quote && <div style={{ ...HD, fontSize: 8, fontStyle: "italic", color: "#ffffffdd", marginTop: 6, borderRight: "3px solid " + p.accent2, paddingRight: 6, textAlign: "right", lineHeight: 1.5 }}>"{slide.quote}"</div>}
+        {slide.quote && <div style={Object.assign({ ...HD, fontSize: 8, fontStyle: "italic", color: "#ffffffdd", marginTop: 6, paddingRight: 6, textAlign: "right", lineHeight: 1.5 }, divStyle(slide, "recOpenQuote", { side: "right", weight: 3, color: p.accent2 }))}>"{slide.quote}"</div>}
         {slide.source && <div style={{ ...WS, fontSize: 5, color: p.accent2 + "99", textAlign: "right", marginTop: 2 }}>{"— " + slide.source}</div>}
         {slide.detail && <div style={{ marginTop: 6, border: "1px solid " + p.accent2 + "44", padding: "3px 6px", background: "rgba(255,255,255,0.03)", display: "inline-block" }}><div style={{ ...WS, fontSize: 5, color: "#ffffffaa" }}>{slide.opened} · {slide.style}{slide.detail ? " · " + slide.detail : ""}</div></div>}
       </div>
@@ -7469,6 +7519,69 @@ export default function LoathrMediaGenerator() {
                   </div>}
                   <button onClick={function() { updateSlideField(currentSlide, "imgFit", null); updateSlideField(currentSlide, "imgPosition", null); updateSlideField(currentSlide, "imgLetterbox", null); }}
                     style={{ padding: "2px 8px", border: "0.5px solid " + (darkSeg ? "#444" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 5, color: darkSeg ? "#888" : "#999" }}>{"↺"} Reset Image</button>
+                </div>;
+              })()}
+              {/* Dividers — master toggle + per-role controls for whichever decorative lines this slide has */}
+              {(function() {
+                var darkSeg = activeSegment === "enterprise";
+                var labelStyle = { ...CP, fontSize: 5, color: darkSeg ? "#aaa" : "#888", marginBottom: 3 };
+                var smallStyle = { ...CP, fontSize: 5, color: darkSeg ? "#999" : "#666" };
+                var pillStyle = function(sel) { return { padding: "2px 8px", border: "0.5px solid " + (sel ? (darkSeg ? "#fff" : "#333") : (darkSeg ? "#444" : "#ddd")), background: sel ? (darkSeg ? "#ffffff22" : "#33333322") : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? (darkSeg ? "#fff" : "#333") : (darkSeg ? "#888" : "#888"), letterSpacing: "0.05em" }; };
+                var setDivider = function(role, key, val) {
+                  var dMap = Object.assign({}, s.dividers || {});
+                  dMap[role] = Object.assign({}, dMap[role] || {}, (function() { var o = {}; o[key] = val; return o; })());
+                  updateSlideField(currentSlide, "dividers", dMap);
+                };
+                var getDiv = function(role) { return (s.dividers && s.dividers[role]) || {}; };
+                // Detect which per-role dividers might apply to this slide. False positives are OK:
+                // controls only affect render when the slide actually has the divider; the UI is harmless.
+                var fmt = s.statFormat;
+                var hasStatCompare = fmt === "story" || s.stats || s.statLabel;
+                var hasVersusBar = fmt === "versus" || s.leftStat || s.rightStat || s.left || s.right;
+                var hasS5Inline = !!s.body && !s.statFormat && !s.quote;
+                var hasRecHidden = !!s.hook;
+                var hasRecOpen = !!s.quote && (s.name || s.neighborhood);
+                var anyExtra = hasStatCompare || hasVersusBar || hasS5Inline || hasRecHidden || hasRecOpen;
+                var roleRow = function(label, role, dflt) {
+                  var ov = getDiv(role);
+                  var hidden = !!ov.hidden;
+                  var weight = typeof ov.weight === "number" ? ov.weight : dflt.weight;
+                  var color = ov.color || dflt.color;
+                  return <div key={role} style={{ marginBottom: 4 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 2 }}>
+                      <span style={Object.assign({}, smallStyle, { flex: 1 })}>{label}</span>
+                      <button onClick={function() { setDivider(role, "hidden", !hidden); }} style={pillStyle(hidden)} title={hidden ? "Hidden" : "Visible"}>{hidden ? "Hidden" : "Visible"}</button>
+                    </div>
+                    {!hidden && <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span style={Object.assign({}, smallStyle, { width: 36 })}>weight</span>
+                      <input type="range" min="0" max="4" step="0.5" value={weight} onChange={function(e) { setDivider(role, "weight", parseFloat(e.target.value)); }} style={{ flex: 1 }} />
+                      <span style={Object.assign({}, smallStyle, { width: 24, textAlign: "right" })}>{weight}px</span>
+                      <input type="color" value={color.length === 7 ? color : "#888888"} onChange={function(e) { setDivider(role, "color", e.target.value); }} style={{ width: 24, height: 16, padding: 0, border: "0.5px solid " + (darkSeg ? "#444" : "#ddd"), cursor: "pointer", background: darkSeg ? "#000" : "#fff" }} />
+                    </div>}
+                  </div>;
+                };
+                return <div style={{ marginBottom: 6, padding: "6px 8px", border: "0.5px dashed " + (darkSeg ? "#444" : "#ddd"), borderRadius: 3 }}>
+                  <div style={labelStyle}>DIVIDERS</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                    <span style={Object.assign({}, smallStyle, { flex: 1 })}>Hide all decorative lines</span>
+                    <button onClick={function() { updateSlideField(currentSlide, "allDividersHidden", !s.allDividersHidden); }} style={pillStyle(!!s.allDividersHidden)}>{s.allDividersHidden ? "Hidden" : "Visible"}</button>
+                  </div>
+                  {anyExtra && !s.allDividersHidden && <div style={{ borderTop: "0.5px solid " + (darkSeg ? "#333" : "#eee"), paddingTop: 4, marginBottom: 4 }}>
+                    {hasStatCompare && roleRow("Comparison cells", "statCompare", { weight: 1, color: "#888888" })}
+                    {hasVersusBar && roleRow("Versus center bar", "versusBar", { weight: 2, color: "#888888" })}
+                    {hasS5Inline && roleRow("Body / highlight rule", "s5Inline", { weight: 1, color: "#888888" })}
+                    {hasRecHidden && roleRow("Quote left rule", "recHiddenQuote", { weight: 3, color: "#888888" })}
+                    {hasRecHidden && roleRow("Image-text split", "recHiddenSplit", { weight: 2, color: "#888888" })}
+                    {hasRecOpen && roleRow("Quote right rule", "recOpenQuote", { weight: 3, color: "#888888" })}
+                  </div>}
+                  <button onClick={function() {
+                    updateSlideField(currentSlide, "allDividersHidden", null);
+                    updateSlideField(currentSlide, "dividers", null);
+                    updateSlideField(currentSlide, "dividerHidden", null);
+                    updateSlideField(currentSlide, "dividerWeight", null);
+                    updateSlideField(currentSlide, "dividerColor", null);
+                  }}
+                    style={{ padding: "2px 8px", border: "0.5px solid " + (darkSeg ? "#444" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 5, color: darkSeg ? "#888" : "#999" }}>{"↺"} Reset Dividers</button>
                 </div>;
               })()}
               {/* Enterprise layout picker — content slides only */}

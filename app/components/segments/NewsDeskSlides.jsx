@@ -62,7 +62,7 @@ function newsBg(s) {
 
 // Context-aware dividers
 function divider(s, opts) {
-  if (s && s.dividerHidden) return null;
+  if (s && (s.dividerHidden || s.allDividersHidden)) return null;
   var o = opts || {};
   var w = s && typeof s.dividerWeight === "number" ? s.dividerWeight : (o.w || 0.5);
   var c = s && s.dividerColor ? s.dividerColor : (o.c || "#1a1a1a22");
@@ -70,14 +70,14 @@ function divider(s, opts) {
 }
 // Short rule — 30% width, newspaper section marker after headlines
 function headRule(s) {
-  if (s && s.dividerHidden) return null;
+  if (s && (s.dividerHidden || s.allDividersHidden)) return null;
   var w = s && typeof s.dividerWeight === "number" ? s.dividerWeight : 0.5;
   var c = s && s.dividerColor ? s.dividerColor : "#1a1a1a44";
   return <div style={{ height: w, background: c, width: "30%", margin: "2px 0 3px 0" }} />;
 }
 // Dotted hairline — subtle transition (after quotes, between sections)
 function dottedRule(s) {
-  if (s && s.dividerHidden) return null;
+  if (s && (s.dividerHidden || s.allDividersHidden)) return null;
   return <div style={{ borderBottom: "0.5px dotted #1a1a1a22", margin: "3px 0" }} />;
 }
 
