@@ -878,11 +878,15 @@ function BubbleBox({ children, style, accent, accent2, seed, bg: bgProp }) {
   );
 }
 
-// Glass box — frosted glass blur effect
+// Glass box — frosted glass effect.
+// NOTE: backdrop-filter doesn't survive html2canvas raster — every screenshot would substitute
+// the blurred glass for a solid panel anyway. To make screen and export match (WYSIWYG), we use
+// a solid semi-opaque background on the live view too. If a future export pipeline supports
+// real backdrop-filter (e.g. server-side Puppeteer), drop the solid bg and add backdropFilter back.
 function GlassBox({ children, style, accent, accent2, seed }) {
   var rotation = ((seed || 0) % 3) - 1;
   return (
-    <div style={Object.assign({}, { position: "relative", background: "rgba(255,255,255,0.08)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 12px", transform: "rotate(" + rotation + "deg)" }, style || {})}>
+    <div style={Object.assign({}, { position: "relative", background: "rgba(0,0,0,0.7)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 8, padding: "10px 12px", transform: "rotate(" + rotation + "deg)" }, style || {})}>
       {children}
     </div>
   );
@@ -2542,35 +2546,50 @@ var loadScript = function(src) {
 };
 
 // Wait for every <img> inside el to fully decode before snapshotting. Replaces the old fixed 800ms wait.
+// Wait for every <img> in `el` to either decode, error, or hit the per-image timeout.
+// Returns { timedOut: number, errored: number } so callers can warn the user when an export
+// snapshots an incomplete image. Default timeout raised from 5s to 15s — full-res Unsplash and
+// Wikimedia paths regularly need 7–10s on a fresh page.
 var waitForImages = function(el, timeoutMs) {
-  if (!el) return Promise.resolve();
+  if (!el) return Promise.resolve({ timedOut: 0, errored: 0, total: 0 });
   var imgs = Array.prototype.slice.call(el.querySelectorAll("img"));
-  if (imgs.length === 0) return Promise.resolve();
-  var t = timeoutMs || 5000;
+  if (imgs.length === 0) return Promise.resolve({ timedOut: 0, errored: 0, total: 0 });
+  var t = timeoutMs || 15000;
+  var timedOut = 0;
+  var errored = 0;
   var promises = imgs.map(function(img) {
     if (img.complete && img.naturalWidth > 0) {
       return img.decode ? img.decode().catch(function() {}) : Promise.resolve();
     }
     return new Promise(function(resolve) {
       var done = false;
-      var finish = function() { if (!done) { done = true; resolve(); } };
-      var onLoad = function() { (img.decode ? img.decode().catch(function() {}) : Promise.resolve()).then(finish); };
+      var timer = null;
+      var finish = function(state) {
+        if (done) return;
+        done = true;
+        if (timer) clearTimeout(timer);
+        if (state === "timeout") timedOut++;
+        else if (state === "error") errored++;
+        resolve();
+      };
+      var onLoad = function() { (img.decode ? img.decode().catch(function() {}) : Promise.resolve()).then(function() { finish("ok"); }); };
       img.addEventListener("load", onLoad, { once: true });
-      img.addEventListener("error", finish, { once: true });
-      setTimeout(finish, t);
+      img.addEventListener("error", function() { finish("error"); }, { once: true });
+      timer = setTimeout(function() { finish("timeout"); }, t);
     });
   });
-  return Promise.all(promises);
+  return Promise.all(promises).then(function() { return { timedOut: timedOut, errored: errored, total: imgs.length }; });
 };
 
-// Render a single slide to canvas
+// Render a single slide to canvas. Returns { canvas, imgStatus } so the caller can aggregate
+// per-slide image-load failures and warn the user when a snapshot was incomplete.
 var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) {
   setCurrentSlide(slideIndex);
   // Short wait for React to commit the new slide, then wait for every image to decode
   await new Promise(function(r) { setTimeout(r, 250); });
   var el = slideRef.current;
-  if (!el) return null;
-  await waitForImages(el, 5000);
+  if (!el) return { canvas: null, imgStatus: { timedOut: 0, errored: 0, total: 0 } };
+  var imgStatus = await waitForImages(el, 15000);
   // Export the inner slide div (child of the ref) to avoid border/padding mismatch
   var exportTarget = el;
   // Find the actual slide content div inside
@@ -2579,7 +2598,7 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
   var eh = innerSlide.offsetHeight || 425;
   // Scale to 2160px width on desktop; cap mobile at 4x (~1360px) to prevent memory crash
   var exportScale = window.innerWidth < 500 ? Math.min(4, 2160 / ew) : 2160 / ew;
-  return window.html2canvas(exportTarget, {
+  var canvas = await window.html2canvas(exportTarget, {
     width: exportTarget.offsetWidth,
     height: exportTarget.offsetHeight,
     scale: exportScale,
@@ -2596,10 +2615,17 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
       //  objectFit on <img> directly.)
       // Lock the outermost slide container to prevent any overflow
       clonedEl.style.overflow = "hidden";
+      // INTENTIONAL EXPORT-ONLY DIVERGENCE: html2canvas renders at scale ~6x on desktop. At that
+      // scale, subpixel font rendering occasionally reflows one extra line, which overflows the
+      // slide bounds and produces visible black panels where text would have continued. To get a
+      // deterministic export we freeze every absolutely-positioned, z-indexed text overlay at its
+      // LIVE pixel dimensions and clip overflow. Tradeoff: if a user has filled a text overlay
+      // exactly to its edge, an export-time reflow gets clipped instead of overflowing visibly.
+      // The clip matches what the slide preview already shows (every slide container has
+      // overflow:hidden), so the export is no worse than the preview.
       var innerDivs = clonedEl.querySelectorAll("div");
       innerDivs.forEach(function(div) {
-        // Lock absolutely positioned text containers — freeze both width AND height
-        // Skip centered elements (translate -50%) — locking their width clips the centered content
+        // Skip centered elements (translate -50%) — locking their width clips the centered content.
         var isCentered = div.style.transform && div.style.transform.indexOf("-50%") > -1;
         if (div.style.position === "absolute" && div.style.zIndex && !isCentered) {
           var w = div.offsetWidth;
@@ -2608,7 +2634,8 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
           if (h > 0 && h < 450) { div.style.maxHeight = h + "px"; }
           div.style.overflow = "hidden";
         }
-        // Remove backdrop-filter (html2canvas can't render it)
+        // Live view no longer uses backdrop-filter (GlassBox swapped to a solid panel for WYSIWYG),
+        // but keep this substitution as a safety net for any third-party or future backdrop-filter use.
         if (div.style.backdropFilter || div.style.webkitBackdropFilter) {
           div.style.backdropFilter = "none";
           div.style.webkitBackdropFilter = "none";
@@ -2620,6 +2647,7 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
       if (contentWrapper) { contentWrapper.style.overflow = "hidden"; }
     },
   });
+  return { canvas: canvas, imgStatus: imgStatus };
 };
 
 var exportSlides = async function(slides, category, slideRef, setCurrentSlide, setExportStatus, format, meta) {
@@ -2642,15 +2670,41 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
   // carousel.json below still carries deleted slides (with _deleted flag) for round-trip undelete on re-import.
   var visiblePairs = [];
   slides.forEach(function(s, si) { if (s && !s._deleted) visiblePairs.push({ slide: s, idx: si }); });
+  // Aggregate per-slide failures so we can surface "N slides failed" instead of silently
+  // dropping them. The most common causes are CORS-tainted canvases (toBlob returns null) and
+  // images that never finished loading within the per-image timeout.
+  var failed = [];
   for (var i = 0; i < visiblePairs.length; i++) {
     var p = visiblePairs[i];
     setExportStatus("Rendering " + (i + 1) + "/" + visiblePairs.length + "...");
     try {
-      var canvas = await renderSlideToCanvas(slideRef, p.idx, setCurrentSlide);
-      if (!canvas) continue;
+      var rendered = await renderSlideToCanvas(slideRef, p.idx, setCurrentSlide);
+      var canvas = rendered && rendered.canvas;
+      var imgStat = rendered && rendered.imgStatus;
+      if (!canvas) { failed.push({ idx: p.idx, reason: "render returned no canvas" }); continue; }
+      if (imgStat && (imgStat.timedOut > 0 || imgStat.errored > 0)) {
+        console.warn("Slide " + (i + 1) + " (orig " + p.idx + ") snapshotted with " + imgStat.timedOut + " timed-out, " + imgStat.errored + " errored images");
+      }
       var blob = await new Promise(function(r) { canvas.toBlob(r, mimeType, quality); });
-      if (blob) imgFolder.file("slide-" + String(i + 1).padStart(2, "0") + ext, blob);
-    } catch (err) { console.error("Failed slide " + (i + 1) + " (orig idx " + p.idx + ")", err); }
+      if (blob) {
+        imgFolder.file("slide-" + String(i + 1).padStart(2, "0") + ext, blob);
+      } else {
+        // toBlob returning null usually means the canvas was CORS-tainted by a cross-origin image
+        // that didn't serve a permissive header. allowTaint:true lets html2canvas draw it but
+        // toBlob can no longer extract pixels — slide gets dropped from the zip.
+        failed.push({ idx: p.idx, reason: "tainted canvas (likely cross-origin image)" });
+        console.error("Slide " + (i + 1) + " (orig " + p.idx + ") toBlob returned null — canvas likely tainted by a cross-origin image without CORS headers");
+      }
+    } catch (err) {
+      failed.push({ idx: p.idx, reason: err && err.message ? err.message : "unknown render error" });
+      console.error("Failed slide " + (i + 1) + " (orig idx " + p.idx + ")", err);
+    }
+  }
+  if (failed.length > 0) {
+    var failedNote = failed.length + "/" + visiblePairs.length + " slides failed: " + failed.map(function(f) { return "#" + (f.idx + 1) + " (" + f.reason + ")"; }).join(", ");
+    console.warn(failedNote);
+    // Bundle a failure log so the user can read it without opening the console.
+    try { zip.file("EXPORT-WARNINGS.txt", failedNote + "\n\nIf the cause is CORS, try Swap > Random on the failing slides to pull a fresh image, then re-export."); } catch (e) {}
   }
   // Bundle the carousel JSON alongside the slide images so the folder can be re-imported
   try {
@@ -2684,14 +2738,14 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
       if (navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({ files: [file], title: "LOATHR Carousel", text: "Carousel export" });
-          setExportStatus("Shared!");
+          setExportStatus("Shared!" + (failed.length > 0 ? " (" + failed.length + " slide" + (failed.length === 1 ? "" : "s") + " failed — see EXPORT-WARNINGS.txt)" : ""));
         } catch (shareErr) {
           if (shareErr.name !== "AbortError") {
             // Fallback to download
             var blobUrl2 = URL.createObjectURL(content);
             var a2 = document.createElement("a"); a2.href = blobUrl2; a2.download = fileName; a2.click();
             URL.revokeObjectURL(blobUrl2);
-            setExportStatus("Downloaded!");
+            setExportStatus("Downloaded!" + (failed.length > 0 ? " (" + failed.length + " slide" + (failed.length === 1 ? "" : "s") + " failed — see EXPORT-WARNINGS.txt)" : ""));
           } else { setExportStatus("Share cancelled"); }
         }
       } else {
@@ -6589,9 +6643,11 @@ export default function LoathrMediaGenerator() {
               setExportStatus("Rendering...");
               try {
                 await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
-                var canvas = await renderSlideToCanvas(slideRef, currentSlide, setCurrentSlide);
+                var rendered = await renderSlideToCanvas(slideRef, currentSlide, setCurrentSlide);
+                var canvas = rendered && rendered.canvas;
                 if (canvas) {
                   var blob = await new Promise(function(r) { canvas.toBlob(r, "image/jpeg", 0.96); });
+                  if (!blob) { throw new Error("toBlob returned null — canvas likely tainted by a cross-origin image without CORS headers"); }
                   var fileName = "LOATHR-slide-" + (currentSlide + 1) + ".jpg";
                   // Mobile: use share API
                   if (navigator.share && navigator.canShare) {
