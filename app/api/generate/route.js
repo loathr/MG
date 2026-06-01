@@ -68,7 +68,7 @@ export async function POST(request) {
     const body = await request.json();
 
     const payload = {
-      model: body.model || "claude-sonnet-4-20250514",
+      model: body.model || "claude-opus-4-7",
       max_tokens: body.max_tokens || 8000,
       messages: body.messages,
     };

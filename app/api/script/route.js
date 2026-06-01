@@ -239,7 +239,7 @@ export async function POST(request) {
       " Submit through the submit_script tool.";
 
     const payload = {
-      model: body.model || "claude-sonnet-4-20250514",
+      model: body.model || "claude-opus-4-7",
       max_tokens: 4000,
       system: bibleText,
       messages: [{ role: "user", content: userPrompt }],

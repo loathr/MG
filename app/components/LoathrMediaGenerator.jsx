@@ -3088,7 +3088,7 @@ export default function LoathrMediaGenerator() {
     setIsRefining(true); setRefinedAngles([]);
     try {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 800, messages: [{ role: "user",
+        body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 800, messages: [{ role: "user",
           content: "You're a content strategist. Generate 3 sharper angles on \"" + topic + "\" for \"" + cat.label + "\" Instagram carousels. Respond ONLY with JSON: [{\"angle\":\"title\",\"hook\":\"one sentence\"}]" }] }) });
       var d = await r.json();
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
@@ -3105,7 +3105,7 @@ export default function LoathrMediaGenerator() {
     try {
       var segmentCtx = activeSegment === "enterprise" ? "business/industry analysis Instagram carousel" : activeSegment === "newsdesk" ? "news media Instagram carousel" : "editorial Instagram carousel in " + (cat ? cat.label : category);
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 200,
+        body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 200,
           messages: [{ role: "user",
             content: "Rate the viral potential of this topic for a " + segmentCtx + ":\n\"" + query + "\"\n\nScore 1-10 based on: timeliness, emotional hook, debate potential, visual appeal, shareability, audience size.\n\nRespond ONLY with JSON (no markdown):\n{\"score\":N,\"reason\":\"one sentence why\",\"tip\":\"one sentence to improve it\"}" }] }) });
       var d = await r.json();
@@ -3163,7 +3163,7 @@ export default function LoathrMediaGenerator() {
     try {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000,
+        body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 4000,
           tools: [{ type: "web_search_20250305", name: "web_search" }],
           messages: [{ role: "user", content: promptText }] }) });
       var d = await r.json();
@@ -3186,7 +3186,7 @@ export default function LoathrMediaGenerator() {
     setIsSearching(true);
     try {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 600, messages: [{ role: "user",
+        body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 600, messages: [{ role: "user",
           content: "For the topic \"" + query + "\" in " + (cat ? cat.label : category) + ":\n1. Suggest 3 sharp carousel angles\n2. Identify ALL famous people connected to this topic. Resolve nicknames/stage names to full names (e.g. \"Ye\" = Kanye West, \"MJ\" = Michael Jordan, \"Bey\" = Beyoncé, \"Drake\" = Aubrey Drake Graham).\n3. ONLY if the topic explicitly mentions or is ABOUT a specific place, city, venue, or landmark, include it. Do NOT include birthplaces or loosely associated locations — only places that are the SUBJECT of the topic.\n\nRespond ONLY with JSON (no extra text):\n{\"angles\":[{\"topic\":\"title\",\"hook\":\"why\"}],\"persons\":[\"Full Name\"],\"locations\":[\"Place Name\"]}\nUse empty arrays if none: \"persons\":[],\"locations\":[]" }] }) });
       var d = await r.json();
       if (d.error) { console.error("Smart angles API error:", d.error); return; }
@@ -3232,7 +3232,7 @@ export default function LoathrMediaGenerator() {
     if (!query || query.length < 4 || !category) return;
     try {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 400,
+        body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 400,
           tools: [{ type: "web_search_20250305", name: "web_search" }],
           messages: [{ role: "user", content: "Search for recent news and trends about \"" + query + "\" in " + (cat ? cat.label : category) + ". Find 3 timely, specific angles. Respond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why trending now\",\"source\":\"publication\"}]" }] }) });
       var d = await r.json();
@@ -3286,7 +3286,7 @@ export default function LoathrMediaGenerator() {
     try {
       var catLabel = cat ? cat.label : category || "general";
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 400, messages: [{ role: "user", content: [
+        body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 400, messages: [{ role: "user", content: [
           { type: "image", source: { type: "base64", media_type: mimeType || "image/jpeg", data: base64 } },
           { type: "text", text: "Analyze this image. Suggest 5 editorial carousel topics for an Instagram brand in \"" + catLabel + "\". Each topic should be inspired by what you see but editorially interesting.\n\nRespond ONLY with JSON:\n[{\"topic\":\"title\",\"hook\":\"why this works\"}]" }
         ] }] }) });
@@ -3335,7 +3335,7 @@ export default function LoathrMediaGenerator() {
     try {
       var headings = slides.slice(1, 6).map(function(s) { return s && s.heading ? s.heading : ""; }).filter(Boolean).join(", ");
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 400, messages: [{ role: "user",
+        body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 400, messages: [{ role: "user",
           content: dateAnchor() + "\n\nBased on a carousel about \"" + genTopic + "\" in " + genCategory + " covering: " + headings + ".\n\nSuggest 3 related but DIFFERENT topics the reader should explore next. Each should feel like a natural next chapter. Mix categories.\n\nRespond ONLY with JSON: [{\"topic\":\"title\",\"hook\":\"why this connects\",\"category\":\"" + genCategory + " or another category\"}]" }] }) });
       var d = await r.json();
       if (d.error) return;
@@ -4221,7 +4221,7 @@ export default function LoathrMediaGenerator() {
       }
       // All paths use web search to ground generation in current data (model cutoff is mid-2024)
       var useWebSearch = true;
-      var fetchBody = { model: "claude-sonnet-4-20250514", max_tokens: 16000, messages: [{ role: "user", content: prompt }] };
+      var fetchBody = { model: "claude-opus-4-7", max_tokens: 16000, messages: [{ role: "user", content: prompt }] };
       fetchBody.tools = [{ type: "web_search_20250305", name: "web_search" }];
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
@@ -4256,7 +4256,7 @@ export default function LoathrMediaGenerator() {
         // Last resort: retry without web search
         if (useWebSearch) {
           setImgStatus("Web search failed to produce JSON — retrying without search...");
-          var retryBody = { model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] };
+          var retryBody = { model: "claude-opus-4-7", max_tokens: 8000, messages: [{ role: "user", content: prompt }] };
           var r2 = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify(retryBody) });
           var d2 = await r2.json();
           if (d2.error) throw new Error(d2.error.message || d2.error);
@@ -4285,7 +4285,7 @@ export default function LoathrMediaGenerator() {
           // Last attempt: retry without web search (truncation likely caused by search tokens)
           if (useWebSearch) {
             setImgStatus("JSON truncated — retrying without web search...");
-            var retryBody3 = { model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: prompt }] };
+            var retryBody3 = { model: "claude-opus-4-7", max_tokens: 8000, messages: [{ role: "user", content: prompt }] };
             var r3 = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify(retryBody3) });
             var d3 = await r3.json();
             if (d3.error) throw new Error(d3.error.message || d3.error);
@@ -4674,7 +4674,7 @@ export default function LoathrMediaGenerator() {
 
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 8000, messages: [{ role: "user", content: customPrompt }] }) });
+        body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 8000, messages: [{ role: "user", content: customPrompt }] }) });
       var d = await r.json();
       if (d.error) throw new Error(d.error.message || d.error);
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
@@ -4756,7 +4756,7 @@ export default function LoathrMediaGenerator() {
       var tools = [{ type: "web_search_20250305", name: "web_search" }];
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 3000, messages: msgs, tools: tools }) });
+        body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 3000, messages: msgs, tools: tools }) });
       var d = await r.json();
       if (d.error) throw new Error(d.error.message || d.error);
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
