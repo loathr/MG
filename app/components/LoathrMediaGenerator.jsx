@@ -520,6 +520,25 @@ var _activeSegment = null; // "enterprise"|null — forces B&W when enterprise
 var _mosaicSlides = {}; // { slideIndex: [url1, url2, ...] } — set by generate(), read by ImgBg
 var _allImages = {}; // full images map for mosaic to pull from
 
+// Per-slide image Fit/Position. Used by every slide-image render so users can:
+//   - choose "fit" (whole image visible, letterboxed) vs the default "fill" (crop to frame)
+//   - drag the focal point (objectPosition) so the crop or letterbox shows the right part
+// Defaults preserve the original cover-crop behavior so stock-image slides are unchanged.
+function slideImgStyle(slide) {
+  var fit = slide && slide.imgFit === "fit" ? "contain" : "cover";
+  var pos = slide && slide.imgPosition;
+  var x = pos && typeof pos.x === "number" ? pos.x : 50;
+  var y = pos && typeof pos.y === "number" ? pos.y : 50;
+  return { objectFit: fit, objectPosition: x + "% " + y + "%" };
+}
+
+// Letterbox background when "fit" mode leaves blank area around the image. Defaults to black
+// so light photos still pop; users can override via slide.imgLetterbox.
+function slideImgLetterbox(slide) {
+  if (!slide || slide.imgFit !== "fit") return null;
+  return slide.imgLetterbox || "#000000";
+}
+
 // Mosaic layouts — CSS grid templates for collage backgrounds
 var MOSAIC_LAYOUTS = [
   // 2-panel layouts
@@ -617,7 +636,7 @@ function getMosaicImgs(images, idx, totalSlides) {
   return urls;
 }
 
-function ImgBg({ url, pal, children, darken, category, imgFilter, slideIndex }) {
+function ImgBg({ url, pal, children, darken, category, imgFilter, slideIndex, slide }) {
   // Auto-mosaic: if this slide is flagged for mosaic, render collage layout
   var mosaicUrls = _mosaicSlides[slideIndex];
   if (mosaicUrls && mosaicUrls.length >= 2) {
@@ -629,9 +648,12 @@ function ImgBg({ url, pal, children, darken, category, imgFilter, slideIndex }) 
   if (imgFilter) { filt = imgFilter; }
   else if (preset && preset.filters) { filt = preset.filters[0]; }
   else { var urlSeed = 0; if (url) { for (var ci = 0; ci < Math.min(url.length, 50); ci++) urlSeed += url.charCodeAt(ci); } filt = IMG_FILTERS[(slideIndex + urlSeed) % IMG_FILTERS.length]; }
+  var imgStyle = slideImgStyle(slide);
+  var letterbox = slideImgLetterbox(slide);
+  var bg = letterbox || pal.bg;
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: pal.bg }}>
-      {url && <img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: filt }} onError={function(e) { e.target.style.display = "none"; }} />}
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: bg }}>
+      {url && <img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: imgStyle.objectFit, objectPosition: imgStyle.objectPosition, filter: filt }} onError={function(e) { e.target.style.display = "none"; }} />}
       {!url && <EditorialFill pal={pal} category={category} />}
       {darken && <div style={{ position: "absolute", inset: 0, background: darken }} />}
       {children}
@@ -1176,7 +1198,7 @@ function S1Cover({ slide, category, images, edition, index }) {
   var url = getImg(images, 0);
   var edLabel = edition ? edition.label : "";
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
         <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: M_SIDE, textAlign: "right", zIndex: 2 }}>
           <div style={{ ...CP, fontSize: 18, letterSpacing: "0.5em", color: "#ffffffbb", fontWeight: 700, textDecoration: "line-through", textDecorationColor: p.accent, textDecorationThickness: 1 }}>LOATHR</div>
           {edLabel && <div style={{ ...CP, fontSize: 5, letterSpacing: "0.15em", color: "#ffffffcc", marginTop: 3, marginRight: 9 }}>{edLabel}</div>}
@@ -1234,7 +1256,7 @@ function S2Arena({ slide, index, category, images }) {
   var hasSplitPos = slide.textPosition && ["split-corners", "side-left", "side-right", "top-left", "top-right", "l-shape"].indexOf(slide.textPosition) !== -1;
   if (hasSplitPos) {
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide}>
         <SplitTextBox slide={slide} position={slide.textPosition} accent={p.accent} accent2={p.accent2} category={category} seed={index} styleBody={styleBody} />
       </ImgBg>
     );
@@ -1242,7 +1264,7 @@ function S2Arena({ slide, index, category, images }) {
   var contentSeed = (slide.body || "").length + (slide.heading || "").length;
   var fpos = slide.customPosition && (slide.customPosition.all || slide.customPosition.heading) ? (function() { var o = slide.customPosition.all || slide.customPosition.heading; return { top: o.top, left: o.left, maxWidth: "65%", right: "auto", bottom: "auto" }; })() : getFramePosition(contentSeed, index, slide.textPosition);
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide}>
       <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fpos)}>
         {wrappedText}
       </div>
@@ -1282,14 +1304,14 @@ function S3RayGun({ slide, index, category, images }) {
     var hasSplitFlip = slide.textPosition && ["split-corners", "side-left", "side-right", "top-left", "top-right", "l-shape"].indexOf(slide.textPosition) !== -1;
     if (hasSplitFlip) {
       return (
-        <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
+        <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide}>
           <SplitTextBox slide={slide} position={slide.textPosition} accent={p.accent} accent2={p.accent2} category={category} seed={index + 1} styleBody={styleBody} />
         </ImgBg>
       );
     }
     var fposFlip = slide.customPosition && (slide.customPosition.all || slide.customPosition.heading) ? (function() { var o = slide.customPosition.all || slide.customPosition.heading; return { top: o.top, left: o.left, maxWidth: "65%", right: "auto", bottom: "auto" }; })() : getFramePosition((slide.body || "").length, index, slide.textPosition);
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide}>
         <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fposFlip)}>
           {flippedWrapped}
         </div>
@@ -1311,7 +1333,7 @@ function S3RayGun({ slide, index, category, images }) {
   var hasSplitNorm = slide.textPosition && ["split-corners", "side-left", "side-right", "top-left", "top-right", "l-shape"].indexOf(slide.textPosition) !== -1;
   if (hasSplitNorm) {
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide}>
         <SplitTextBox slide={slide} position={slide.textPosition} accent={p.accent} accent2={p.accent2} category={category} seed={index} styleBody={styleBody} />
       </ImgBg>
     );
@@ -1319,7 +1341,7 @@ function S3RayGun({ slide, index, category, images }) {
   var fposNorm = slide.customPosition && (slide.customPosition.all || slide.customPosition.heading) ? (function() { var o = slide.customPosition.all || slide.customPosition.heading; return { top: o.top, left: o.left, maxWidth: "65%", right: "auto", bottom: "auto" }; })() : getFramePosition((slide.heading || "").length, index, slide.textPosition);
   if (styled) {
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide}>
         <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fposNorm)}>
           {normalWrapped}
         </div>
@@ -1328,7 +1350,7 @@ function S3RayGun({ slide, index, category, images }) {
   }
   // Fallback — also uses full image
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide}>
       <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, fposNorm)}>
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index}>{normalText}</FormalFrame>
       </div>
@@ -1431,7 +1453,7 @@ function S4Emigre({ slide, index, category, images }) {
     var compLayout = index % 2;
     var compScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : (category === "photo" ? 0.78 : 0.65);
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + compScrim + ")"}>
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken={"rgba(0,0,0," + compScrim + ")"}>
         {compLayout === 0 ? (
           <div style={{ position: "absolute", top: "25%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", alignItems: "center" }}>
             <div style={{ flex: 1, textAlign: "center" }}>
@@ -1478,7 +1500,7 @@ function S4Emigre({ slide, index, category, images }) {
     var killerScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : (category === "photo" ? 0.75 : 0.6);
     var statStyle = { ...WS, fontSize: killerSize, color: killerColor, lineHeight: 0.85, letterSpacing: killerLS, wordBreak: "break-word", overflowWrap: "break-word" };
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + killerScrim + ")"}>
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken={"rgba(0,0,0," + killerScrim + ")"}>
         {killerLayout === 0 ? (
           <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 3, textAlign: "center", width: "85%", maxHeight: "62%", overflow: "hidden" }}>
             <div style={statStyle}>{slide.stat}</div>
@@ -1504,7 +1526,7 @@ function S4Emigre({ slide, index, category, images }) {
     var storyLayout = index % 2;
     var storyScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : (category === "photo" ? 0.82 : 0.7);
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + storyScrim + ")"}>
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken={"rgba(0,0,0," + storyScrim + ")"}>
         {storyLayout === 0 ? (
           <div style={{ position: "absolute", top: "18%", left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
             {stats.slice(0, 3).map(function(s, i) {
@@ -1547,7 +1569,7 @@ function S4Emigre({ slide, index, category, images }) {
     var vsSize = vsMaxLen > 7 ? 24 : vsMaxLen > 5 ? 30 : 36;
     var vsScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : (category === "photo" ? 0.78 : 0.65);
     return (
-      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + vsScrim + ")"}>
+      <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken={"rgba(0,0,0," + vsScrim + ")"}>
         <div style={{ position: "absolute", top: "20%", left: M_SIDE, right: M_SIDE, zIndex: 3, display: "flex", alignItems: "center" }}>
           <div style={{ flex: 1, textAlign: "center" }}>
             <div style={{ ...FN, fontSize: 10, color: "#ffffffcc", textTransform: "uppercase", marginBottom: 6 }}>{slide.left || "A"}</div>
@@ -1572,7 +1594,7 @@ function S4Emigre({ slide, index, category, images }) {
   // Format E: Timeline Number — brighter year with accent markers
   var tlScrim = typeof slide.scrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.scrimOpacity / 100)) : (category === "photo" ? 0.75 : 0.6);
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken={"rgba(0,0,0," + tlScrim + ")"}>
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken={"rgba(0,0,0," + tlScrim + ")"}>
       <div style={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", zIndex: 3, textAlign: "center", display: "flex", alignItems: "center", gap: 8 }}>
         <div style={{ width: 6, height: 6, background: p.accent }} />
         <div style={{ ...CP, fontSize: 12, color: "#ffffffcc", letterSpacing: "0.3em" }}>{slide.year || ""}</div>
@@ -1620,7 +1642,7 @@ function S5Face({ slide, index, category, images }) {
   var s5Bgfill = (s5Mosaic && s5Mosaic.length >= 2)
     ? <MosaicBg urls={s5Mosaic} pal={p} category={category} slideIndex={index || 0}>{null}</MosaicBg>
     : url
-      ? <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />
+      ? <img src={url} alt="" style={Object.assign({ width: "100%", height: "100%", filter: "saturate(0.85) brightness(0.75)" }, slideImgStyle(slide))} onError={function(e) { e.target.style.display = "none"; }} />
       : <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>;
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
@@ -1657,7 +1679,7 @@ function S6Purple({ slide, index, category, images }) {
   var url = getImg(images, index);
   var quoteText = slide.quote || slide.highlight || slide.body || "";
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0}>
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide}>
       <div style={Object.assign({}, { position: "absolute", zIndex: 3 }, getFramePosition(quoteText.length, index))}>
         <FormalFrame accent={p.accent} accent2={p.accent2} seed={index + 4}>
           <div style={{ ...HD, fontSize: 11.5, fontStyle: "italic", color: p.pillFg || "#ffffff", lineHeight: 1.8, textAlign: "left" }}><span style={{ background: (p.pillBg || p.accent) + "cc", padding: "2px 5px", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" }}>{quoteText.charAt(0) === '"' ? quoteText : '"' + quoteText + '"'}</span></div>
@@ -1673,12 +1695,12 @@ function S6Purple({ slide, index, category, images }) {
 }
 
 // --- S7 CLOSER (Blitz geometric fade) ---
-function S7Blitz({ category, hashtags, images, index }) {
+function S7Blitz({ category, hashtags, images, index, slide }) {
   var p = PALETTES[category];
   var keys = images ? Object.keys(images) : [];
   var url = getImg(images, keys.length > 1 ? keys.length - 1 : 0);
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.75)">
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken="rgba(0,0,0,0.75)">
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 3 }}>
         <div style={{ ...CP, fontSize: 7, letterSpacing: "0.25em", color: p.accent + "99" }}>{CLOSER_TAGS[category]}</div>
         <div style={{ position: "relative", display: "inline-block", marginTop: 10 }}>
@@ -1698,7 +1720,7 @@ function RecDestination({ slide, category, images, index }) {
   var p = PALETTES[category];
   var url = getImg(images, 0);
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.9))">
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.9))">
       <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, zIndex: 3 }}>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.2em", color: p.accent + "99" }}>LOATHR RECOMMENDS</div>
       </div>
@@ -1721,7 +1743,7 @@ function RecHiddenGem({ slide, category, images }) {
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "55%", borderBottom: "2px solid " + p.accent }}>
-        {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+        {url && <img src={url} alt="" style={Object.assign({ width: "100%", height: "100%", filter: "saturate(0.85) brightness(0.75)" }, slideImgStyle(slide))} onError={function(e) { e.target.style.display = "none"; }} />}
         {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
         <div style={{ position: "absolute", top: 8, left: M_SIDE, zIndex: 2 }}>
           <div style={{ ...CP, fontSize: 6, color: "#000", background: p.accent, padding: "2px 6px", display: "inline-block" }}>HIDDEN GEM</div>
@@ -1743,7 +1765,7 @@ function RecNewOpening({ slide, category, images, index }) {
   var p = PALETTES[category];
   var url = getImg(images, 2);
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.92))">
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken="linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.92))">
       <div style={{ position: "absolute", top: M_TOP, right: M_SIDE, zIndex: 3 }}>
         <div style={{ ...CP, fontSize: 6, color: "#000", background: p.accent2, padding: "2px 6px", display: "inline-block" }}>JUST OPENED</div>
       </div>
@@ -1790,7 +1812,7 @@ function RecShortlist({ slide, category, images, index }) {
   var url = getImg(images, 4);
   var items = slide.shortlist || [];
   return (
-    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} darken="rgba(0,0,0,0.82)">
+    <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken="rgba(0,0,0,0.82)">
       <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, right: M_SIDE, zIndex: 3 }}>
         <div style={{ ...FN, fontSize: 14, color: "#ffffff", textTransform: "uppercase", letterSpacing: "0.05em" }}>The Shortlist</div>
         <div style={{ width: "20%", height: 2, background: p.accent, marginTop: 6 }} />
@@ -1889,7 +1911,7 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
       slide = <NewsStory slide={nSlideData} images={images} index={slideIndex} />;
     }
   } else {
-    if (slideIndex === lastIdx) slide = <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} index={slideIndex} />;
+    if (slideIndex === lastIdx) slide = <S7Blitz category={category} hashtags={slideData.hashtags || ""} images={images} index={slideIndex} slide={slideData} />;
     else if (slideIndex === 0) slide = <S1Cover slide={slideData} category={category} images={images} edition={edition} index={slideIndex} />;
     else if (slideData.statFormat || slideData.stat || slideData.stats || slideData.before || slideData.leftStat) slide = <S4Emigre slide={slideData} index={slideIndex} category={effectiveCat} images={images} />;
     else if (slideData.quote) slide = <S6Purple slide={slideData} index={slideIndex} category={effectiveCat} images={images} />;
@@ -3276,13 +3298,13 @@ export default function LoathrMediaGenerator() {
       if (unsplashKey) {
         try {
           var ur = await fetch("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(catLabel + " " + keywords) + "&per_page=6&page=" + page + "&orientation=portrait", { headers: { Authorization: "Client-ID " + unsplashKey } });
-          if (ur.ok) { var ud = await ur.json(); results = results.concat((ud.results || []).map(function(img) { return { url: img.urls ? img.urls.regular : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; }).slice(0, 4)); }
+          if (ur.ok) { var ud = await ur.json(); results = results.concat((ud.results || []).map(function(img) { return { url: img.urls ? (img.urls.full || img.urls.regular) : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; }).slice(0, 4)); }
         } catch (e) {}
       }
       if (pexelsKey && results.length < 4) {
         try {
           var pr = await fetch("https://api.pexels.com/v1/search?query=" + encodeURIComponent(catLabel + " " + keywords) + "&per_page=4&page=" + page + "&orientation=portrait", { headers: { Authorization: pexelsKey } });
-          if (pr.ok) { var pd = await pr.json(); results = results.concat((pd.photos || []).map(function(img) { return { url: img.src ? img.src.large : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; }).slice(0, 4 - results.length)); }
+          if (pr.ok) { var pd = await pr.json(); results = results.concat((pd.photos || []).map(function(img) { return { url: img.src ? (img.src.original || img.src.large2x || img.src.large) : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; }).slice(0, 4 - results.length)); }
         } catch (e) {}
       }
       try { var vi = await searchVintage(category, keywords); results = results.concat(vi.slice(0, 2)); } catch (e) {}
@@ -7353,6 +7375,44 @@ export default function LoathrMediaGenerator() {
                       </div>
                     </div>
                   </div>}
+                </div>;
+              })()}
+              {/* Image Fit / Position — visible whenever this slide has an image */}
+              {(function() {
+                var imgEntry = images && images[currentSlide];
+                if (!imgEntry || !imgEntry.url) return null;
+                var fit = s.imgFit || "fill";
+                var pos = s.imgPosition || { x: 50, y: 50 };
+                var px = typeof pos.x === "number" ? pos.x : 50;
+                var py = typeof pos.y === "number" ? pos.y : 50;
+                var darkSeg = activeSegment === "enterprise";
+                var labelStyle = { ...CP, fontSize: 5, color: darkSeg ? "#aaa" : "#888", marginBottom: 3 };
+                var smallStyle = { ...CP, fontSize: 5, color: darkSeg ? "#999" : "#666", width: 28 };
+                var pillStyle = function(sel) { return { padding: "2px 8px", border: "0.5px solid " + (sel ? (darkSeg ? "#fff" : "#333") : (darkSeg ? "#444" : "#ddd")), background: sel ? (darkSeg ? "#ffffff22" : "#33333322") : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? (darkSeg ? "#fff" : "#333") : (darkSeg ? "#888" : "#888"), letterSpacing: "0.05em" }; };
+                var isUpload = imgEntry.source === "Upload";
+                return <div style={{ marginBottom: 6, padding: "6px 8px", border: "0.5px dashed " + (darkSeg ? "#444" : "#ddd"), borderRadius: 3 }}>
+                  <div style={labelStyle}>IMAGE FIT{isUpload ? " · UPLOADED" : ""}</div>
+                  <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+                    <button onClick={function() { updateSlideField(currentSlide, "imgFit", "fill"); }} style={pillStyle(fit === "fill")} title="Crop the image to fill the slide frame (default)">Fill</button>
+                    <button onClick={function() { updateSlideField(currentSlide, "imgFit", "fit"); }} style={pillStyle(fit === "fit")} title="Show the whole image, letterboxed around it">Fit</button>
+                  </div>
+                  <div style={labelStyle}>FOCAL POINT</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
+                    <span style={smallStyle}>X</span>
+                    <input type="range" min="0" max="100" step="1" value={px} onChange={function(e) { updateSlideField(currentSlide, "imgPosition", { x: parseInt(e.target.value, 10), y: py }); }} style={{ flex: 1 }} />
+                    <span style={Object.assign({}, smallStyle, { textAlign: "right" })}>{px}%</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                    <span style={smallStyle}>Y</span>
+                    <input type="range" min="0" max="100" step="1" value={py} onChange={function(e) { updateSlideField(currentSlide, "imgPosition", { x: px, y: parseInt(e.target.value, 10) }); }} style={{ flex: 1 }} />
+                    <span style={Object.assign({}, smallStyle, { textAlign: "right" })}>{py}%</span>
+                  </div>
+                  {fit === "fit" && <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                    <span style={Object.assign({}, smallStyle, { width: 56 })}>LETTERBOX</span>
+                    <input type="color" value={s.imgLetterbox || "#000000"} onChange={function(e) { updateSlideField(currentSlide, "imgLetterbox", e.target.value); }} style={{ width: 30, height: 18, padding: 0, border: "0.5px solid " + (darkSeg ? "#444" : "#ddd"), cursor: "pointer", background: darkSeg ? "#000" : "#fff" }} />
+                  </div>}
+                  <button onClick={function() { updateSlideField(currentSlide, "imgFit", null); updateSlideField(currentSlide, "imgPosition", null); updateSlideField(currentSlide, "imgLetterbox", null); }}
+                    style={{ padding: "2px 8px", border: "0.5px solid " + (darkSeg ? "#444" : "#ddd"), background: "transparent", cursor: "pointer", ...CP, fontSize: 5, color: darkSeg ? "#888" : "#999" }}>{"↺"} Reset Image</button>
                 </div>;
               })()}
               {/* Enterprise layout picker — content slides only */}

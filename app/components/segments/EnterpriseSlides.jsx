@@ -47,6 +47,15 @@ var _globalImgFilter = "none";
 export function setGlobalImgFilter(f) { _globalImgFilter = f || "none"; }
 function getImgFilter(slide) { return IMG_FILTERS[(slide && slide.imgFilter) || _globalImgFilter] || "none"; }
 
+// Per-slide image Fit/Position — see slideImgStyle in LoathrMediaGenerator.jsx.
+function imgFit(s) {
+  var fit = s && s.imgFit === "fit" ? "contain" : "cover";
+  var pos = s && s.imgPosition;
+  var x = pos && typeof pos.x === "number" ? pos.x : 50;
+  var y = pos && typeof pos.y === "number" ? pos.y : 50;
+  return { objectFit: fit, objectPosition: x + "% " + y + "%" };
+}
+
 // Enterprise text styling — underline KEY TERMS + custom keywords
 export function enterpriseStyleBody(text, keywords, underlineWeight) {
   if (!text) return "";
@@ -192,7 +201,7 @@ export function EnterpriseCover({ slide, images, index }) {
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
       <Masthead isBreaking={isBreaking} slide={slide} />
       {url && <div style={{ height: sp + "%", overflow: "hidden", flexShrink: 0, borderBottom: "1px solid #ffffff22" }}>
-        <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
+        <img src={url} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>}
       <div style={{ flex: 1, padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <CoverTitle slide={slide} />
@@ -204,7 +213,7 @@ export function EnterpriseCover({ slide, images, index }) {
   // Layout 1 — Full Bleed (image background, text overlay at bottom)
   if (coverLayout === 1) return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a" }}>
-      {url && <img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />}
+      {url && <img src={url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />}
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.85) 70%, rgba(0,0,0,0.95))" }} />
       <div style={{ position: "absolute", top: 10, right: 16, zIndex: 2 }}>
         <div style={{ ...CP, fontSize: 9, letterSpacing: "0.25em", marginRight: "-0.25em", color: "#ffffff66", textAlign: "right" }}>LOATHR</div>
@@ -223,7 +232,7 @@ export function EnterpriseCover({ slide, images, index }) {
   // Layout 2 — Split (image left, text right)
   if (coverLayout === 2) return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex" }}>
-      {url ? <div style={{ width: sp + "%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+      {url ? <div style={{ width: sp + "%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} /></div>
         : <div style={{ width: sp + "%", background: "#111" }} />}
       <div style={{ width: (100 - sp) + "%", padding: "10px 14px", display: "flex", flexDirection: "column" }}>
         <div style={{ textAlign: "right", marginBottom: 8 }}>
@@ -263,7 +272,7 @@ export function EnterpriseCover({ slide, images, index }) {
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.25em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
       </div>}
       {url && <div style={{ height: sp + "%", width: "100%", overflow: "hidden", flexShrink: 0, borderBottom: "1px solid #ffffff22", borderTop: "1px solid #ffffff22" }}>
-        <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
+        <img src={url} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>}
       <div style={{ flex: 1, padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "center" }}>
         <CoverTitle slide={slide} />
@@ -275,9 +284,10 @@ export function EnterpriseCover({ slide, images, index }) {
 
 // Render image or mosaic
 function ImgOrMosaic({ url, mosaic, mosaicLayout, height, width, slide }) {
+  // Build a slide ref for child renderers — they need imgFit/imgPosition from the slide.
   var f = getImgFilter(slide);
-  if (mosaic) return <EnterpriseMosaic urls={mosaic} height={height} width={width} layout={mosaicLayout} imgF={f} />;
-  if (url) return <div style={{ width: width || "100%", height: height || "100%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: f }} onError={function(e) { e.target.style.display = "none"; }} /></div>;
+  if (mosaic) return <EnterpriseMosaic urls={mosaic} height={height} width={width} layout={mosaicLayout} imgF={f} slide={slide} />;
+  if (url) return <div style={{ width: width || "100%", height: height || "100%", overflow: "hidden" }}><img src={url} alt="" style={Object.assign({ width: "100%", height: "100%", filter: f }, imgFit(slide))} onError={function(e) { e.target.style.display = "none"; }} /></div>;
   return <div style={{ width: width || "100%", height: height || "100%", background: "#111" }} />;
 }
 
@@ -436,7 +446,7 @@ function Layout8({ slide, url, mosaic, mosaicLayout }) {
 }
 
 // Mosaic image renderer for Enterprise — B&W grid
-function EnterpriseMosaic({ urls, height, width, layout, imgF }) {
+function EnterpriseMosaic({ urls, height, width, layout, imgF, slide }) {
   if (!urls || urls.length < 2) return null;
   var count = Math.min(urls.length, 4);
   // If a layout config is provided (from MOSAIC_LAYOUTS), use its grid template
@@ -446,7 +456,7 @@ function EnterpriseMosaic({ urls, height, width, layout, imgF }) {
       <div style={{ width: width || "100%", height: height || "100%", display: "grid", gridTemplateColumns: layout.cols, gridTemplateRows: layout.rows || "1fr", gridTemplateAreas: layout.areas || undefined, gap: 2, background: "#ffffff", overflow: "hidden" }}>
         {urls.slice(0, count).map(function(u, i) { return (
           <div key={i} style={{ gridArea: layout.areas ? letters[i] : undefined, overflow: "hidden" }}>
-            <img src={u} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
+            <img src={u} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
           </div>
         ); })}
       </div>
@@ -457,7 +467,7 @@ function EnterpriseMosaic({ urls, height, width, layout, imgF }) {
     <div style={{ width: width || "100%", height: height || "100%", display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 2, background: "#ffffff", overflow: "hidden" }}>
       {urls.slice(0, 2).map(function(u, i) { return (
         <div key={i} style={{ overflow: "hidden" }}>
-          <img src={u} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
+          <img src={u} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
         </div>
       ); })}
     </div>
@@ -465,27 +475,27 @@ function EnterpriseMosaic({ urls, height, width, layout, imgF }) {
   if (count === 3) return (
     <div style={{ width: width || "100%", height: height || "100%", display: "grid", gridTemplateColumns: "1.6fr 1fr", gridTemplateRows: "1fr 1fr", gap: 2, background: "#ffffff", overflow: "hidden" }}>
       <div style={{ gridRow: "1 / 3", overflow: "hidden" }}>
-        <img src={urls[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
+        <img src={urls[0]} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>
       <div style={{ overflow: "hidden" }}>
-        <img src={urls[1]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
+        <img src={urls[1]} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>
       <div style={{ overflow: "hidden" }}>
-        <img src={urls[2]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
+        <img src={urls[2]} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>
     </div>
   );
   return (
     <div style={{ width: width || "100%", height: height || "100%", display: "grid", gridTemplateColumns: "1.5fr 1fr", gridTemplateRows: "1.3fr 1fr", gap: 2, background: "#ffffff", overflow: "hidden" }}>
       <div style={{ overflow: "hidden" }}>
-        <img src={urls[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
+        <img src={urls[0]} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>
       <div style={{ gridRow: "1 / 3", overflow: "hidden" }}>
-        <img src={urls[1]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
+        <img src={urls[1]} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>
       <div style={{ overflow: "hidden", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-        <div style={{ overflow: "hidden" }}><img src={urls[2]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} /></div>
-        <div style={{ overflow: "hidden" }}><img src={urls[3]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        <div style={{ overflow: "hidden" }}><img src={urls[2]} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        <div style={{ overflow: "hidden" }}><img src={urls[3]} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} /></div>
       </div>
     </div>
   );
@@ -589,7 +599,7 @@ function closerBgLayer(slide) {
   if (mode === "image" && slide.closerBgImage) {
     var scrim = typeof slide.closerScrimOpacity === "number" ? Math.max(0, Math.min(0.95, slide.closerScrimOpacity / 100)) : 0.72;
     return <>
-      <img src={slide.closerBgImage} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.55) brightness(0.7)" }} onError={function(e) { e.target.style.display = "none"; }} />
+      <img src={slide.closerBgImage} alt="" style={Object.assign({ position: "absolute", inset: 0, width: "100%", height: "100%", filter: "saturate(0.55) brightness(0.7)" }, imgFit(slide))} onError={function(e) { e.target.style.display = "none"; }} />
       <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0," + scrim + ")" }} />
     </>;
   }
@@ -630,7 +640,7 @@ export function EnterpriseCloser({ slide, images, index }) {
     var imgUrl = slide.closerBgImage || (images && images[index] ? images[index].url : null) || (images && images[0] ? images[0].url : null);
     return <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
       <div style={{ height: "50%", overflow: "hidden", position: "relative" }}>
-        {imgUrl ? <img src={imgUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "grayscale(0.55) brightness(0.7)" }} onError={function(e) { e.target.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", background: "#1a1a1a" }} />}
+        {imgUrl ? <img src={imgUrl} alt="" style={Object.assign({ width: "100%", height: "100%", filter: "grayscale(0.55) brightness(0.7)" }, imgFit(slide))} onError={function(e) { e.target.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", background: "#1a1a1a" }} />}
       </div>
       <div style={{ height: "50%", padding: "24px 24px 36px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", position: "relative" }}>
         {slide.funnyLine && <div style={{ ...MT, fontSize: 10, color: "#ffffffbb", fontStyle: "italic", lineHeight: 1.4, marginBottom: 14, maxWidth: "85%" }}>{"“" + slide.funnyLine + "”"}</div>}
