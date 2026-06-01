@@ -1841,8 +1841,8 @@ function RecCulture({ slide, category, images }) {
   var url = getImg(images, 3);
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
-      <div style={{ width: "45%", position: "relative", borderRight: "2px solid " + p.accent }}>
-        {url && <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "saturate(0.85) brightness(0.75)" }} onError={function(e) { e.target.style.display = "none"; }} />}
+      <div style={Object.assign({ width: "45%", position: "relative" }, divStyle(slide, "recCultureSplit", { side: "right", weight: 2, color: p.accent }))}>
+        {url && <img src={url} alt="" style={Object.assign({ width: "100%", height: "100%", filter: "saturate(0.85) brightness(0.75)" }, slideImgStyle(slide))} onError={function(e) { e.target.style.display = "none"; }} />}
         {!url && <div style={{ width: "100%", height: "100%", position: "relative" }}><EditorialFill pal={p} category={category} /></div>}
         <div style={{ position: "absolute", bottom: 8, left: 8, zIndex: 2 }}>
           <div style={{ ...CP, fontSize: 6, color: "#000", background: p.accent, padding: "2px 6px" }}>CULTURE</div>
@@ -2751,7 +2751,15 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
     }
   }
   if (failed.length > 0) {
-    var failedNote = failed.length + "/" + visiblePairs.length + " slides failed: " + failed.map(function(f) { return "#" + (f.idx + 1) + " (" + f.reason + ")"; }).join(", ");
+    // Two numbering systems are in play:
+    //   - "orig" is the slide's 1-based index in the source carousel (matches what the editor shows)
+    //   - "zip" is the 1-based position in the exported zip (skipping soft-deleted slides)
+    // We report both so the user can map a warning back to either UI without confusion.
+    var failedNote = failed.length + "/" + visiblePairs.length + " slides failed:\n" + failed.map(function(f) {
+      var zipPos = visiblePairs.findIndex(function(vp) { return vp.idx === f.idx; });
+      var zipLabel = zipPos >= 0 ? "zip slide-" + String(zipPos + 1).padStart(2, "0") : "not in zip";
+      return "  - orig #" + (f.idx + 1) + " (" + zipLabel + "): " + f.reason;
+    }).join("\n");
     console.warn(failedNote);
     // Bundle a failure log so the user can read it without opening the console.
     try { zip.file("EXPORT-WARNINGS.txt", failedNote + "\n\nIf the cause is CORS, try Swap > Random on the failing slides to pull a fresh image, then re-export."); } catch (e) {}
@@ -2802,14 +2810,14 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
         var blobUrl3 = URL.createObjectURL(content);
         var a3 = document.createElement("a"); a3.href = blobUrl3; a3.download = fileName; a3.click();
         URL.revokeObjectURL(blobUrl3);
-        setExportStatus("Downloaded!");
+        setExportStatus("Downloaded!" + (failed.length > 0 ? " (" + failed.length + " slide" + (failed.length === 1 ? "" : "s") + " failed — see EXPORT-WARNINGS.txt)" : ""));
       }
     } else {
       // Desktop: direct download
       var blobUrl = URL.createObjectURL(content);
       var a = document.createElement("a"); a.href = blobUrl; a.download = fileName; a.click();
       URL.revokeObjectURL(blobUrl);
-      setExportStatus("Downloaded!");
+      setExportStatus("Downloaded!" + (failed.length > 0 ? " (" + failed.length + " slide" + (failed.length === 1 ? "" : "s") + " failed — see EXPORT-WARNINGS.txt)" : ""));
     }
   } catch (e) {
     console.error("ZIP creation failed:", e);
@@ -3748,7 +3756,7 @@ export default function LoathrMediaGenerator() {
     stat: ["statSize", "statColor", "statBoxBg", "statBoxHidden", "statLayout", "statCaptionSize"],
     portrait: ["portraitSize", "reactionLayout"],
   };
-  var LAYOUT_OVERRIDES = ["newsLayout", "newsCoverLayout", "newsSplit", "columnCount", "dividerWeight", "dividerHidden", "dividerColor", "imgFilter", "enterpriseLayout", "enterpriseCoverLayout", "enterpriseSplit", "enterpriseTextOffset", "containerStyle", "containerVariant", "containerBg", "containerOpacity", "bgColor", "bgTextureHidden", "editionBarHidden", "underlineWeight"];
+  var LAYOUT_OVERRIDES = ["newsLayout", "newsCoverLayout", "newsSplit", "columnCount", "dividerWeight", "dividerHidden", "dividerColor", "imgFilter", "enterpriseLayout", "enterpriseCoverLayout", "enterpriseSplit", "enterpriseTextOffset", "containerStyle", "containerVariant", "containerBg", "containerOpacity", "bgColor", "bgTextureHidden", "editionBarHidden", "underlineWeight", "imgFit", "imgPosition", "imgLetterbox", "dividers", "allDividersHidden"];
 
   var resetElement = function(slideIdx, element) {
     setOptions(function(prev) {
@@ -7452,8 +7460,26 @@ export default function LoathrMediaGenerator() {
                           updateSlideField(currentSlide, "_closerBgImageStatus", v ? "checking" : "");
                           if (!v) return;
                           var probe = new Image();
-                          probe.onload = function() { updateSlideField(currentSlide, "_closerBgImageStatus", "ok"); };
-                          probe.onerror = function() { updateSlideField(currentSlide, "_closerBgImageStatus", "error"); };
+                          // Guard against stale probes: only commit a status if the slide's
+                          // current closerBgImage is still the URL we just probed. Otherwise an
+                          // earlier slow load can overwrite the status of a newer URL.
+                          var commit = function(status) {
+                            setOptions(function(prev) {
+                              var so = selectedOptionRef.current;
+                              if (!prev || !prev[so]) return prev;
+                              var cur = prev[so].slides[currentSlide];
+                              if (!cur || cur.closerBgImage !== v) return prev;
+                              var newOpts = prev.slice();
+                              var opt = Object.assign({}, newOpts[so]);
+                              var slides = opt.slides.slice();
+                              slides[currentSlide] = Object.assign({}, cur, { _closerBgImageStatus: status });
+                              opt.slides = slides;
+                              newOpts[so] = opt;
+                              return newOpts;
+                            });
+                          };
+                          probe.onload = function() { commit("ok"); };
+                          probe.onerror = function() { commit("error"); };
                           probe.src = v;
                         }}
                         style={Object.assign({}, inputStyle, { marginBottom: 3, borderColor: s._closerBgImageStatus === "error" ? "#c41e1e" : s._closerBgImageStatus === "ok" ? "#2a8a2a" : undefined })} />
@@ -7527,10 +7553,26 @@ export default function LoathrMediaGenerator() {
                 var labelStyle = { ...CP, fontSize: 5, color: darkSeg ? "#aaa" : "#888", marginBottom: 3 };
                 var smallStyle = { ...CP, fontSize: 5, color: darkSeg ? "#999" : "#666" };
                 var pillStyle = function(sel) { return { padding: "2px 8px", border: "0.5px solid " + (sel ? (darkSeg ? "#fff" : "#333") : (darkSeg ? "#444" : "#ddd")), background: sel ? (darkSeg ? "#ffffff22" : "#33333322") : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: sel ? (darkSeg ? "#fff" : "#333") : (darkSeg ? "#888" : "#888"), letterSpacing: "0.05em" }; };
+                // Read the latest dividers map inside the setOptions updater so rapid successive
+                // toggles in the same tick don't overwrite each other (stale-closure race).
                 var setDivider = function(role, key, val) {
-                  var dMap = Object.assign({}, s.dividers || {});
-                  dMap[role] = Object.assign({}, dMap[role] || {}, (function() { var o = {}; o[key] = val; return o; })());
-                  updateSlideField(currentSlide, "dividers", dMap);
+                  setOptions(function(prev) {
+                    var so = selectedOptionRef.current;
+                    if (!prev || !prev[so]) return prev;
+                    var newOpts = prev.slice();
+                    var opt = Object.assign({}, newOpts[so]);
+                    var slides = opt.slides.slice();
+                    var curSlide = Object.assign({}, slides[currentSlide]);
+                    var dMap = Object.assign({}, curSlide.dividers || {});
+                    var entry = Object.assign({}, dMap[role] || {});
+                    entry[key] = val;
+                    dMap[role] = entry;
+                    curSlide.dividers = dMap;
+                    slides[currentSlide] = curSlide;
+                    opt.slides = slides;
+                    newOpts[so] = opt;
+                    return newOpts;
+                  });
                 };
                 var getDiv = function(role) { return (s.dividers && s.dividers[role]) || {}; };
                 // Detect which per-role dividers might apply to this slide. False positives are OK:
@@ -7541,7 +7583,8 @@ export default function LoathrMediaGenerator() {
                 var hasS5Inline = !!s.body && !s.statFormat && !s.quote;
                 var hasRecHidden = !!s.hook;
                 var hasRecOpen = !!s.quote && (s.name || s.neighborhood);
-                var anyExtra = hasStatCompare || hasVersusBar || hasS5Inline || hasRecHidden || hasRecOpen;
+                var hasRecCulture = !!(s.author || s.work);
+                var anyExtra = hasStatCompare || hasVersusBar || hasS5Inline || hasRecHidden || hasRecOpen || hasRecCulture;
                 var roleRow = function(label, role, dflt) {
                   var ov = getDiv(role);
                   var hidden = !!ov.hidden;
@@ -7573,6 +7616,7 @@ export default function LoathrMediaGenerator() {
                     {hasRecHidden && roleRow("Quote left rule", "recHiddenQuote", { weight: 3, color: "#888888" })}
                     {hasRecHidden && roleRow("Image-text split", "recHiddenSplit", { weight: 2, color: "#888888" })}
                     {hasRecOpen && roleRow("Quote right rule", "recOpenQuote", { weight: 3, color: "#888888" })}
+                    {hasRecCulture && roleRow("Culture split rule", "recCultureSplit", { weight: 2, color: "#888888" })}
                   </div>}
                   <button onClick={function() {
                     updateSlideField(currentSlide, "allDividersHidden", null);
