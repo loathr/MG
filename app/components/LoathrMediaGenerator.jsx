@@ -2167,8 +2167,13 @@ var searchPersonImages = async function(personName) {
   if (results.length < 3) { try { var it = await searchITunes(personName); results = results.concat(it); } catch (e) {} }
   // 6. Wikimedia Commons — high-quality portraits as final fallback
   if (results.length < 4) { try { var wc = await searchWikiCommons(personName + " portrait"); results = results.concat(wc.slice(0, 3)); } catch (e) {} }
-  // Deduplicate across sources, then apply portrait sanity filter (drops banners/logos/maps)
-  results = dedupeImages(results).filter(isLikelyPortrait);
+  // Deduplicate across sources, then apply portrait sanity filter (drops banners/logos/maps).
+  // For person searches, additionally drop wide landscape crops the way the Swap path does —
+  // initial-load gallery should match what users see after clicking Swap > Person.
+  results = dedupeImages(results).filter(isLikelyPortrait).filter(function(img) {
+    if (img.w && img.h && img.w > img.h * 1.3) return false;
+    return true;
+  });
   return results.slice(0, 6);
 };
 
@@ -3514,6 +3519,22 @@ export default function LoathrMediaGenerator() {
     });
   };
 
+  // Like updateSlideField but writes to an explicit option index — used by Apply Fixes so
+  // a check that ran on option A still writes to A even if the user has since switched to B.
+  var updateSlideFieldAt = function(optionIdx, slideIdx, field, value) {
+    setOptions(function(prev) {
+      if (!prev || !prev[optionIdx]) return prev;
+      var newOpts = prev.slice();
+      var opt = Object.assign({}, newOpts[optionIdx]);
+      var slides = opt.slides.slice();
+      slides[slideIdx] = Object.assign({}, slides[slideIdx]);
+      slides[slideIdx][field] = value;
+      opt.slides = slides;
+      newOpts[optionIdx] = opt;
+      return newOpts;
+    });
+  };
+
   // Override keys per element
   // Get active template for current segment
   function getTemplate() {
@@ -3540,8 +3561,15 @@ export default function LoathrMediaGenerator() {
     var cl = t.closer || {};
     if (isCoverSlide) {
       if (cv.layout != null && s.newsCoverLayout == null && s.enterpriseCoverLayout == null) { s.newsCoverLayout = cv.layout; s.enterpriseCoverLayout = cv.layout; }
-      if (cv.mastheadSize && !s.mastheadSize) s.mastheadSize = cv.mastheadSize - 28;
-      if (cv.headlineSize && !s.headingSize) s.headingSize = cv.headlineSize - 24;
+      // The slide renderer treats mastheadSize/headingSize as DELTAS added on top of a per-layout
+      // base font size (e.g. NewsDeskSlides.jsx uses 13/16/18/28). The template editor stores
+      // ABSOLUTE pixel values anchored to a baseline (28 for masthead, 24 for headline). The
+      // baselines below MUST match the slider defaults at the template editor inputs — change
+      // both together. A baseline value writes a 0 delta, leaving the per-layout base unchanged.
+      var TEMPLATE_MASTHEAD_BASELINE = 28;
+      var TEMPLATE_HEADLINE_BASELINE = 24;
+      if (cv.mastheadSize && !s.mastheadSize) s.mastheadSize = cv.mastheadSize - TEMPLATE_MASTHEAD_BASELINE;
+      if (cv.headlineSize && !s.headingSize) s.headingSize = cv.headlineSize - TEMPLATE_HEADLINE_BASELINE;
       if (cv.split && !s.newsSplit && !s.enterpriseSplit) { s.newsSplit = cv.split; s.enterpriseSplit = cv.split; }
     } else if (isCloserSlide) {
       if (cl.background) s.bgColor = cl.background;
@@ -3885,7 +3913,9 @@ export default function LoathrMediaGenerator() {
   };
 
   var factCheck = _cb(async function() {
-    var cur = options ? options[selectedOption] : null;
+    // Snapshot the option index at start — switching options mid-check must not retarget the write.
+    var _fcOpt = selectedOptionRef.current;
+    var cur = options ? options[_fcOpt] : null;
     if (!cur || !cur.slides) return;
     setFactCheckLoading(true); setFactCheckResult(null);
     try {
@@ -3918,6 +3948,7 @@ export default function LoathrMediaGenerator() {
       if (js >= 0 && je > js) cleaned = cleaned.slice(js, je + 1);
       if (!cleaned) { setFactCheckResult({ score: 0, summary: "Fact-check returned no output. Try again.", issues: [], _failed: true }); return; }
       var parsed = JSON.parse(cleaned);
+      parsed._optionIdx = _fcOpt;
       setFactCheckResult(parsed);
     } catch (e) { setFactCheckResult({ score: 0, summary: "Parse error: " + e.message + ". The model may have returned incomplete JSON — try again.", issues: [], _failed: true }); }
     finally { setFactCheckLoading(false); }
@@ -3947,9 +3978,11 @@ export default function LoathrMediaGenerator() {
   // Two-pass fact-check: pass 1 extracts claims, pass 2 verifies each via web_search.
   // Slower + ~2x token cost, but catches more wrong-but-plausible-sounding claims than the single-call check.
   var factCheckDeep = _cb(async function() {
-    var cur = options ? options[selectedOption] : null;
+    // Snapshot the option index at start — switching options mid-check must not retarget the write.
+    var _fcOpt = selectedOptionRef.current;
+    var cur = options ? options[_fcOpt] : null;
     if (!cur || !cur.slides) return;
-    setFactCheckLoading(true); setFactCheckResult({ score: 0, summary: "Extracting claims…", issues: [], _phase: "extract" });
+    setFactCheckLoading(true); setFactCheckResult({ score: 0, summary: "Extracting claims…", issues: [], _phase: "extract", _optionIdx: _fcOpt });
     try {
       var FACT_FIELDS = ["title", "subtitle", "heading", "leadParagraph", "body", "highlight", "relatedBody", "stat", "statCaption", "caption", "quote", "person", "credential", "sources"];
       var slideTexts = cur.slides.map(function(s, i) {
@@ -3992,6 +4025,7 @@ export default function LoathrMediaGenerator() {
       var verified = JSON.parse(vText);
       verified._deep = true;
       verified._claimCount = claims.length;
+      verified._optionIdx = _fcOpt;
 
       // PASS 3 — portrait grounding: for each slide with a 'person' field and an attached image, verify with vision.
       var portraitChecks = [];
@@ -4443,15 +4477,20 @@ export default function LoathrMediaGenerator() {
             else { var locSlot = 2 + li; if (!imgMap[locSlot]) imgMap[locSlot] = locImg.img; }
           });
 
-          // 0c. Place preview-locked images (user picked from topic preview — highest priority)
+          // 0c. Place preview-locked images (user picked from topic preview — highest priority).
+          // Locked roles ALWAYS win against the person/location auto-fills above. The user explicitly
+          // chose these images; silently keeping an auto-filled image is a worse surprise than bumping it.
           Object.keys(previewLocked).forEach(function(role) {
             var pvImg = previewLocked[role];
             if (!pvImg) return;
-            if (role === "cover") imgMap[0] = pvImg; // always override — user explicitly chose this
-            else if (role === "closer") { var cIdx = slides.length ? slides.length - 1 : 9; if (!imgMap[cIdx]) imgMap[cIdx] = pvImg; }
-            else if (role === "evidence") { var eIdx = slides.findIndex(function(s) { return s && (s.statFormat || s.stat); }); if (eIdx > 0 && !imgMap[eIdx]) imgMap[eIdx] = pvImg; }
-            else if (role === "origin" && !imgMap[1]) imgMap[1] = pvImg;
-            else if (role === "hotTake" && !imgMap[3]) imgMap[3] = pvImg;
+            if (role === "cover") imgMap[0] = pvImg;
+            else if (role === "closer") { var cIdx = slides.length ? slides.length - 1 : 9; imgMap[cIdx] = pvImg; }
+            else if (role === "evidence") {
+              var eIdx = slides.findIndex(function(s) { return s && (s.statFormat || s.stat); });
+              if (eIdx > 0) imgMap[eIdx] = pvImg;
+            }
+            else if (role === "origin") imgMap[1] = pvImg;
+            else if (role === "hotTake") imgMap[3] = pvImg;
           });
 
           // 1. Main topic search for cover + closer
@@ -7740,37 +7779,78 @@ export default function LoathrMediaGenerator() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
             <div style={{ ...CP, fontSize: 6, color: factCheckResult.score >= 7 ? "#22c55e" : "#ef4444" }}>{factCheckResult.summary}</div>
             {factCheckResult.issues.some(function(is) { return is.fix; }) && <div style={{ display: "flex", gap: 3 }}><button onClick={function() {
-              var _fso = selectedOptionRef.current;
+              // Apply to the option the check ran against. Falls back to current option for older results.
+              var _fso = typeof factCheckResult._optionIdx === "number" ? factCheckResult._optionIdx : selectedOptionRef.current;
               var written = 0;
               var skippedIdx = [];
+              var skipReasons = {};
               var prevValues = [];
+              // Body-like text fields the fact-checker may target. Order matters: more-specific keywords first.
+              // funnyLine is closer-only and not really fact-checkable, but the model occasionally emits it.
+              var FIELD_HEURISTICS = [
+                { key: "body", keywords: ["body"] },
+                { key: "stat", keywords: ["stat", "number", "figure", "percent"] },
+                { key: "statCaption", keywords: ["caption"] },
+                { key: "caption", keywords: ["caption"] },
+                { key: "leadParagraph", keywords: ["lead", "paragraph", "intro"] },
+                { key: "relatedBody", keywords: ["related", "context"] },
+                { key: "quote", keywords: ["quote"] },
+                { key: "credential", keywords: ["credential", "title", "role"] },
+                { key: "person", keywords: ["person", "name", "attribut"] },
+                { key: "highlight", keywords: ["highlight", "pull", "callout"] },
+                { key: "heading", keywords: ["heading", "headline"] },
+                { key: "subtitle", keywords: ["subtitle", "deck"] },
+                { key: "title", keywords: ["title"] },
+                { key: "funnyLine", keywords: ["closer", "tagline"] }
+              ];
               var snap = function(slideIdx, field, curSlide) { prevValues.push({ slide: slideIdx, field: field, prevValue: curSlide[field] }); };
               factCheckResult.issues.forEach(function(issue, idx) {
-                if (!issue.fix || typeof issue.slide !== "number") { skippedIdx.push(idx); return; }
+                if (!issue.fix || typeof issue.slide !== "number") { skippedIdx.push(idx); skipReasons[idx] = "no fix value"; return; }
                 var slideIdx = issue.slide;
                 var _fcur = options && options[_fso];
                 var curSlide = _fcur && _fcur.slides ? _fcur.slides[slideIdx] : null;
-                if (!curSlide) { skippedIdx.push(idx); return; }
-                if (issue.field === "sources") { skippedIdx.push(idx); return; }
+                if (!curSlide) { skippedIdx.push(idx); skipReasons[idx] = "slide " + slideIdx + " not found"; return; }
+                if (issue.field === "sources") { skippedIdx.push(idx); skipReasons[idx] = "sources field \u2014 edit manually"; return; }
                 if (issue.field && curSlide[issue.field] !== undefined) {
-                  snap(slideIdx, issue.field, curSlide); updateSlideField(slideIdx, issue.field, issue.fix);
-                  written++; return;
+                  snap(slideIdx, issue.field, curSlide);
+                  updateSlideFieldAt(_fso, slideIdx, issue.field, issue.fix);
+                  written++;
+                  return;
                 }
                 var lc = (issue.issue || "").toLowerCase();
-                if (curSlide.body && lc.indexOf("body") > -1) { snap(slideIdx, "body", curSlide); updateSlideField(slideIdx, "body", issue.fix); written++; }
-                else if (curSlide.stat && (lc.indexOf("stat") > -1 || lc.indexOf("number") > -1 || lc.indexOf("figure") > -1)) { snap(slideIdx, "stat", curSlide); updateSlideField(slideIdx, "stat", issue.fix); written++; }
-                else if (curSlide.quote && lc.indexOf("quote") > -1) { snap(slideIdx, "quote", curSlide); updateSlideField(slideIdx, "quote", issue.fix); written++; }
-                else if (curSlide.heading && lc.indexOf("heading") > -1) { snap(slideIdx, "heading", curSlide); updateSlideField(slideIdx, "heading", issue.fix); written++; }
-                else { skippedIdx.push(idx); }
+                var matched = false;
+                for (var fi = 0; fi < FIELD_HEURISTICS.length; fi++) {
+                  var heur = FIELD_HEURISTICS[fi];
+                  if (curSlide[heur.key] === undefined || curSlide[heur.key] === null || curSlide[heur.key] === "") continue;
+                  var hit = heur.keywords.some(function(kw) { return lc.indexOf(kw) > -1; });
+                  if (hit) {
+                    snap(slideIdx, heur.key, curSlide);
+                    updateSlideFieldAt(_fso, slideIdx, heur.key, issue.fix);
+                    written++;
+                    matched = true;
+                    break;
+                  }
+                }
+                if (!matched) {
+                  skippedIdx.push(idx);
+                  skipReasons[idx] = issue.field ? ("field '" + issue.field + "' not on slide " + slideIdx) : "no matching field on slide " + slideIdx;
+                }
               });
-              setFactCheckResult(Object.assign({}, factCheckResult, { _applied: true, _written: written, _skipped: skippedIdx.length, _skippedIdx: skippedIdx, _prevValues: prevValues, _undone: false }));
+              setFactCheckResult(function(prev) {
+                if (!prev) return prev;
+                return Object.assign({}, prev, { _applied: true, _written: written, _skipped: skippedIdx.length, _skippedIdx: skippedIdx, _skipReasons: skipReasons, _prevValues: prevValues, _appliedOptionIdx: _fso, _undone: false });
+              });
             }}
               disabled={factCheckResult._applied && !factCheckResult._undone}
               style={{ padding: "2px 6px", border: "0.5px solid #22c55e", background: (factCheckResult._applied && !factCheckResult._undone) ? "#22c55e22" : "transparent", cursor: (factCheckResult._applied && !factCheckResult._undone) ? "default" : "pointer", ...CP, fontSize: 6, color: "#22c55e", opacity: (factCheckResult._applied && !factCheckResult._undone) ? 0.7 : 1 }}>
               {(factCheckResult._applied && !factCheckResult._undone) ? ("\u2713 Applied " + (factCheckResult._written || 0) + (factCheckResult._skipped ? "/" + ((factCheckResult._written || 0) + factCheckResult._skipped) : "")) : factCheckResult._undone ? "Re-apply" : "Apply Fixes"}</button>
               {factCheckResult._applied && !factCheckResult._undone && factCheckResult._prevValues && factCheckResult._prevValues.length > 0 && <button onClick={function() {
-                (factCheckResult._prevValues || []).forEach(function(p) { updateSlideField(p.slide, p.field, p.prevValue); });
-                setFactCheckResult(Object.assign({}, factCheckResult, { _applied: false, _undone: true, _prevValues: [] }));
+                var _uOpt = typeof factCheckResult._appliedOptionIdx === "number" ? factCheckResult._appliedOptionIdx : selectedOptionRef.current;
+                (factCheckResult._prevValues || []).forEach(function(p) { updateSlideFieldAt(_uOpt, p.slide, p.field, p.prevValue); });
+                setFactCheckResult(function(prev) {
+                  if (!prev) return prev;
+                  return Object.assign({}, prev, { _applied: false, _undone: true, _prevValues: [] });
+                });
               }}
                 title="Restore fields to their pre-fix values"
                 style={{ padding: "2px 6px", border: "0.5px solid #f59e0b", background: "transparent", cursor: "pointer", ...CP, fontSize: 6, color: "#f59e0b" }}>{"\u21ba"} Undo</button>}
@@ -7796,7 +7876,7 @@ export default function LoathrMediaGenerator() {
                   return <a key={ui} href={u} target="_blank" rel="noopener noreferrer" onClick={function(e) { e.stopPropagation(); }}
                     style={{ marginRight: 4, color: "#3b82f6", textDecoration: "underline" }}>{host}</a>;
                 })}</span>}
-                {wasSkipped && <span style={{ color: "#a16207", marginLeft: 4, fontStyle: "italic" }}>(couldn't auto-apply \u2014 edit manually)</span>}
+                {wasSkipped && <span style={{ color: "#a16207", marginLeft: 4, fontStyle: "italic" }}>(couldn't auto-apply{factCheckResult._skipReasons && factCheckResult._skipReasons[i] ? " \u2014 " + factCheckResult._skipReasons[i] : ""} \u2014 edit manually)</span>}
               </div>
             );
           })}
