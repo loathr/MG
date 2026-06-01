@@ -80,10 +80,15 @@ function srcLine(t, s) {
   return <div style={Object.assign({}, font, { fontSize: sz, color: s && s.sourcesColor || "#1a1a1a44", textAlign: "right", padding: "0 14px 3px" }, elT(s, "sources"))}>{t}</div>;
 }
 
+// Module-level publish date — main component syncs this via setNewsDeskPublishDate
+// so masthead/editionBar reflects scheduled publish date, not generation date.
+var _publishDate = "";
+export function setNewsDeskPublishDate(p) { _publishDate = p || ""; }
+
 // Edition bar — date only, clean
 function editionBar(s) {
   if (s && s.editionBarHidden) return null;
-  var d = new Date();
+  var d = _publishDate ? new Date(_publishDate + "T12:00:00") : new Date();
   var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   var dateStr = s && s.editionDate ? s.editionDate : months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
   var city = s && s.editionCity || "";

@@ -5,7 +5,7 @@ import { Camera, Film, Music, Trophy, Lightbulb, TrendingUp, Hash, Eye, Mic, Pal
 import { ENTERPRISE_FORCES, ENTERPRISE_SECTORS, ENTERPRISE_TOPICS, ENTERPRISE_GENERAL_TOPICS, ENTERPRISE_PALETTE, ENTERPRISE_THEME, ENTERPRISE_DESIGN, ENTERPRISE_DEPTHS, ENTERPRISE_TONES, ENTERPRISE_FOCUS, ENTERPRISE_MODES, buildEnterprisePrompt, buildEnterpriseNewsPrompt, buildEnterpriseTipsPrompt, ENTERPRISE_CLOSERS } from "./segments/enterprise.config";
 import { EnterpriseCover, EnterpriseContent, EnterpriseCloser, EnterprisePlaybook, ENTERPRISE_LAYOUT_COUNT, ENTERPRISE_LAYOUT_LABELS, ENTERPRISE_COVER_LABELS, styledHighlight, HIGHLIGHT_STYLES, ENTERPRISE_IMG_FILTERS, setGlobalImgFilter, CLOSER_TEMPLATES, CLOSER_DIVIDER_STYLES, CLOSER_BG_MODES, CLOSER_ALIGNS, CLOSER_DISCLAIMER_POS } from "./segments/EnterpriseSlides";
 import { NEWSDESK_FILTERS, NEWSDESK_URGENCY, NEWSDESK_DESKS, NEWSDESK_REGIONS, NEWSDESK_TIMEFRAMES, NEWSDESK_PALETTE, NEWSDESK_THEME, NEWSDESK_ANGLES, NEWSDESK_EMPHASIS, buildNewsDeskPrompt } from "./segments/newsdesk.config";
-import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser, NEWS_COVER_LABELS, NEWS_LAYOUT_LABELS, NEWS_COVER_COUNT, NEWS_LAYOUT_COUNT } from "./segments/NewsDeskSlides";
+import { NewsFrontPage, NewsStory, NewsReaction, NewsSourcesCloser, NEWS_COVER_LABELS, NEWS_LAYOUT_LABELS, NEWS_COVER_COUNT, NEWS_LAYOUT_COUNT, setNewsDeskPublishDate } from "./segments/NewsDeskSlides";
 
 var FONT_URL = "https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap";
 // Margins from inside the accent border frame
@@ -2680,8 +2680,11 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
       URL.revokeObjectURL(blobUrl);
       setExportStatus("Downloaded!");
     }
-  } catch (e) { setExportStatus("ZIP creation failed"); }
-  setTimeout(function() { setExportStatus(null); }, 2000);
+  } catch (e) {
+    console.error("ZIP creation failed:", e);
+    setExportStatus("ZIP creation failed: " + (e && e.message ? e.message : "unknown"));
+  }
+  setTimeout(function() { setExportStatus(null); }, 4000);
 };
 
 // --- DIFFERENTIATED PROMPTS ---
@@ -2904,7 +2907,7 @@ export default function LoathrMediaGenerator() {
   var lpi = _s({}), lockedPersonImages = lpi[0], setLockedPersonImages = lpi[1]; // { "Name": img }
   var lockedRef = _ref({});
   var pdn = _s([]), personsDetected = pdn[0], setPersonsDetected = pdn[1]; // ["Name1", "Name2"]
-  var clr = _s([]), claudeRelated = clr[0], setClaudeRelated = clr[1];
+  var clr2 = _s([]), claudeRelated = clr2[0], setClaudeRelated = clr2[1];
   var fvs = _s([]), favorites = fvs[0], setFavorites = fvs[1];
   var tch = _s([]), topicChain = tch[0], setTopicChain = tch[1];
   var shl = _s(null), shareLink = shl[0], setShareLink = shl[1];
@@ -2954,7 +2957,7 @@ export default function LoathrMediaGenerator() {
   var edm = _s(false), editMode = edm[0], setEditMode = edm[1];
   var edf = _s(null), editField = edf[0], setEditField = edf[1]; // { slide: idx, field: "heading"|"body"|etc }
   var edv = _s(""), editValue = edv[0], setEditValue = edv[1];
-  var eds = _s("content"), editSection = eds[0], setEditSection = eds[1];
+  var eds2 = _s("content"), editSection = eds2[0], setEditSection = eds2[1];
   var ngt = _s("all"), nudgeTarget = ngt[0], setNudgeTarget = ngt[1]; // "all"|"heading"|"body"|"highlight"
   // Enterprise state
   var efc = _s(null), enterpriseForce = efc[0], setEnterpriseForce = efc[1];
@@ -2994,7 +2997,7 @@ export default function LoathrMediaGenerator() {
 
   _ef(function() { selectedOptionRef.current = selectedOption; }, [selectedOption]);
   // Sync component publishDate to module-level _publishDate so dateAnchor()/todayDateStr() use it everywhere
-  _ef(function() { _publishDate = publishDate || ""; }, [publishDate]);
+  _ef(function() { _publishDate = publishDate || ""; setNewsDeskPublishDate(publishDate || ""); }, [publishDate]);
   // When Enterprise force/sector/mode changes, clear trending so preset topics show instead
   // User must click Trending deliberately to fetch fresh ideas
   _ef(function() {
@@ -3205,7 +3208,11 @@ export default function LoathrMediaGenerator() {
         names.forEach(function(name) {
           searchPersonImages(name).then(function(imgs) {
             setPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = imgs; return n; });
-          }).catch(function(err) { console.error("Person image fetch failed for " + name + ":", err); });
+          }).catch(function(err) {
+            console.error("Person image fetch failed for " + name + ":", err);
+            // Set empty array so the UI exits its loading state instead of spinning forever.
+            setPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = []; return n; });
+          });
           // Fetch person network from Wikidata
           fetchPersonNetwork(name).then(function(network) {
             if (network.length > 0) setPersonNetwork(function(prev) { var n = Object.assign({}, prev); n[name] = network; return n; });
@@ -3249,6 +3256,7 @@ export default function LoathrMediaGenerator() {
   // Debounced search trigger on topic input change
   // Fetch preview images for topic (debounced)
   var previewPage = _ref(1);
+  var previewLastQuery = _ref("");
   var fetchPreviewImages = _cb(async function(query) {
     if (!query || query.length < 3 || !category) return;
     setPreviewLoading(true);
@@ -3308,7 +3316,14 @@ export default function LoathrMediaGenerator() {
     if (previewTimer.current) clearTimeout(previewTimer.current);
     setSmartAngles([]); setWebResults([]); setPreviewImages([]); setPersonNetwork({}); setViralScore(null);
     if (viralTimer.current) clearTimeout(viralTimer.current);
-    previewPage.current = 1; // reset page counter for new topic
+    // Reset page counter only when the topic stem has truly changed —
+    // typing one more character of the same topic shouldn't lose batch position.
+    var nq = (query || "").trim().toLowerCase();
+    var lq = (previewLastQuery.current || "").trim().toLowerCase();
+    if (!nq || (lq && nq.indexOf(lq) !== 0 && lq.indexOf(nq) !== 0)) {
+      previewPage.current = 1;
+    }
+    previewLastQuery.current = nq;
     // Clear person/location locks from previous topic
     setLockedPersonImages({}); setLockedLocationImages({});
     lockedRef.current = {};
@@ -3321,6 +3336,8 @@ export default function LoathrMediaGenerator() {
     if (!query || query.length < 2) return;
     // Smart angles + person/location detection after 800ms
     searchTimer.current = setTimeout(function() { fetchSmartAngles(query); }, 800);
+    // Mood-board preview after 1200ms
+    previewTimer.current = setTimeout(function() { fetchPreviewImages(query); }, 1200);
     // Web search after 1500ms
     webTimer.current = setTimeout(function() { fetchWebContext(query); }, 1500);
     // Viral score after 2s
@@ -3710,6 +3727,15 @@ export default function LoathrMediaGenerator() {
       opt.slides = slides;
       newOpts[_so] = opt;
       return newOpts;
+    });
+    // Splice shifts indices — clamp currentSlide so renderer never reads past the end.
+    setCurrentSlide(function(cur) {
+      var _so2 = selectedOptionRef.current;
+      var optSlides = options && options[_so2] ? options[_so2].slides : [];
+      var newLen = Math.max(0, optSlides.length - 1);
+      if (cur > slideIdx) return cur - 1;
+      if (cur >= newLen) return Math.max(0, newLen - 1);
+      return cur;
     });
   };
 
@@ -4105,9 +4131,10 @@ export default function LoathrMediaGenerator() {
       setTimeout(function() { URL.revokeObjectURL(url); }, 100);
       setExportStatus(triedShare ? "Downloaded" : "Saved!");
     } catch (e) {
-      setExportStatus("Failed");
+      console.error("Share/download failed:", e);
+      setExportStatus("Failed: " + (e && e.message ? e.message : "unknown"));
     }
-    setTimeout(function() { setExportStatus(null); }, 1500);
+    setTimeout(function() { setExportStatus(null); }, 3500);
   }
 
   // Import carousel from JSON file
@@ -4138,10 +4165,20 @@ export default function LoathrMediaGenerator() {
               // Try loading the image — if URL works, use it; if not, mark for replacement
               await new Promise(function(resolve) {
                 var testImg = new Image();
-                testImg.onload = function() { imgMap[parseInt(k)] = img; resolve(); };
-                testImg.onerror = function() { failedSlides.push(parseInt(k)); resolve(); };
+                var timer = null;
+                var done = false;
+                var finish = function(success) {
+                  if (done) return;
+                  done = true;
+                  if (timer) clearTimeout(timer);
+                  if (success) imgMap[parseInt(k)] = img;
+                  else if (failedSlides.indexOf(parseInt(k)) < 0) failedSlides.push(parseInt(k));
+                  resolve();
+                };
+                testImg.onload = function() { finish(true); };
+                testImg.onerror = function() { finish(false); };
                 testImg.src = img.url;
-                setTimeout(function() { if (!imgMap[parseInt(k)] && failedSlides.indexOf(parseInt(k)) < 0) { failedSlides.push(parseInt(k)); resolve(); } }, 5000);
+                timer = setTimeout(function() { finish(false); }, 5000);
               });
             } catch (e) { failedSlides.push(parseInt(k)); }
           }
@@ -4176,9 +4213,21 @@ export default function LoathrMediaGenerator() {
     } catch (e) { setError("Failed to import: " + e.message); }
   }
 
+  // Tracks the genCount value that was bumped at the start of the current generation,
+  // so cancelGenerate can revert it. Edition seeds depend on a stable genCount counter.
+  var genCountPrevRef = _ref(null);
+
   var cancelGenerate = _cb(function() {
     if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
     setIsGenerating(false); setError("Generation cancelled");
+    if (genCountPrevRef.current !== null) {
+      setGenCount(genCountPrevRef.current);
+      try {
+        var gtotal = parseInt(localStorage.getItem("loathr_gen_count") || "0");
+        if (gtotal > 0) localStorage.setItem("loathr_gen_count", String(gtotal - 1));
+      } catch (e) {}
+      genCountPrevRef.current = null;
+    }
   }, []);
 
   var generate = _cb(async function() {
@@ -4190,6 +4239,7 @@ export default function LoathrMediaGenerator() {
     setIsGenerating(true); setError(null); setOptions(null); setImages({});
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
     var thisGen = genCount + 1;
+    genCountPrevRef.current = genCount;
     setGenCount(thisGen);
     try { var gtotal = parseInt(localStorage.getItem("loathr_gen_count") || "0") + 1; localStorage.setItem("loathr_gen_count", String(gtotal)); setUserLevel(gtotal < 5 ? 2 : 3); } catch (e) {}
     var catInfo = CATEGORIES.find(function(c) { return c.id === category; });
@@ -4626,10 +4676,10 @@ export default function LoathrMediaGenerator() {
             setImages(vMap);
             setImgStatus(vintageOnly.length + " vintage images loaded");
           } else { setImgStatus("No images found"); }
-        } catch (ve) { setImgStatus("Vintage search failed"); }
+        } catch (ve) { console.warn("Vintage search failed:", ve); setImgStatus("Vintage search failed: " + (ve && ve.message ? ve.message : "unknown")); }
       }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
-    finally { setIsGenerating(false); }
+    finally { setIsGenerating(false); genCountPrevRef.current = null; }
   }, [topic, category, secondaryCategory, secondaryCount, tertiaryCategory, tertiaryCount, apiKeys, editionPicks, lockedPersonImages, genCount, previewLocked, lockedLocationImages, enterpriseForce, enterpriseMode, enterpriseSector, newsFilter, newsRegion, newsTimeframe, newsCountry]);
 
   // --- Custom Story generator ---
@@ -4642,6 +4692,7 @@ export default function LoathrMediaGenerator() {
     setIsGenerating(true); setError(null); setOptions(null); setImages({});
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
     var thisGen = genCount + 1;
+    genCountPrevRef.current = genCount;
     setGenCount(thisGen);
     try { var gtotal = parseInt(localStorage.getItem("loathr_gen_count") || "0") + 1; localStorage.setItem("loathr_gen_count", String(gtotal)); setUserLevel(gtotal < 5 ? 2 : 3); } catch (e) {}
     var catInfo = CATEGORIES.find(function(c) { return c.id === category; });
@@ -4739,7 +4790,7 @@ export default function LoathrMediaGenerator() {
       if (Object.keys(imgMap).length > 0) { setImages(imgMap); setImgStatus(Object.keys(imgMap).length + " images placed"); }
       else { setImgStatus("No supporting images found"); }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
-    finally { setIsGenerating(false); }
+    finally { setIsGenerating(false); genCountPrevRef.current = null; }
   }, [customSubject, customHook, customContext, customImages, category, apiKeys, editionPicks, genCount, creativeFreedom]);
 
   var generateRec = _cb(async function() {
@@ -4812,10 +4863,10 @@ export default function LoathrMediaGenerator() {
           var vi2 = await searchVintage(category, topic);
           if (vi2.length > 0) { var vm = {}; vi2.forEach(function(img, i) { vm[i] = img; }); setImages(vm); setImgStatus(vi2.length + " vintage images loaded"); }
           else { setImgStatus("No images found"); }
-        } catch (ve) { setImgStatus("Vintage search failed"); }
+        } catch (ve) { console.warn("Vintage search failed:", ve); setImgStatus("Vintage search failed: " + (ve && ve.message ? ve.message : "unknown")); }
       }
     } catch (err) { if (err.name !== "AbortError") setError(err.message || "Recommendation failed"); }
-    finally { setIsGenerating(false); }
+    finally { setIsGenerating(false); genCountPrevRef.current = null; }
   }, [topic, category, apiKeys]);
 
   // Gate screen — show before app loads
@@ -5794,7 +5845,7 @@ export default function LoathrMediaGenerator() {
               className={activeSegment === "enterprise" ? "loathr-dark-input" : undefined}
               placeholder={category === "newsdesk" ? "Search keywords: oil, election, LeBron..." : category === "enterprise" ? (function() { var sLabel = enterpriseSector ? (ENTERPRISE_SECTORS.find(function(s) { return s.id === enterpriseSector; }) || {}).label : null; if (enterpriseMode === "news") return sLabel ? "Search " + sLabel + " news..." : "Search business news: tariffs, IPO, merger..."; if (enterpriseMode === "tips") return sLabel ? "Advise " + sLabel + " businesses on..." : "Industry to advise: restaurants, SaaS, retail..."; if (sLabel) return "Topic in " + sLabel + "..."; var hints = { tech: "e.g. Healthcare, Retail, Banking...", policy: "e.g. Pharma, Energy, Cannabis...", ai: "e.g. Legal services, Call centers, Education...", markets: "e.g. Real estate, Crypto, Commodities...", culture: "e.g. Luxury brands, Fast food, Streaming..." }; return hints[enterpriseForce] || "Industry or topic to analyze..."; })() : "Topic for " + cat.label + "... (or drop an image)"}
               style={{ flex: 1, padding: "10px 14px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "var(--color-border-tertiary)"), background: activeSegment === "enterprise" ? "#1a1a1a" : activeSegment === "newsdesk" ? "#ffffff" : "var(--color-background-primary)", color: activeSegment === "enterprise" ? "#eeeeee" : activeSegment === "newsdesk" ? "#1a1a1a" : "var(--color-text-primary)", fontSize: 12, ...CP }} />
-            {topic && <button onClick={function() { setTopic(""); setOptions(null); setSmartAngles([]); setWebResults([]); setViralScore(null); setTrending([]); setSuggestions([]); setCrossCatSuggestions([]); setRefinedAngles([]); }}
+            {topic && <button onClick={function() { setTopic(""); setOptions(null); setSmartAngles([]); setWebResults([]); setViralScore(null); setTrending([]); setSuggestions([]); setCrossCatSuggestions([]); setRefinedAngles([]); setPreviewLocked({}); setPreviewImages([]); previewLastQuery.current = ""; previewPage.current = 1; }}
               style={{ padding: "10px 6px", border: "none", background: "transparent", cursor: "pointer", ...CP, fontSize: 12, color: activeSegment === "enterprise" ? "#666" : "#999", display: "flex", alignItems: "center" }}>{"\u2715"}</button>}
             <label style={{ padding: "10px 8px", border: "0.5px solid " + (activeSegment === "enterprise" ? "#444" : activeSegment === "newsdesk" ? "#d8d6d0" : "var(--color-border-tertiary)"), cursor: "pointer", display: "flex", alignItems: "center", background: "transparent" }}>
               <Camera size={14} style={{ color: "#999" }} />
@@ -6494,8 +6545,11 @@ export default function LoathrMediaGenerator() {
                   }
                 }
                 setExportStatus("Saved!");
-              } catch (e) { setExportStatus("Failed"); }
-              setTimeout(function() { setExportStatus(null); }, 1500);
+              } catch (e) {
+                console.error("Slide save failed:", e);
+                setExportStatus("Failed: " + (e && e.message ? e.message : "unknown"));
+              }
+              setTimeout(function() { setExportStatus(null); }, 3500);
             }} disabled={!!exportStatus}
               style={{ padding: "6px 8px", border: "1px solid " + uiAccent, background: "transparent", cursor: exportStatus ? "default" : "pointer", ...CP, fontSize: 8, color: uiAccent, opacity: exportStatus ? 0.5 : 1 }}>
               {"\u2B07"} SAVE
@@ -7224,7 +7278,20 @@ export default function LoathrMediaGenerator() {
                       <input type="color" value={s.closerBgColor || "#1a1a1a"} onChange={function(e) { updateSlideField(currentSlide, "closerBgColor", e.target.value); }} style={{ width: 30, height: 20, padding: 0, border: "0.5px solid #444", cursor: "pointer", background: "#000" }} />
                     </div>}
                     {bgMode === "image" && <div>
-                      <input value={s.closerBgImage || ""} placeholder="https://image-url.jpg" onChange={function(e) { updateSlideField(currentSlide, "closerBgImage", e.target.value); }} style={Object.assign({}, inputStyle, { marginBottom: 3 })} />
+                      <input value={s.closerBgImage || ""} placeholder="https://image-url.jpg"
+                        onChange={function(e) {
+                          var v = e.target.value;
+                          updateSlideField(currentSlide, "closerBgImage", v);
+                          updateSlideField(currentSlide, "_closerBgImageStatus", v ? "checking" : "");
+                          if (!v) return;
+                          var probe = new Image();
+                          probe.onload = function() { updateSlideField(currentSlide, "_closerBgImageStatus", "ok"); };
+                          probe.onerror = function() { updateSlideField(currentSlide, "_closerBgImageStatus", "error"); };
+                          probe.src = v;
+                        }}
+                        style={Object.assign({}, inputStyle, { marginBottom: 3, borderColor: s._closerBgImageStatus === "error" ? "#c41e1e" : s._closerBgImageStatus === "ok" ? "#2a8a2a" : undefined })} />
+                      {s._closerBgImageStatus === "error" && <div style={{ ...CP, fontSize: 4, color: "#c41e1e", marginBottom: 3 }}>Image failed to load — check URL or CORS</div>}
+                      {s._closerBgImageStatus === "ok" && <div style={{ ...CP, fontSize: 4, color: "#2a8a2a", marginBottom: 3 }}>Image loaded</div>}
                       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <span style={{ ...CP, fontSize: 4, color: "#666", width: 56 }}>SCRIM</span>
                         <input type="range" min={0} max={95} step={5} value={typeof s.closerScrimOpacity === "number" ? s.closerScrimOpacity : 72} onChange={function(e) { updateSlideField(currentSlide, "closerScrimOpacity", parseInt(e.target.value, 10)); }} style={{ flex: 1 }} />
