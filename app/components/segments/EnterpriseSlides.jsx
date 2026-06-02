@@ -142,6 +142,16 @@ export function styledHighlight(t, slide, opts) {
 
 var highlightBlock = function(t, slide) { return styledHighlight(t, slide, { fg: "#ffffff88", accent: "#ffffff", pillText: "#0a0a0a", defaultStyle: "bar" }); };
 
+// Slide is rendered in a fixed 340 x 425 logical box (see LoathrMediaGenerator.jsx:6755).
+// Image cells used to size themselves via percentage of parent, but flex resolution at
+// html2canvas render time made the resolved pixel height drift between preview and
+// export — visible as different photo crops on the same slide. Locking the image cell to
+// pixel values derived from the known slide dimensions keeps the crop identical in both.
+var SLIDE_W = 340;
+var SLIDE_H = 425;
+var pxH = function(pct) { return Math.round(SLIDE_H * pct / 100); };
+var pxW = function(pct) { return Math.round(SLIDE_W * pct / 100); };
+
 // Split ratio + text offset helpers
 function getSplit(slide) { return (slide.enterpriseSplit || 50); }
 function getTextOffset(slide) { return slide.enterpriseTextOffset || { top: 0, left: 0 }; }
@@ -200,7 +210,7 @@ export function EnterpriseCover({ slide, images, index }) {
   if (coverLayout === 0) return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
       <Masthead isBreaking={isBreaking} slide={slide} />
-      {url && <div style={{ height: sp + "%", overflow: "hidden", flexShrink: 0, borderBottom: "1px solid #ffffff22" }}>
+      {url && <div style={{ height: pxH(sp), overflow: "hidden", flexShrink: 0, borderBottom: "1px solid #ffffff22" }}>
         <img src={url} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>}
       <div style={{ flex: 1, padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -232,8 +242,8 @@ export function EnterpriseCover({ slide, images, index }) {
   // Layout 2 — Split (image left, text right)
   if (coverLayout === 2) return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex" }}>
-      {url ? <div style={{ width: sp + "%", overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} /></div>
-        : <div style={{ width: sp + "%", background: "#111" }} />}
+      {url ? <div style={{ width: pxW(sp), overflow: "hidden" }}><img src={url} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} /></div>
+        : <div style={{ width: pxW(sp), background: "#111" }} />}
       <div style={{ width: (100 - sp) + "%", padding: "10px 14px", display: "flex", flexDirection: "column" }}>
         <div style={{ textAlign: "right", marginBottom: 8 }}>
           <div style={{ ...CP, fontSize: 8, letterSpacing: "0.2em", marginRight: "-0.2em", color: "#ffffff55" }}>LOATHR</div>
@@ -271,7 +281,7 @@ export function EnterpriseCover({ slide, images, index }) {
       {isBreaking && <div style={{ background: "#ffffff", padding: "3px 16px", textAlign: "center", flexShrink: 0, width: "100%" }}>
         <div style={{ ...CP, fontSize: 6, letterSpacing: "0.25em", color: "#0a0a0a", fontWeight: 700 }}>JUST IN</div>
       </div>}
-      {url && <div style={{ height: sp + "%", width: "100%", overflow: "hidden", flexShrink: 0, borderBottom: "1px solid #ffffff22", borderTop: "1px solid #ffffff22" }}>
+      {url && <div style={{ height: pxH(sp), width: "100%", overflow: "hidden", flexShrink: 0, borderBottom: "1px solid #ffffff22", borderTop: "1px solid #ffffff22" }}>
         <img src={url} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF || "none" }} onError={function(e) { e.target.style.display = "none"; }} />
       </div>}
       <div style={{ flex: 1, padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "center" }}>
@@ -296,7 +306,7 @@ function Layout1({ slide, url, mosaic, mosaicLayout }) {
   var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ height: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
+      <div style={{ height: pxH(sp), overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
       <div style={Object.assign({}, { height: (100 - sp) + "%", padding: "8px 14px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
@@ -321,7 +331,7 @@ function Layout2({ slide, url, mosaic, mosaicLayout }) {
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources, slide)}
       </div>
-      <div style={{ height: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
+      <div style={{ height: pxH(sp), overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
       {watermark()}
     </div>
   );
@@ -332,7 +342,7 @@ function Layout3({ slide, url, mosaic, mosaicLayout }) {
   var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", overflow: "hidden" }}>
-      <div style={{ width: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
+      <div style={{ width: pxW(sp), overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
       <div style={Object.assign({}, { width: (100 - sp) + "%", padding: "10px 12px", display: "flex", flexDirection: "column", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 13 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
@@ -359,7 +369,7 @@ function Layout4({ slide, url, mosaic, mosaicLayout }) {
         {highlightBlock(slide.highlight, slide)}
         {srcLine(slide.sources, slide)}
       </div>
-      <div style={{ width: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
+      <div style={{ width: pxW(sp), overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
       {watermark()}
     </div>
   );
@@ -370,7 +380,7 @@ function Layout5({ slide, url, mosaic, mosaicLayout }) {
   var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ height: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
+      <div style={{ height: pxH(sp), overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
       <div style={Object.assign({}, { flex: 1, padding: "8px 14px", overflow: "hidden" }, offsetStyle(slide))}>
         {sectionLabel(slide.role || "")}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.15, marginBottom: 6 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
@@ -407,8 +417,8 @@ function Layout7({ slide, url, mosaic, mosaicLayout }) {
   var sp = getSplit(slide);
   return (
     <div style={{ width: "100%", height: "100%", background: "#0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ display: "flex", height: sp + "%" }}>
-        <div style={{ width: sp + "%", overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
+      <div style={{ display: "flex", height: pxH(sp) }}>
+        <div style={{ width: pxW(sp), overflow: "hidden" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
         <div style={Object.assign({}, { width: (100 - sp) + "%", padding: "8px 10px" }, offsetStyle(slide))}>
           {sectionLabel(slide.role || "")}
           <div style={Object.assign({}, { ...headFont(slide), fontSize: 12 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.15 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
@@ -434,7 +444,7 @@ function Layout8({ slide, url, mosaic, mosaicLayout }) {
         {sectionLabel(slide.role || "")}
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 14 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.15 }, elementTransform(slide, "heading"))}>{slide.heading || ""}</div>
       </div>
-      <div style={{ height: sp + "%", overflow: "hidden", flexShrink: 0, borderTop: "0.5px solid #ffffff22", borderBottom: "0.5px solid #ffffff22" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
+      <div style={{ height: pxH(sp), overflow: "hidden", flexShrink: 0, borderTop: "0.5px solid #ffffff22", borderBottom: "0.5px solid #ffffff22" }}><ImgOrMosaic url={url} mosaic={mosaic} mosaicLayout={mosaicLayout} slide={slide} /></div>
       <div style={Object.assign({}, { flex: 1, padding: "8px 14px", overflow: "hidden" }, offsetStyle(slide))}>
         <div style={Object.assign({}, { ...bodyFont(slide), fontSize: 9 + (slide.bodySize || 0), color: bodyColor(slide), lineHeight: 1.55 }, elementTransform(slide, "body"))}>{enterpriseStyleBody(slide.body, slide.keywords, slide.underlineWeight)}</div>
         {highlightBlock(slide.highlight, slide)}

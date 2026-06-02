@@ -142,6 +142,12 @@ var tornClip = "polygon(0 0, 3% 1.2%, 7% 0, 11% 1.5%, 15% 0.3%, 19% 1.8%, 23% 0,
 
 // Helpers
 function getSplit(s) { return s && s.newsSplit || 45; }
+// Slide renders in a fixed 340 x 425 logical box. Lock image cells to pixel values
+// derived from the slide dimensions so the photo crop matches between preview and export.
+var SLIDE_W = 340;
+var SLIDE_H = 425;
+var pxH = function(pct) { return Math.round(SLIDE_H * pct / 100); };
+var pxW = function(pct) { return Math.round(SLIDE_W * pct / 100); };
 
 // Smart column count — auto based on text length unless user overrides
 function getCols(s, text) {
@@ -249,7 +255,7 @@ function CoverBroadsheet({ slide, url, images }) {
         <div style={Object.assign({}, { ...headFont(slide), fontSize: (slide.title && slide.title.length > 40 ? 20 : 28) + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.05, marginBottom: 4 }, elT(slide, "heading"))}>{slide.title || ""}</div>
         {divider(slide, { w: 1, c: "#1a1a1a" })}
         {/* Hero photo — dominant like NY Times */}
-        {url && <div style={{ width: "100%", height: sp + "%", overflow: "hidden", border: "0.5px solid #1a1a1a22", marginBottom: 2, flexShrink: 0 }}>
+        {url && <div style={{ width: "100%", height: pxH(sp), overflow: "hidden", border: "0.5px solid #1a1a1a22", marginBottom: 2, flexShrink: 0 }}>
           <img src={url} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF(slide) }} decoding="async" loading="eager" onError={function(e) { e.target.style.display = "none"; }} />
         </div>}
         {url && caption(slide)}
@@ -297,9 +303,9 @@ function CoverModernSplit({ slide, url }) {
   var sp = getSplit(slide);
   return (
     <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex" }, newsBg(slide))}>
-      {url ? <div style={{ width: sp + "%", overflow: "hidden", borderRight: "2px solid #1a1a1a" }}>
+      {url ? <div style={{ width: pxW(sp), overflow: "hidden", borderRight: "2px solid #1a1a1a" }}>
         <img src={url} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF(slide) }} decoding="async" loading="eager" onError={function(e) { e.target.style.display = "none"; }} />
-      </div> : <div style={{ width: sp + "%", background: "#e8e3d4", borderRight: "2px solid #1a1a1a" }} />}
+      </div> : <div style={{ width: pxW(sp), background: "#e8e3d4", borderRight: "2px solid #1a1a1a" }} />}
       <div style={{ width: (100 - sp) + "%", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "6px 10px", textAlign: "right", borderBottom: "1px solid #1a1a1a22" }}>
           <div style={{ ...(FONT_MAP[slide.mastheadFont] || ER), fontSize: 13 + (slide.mastheadSize || 0), color: "#1a1a1a", letterSpacing: "0.04em" }}>{slide.mastheadText || "NEWS DESK"}</div>
@@ -413,7 +419,7 @@ function LayoutStandard({ slide, url }) {
         <div style={Object.assign({}, { ...headFont(slide), fontSize: 16 + (slide.headingSize || 0), color: headColor(slide), lineHeight: 1.1, marginBottom: 4 }, elT(slide, "heading"))}>{slide.heading || ""}</div>
         {headRule(slide)}
         {/* Image — prominent block, not tiny float */}
-        {url && <div style={{ width: "100%", height: sp + "%", maxHeight: "40%", overflow: "hidden", border: "0.5px solid #1a1a1a22", marginBottom: 3, flexShrink: 0 }}>
+        {url && <div style={{ width: "100%", height: pxH(sp), maxHeight: "40%", overflow: "hidden", border: "0.5px solid #1a1a1a22", marginBottom: 3, flexShrink: 0 }}>
           <img src={url} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF(slide) }} decoding="async" loading="eager" onError={function(e) { e.target.style.display = "none"; }} />
         </div>}
         {url && caption(slide)}
@@ -594,9 +600,9 @@ function LayoutSplit({ slide, url }) {
   var cols = getCols(slide, slide.body);
   return (
     <div style={Object.assign({}, { width: "100%", height: "100%", position: "relative", overflow: "hidden", display: "flex" }, newsBg(slide))}>
-      {url ? <div style={{ width: sp + "%", overflow: "hidden", borderRight: "1px solid #1a1a1a22", flexShrink: 0 }}>
+      {url ? <div style={{ width: pxW(sp), overflow: "hidden", borderRight: "1px solid #1a1a1a22", flexShrink: 0 }}>
         <img src={url} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF(slide) }} decoding="async" loading="eager" onError={function(e) { e.target.style.display = "none"; }} />
-      </div> : <div style={{ width: sp + "%", background: "#e8e3d4", borderRight: "1px solid #1a1a1a22" }} />}
+      </div> : <div style={{ width: pxW(sp), background: "#e8e3d4", borderRight: "1px solid #1a1a1a22" }} />}
       <div style={{ width: (100 - sp) + "%", display: "flex", flexDirection: "column" }}>
         {doubleRule()}
         {editionBar(slide)}
@@ -669,7 +675,7 @@ function LayoutReverseLShape({ slide, url }) {
         {headRule(slide)}
       </div>
       {/* Top section: text left + image right */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr " + sp + "%", gap: 8, padding: "0 14px", marginBottom: 4 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr " + pxW(sp) + "px", gap: 8, padding: "0 14px", marginBottom: 4 }}>
         <div style={Object.assign({}, { ...bodyFont(slide), fontSize: bs, color: bodyColor(slide), lineHeight: 1.5, textAlign: "justify", overflow: "hidden" }, elT(slide, "body"))}>{leadBody(topText, slide)}</div>
         {url ? <div style={{ overflow: "hidden", border: "0.5px solid #1a1a1a22", maxHeight: 130 }}>
           <img src={url} alt="" style={{ width: "100%", height: "100%", ...imgFit(slide), filter: imgF(slide) }} decoding="async" loading="eager" onError={function(e) { e.target.style.display = "none"; }} />
