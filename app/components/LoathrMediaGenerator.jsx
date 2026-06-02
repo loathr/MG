@@ -2660,41 +2660,91 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
       // Force consistent dimensions — prevent black panel overflow
       clonedEl.style.width = exportTarget.offsetWidth + "px";
       clonedEl.style.height = exportTarget.offsetHeight + "px";
-      // === objectFit workaround ===
+      // === objectFit polyfill ===
       // html2canvas 1.4.1 has unreliable objectFit / objectPosition support on <img> elements
       // when the image lives inside a flex/absolute-positioned wrapper or carries a filter.
-      // The previous WORKAROUND (rewrite <img> as a background-image div) was removed earlier
-      // because it dropped the filter. We reinstate it here and PRESERVE the filter on the
-      // replacement div, which html2canvas DOES honor on plain divs.
-      // Symptom this fixes: photos rendering correctly in the live preview (browser respects
-      // objectFit:cover) but stretched / squashed in the export (html2canvas ignored objectFit
-      // and stretched the img to its declared width x height).
+      //
+      // Earlier fix tried rewriting <img> as a background-image div. That fixed the aspect ratio
+      // but html2canvas downsamples background-image rasters far more aggressively than <img>
+      // rasters at high render scale — the visual result was a SOFT, low-detail export. We've now
+      // reverted that approach.
+      //
+      // Polyfill instead: keep the <img> (so html2canvas renders it at full sharpness), compute
+      // the cover/contain crop math manually using the image's naturalWidth/Height vs the cell's
+      // offsetWidth/Height, and apply explicit pixel width/height + position offsets. The parent
+      // already has overflow:hidden from the layout, so any overflow from the cover crop is
+      // clipped correctly. Then we CLEAR objectFit so html2canvas doesn't get a chance to re-mangle.
+      var parseObjectPosition = function(op, w, h, newW, newH) {
+        // CSS objectPosition is centered by default ("50% 50%"). We support "X% Y%" inputs from
+        // slideImgStyle / imgFit(). The offset is relative to the cell, so 0% pins to top/left
+        // edge of the cell and 100% pins the image bottom/right to the cell bottom/right.
+        var parts = (op || "50% 50%").trim().split(/\s+/);
+        var xStr = parts[0] || "50%";
+        var yStr = parts[1] || "50%";
+        var xPct = parseFloat(xStr) || 50;
+        var yPct = parseFloat(yStr) || 50;
+        // Total overflow in each axis; positive means the scaled image is larger than the cell.
+        var overflowX = newW - w;
+        var overflowY = newH - h;
+        // x=0%   -> img left edge at cell left edge   -> left:0
+        // x=100% -> img right edge at cell right edge -> left:-(overflowX)
+        // x=50%  -> centered                          -> left:-(overflowX/2)
+        var left = -overflowX * (xPct / 100);
+        var top = -overflowY * (yPct / 100);
+        return { left: left, top: top };
+      };
       var imgs = clonedEl.querySelectorAll("img");
       imgs.forEach(function(img) {
         var of = img.style.objectFit;
         if (!of || (of !== "cover" && of !== "contain")) return;
-        var src = img.src;
-        if (!src) return;
+        var sw = img.naturalWidth;
+        var sh = img.naturalHeight;
         var w = img.offsetWidth;
         var h = img.offsetHeight;
-        if (!w || !h) return;
-        var op = img.style.objectPosition || "50% 50%";
-        var filter = img.style.filter || "";
-        var div = clonedDoc.createElement("div");
-        // Mirror the layout-relevant style props from the source <img> so the replacement
-        // sits in the same place in the parent's flow.
-        var copyProps = ["position", "inset", "top", "left", "right", "bottom", "zIndex", "borderRadius", "boxShadow", "opacity", "transform", "transformOrigin"];
-        copyProps.forEach(function(p) {
-          if (img.style[p]) div.style[p] = img.style[p];
-        });
-        div.style.width = w + "px";
-        div.style.height = h + "px";
-        div.style.backgroundImage = 'url("' + src.replace(/"/g, '\\"') + '")';
-        div.style.backgroundSize = of; // "cover" or "contain" map 1:1 from objectFit
-        div.style.backgroundPosition = op;
-        div.style.backgroundRepeat = "no-repeat";
-        if (filter) div.style.filter = filter;
-        img.parentNode && img.parentNode.replaceChild(div, img);
+        if (!sw || !sh || !w || !h) return;
+        var sourceAspect = sw / sh;
+        var cellAspect = w / h;
+        var newW, newH;
+        if (of === "cover") {
+          // Scale source to FILL cell on the shorter axis; overflow on the longer axis.
+          if (sourceAspect > cellAspect) {
+            newH = h;
+            newW = h * sourceAspect;
+          } else {
+            newW = w;
+            newH = w / sourceAspect;
+          }
+        } else {
+          // Contain: scale source to FIT inside cell; letterbox on the longer axis.
+          if (sourceAspect > cellAspect) {
+            newW = w;
+            newH = w / sourceAspect;
+          } else {
+            newH = h;
+            newW = h * sourceAspect;
+          }
+        }
+        var pos = parseObjectPosition(img.style.objectPosition, w, h, newW, newH);
+        // Ensure the parent clips the overflow. Most slide cells already have overflow:hidden +
+        // a fixed size, but we set them defensively here so the polyfill is self-contained.
+        var parent = img.parentElement;
+        if (parent) {
+          parent.style.overflow = "hidden";
+          var pPos = parent.style.position;
+          if (!pPos || pPos === "static") parent.style.position = "relative";
+        }
+        // Replace objectFit + relative sizing with explicit cropping geometry.
+        img.style.objectFit = "fill"; // safe — aspect is now correct, fill is just "stretch to declared dimensions"
+        img.style.objectPosition = "";
+        img.style.position = "absolute";
+        img.style.left = pos.left + "px";
+        img.style.top = pos.top + "px";
+        img.style.right = "auto";
+        img.style.bottom = "auto";
+        img.style.width = Math.round(newW) + "px";
+        img.style.height = Math.round(newH) + "px";
+        img.style.maxWidth = "none";
+        img.style.maxHeight = "none";
       });
       // Lock the outermost slide container to prevent any overflow
       clonedEl.style.overflow = "hidden";
