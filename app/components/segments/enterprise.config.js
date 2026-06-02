@@ -166,7 +166,7 @@ export function buildEnterprisePrompt(topic, force, editionSeed, picks, sector) 
       "The cover title should start with 'JUST IN:' or 'BREAKING:'\n\n"
     :
       "Write a carousel analyzing how " + forceLabel.toLowerCase() + " impacts this industry/topic.\n" +
-      "SLIDE COUNT: " + slideCount + " slides.\n\n"
+      "SLIDE COUNT: Generate EXACTLY " + slideCount + " slides total. The total INCLUDES the Cover (slide 1) and the Closer (last slide). Do NOT generate " + (slideCount + 1) + " or " + (slideCount - 1) + " — produce exactly " + slideCount + ".\n\n"
     ) +
     "SOURCE-FIRST WORKFLOW (mandatory):\n" +
     "1. RESEARCH — Run web_search on the industry/topic + force. Identify 5 to 8 authoritative recent articles (Bloomberg, FT, Reuters, WSJ, Economist, sector trade press, SEC filings). Prefer primary financial/regulatory documents over secondary coverage.\n" +
@@ -237,7 +237,7 @@ export function buildEnterpriseNewsPrompt(keywords, force, editionSeed, picks, s
     "Search the web for the MOST RECENT business news matching these keywords. Focus on the business and industry IMPACT of the news.\n\n" +
     (tone ? "TONE: " + tone.prompt + "\n" : "") +
     (ep.customVoice ? "CUSTOM VOICE: " + ep.customVoice + "\n" : "") +
-    "\nSLIDE COUNT: " + ((typeof ep.slideCount === "number" && ep.slideCount >= 4 && ep.slideCount <= 12) ? (ep.slideCount + " slides.") : "5-6 slides.") + "\n\n" +
+    "\nSLIDE COUNT: " + ((typeof ep.slideCount === "number" && ep.slideCount >= 4 && ep.slideCount <= 12) ? ("Generate EXACTLY " + ep.slideCount + " slides total, INCLUDING Cover and Closer. Do NOT generate " + (ep.slideCount + 1) + " or " + (ep.slideCount - 1) + ".") : "5-6 slides.") + "\n\n" +
     "RULES:\n" +
     "- Every fact must be from a real, verifiable source with 'sources' field\n" +
     "- Focus on BUSINESS IMPACT — not just what happened, but who profits, who loses, what changes\n" +
@@ -281,7 +281,7 @@ export function buildEnterpriseTipsPrompt(topic, force, editionSeed, picks, sect
     (tone ? "TONE: " + tone.prompt + "\n" : "") +
     (focus ? "FOCUS: " + focus.prompt + "\n" : "") +
     (ep.customVoice ? "CUSTOM VOICE: " + ep.customVoice + "\n" : "") +
-    "\nSLIDE COUNT: " + ((typeof ep.slideCount === "number" && ep.slideCount >= 4 && ep.slideCount <= 12) ? (ep.slideCount + " slides.") : "7-8 slides.") + "\n\n" +
+    "\nSLIDE COUNT: " + ((typeof ep.slideCount === "number" && ep.slideCount >= 4 && ep.slideCount <= 12) ? ("Generate EXACTLY " + ep.slideCount + " slides total, INCLUDING Cover and Closer. Do NOT generate " + (ep.slideCount + 1) + " or " + (ep.slideCount - 1) + ".") : "7-8 slides.") + "\n\n" +
     "RULES:\n" +
     "- Each tip must be SPECIFIC — not 'use social media' but 'post LinkedIn carousels 3x/week targeting procurement managers'\n" +
     "- Include a real tool, platform, or resource name where relevant\n" +
