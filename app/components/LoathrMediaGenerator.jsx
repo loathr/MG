@@ -2660,9 +2660,42 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
       // Force consistent dimensions — prevent black panel overflow
       clonedEl.style.width = exportTarget.offsetWidth + "px";
       clonedEl.style.height = exportTarget.offsetHeight + "px";
-      // (Removed objectFit -> backgroundImage rewrite: it stripped the CSS filter chain on the live img,
-      //  which produced softer/grainier exports compared to the rendered preview. html2canvas handles
-      //  objectFit on <img> directly.)
+      // === objectFit workaround ===
+      // html2canvas 1.4.1 has unreliable objectFit / objectPosition support on <img> elements
+      // when the image lives inside a flex/absolute-positioned wrapper or carries a filter.
+      // The previous WORKAROUND (rewrite <img> as a background-image div) was removed earlier
+      // because it dropped the filter. We reinstate it here and PRESERVE the filter on the
+      // replacement div, which html2canvas DOES honor on plain divs.
+      // Symptom this fixes: photos rendering correctly in the live preview (browser respects
+      // objectFit:cover) but stretched / squashed in the export (html2canvas ignored objectFit
+      // and stretched the img to its declared width x height).
+      var imgs = clonedEl.querySelectorAll("img");
+      imgs.forEach(function(img) {
+        var of = img.style.objectFit;
+        if (!of || (of !== "cover" && of !== "contain")) return;
+        var src = img.src;
+        if (!src) return;
+        var w = img.offsetWidth;
+        var h = img.offsetHeight;
+        if (!w || !h) return;
+        var op = img.style.objectPosition || "50% 50%";
+        var filter = img.style.filter || "";
+        var div = clonedDoc.createElement("div");
+        // Mirror the layout-relevant style props from the source <img> so the replacement
+        // sits in the same place in the parent's flow.
+        var copyProps = ["position", "inset", "top", "left", "right", "bottom", "zIndex", "borderRadius", "boxShadow", "opacity", "transform", "transformOrigin"];
+        copyProps.forEach(function(p) {
+          if (img.style[p]) div.style[p] = img.style[p];
+        });
+        div.style.width = w + "px";
+        div.style.height = h + "px";
+        div.style.backgroundImage = 'url("' + src.replace(/"/g, '\\"') + '")';
+        div.style.backgroundSize = of; // "cover" or "contain" map 1:1 from objectFit
+        div.style.backgroundPosition = op;
+        div.style.backgroundRepeat = "no-repeat";
+        if (filter) div.style.filter = filter;
+        img.parentNode && img.parentNode.replaceChild(div, img);
+      });
       // Lock the outermost slide container to prevent any overflow
       clonedEl.style.overflow = "hidden";
       // INTENTIONAL EXPORT-ONLY DIVERGENCE: html2canvas renders at scale ~6x on desktop. At that
