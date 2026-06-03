@@ -4531,7 +4531,16 @@ export default function LoathrMediaGenerator() {
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify(fetchBody) });
-      var d = await r.json();
+      // Read body as text first so a non-JSON gateway response (e.g. Vercel function
+      // timeout returns plain "An error occurred...") surfaces as a real error message
+      // instead of an opaque "Unexpected token" SyntaxError.
+      var bodyText = await r.text();
+      if (!r.ok) {
+        throw new Error("API error " + r.status + " (" + r.statusText + "): " + bodyText.slice(0, 300));
+      }
+      var d;
+      try { d = JSON.parse(bodyText); }
+      catch (parseErr) { throw new Error("API returned non-JSON (status " + r.status + "): " + bodyText.slice(0, 300)); }
       if (d.error) throw new Error(d.error.message || d.error);
       // Extract text — try each text block individually for JSON (web search splits response)
       var textBlocks = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); });
@@ -4563,7 +4572,10 @@ export default function LoathrMediaGenerator() {
           setImgStatus("Web search failed to produce JSON — retrying without search...");
           var retryBody = { model: "claude-opus-4-7", max_tokens: 8000, messages: [{ role: "user", content: prompt }] };
           var r2 = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify(retryBody) });
-          var d2 = await r2.json();
+          var bodyText2 = await r2.text();
+          if (!r2.ok) { throw new Error("API error " + r2.status + ": " + bodyText2.slice(0, 300)); }
+          var d2;
+          try { d2 = JSON.parse(bodyText2); } catch (pe) { throw new Error("API returned non-JSON on retry: " + bodyText2.slice(0, 300)); }
           if (d2.error) throw new Error(d2.error.message || d2.error);
           text = (d2.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
           cleaned = text.replace(/```json|```/g, "").trim().replace(/,\s*([}\]])/g, "$1");
@@ -4592,7 +4604,10 @@ export default function LoathrMediaGenerator() {
             setImgStatus("JSON truncated — retrying without web search...");
             var retryBody3 = { model: "claude-opus-4-7", max_tokens: 8000, messages: [{ role: "user", content: prompt }] };
             var r3 = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal, body: JSON.stringify(retryBody3) });
-            var d3 = await r3.json();
+            var bodyText3 = await r3.text();
+            if (!r3.ok) { throw new Error("API error " + r3.status + ": " + bodyText3.slice(0, 300)); }
+            var d3;
+            try { d3 = JSON.parse(bodyText3); } catch (pe3) { throw new Error("API returned non-JSON on second retry: " + bodyText3.slice(0, 300)); }
             if (d3.error) throw new Error(d3.error.message || d3.error);
             var t3 = (d3.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
             var c3 = t3.replace(/```json|```/g, "").trim().replace(/,\s*([}\]])/g, "$1");
