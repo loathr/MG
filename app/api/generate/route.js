@@ -88,6 +88,44 @@ export async function POST(request) {
       payload.tools = body.tools;
     }
 
+    // Streaming path: client opts in via body.stream = true. We forward Anthropic's
+    // Server-Sent Events stream directly to the client. Vercel considers the function
+    // "complete" the moment the streamed response begins, so the maxDuration cap stops
+    // applying — long Claude Opus + web_search calls can run past 60 seconds without
+    // being killed.
+    if (body.stream === true) {
+      payload.stream = true;
+      const upstream = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!upstream.ok) {
+        const errText = await upstream.text();
+        let errMsg = errText;
+        try { const parsed = JSON.parse(errText); errMsg = parsed.error?.message || parsed.error || errText; } catch {}
+        return NextResponse.json(
+          { error: errMsg },
+          { status: upstream.status }
+        );
+      }
+
+      // Pipe the SSE body through. Client parses events.
+      return new Response(upstream.body, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache, no-transform",
+          "Connection": "keep-alive",
+        },
+      });
+    }
+
+    // Non-streaming path (existing behavior) — used by short utility calls.
     const result = await callAnthropic(payload, apiKey, 0);
 
     if (result.error) {

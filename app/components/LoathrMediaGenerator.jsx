@@ -4526,22 +4526,87 @@ export default function LoathrMediaGenerator() {
       }
       // All paths use web search to ground generation in current data (model cutoff is mid-2024)
       var useWebSearch = true;
-      var fetchBody = { model: "claude-opus-4-7", max_tokens: 16000, messages: [{ role: "user", content: prompt }] };
+      var fetchBody = { model: "claude-opus-4-7", max_tokens: 16000, messages: [{ role: "user", content: prompt }], stream: true };
       fetchBody.tools = [{ type: "web_search_20250305", name: "web_search" }];
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify(fetchBody) });
-      // Read body as text first so a non-JSON gateway response (e.g. Vercel function
-      // timeout returns plain "An error occurred...") surfaces as a real error message
-      // instead of an opaque "Unexpected token" SyntaxError.
-      var bodyText = await r.text();
+      // Streaming path: the server pipes Anthropic's SSE stream straight through so
+      // Vercel's 60s function cap stops applying (the function "completes" the moment
+      // streaming begins). Below we walk the SSE events and accumulate text deltas into
+      // the same { content: [{type:"text", text:...}] } shape the non-streaming path
+      // used to return, so the downstream JSON-extraction code is unchanged.
       if (!r.ok) {
-        throw new Error("API error " + r.status + " (" + r.statusText + "): " + bodyText.slice(0, 300));
+        var errBody = await r.text();
+        throw new Error("API error " + r.status + " (" + r.statusText + "): " + errBody.slice(0, 300));
       }
       var d;
-      try { d = JSON.parse(bodyText); }
-      catch (parseErr) { throw new Error("API returned non-JSON (status " + r.status + "): " + bodyText.slice(0, 300)); }
-      if (d.error) throw new Error(d.error.message || d.error);
+      if (r.headers.get("content-type") && r.headers.get("content-type").indexOf("text/event-stream") > -1) {
+        var reader = r.body.getReader();
+        var decoder = new TextDecoder();
+        var sseBuffer = "";
+        var streamBlocks = [];   // accumulated content blocks
+        var blockTexts = {};     // index -> accumulating string
+        var streamErr = null;
+        try {
+          while (true) {
+            var chunk = await reader.read();
+            if (chunk.done) break;
+            sseBuffer += decoder.decode(chunk.value, { stream: true });
+            // SSE events are separated by blank lines.
+            var lastBoundary = sseBuffer.lastIndexOf("\n\n");
+            if (lastBoundary < 0) continue;
+            var ready = sseBuffer.slice(0, lastBoundary);
+            sseBuffer = sseBuffer.slice(lastBoundary + 2);
+            var events = ready.split("\n\n");
+            for (var ei = 0; ei < events.length; ei++) {
+              var rawEvent = events[ei];
+              if (!rawEvent.trim()) continue;
+              var dataLine = "";
+              var lines = rawEvent.split("\n");
+              for (var li = 0; li < lines.length; li++) {
+                if (lines[li].indexOf("data: ") === 0) dataLine += lines[li].slice(6);
+              }
+              if (!dataLine || dataLine === "[DONE]") continue;
+              try {
+                var evt = JSON.parse(dataLine);
+                if (evt.type === "content_block_start") {
+                  var bi = evt.index || 0;
+                  if (evt.content_block && evt.content_block.type === "text") {
+                    blockTexts[bi] = "";
+                  }
+                } else if (evt.type === "content_block_delta") {
+                  var bi2 = evt.index || 0;
+                  if (evt.delta && evt.delta.type === "text_delta") {
+                    blockTexts[bi2] = (blockTexts[bi2] || "") + (evt.delta.text || "");
+                  }
+                } else if (evt.type === "content_block_stop") {
+                  var bi3 = evt.index || 0;
+                  if (typeof blockTexts[bi3] === "string") {
+                    streamBlocks.push({ type: "text", text: blockTexts[bi3] });
+                    delete blockTexts[bi3];
+                  }
+                } else if (evt.type === "error") {
+                  streamErr = (evt.error && evt.error.message) || evt.error || "Streaming error";
+                }
+              } catch (pe) { /* ignore partial event JSON errors */ }
+            }
+          }
+        } catch (sErr) {
+          if (sErr && sErr.name === "AbortError") throw sErr;
+          throw new Error("Stream read failed: " + (sErr && sErr.message ? sErr.message : "unknown"));
+        }
+        if (streamErr) throw new Error(streamErr);
+        // Flush any block still open without a stop event (defensive).
+        Object.keys(blockTexts).forEach(function(k) { streamBlocks.push({ type: "text", text: blockTexts[k] }); });
+        d = { content: streamBlocks };
+      } else {
+        // Non-streaming fallback (shouldn't trigger with stream:true in body, but safe).
+        var bodyText = await r.text();
+        try { d = JSON.parse(bodyText); }
+        catch (parseErr) { throw new Error("API returned non-JSON (status " + r.status + "): " + bodyText.slice(0, 300)); }
+        if (d.error) throw new Error(d.error.message || d.error);
+      }
       // Extract text — try each text block individually for JSON (web search splits response)
       var textBlocks = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); });
       var text = textBlocks.join("");
