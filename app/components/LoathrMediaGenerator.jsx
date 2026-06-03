@@ -6639,6 +6639,23 @@ export default function LoathrMediaGenerator() {
               </div>
             </div>
             <div style={{ height: 1, background: "#eee", margin: "8px 0" }} />
+            {/* Slide count picker — Editorial was previously locked to whatever
+                Claude chose (typically ~10 for editorial topics) because there was
+                no UI to set editionPicks.slideCount. Enterprise/News Desk/Custom
+                Story had their own pickers; Editorial did not. Adding it here so
+                Editorial respects the same picker as the other segments. */}
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ ...CP, fontSize: 7, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>SLIDES <span style={{ color: "#bbb", marginLeft: 4, fontSize: 5 }}>(overrides voice/angle defaults)</span></div>
+              <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                <button onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: 0 }); }); }}
+                  style={{ padding: "3px 8px", border: "0.5px solid " + (!editionPicks.slideCount ? uiAccent : "#ddd"), background: !editionPicks.slideCount ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: !editionPicks.slideCount ? uiAccent : "#999" }}>Auto</button>
+                {[4, 5, 6, 7, 8, 9, 10, 11, 12].map(function(n) { return (
+                  <button key={n} onClick={function() { setEditionPicks(function(p) { return Object.assign({}, p, { slideCount: n }); }); }}
+                    style={{ padding: "3px 7px", border: "0.5px solid " + (editionPicks.slideCount === n ? uiAccent : "#ddd"), background: editionPicks.slideCount === n ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 6, color: editionPicks.slideCount === n ? uiAccent : "#999", minWidth: 18, textAlign: "center" }}>{n}</button>
+                ); })}
+              </div>
+            </div>
+            <div style={{ height: 1, background: "#eee", margin: "8px 0" }} />
             {/* Voice */}
             <div style={{ marginBottom: 8 }}>
               <div style={{ ...CP, fontSize: 7, color: "#999", letterSpacing: "0.1em", marginBottom: 4 }}>VOICE</div>
