@@ -4606,33 +4606,44 @@ export default function LoathrMediaGenerator() {
       if (results.length === 0) throw new Error("No valid carousel generated");
       // Slide-count fail-safe: when the user picked an exact slideCount via the picker,
       // truncate / pad so the final carousel matches even if Claude overshoots or undershoots.
-      // - Truncation keeps the Cover (first) and Closer (last) and trims content from the middle
-      //   so the editorial structure is preserved.
-      // - Padding inserts a placeholder content slide BEFORE the closer so the closer stays last.
-      var wantedCount = (typeof editionPicks.slideCount === "number" && editionPicks.slideCount >= 4 && editionPicks.slideCount <= 12) ? editionPicks.slideCount : 0;
-      if (wantedCount > 0) {
-        results.forEach(function(opt) {
-          if (!opt || !Array.isArray(opt.slides)) return;
-          var s = opt.slides;
-          if (s.length === wantedCount) return;
-          if (s.length > wantedCount) {
-            // Too many slides — trim from the middle (preserve Cover + Closer).
-            var keepStart = 1; // Cover
-            var keepEnd = 1;   // Closer
-            var middleKeep = wantedCount - keepStart - keepEnd;
-            opt.slides = s.slice(0, keepStart).concat(s.slice(1, 1 + middleKeep)).concat(s.slice(s.length - keepEnd));
-          } else {
-            // Too few slides — pad with a blank content placeholder before the closer.
-            var pad = wantedCount - s.length;
-            var closer = s[s.length - 1];
-            var content = s.slice(0, s.length - 1);
-            for (var i = 0; i < pad; i++) {
-              content.push({ role: "CONTENT", heading: "", body: "", _placeholder: true });
+      // Wrapped in try/catch so an unexpected slide shape can't crash the whole generation.
+      // The fail-safe is best-effort — if it fails, we still ship Claude's original slides.
+      try {
+        var wantedCount = (typeof editionPicks.slideCount === "number" && editionPicks.slideCount >= 4 && editionPicks.slideCount <= 12) ? editionPicks.slideCount : 0;
+        if (wantedCount > 0) {
+          results.forEach(function(opt) {
+            if (!opt || !Array.isArray(opt.slides) || opt.slides.length === 0) return;
+            var s = opt.slides;
+            if (s.length === wantedCount) return;
+            if (s.length > wantedCount) {
+              // Too many slides — trim from the middle (preserve Cover + Closer).
+              // Guard: if wantedCount < 2, we can't preserve both Cover + Closer; just slice.
+              if (wantedCount < 2) { opt.slides = s.slice(0, wantedCount); return; }
+              var middleKeep = Math.max(0, wantedCount - 2);
+              opt.slides = [s[0]].concat(s.slice(1, 1 + middleKeep)).concat([s[s.length - 1]]);
+            } else {
+              // Too few slides — pad with a blank content placeholder before the closer.
+              var pad = wantedCount - s.length;
+              var closer = s[s.length - 1] || { role: "CLOSER" };
+              var content = s.slice(0, Math.max(0, s.length - 1));
+              for (var i = 0; i < pad; i++) {
+                content.push({ role: "CONTENT", heading: "", body: "", _placeholder: true });
+              }
+              opt.slides = content.concat([closer]);
             }
-            opt.slides = content.concat([closer]);
-          }
-        });
+          });
+        }
+      } catch (sizingErr) {
+        console.warn("Slide-count fail-safe skipped due to:", sizingErr);
       }
+      // Defensive: ensure every result has a valid slides array before handing to React.
+      // Renderers assume slide objects with .role / .body / .heading / etc. — null slots
+      // would crash any layout that dereferences a property. Filter them out.
+      results.forEach(function(opt) {
+        if (opt && Array.isArray(opt.slides)) {
+          opt.slides = opt.slides.filter(function(sl) { return sl && typeof sl === "object"; });
+        }
+      });
       setOptions(results);
       incrementGenCount();
       // Save to recent and history
@@ -4963,7 +4974,12 @@ export default function LoathrMediaGenerator() {
           } else { setImgStatus("No images found"); }
         } catch (ve) { console.warn("Vintage search failed:", ve); setImgStatus("Vintage search failed: " + (ve && ve.message ? ve.message : "unknown")); }
       }
-    } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        console.error("Generation failed at:", err && err.stack ? err.stack : err);
+        setError("Generation failed: " + (err && err.message ? err.message : "unknown error") + " — check console (F12) for the full stack trace.");
+      }
+    }
     finally { setIsGenerating(false); genCountPrevRef.current = null; }
   }, [topic, category, secondaryCategory, secondaryCount, tertiaryCategory, tertiaryCount, apiKeys, editionPicks, lockedPersonImages, genCount, previewLocked, lockedLocationImages, enterpriseForce, enterpriseMode, enterpriseSector, newsFilter, newsRegion, newsTimeframe, newsCountry]);
 
@@ -5074,7 +5090,12 @@ export default function LoathrMediaGenerator() {
       }
       if (Object.keys(imgMap).length > 0) { setImages(imgMap); setImgStatus(Object.keys(imgMap).length + " images placed"); }
       else { setImgStatus("No supporting images found"); }
-    } catch (err) { if (err.name !== "AbortError") setError(err.message || "Generation failed"); }
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        console.error("Generation failed at:", err && err.stack ? err.stack : err);
+        setError("Generation failed: " + (err && err.message ? err.message : "unknown error") + " — check console (F12) for the full stack trace.");
+      }
+    }
     finally { setIsGenerating(false); genCountPrevRef.current = null; }
   }, [customSubject, customHook, customContext, customImages, category, apiKeys, editionPicks, genCount, creativeFreedom]);
 
