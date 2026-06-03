@@ -1921,8 +1921,12 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
   if (!slideData || !category) return <div style={{ width: "100%", height: "100%", background: "#0a0a0a" }} />;
   // Resolve cross-category lens — use lens palette for border, primary for cover/closer
   var effectiveCat = category;
-  if (slideData.categoryLens && slideIndex > 0 && slideIndex < totalSlides - 1) {
-    var lensMatch = CATEGORIES.find(function(c) { return c.label === slideData.categoryLens || c.id === slideData.categoryLens.toLowerCase(); });
+  // categoryLens is meant to be a string label, but Claude occasionally emits an array
+  // or other shape. Coerce defensively so a non-string can never reach .toLowerCase().
+  var lensRaw = slideData.categoryLens;
+  var lensStr = typeof lensRaw === "string" ? lensRaw : (Array.isArray(lensRaw) && typeof lensRaw[0] === "string" ? lensRaw[0] : "");
+  if (lensStr && slideIndex > 0 && slideIndex < totalSlides - 1) {
+    var lensMatch = CATEGORIES.find(function(c) { return c.label === lensStr || c.id === lensStr.toLowerCase(); });
     if (lensMatch && PALETTES[lensMatch.id]) effectiveCat = lensMatch.id;
   }
   var p = PALETTES[category];
@@ -4518,7 +4522,7 @@ export default function LoathrMediaGenerator() {
         var newsPicks = Object.assign({}, editionPicks, { publishDate: publishDate || null });
         prompt = buildNewsDeskPrompt(topic, nfObj, nrObj, ntObj, newsCountry, newsPicks);
       } else {
-        prompt = buildPrompt(catInfo.label, topic, edition.seed, editionPicks, Object.keys(lockedRef.current || {}).length > 0, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null, secondaryCount, tertiaryCount);
+        prompt = buildPrompt((catInfo && catInfo.label) || category || "", topic, edition.seed, editionPicks, Object.keys(lockedRef.current || {}).length > 0, secInfo ? secInfo.label : null, terInfo ? terInfo.label : null, secondaryCount, tertiaryCount);
       }
       // All paths use web search to ground generation in current data (model cutoff is mid-2024)
       var useWebSearch = true;
@@ -4615,6 +4619,10 @@ export default function LoathrMediaGenerator() {
             if (!opt || !Array.isArray(opt.slides) || opt.slides.length === 0) return;
             var s = opt.slides;
             if (s.length === wantedCount) return;
+            // Need at least 2 slides (a Cover + a Closer) for the pad branch to make
+            // sense — otherwise we'd be inserting placeholders before the Cover, which
+            // pushes Cover into the closer slot. Bail out and ship Claude's slides as-is.
+            if (s.length < 2) return;
             if (s.length > wantedCount) {
               // Too many slides — trim from the middle (preserve Cover + Closer).
               // Guard: if wantedCount < 2, we can't preserve both Cover + Closer; just slice.
@@ -4666,7 +4674,7 @@ export default function LoathrMediaGenerator() {
       if (results[0] && results[0].slides) {
         setRelatedTopics(getRelatedTopics(results[0].slides, category));
         setCrossCatRelated(getCrossCategoryRelated(results[0].slides, category));
-        fetchClaudeRelated(topic, catInfo.label, results[0].slides);
+        fetchClaudeRelated(topic, (catInfo && catInfo.label) || category || "", results[0].slides);
         addToChain(topic, category);
       }
       setSuggestions([]);
@@ -4804,11 +4812,15 @@ export default function LoathrMediaGenerator() {
           for (var ps = 1; ps < Math.min(slides.length - 1, 12); ps++) {
             if (imgMap[ps]) continue;
             var slideData = slides[ps] || {};
-            // Use the slide's cross-category lens for search if present
-            var slideCatLabel = catInfo.label;
+            // Use the slide's cross-category lens for search if present.
+            // catInfo may be undefined for unknown segments (e.g. studios is not in CATEGORIES);
+            // fall back to the category id so we never deref undefined.label.
+            var slideCatLabel = (catInfo && catInfo.label) || category || "";
             var slideCatId = category;
-            if (slideData.categoryLens) {
-              var lensMatch = CATEGORIES.find(function(c) { return c.label.toLowerCase() === slideData.categoryLens.toLowerCase() || c.id === slideData.categoryLens.toLowerCase(); });
+            var lensRawPs = slideData.categoryLens;
+            var lensStrPs = typeof lensRawPs === "string" ? lensRawPs : (Array.isArray(lensRawPs) && typeof lensRawPs[0] === "string" ? lensRawPs[0] : "");
+            if (lensStrPs) {
+              var lensMatch = CATEGORIES.find(function(c) { return c.label.toLowerCase() === lensStrPs.toLowerCase() || c.id === lensStrPs.toLowerCase(); });
               if (lensMatch) { slideCatLabel = lensMatch.label; slideCatId = lensMatch.id; }
             }
             var sq = getSlideImageQuery(slideData, slideCatLabel, topic);
@@ -4953,7 +4965,7 @@ export default function LoathrMediaGenerator() {
             var vsSlides = results[0].slides.slice(1, 5);
             for (var vs = 0; vs < vsSlides.length && vintageOnly.length < 10; vs++) {
               try {
-                var vsq = getSlideImageQuery(vsSlides[vs], catInfo.label, topic);
+                var vsq = getSlideImageQuery(vsSlides[vs], (catInfo && catInfo.label) || category || "", topic);
                 var vExtra = await apis[vs % apis.length](vsq);
                 if (vExtra.length > 0) vintageOnly.push(vExtra[0]);
               } catch (vpe) { /* continue */ }
@@ -5022,7 +5034,7 @@ export default function LoathrMediaGenerator() {
       var toneObj = TONES.find(function(t) { return t.id === toneId; });
       var toneInstr = toneObj ? "\nTONE: " + toneObj.prompt : "";
       var customVoiceInstr = editionPicks.customVoice ? "\nCUSTOM VOICE: " + editionPicks.customVoice : "";
-      var customPrompt = "You are writing for LOATHR, an editorial Instagram brand." + dateAnchor() + "\nCategory: \"" + catInfo.label + "\"\n\nCUSTOM STORY MODE — this is an ORIGINAL story not yet on the internet.\n\nSubject: \"" + customSubject + "\"\n" + (customHook ? "Hook: \"" + customHook + "\"\n" : "") + "\nRAW CONTEXT (from the user):\n" + customContext + "\n\n" + freedomInstr + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\n\nThe user has uploaded " + customImages.length + " image(s):\n" + imgRoles + "\n\nKeep body text to 2-3 sentences MAX per slide.\n\nSLIDE ROLES (adapt to fit the story):\n- COVER — title, titleHighlight, subtitle\n- Content slides — heading, body, highlight, textPosition\n- THE EVIDENCE — stat/number slide if any numbers exist in the context. Use statFormat \"killer\" with stat and caption.\n- THE VOICE — quote slide if any quotes exist. quote, source (name), credential (title + organization), person (full name) fields.\n- CLOSER — hashtags string\n- On 1 content slide where it fits, add \"mosaic\": true for a photo collage background.\n\nFor design: choose textPosition per slide from: bottom-left, bottom-right, top-left, top-right, split-corners, side-left, side-right, l-shape\n\nRespond ONLY with valid JSON:\n{\"angle\":\"Custom Story\",\"slides\":[{...slides...}]}";
+      var customPrompt = "You are writing for LOATHR, an editorial Instagram brand." + dateAnchor() + "\nCategory: \"" + ((catInfo && catInfo.label) || category || "") + "\"\n\nCUSTOM STORY MODE — this is an ORIGINAL story not yet on the internet.\n\nSubject: \"" + customSubject + "\"\n" + (customHook ? "Hook: \"" + customHook + "\"\n" : "") + "\nRAW CONTEXT (from the user):\n" + customContext + "\n\n" + freedomInstr + toneInstr + customVoiceInstr + "\n\n" + slideCountInstr + "\n\nThe user has uploaded " + customImages.length + " image(s):\n" + imgRoles + "\n\nKeep body text to 2-3 sentences MAX per slide.\n\nSLIDE ROLES (adapt to fit the story):\n- COVER — title, titleHighlight, subtitle\n- Content slides — heading, body, highlight, textPosition\n- THE EVIDENCE — stat/number slide if any numbers exist in the context. Use statFormat \"killer\" with stat and caption.\n- THE VOICE — quote slide if any quotes exist. quote, source (name), credential (title + organization), person (full name) fields.\n- CLOSER — hashtags string\n- On 1 content slide where it fits, add \"mosaic\": true for a photo collage background.\n\nFor design: choose textPosition per slide from: bottom-left, bottom-right, top-left, top-right, split-corners, side-left, side-right, l-shape\n\nRespond ONLY with valid JSON:\n{\"angle\":\"Custom Story\",\"slides\":[{...slides...}]}";
 
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
@@ -5064,7 +5076,7 @@ export default function LoathrMediaGenerator() {
         var searchFn = unsplashKey ? searchUnsplash : searchPexels;
         var searchKey = unsplashKey || pexelsKey;
         var keywords = extractKeywords(customSubject + " " + customHook, 3);
-        var catLabel = catInfo.label;
+        var catLabel = (catInfo && catInfo.label) || category || "";
         try {
           var stockImgs = await searchFn(catLabel + " " + keywords, searchKey);
           var usedUrls2 = {};
@@ -5108,7 +5120,7 @@ export default function LoathrMediaGenerator() {
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null); setIsRecMode(true);
     var catInfo = CATEGORIES.find(function(c) { return c.id === category; });
     try {
-      var prompt = buildRecPrompt(catInfo.label, topic);
+      var prompt = buildRecPrompt((catInfo && catInfo.label) || category || "", topic);
       var msgs = [{ role: "user", content: prompt }];
       var tools = [{ type: "web_search_20250305", name: "web_search" }];
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -5152,7 +5164,7 @@ export default function LoathrMediaGenerator() {
         try {
           var searchFn = unsplashKey ? searchUnsplash : searchPexels;
           var key = unsplashKey || pexelsKey;
-          var imgs = await searchFn(catInfo.label + " " + extractKeywords(topic, 3), key);
+          var imgs = await searchFn(((catInfo && catInfo.label) || category || "") + " " + extractKeywords(topic, 3), key);
           if (imgs.length < 10) {
             try { var vi = await searchVintage(category, extractKeywords(topic, 3)); imgs = imgs.concat(vi); } catch (ve) {}
           }

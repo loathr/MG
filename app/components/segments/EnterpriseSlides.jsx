@@ -152,13 +152,15 @@ var SLIDE_H = 425;
 var pxH = function(pct) { return Math.round(SLIDE_H * pct / 100); };
 var pxW = function(pct) { return Math.round(SLIDE_W * pct / 100); };
 
-// Split ratio + text offset helpers
-function getSplit(slide) { return (slide.enterpriseSplit || 50); }
-function getTextOffset(slide) { return slide.enterpriseTextOffset || { top: 0, left: 0 }; }
+// Split ratio + text offset helpers — all defensive-null so an unexpected undefined
+// slide (e.g. from the slide-count pad path or a malformed Claude response) can't crash
+// the entire layout via a TypeError on slide.enterpriseSplit.
+function getSplit(slide) { return (slide && slide.enterpriseSplit) || 50; }
+function getTextOffset(slide) { return (slide && slide.enterpriseTextOffset) || { top: 0, left: 0 }; }
 function offsetStyle(slide) { var o = getTextOffset(slide); return (o.top || o.left) ? { transform: "translate(" + (o.left || 0) + "px," + (o.top || 0) + "px)" } : {}; }
 // Per-element offset from customPosition
 function elementTransform(slide, element) {
-  var cp = slide.customPosition && typeof slide.customPosition === "object" ? slide.customPosition : {};
+  var cp = slide && slide.customPosition && typeof slide.customPosition === "object" ? slide.customPosition : {};
   var o = cp[element] || { top: 0, left: 0 };
   var result = (o.top || o.left) ? { transform: "translate(" + (o.left || 0) + "px," + (o.top || 0) + "px)" } : {};
   // Text alignment override
@@ -524,7 +526,11 @@ export function EnterpriseContent({ slide, images, index, mosaicUrls, mosaicLayo
 
 // Playbook — numbered steps
 export function EnterprisePlaybook({ slide, images, index }) {
-  var steps = (slide.body || "").split(/\d+[\.\)]\s*/g).filter(Boolean);
+  // Claude occasionally returns body as an array of steps instead of a string. Coerce
+  // so .split() can never throw on a non-string.
+  var bodyRaw = slide && slide.body;
+  var bodyStr = typeof bodyRaw === "string" ? bodyRaw : (Array.isArray(bodyRaw) ? bodyRaw.map(function(x, i) { return (i + 1) + ". " + (typeof x === "string" ? x : JSON.stringify(x)); }).join(" ") : "");
+  var steps = bodyStr.split(/\d+[\.\)]\s*/g).filter(Boolean);
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
       <div style={{ height: 1, background: "#ffffff33", margin: "0 16px" }} />
