@@ -7,6 +7,10 @@ import {
   VALID_MODES,
 } from "../../lib/scriptSchema.js";
 
+// See app/api/generate/route.js for context. Script generation is comparable in
+// runtime to carousel generation (Claude Opus + tool calls) so the same ceiling applies.
+export const maxDuration = 60;
+
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [2000, 5000, 10000];
 

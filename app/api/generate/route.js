@@ -1,5 +1,16 @@
 import { NextResponse } from "next/server";
 
+// Vercel kills serverless functions after their maxDuration. Default is 10s on
+// some plans, which is far too short for Claude Opus + web_search to respond
+// (typically 20-60s for an editorial carousel). Without this, Vercel kills the
+// function mid-flight, returns a malformed gateway error, and the browser shows
+// "This page couldn't load" instead of the carousel.
+// - Hobby plan max: 60s
+// - Pro plan max: 300s
+// - Enterprise plan max: 900s
+// If 60s still isn't enough on your plan, upgrade to Pro and bump this to 300.
+export const maxDuration = 60;
+
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [2000, 5000, 10000]; // 2s, 5s, 10s backoff
 
