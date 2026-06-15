@@ -4811,10 +4811,10 @@ export default function LoathrMediaGenerator() {
           var VINTAGE_CATS = { film: 1, photo: 1, art: 1, trivia: 1, fashion: 1 };
           var vintageSlots = VINTAGE_CATS[category] ? [1, 2, 7] : [];
 
+          recordStep("placing locked person images");
           // 0. Place locked person images — read from ref for guaranteed freshness
           var currentLocked = lockedRef.current || {};
           var lockedNames = Object.keys(currentLocked);
-          console.log("Locked person images:", lockedNames.length, JSON.stringify(currentLocked));
           if (lockedNames.length > 0 && results[0]) {
             var piSlide = results[0].personImageSlide;
             lockedNames.forEach(function(name, ni) {
@@ -4864,6 +4864,7 @@ export default function LoathrMediaGenerator() {
             else if (role === "hotTake") imgMap[3] = pvImg;
           });
 
+          recordStep("running main topic image search (cover + closer)");
           // 1. Main topic search for cover + closer
           // Cover gets FULL category context (label + topic + force/filter prefix). Per-slide queries (below) stay slim — that was the Commit A intent.
           var topicTokens = shortTopic.split(/\s+/).filter(Boolean);
@@ -4913,9 +4914,11 @@ export default function LoathrMediaGenerator() {
             return null;
           }
 
+          recordStep("per-slide image search loop starting");
           // 2. Per-slide contextual search for content slides
           setImgStatus("Matching images to slides...");
           for (var ps = 1; ps < Math.min(slides.length - 1, 12); ps++) {
+            recordStep("per-slide image search: slide " + ps);
             if (imgMap[ps]) continue;
             var slideData = slides[ps] || {};
             // Use the slide's cross-category lens for search if present.
@@ -4962,6 +4965,7 @@ export default function LoathrMediaGenerator() {
             }
           }
 
+          recordStep("filling remaining slide gaps from main results");
           // 3. Fill remaining gaps with unique images from main results (no repeats)
           var slideTotal = slides.length || 10;
           for (var fill = 0; fill < slideTotal; fill++) {
@@ -4971,6 +4975,7 @@ export default function LoathrMediaGenerator() {
             }
           }
 
+          recordStep("building mosaic configuration");
           var totalLoaded = Object.keys(imgMap).length;
           // Build mosaic map for slides Claude flagged as mosaic
           _mosaicSlides = {};
@@ -5055,10 +5060,12 @@ export default function LoathrMediaGenerator() {
               });
             }
           }
+          recordStep("setting images on slides");
           if (totalLoaded > 0) {
             setImages(imgMap);
             setImgStatus(totalLoaded + " contextual images loaded" + (Object.keys(_mosaicSlides).length > 0 ? " (" + Object.keys(_mosaicSlides).length + " mosaic)" : ""));
           } else { setImgStatus("No images found"); }
+          recordStep("image search complete");
         } catch (e) { setImgStatus("Image search failed: " + e.message); }
       } else {
         // No stock API keys — vintage APIs only
