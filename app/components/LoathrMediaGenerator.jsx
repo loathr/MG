@@ -3172,6 +3172,33 @@ export default function LoathrMediaGenerator() {
   var selectedOptionRef = _ref(0);
   var cls = _s(0), currentSlide = cls[0], setCurrentSlide = cls[1];
   var gs = _s(false), isGenerating = gs[0], setIsGenerating = gs[1];
+  // Step tracker for crash diagnostics. The user has been hitting "page couldn't
+  // load" tab crashes that can't be reproduced with DevTools open. Storing the
+  // current step in localStorage means we can read what the app was doing
+  // immediately before the tab died, on the very next page load.
+  var gst = _s(""), genStep = gst[0], setGenStep = gst[1];
+  var stp = _s(""), crashStep = stp[0], setCrashStep = stp[1];
+  var stepRef = _ref("");
+  function recordStep(name) {
+    stepRef.current = name;
+    setGenStep(name);
+    try {
+      localStorage.setItem("loathr_gen_last_step", JSON.stringify({ step: name, at: Date.now(), topic: topic, category: category }));
+    } catch (e) {}
+  }
+  // On mount, check if the previous session ended mid-generation. If so, surface
+  // the last step it reached so the user can paste it back without DevTools.
+  _ef(function() {
+    try {
+      var saved = localStorage.getItem("loathr_gen_last_step");
+      if (!saved) return;
+      var parsed = JSON.parse(saved);
+      // Only show if recent (within last 10 minutes) AND not cleared by a normal completion
+      if (parsed && parsed.step && parsed.at && Date.now() - parsed.at < 10 * 60 * 1000) {
+        setCrashStep(parsed.step + " (topic: " + (parsed.topic || "?") + ", " + new Date(parsed.at).toLocaleTimeString() + ")");
+      }
+    } catch (e) {}
+  }, []);
   var gc = _s(0), genCount = gc[0], setGenCount = gc[1];
   var es = _s(null), error = es[0], setError = es[1];
   var aks = _s({ unsplash: process.env.NEXT_PUBLIC_UNSPLASH_KEY || "", pexels: process.env.NEXT_PUBLIC_PEXELS_KEY || "" }), apiKeys = aks[0], setApiKeys = aks[1];
@@ -4549,6 +4576,7 @@ export default function LoathrMediaGenerator() {
     if (abortRef.current) abortRef.current.abort();
     var controller = new AbortController();
     abortRef.current = controller;
+    recordStep("starting generation");
     setIsGenerating(true); setError(null); setOptions(null); setImages({});
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
     var thisGen = genCount + 1;
@@ -4563,6 +4591,7 @@ export default function LoathrMediaGenerator() {
     if (category === "enterprise") setGlobalImgFilter(editionPicks.enterpriseImgFilter || "none");
     try {
       if (controller.signal.aborted) throw new Error("Generation cancelled");
+      recordStep("building prompt");
       var secInfo = secondaryCategory ? CATEGORIES.find(function(c) { return c.id === secondaryCategory; }) : null;
       var terInfo = tertiaryCategory ? CATEGORIES.find(function(c) { return c.id === tertiaryCategory; }) : null;
       var prompt;
@@ -4586,16 +4615,11 @@ export default function LoathrMediaGenerator() {
       var useWebSearch = true;
       var fetchBody = { model: "claude-opus-4-7", max_tokens: 16000, messages: [{ role: "user", content: prompt }] };
       fetchBody.tools = [{ type: "web_search_20250305", name: "web_search" }];
-      // NON-STREAMING request. The streaming path was added in b53f307 to fit
-      // generation inside the Vercel Hobby 60s function cap; now that this account
-      // is on Vercel Pro (maxDuration=300s), streaming is no longer necessary and
-      // adds client-side complexity (SSE parser, partial-state edge cases) that
-      // was implicated in tab crashes. The server's /api/generate route still
-      // supports streaming for any caller that opts in via body.stream=true; the
-      // main generation just no longer does.
+      recordStep("calling Claude API (this can take 30-90 seconds)");
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify(fetchBody) });
+      recordStep("Claude API responded, reading body");
       // Read body as text first so a non-JSON gateway response (e.g. Vercel function
       // killed mid-flight, Vercel returns plain "An error occurred...") surfaces as a
       // real error message instead of an opaque "Unexpected token" SyntaxError.
@@ -4732,6 +4756,7 @@ export default function LoathrMediaGenerator() {
           opt.slides = opt.slides.filter(function(sl) { return sl && typeof sl === "object"; });
         }
       });
+      recordStep("rendering " + (results[0] && results[0].slides ? results[0].slides.length : "?") + " slides");
       setOptions(results);
       incrementGenCount();
       // Save to recent and history
@@ -4779,6 +4804,7 @@ export default function LoathrMediaGenerator() {
             var filterImgCtx = { breaking: "breaking news urgent", developing: "news press conference", trending: "viral social media", politics: "politics government capitol", sports: "sports athlete stadium", money: "finance economy money", people: "celebrity public figure", tech: "technology digital", culture: "culture arts society", world: "global world map" };
             coverPrefix = (filterImgCtx[newsFilter] || "news") + " ";
           }
+          recordStep("starting image search for slides");
           var imgMap = {};
           var slides = results[0] && results[0].slides ? results[0].slides : [];
           // Bug 5 fix — vintage routing only on for visual/historical categories
@@ -5068,11 +5094,18 @@ export default function LoathrMediaGenerator() {
       }
     } catch (err) {
       if (err.name !== "AbortError") {
-        console.error("Generation failed at:", err && err.stack ? err.stack : err);
-        setError("Generation failed: " + (err && err.message ? err.message : "unknown error") + " — check console (F12) for the full stack trace.");
+        console.error("Generation failed at step:", stepRef.current, err && err.stack ? err.stack : err);
+        setError("Generation failed at step '" + stepRef.current + "': " + (err && err.message ? err.message : "unknown error"));
       }
     }
-    finally { setIsGenerating(false); genCountPrevRef.current = null; }
+    finally {
+      setIsGenerating(false);
+      genCountPrevRef.current = null;
+      recordStep("");
+      // Clear the crash marker on successful completion. If the tab dies before
+      // reaching here, the marker stays and is shown on the next page load.
+      try { localStorage.removeItem("loathr_gen_last_step"); } catch (e) {}
+    }
   }, [topic, category, secondaryCategory, secondaryCount, tertiaryCategory, tertiaryCount, apiKeys, editionPicks, lockedPersonImages, genCount, previewLocked, lockedLocationImages, enterpriseForce, enterpriseMode, enterpriseSector, newsFilter, newsRegion, newsTimeframe, newsCountry]);
 
   // --- Custom Story generator ---
@@ -6925,6 +6958,19 @@ export default function LoathrMediaGenerator() {
           </div>
         </div>
         <div style={{ ...CP, fontSize: 8, color: "#888888", letterSpacing: "0.15em", opacity: 0.8, animation: "pulse 1.5s ease-in-out infinite" }}>WORKING ON YOUR CAROUSEL</div>
+        {/* Step indicator — shows the current named step of the generation pipeline.
+            If the tab dies mid-generation, the last step shown here will match the
+            one stored in localStorage and reappear on the next page load. */}
+        {genStep && <div style={{ ...CP, fontSize: 7, color: "#aaa", marginTop: 8, letterSpacing: "0.05em" }}>{genStep}</div>}
+      </div>}
+      {/* Crash-recovery banner — shows if the previous session ended mid-generation.
+          Lets the user see (and copy / paste back to me) the last step that ran
+          before the tab died, without ever opening DevTools. */}
+      {crashStep && !isGenerating && <div style={{ padding: "10px 14px", background: "#fff3cd", border: "1px solid #ffeeba", color: "#856404", fontSize: 11, marginBottom: 12, borderRadius: 3 }}>
+        <div style={{ fontWeight: 700, marginBottom: 4 }}>⚠ Previous generation didn't finish</div>
+        <div style={{ ...CP, fontSize: 9, lineHeight: 1.5 }}>The last step before the page crashed was: <code style={{ background: "#ffeaa7", padding: "1px 4px", borderRadius: 2 }}>{crashStep}</code></div>
+        <button onClick={function() { try { localStorage.removeItem("loathr_gen_last_step"); } catch (e) {} setCrashStep(""); }}
+          style={{ marginTop: 6, padding: "3px 8px", border: "0.5px solid #856404", background: "transparent", cursor: "pointer", ...CP, fontSize: 9, color: "#856404" }}>Dismiss</button>
       </div>}
       {error && <div style={{ padding: "14px 18px", background: "var(--color-background-danger)", border: "1px solid var(--color-border-danger)", color: "var(--color-text-danger)", fontSize: 12, marginBottom: 16 }}>{error}</div>}
       {imgStatus && options && <div style={{ textAlign: "center", marginBottom: 12, ...CP, fontSize: 10, color: imgStatus.indexOf("loaded") >= 0 ? "var(--color-text-success)" : "var(--color-text-warning)", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>{imgStatus.indexOf("loaded") >= 0 ? <CheckCircle size={11} /> : <AlertTriangle size={11} />}{imgStatus}</div>}
