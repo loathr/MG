@@ -9,7 +9,8 @@ import {
 
 // See app/api/generate/route.js for context. Script generation is comparable in
 // runtime to carousel generation (Claude Opus + tool calls) so the same ceiling applies.
-export const maxDuration = 60;
+// Requires Vercel Pro for the full 300s; Hobby still caps at 60.
+export const maxDuration = 300;
 
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [2000, 5000, 10000];
