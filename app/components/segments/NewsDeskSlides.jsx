@@ -697,7 +697,7 @@ function LayoutReverseLShape({ slide, url }) {
 // ===== CONTENT ROUTER =====
 var LAYOUTS = [LayoutStandard, LayoutFeature, LayoutSidebar, LayoutWireReport, LayoutTornEdge, LayoutCenterWrap, LayoutSplit, LayoutLShape, LayoutReverseLShape];
 export function NewsStory({ slide, images, index }) {
-  var url = images && images[index] ? images[index].url : null;
+  var url = images && images[index] ? (images[index].thumb || images[index].url) : null;
   var li = typeof slide.newsLayout === "number" ? slide.newsLayout : ((index - 1) % LAYOUTS.length);
   var L = LAYOUTS[li] || LayoutStandard;
   var s = Object.assign({}, slide, { pageNumber: index + 1 });
@@ -707,7 +707,7 @@ export function NewsStory({ slide, images, index }) {
 // ===== REACTION (Option A: center column, Option C: portrait left) =====
 export function NewsReaction({ slide, images, index }) {
   slide = Object.assign({}, slide, { pageNumber: index + 1 });
-  var url = images && images[index] ? images[index].url : null;
+  var url = images && images[index] ? (images[index].thumb || images[index].url) : null;
   var bs = autoBodySize(slide, 8);
   var imgSize = slide.portraitSize || 80;
   var usePortraitLeft = slide.reactionLayout === "left";

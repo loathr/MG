@@ -517,7 +517,7 @@ function EnterpriseMosaic({ urls, height, width, layout, imgF, slide }) {
 var ENTERPRISE_LAYOUTS = [Layout1, Layout2, Layout3, Layout4, Layout5, Layout6, Layout7, Layout8];
 
 export function EnterpriseContent({ slide, images, index, mosaicUrls, mosaicLayout }) {
-  var url = images && images[index] ? images[index].url : null;
+  var url = images && images[index] ? (images[index].thumb || images[index].url) : null;
   var mosaic = mosaicUrls && mosaicUrls.length >= 2 ? mosaicUrls : null;
   var layoutIdx = typeof slide.enterpriseLayout === "number" ? slide.enterpriseLayout : ((index - 1) % ENTERPRISE_LAYOUTS.length);
   var LayoutComp = ENTERPRISE_LAYOUTS[layoutIdx] || Layout1;
@@ -653,7 +653,7 @@ export function EnterpriseCloser({ slide, images, index }) {
   var showWm = !slide.hideWatermark;
 
   if (tpl === "split") {
-    var imgUrl = slide.closerBgImage || (images && images[index] ? images[index].url : null) || (images && images[0] ? images[0].url : null);
+    var imgUrl = slide.closerBgImage || (images && images[index] ? (images[index].thumb || images[index].url) : null) || (images && images[0] ? (images[0].thumb || images[0].url) : null);
     return <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#0a0a0a", display: "flex", flexDirection: "column" }}>
       <div style={{ height: "50%", overflow: "hidden", position: "relative" }}>
         {imgUrl ? <img src={imgUrl} alt="" style={Object.assign({ width: "100%", height: "100%", filter: "grayscale(0.55) brightness(0.7)" }, imgFit(slide))} onError={function(e) { e.target.style.display = "none"; }} /> : <div style={{ width: "100%", height: "100%", background: "#1a1a1a" }} />}

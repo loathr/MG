@@ -1239,10 +1239,27 @@ function getImg(images, idx) {
   return first && first.url ? first.url : null;
 }
 
+// Display variant — returns a smaller thumbnail URL when the image source provides
+// one (Unsplash urls.small ~400px, Pexels src.medium ~500px, Wikimedia ?width=400,
+// etc.). The live preview renders into a 340x425 box and gains nothing from
+// loading the 1-3 MB full-res original. The export pipeline still uses getImg /
+// getImgExport so downloads keep full quality.
+// Pixabay images don't expose a separate thumb — they fall through to the full URL.
+function getImgDisplay(images, idx) {
+  if (!images) return null;
+  if (images[idx] && images[idx].thumb) return images[idx].thumb;
+  return getImg(images, idx);
+}
+
+// Convenience accessor — returns { display, export } for sites that need both.
+function getImgPair(images, idx) {
+  return { display: getImgDisplay(images, idx), exportUrl: getImg(images, idx) };
+}
+
 // --- S1 COVER (Vibe / The Source) ---
 function S1Cover({ slide, category, images, edition, index }) {
   var p = PALETTES[category];
-  var url = getImg(images, 0);
+  var url = getImgDisplay(images, 0);
   var edLabel = edition ? edition.label : "";
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.9))">
@@ -1271,7 +1288,7 @@ function S1Cover({ slide, category, images, edition, index }) {
 // --- S2 CONTENT (Arena Homme+) ---
 function S2Arena({ slide, index, category, images }) {
   var p = PALETTES[category];
-  var url = getImg(images, index);
+  var url = getImgDisplay(images, index);
   var useBubble = BUBBLE_CATS[category];
   var useSticky = STICKY_CATS[category];
   var useFormal = FORMAL_CATS[category];
@@ -1325,7 +1342,7 @@ function S2Arena({ slide, index, category, images }) {
 // --- S3 CONTENT (Ray Gun / 90s crash) ---
 function S3RayGun({ slide, index, category, images }) {
   var p = PALETTES[category];
-  var url = getImg(images, index);
+  var url = getImgDisplay(images, index);
   var flipped = index % 2 === 0;
   var useBubble = BUBBLE_CATS[category];
   var useSticky = STICKY_CATS[category];
@@ -1473,7 +1490,7 @@ function killerFontSize(val, autoFit) {
 function S4Emigre({ slide, index, category, images }) {
   if (!slide) return <div style={{ width: "100%", height: "100%", background: "#0a0a0a" }} />;
   var p = PALETTES[category];
-  var url = getImg(images, index);
+  var url = getImgDisplay(images, index);
   // Normalize Claude's varied field names to expected fields
   var s = Object.assign({}, slide);
   if (!s.stat && s.content) { var parts = String(s.content).match(/[\d,.%$]+/); if (parts) s.stat = parts[0]; }
@@ -1671,7 +1688,7 @@ function S4Emigre({ slide, index, category, images }) {
 // --- S5 CONTENT (i-D / The Face / 80s grid) ---
 function S5Face({ slide, index, category, images }) {
   var p = PALETTES[category];
-  var url = getImg(images, index);
+  var url = getImgDisplay(images, index);
   var s5Mosaic = _mosaicSlides[index];
   var useBubble = BUBBLE_CATS[category];
   var useSticky = STICKY_CATS[category];
@@ -1730,7 +1747,7 @@ function S5Face({ slide, index, category, images }) {
 // --- S6 QUOTE (Purple Magazine whisper) ---
 function S6Purple({ slide, index, category, images }) {
   var p = PALETTES[category];
-  var url = getImg(images, index);
+  var url = getImgDisplay(images, index);
   var quoteText = slide.quote || slide.highlight || slide.body || "";
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide}>
@@ -1752,7 +1769,7 @@ function S6Purple({ slide, index, category, images }) {
 function S7Blitz({ category, hashtags, images, index, slide }) {
   var p = PALETTES[category];
   var keys = images ? Object.keys(images) : [];
-  var url = getImg(images, keys.length > 1 ? keys.length - 1 : 0);
+  var url = getImgDisplay(images, keys.length > 1 ? keys.length - 1 : 0);
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken="rgba(0,0,0,0.75)">
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center", zIndex: 3 }}>
@@ -1772,7 +1789,7 @@ function S7Blitz({ category, hashtags, images, index, slide }) {
 // Rec Slide 1: Destination Card
 function RecDestination({ slide, category, images, index }) {
   var p = PALETTES[category];
-  var url = getImg(images, 0);
+  var url = getImgDisplay(images, 0);
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken="linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.9))">
       <div style={{ position: "absolute", top: M_TOP, left: M_SIDE, zIndex: 3 }}>
@@ -1793,7 +1810,7 @@ function RecDestination({ slide, category, images, index }) {
 // Rec Slide 2: Hidden Gem
 function RecHiddenGem({ slide, category, images }) {
   var p = PALETTES[category];
-  var url = getImg(images, 1);
+  var url = getImgDisplay(images, 1);
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", background: "#000000" }}>
       <div style={Object.assign({ position: "absolute", top: 0, left: 0, right: 0, height: "55%" }, divStyle(slide, "recHiddenSplit", { side: "bottom", weight: 2, color: p.accent }))}>
@@ -1817,7 +1834,7 @@ function RecHiddenGem({ slide, category, images }) {
 // Rec Slide 3: New Opening
 function RecNewOpening({ slide, category, images, index }) {
   var p = PALETTES[category];
-  var url = getImg(images, 2);
+  var url = getImgDisplay(images, 2);
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken="linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.92))">
       <div style={{ position: "absolute", top: M_TOP, right: M_SIDE, zIndex: 3 }}>
@@ -1838,7 +1855,7 @@ function RecNewOpening({ slide, category, images, index }) {
 // Rec Slide 4: Culture Read
 function RecCulture({ slide, category, images }) {
   var p = PALETTES[category];
-  var url = getImg(images, 3);
+  var url = getImgDisplay(images, 3);
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", overflow: "hidden", background: "#000000" }}>
       <div style={Object.assign({ width: "45%", position: "relative" }, divStyle(slide, "recCultureSplit", { side: "right", weight: 2, color: p.accent }))}>
@@ -1863,7 +1880,7 @@ function RecCulture({ slide, category, images }) {
 // Rec Slide 5: The Shortlist + Closer
 function RecShortlist({ slide, category, images, index }) {
   var p = PALETTES[category];
-  var url = getImg(images, 4);
+  var url = getImgDisplay(images, 4);
   var items = slide.shortlist || [];
   return (
     <ImgBg url={url} pal={p} category={category} slideIndex={index || 0} slide={slide} darken="rgba(0,0,0,0.82)">
@@ -2637,12 +2654,48 @@ var waitForImages = function(el, timeoutMs) {
 
 // Render a single slide to canvas. Returns { canvas, imgStatus } so the caller can aggregate
 // per-slide image-load failures and warn the user when a snapshot was incomplete.
-var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) {
+// imagesMap is the slide-index → image entry map. Used to translate the live preview's
+// thumbnail URLs back to full-resolution URLs for the export render — see "Proxy-image
+// swap" inside onclone below.
+var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide, imagesMap) {
   setCurrentSlide(slideIndex);
   // Short wait for React to commit the new slide, then wait for every image to decode
   await new Promise(function(r) { setTimeout(r, 250); });
   var el = slideRef.current;
   if (!el) return { canvas: null, imgStatus: { timedOut: 0, errored: 0, total: 0 } };
+  // Build a thumb → full URL lookup so the onclone callback can swap each <img>
+  // src from its live preview thumbnail back to the full-resolution source. Only
+  // entries where thumb !== url are useful; matching keys speed up the swap step.
+  var thumbToFull = {};
+  if (imagesMap) {
+    Object.keys(imagesMap).forEach(function(k) {
+      var im = imagesMap[k];
+      if (im && im.url && im.thumb && im.thumb !== im.url) {
+        thumbToFull[im.thumb] = im.url;
+      }
+    });
+  }
+  // Pre-load the full-res URLs so they sit in the browser cache before html2canvas
+  // tries to read pixels from them. Without this the onclone swap would point <img>
+  // at a URL the browser hasn't downloaded yet and html2canvas would either skip
+  // or fail to render the image.
+  var fullUrlsToPrefetch = Object.keys(thumbToFull).map(function(t) { return thumbToFull[t]; });
+  if (fullUrlsToPrefetch.length > 0) {
+    await Promise.all(fullUrlsToPrefetch.map(function(fullUrl) {
+      return new Promise(function(resolve) {
+        var img = new Image();
+        var done = false;
+        var finish = function() { if (!done) { done = true; resolve(); } };
+        try { img.crossOrigin = "anonymous"; } catch (e) {}
+        img.onload = finish;
+        img.onerror = finish;
+        img.src = fullUrl;
+        // Generous timeout: cached / nearby CDN images decode in ~50-300ms; full-res
+        // originals can take a few seconds. 10s is the ceiling.
+        setTimeout(finish, 10000);
+      });
+    }));
+  }
   var imgStatus = await waitForImages(el, 15000);
   // Export the inner slide div (child of the ref) to avoid border/padding mismatch
   var exportTarget = el;
@@ -2661,6 +2714,23 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide) 
     backgroundColor: null,
     logging: false,
     onclone: function(clonedDoc, clonedEl) {
+      // === Proxy-image swap ===
+      // The live preview renders thumbnails (per getImgDisplay / images[i].thumb) to
+      // keep the editor lightweight. For the export we want full resolution, so we
+      // swap every <img> whose current src matches a known thumb URL back to its
+      // full URL. The full URLs were pre-loaded above so the browser can serve them
+      // from cache when html2canvas reads pixels right after onclone returns.
+      if (Object.keys(thumbToFull).length > 0) {
+        var pxImgs = clonedEl.querySelectorAll("img");
+        pxImgs.forEach(function(img) {
+          var current = img.getAttribute("src") || img.src;
+          var fullUrl = thumbToFull[current];
+          if (fullUrl && fullUrl !== current) {
+            img.src = fullUrl;
+            img.setAttribute("src", fullUrl);
+          }
+        });
+      }
       // Force consistent dimensions — prevent black panel overflow
       clonedEl.style.width = exportTarget.offsetWidth + "px";
       clonedEl.style.height = exportTarget.offsetHeight + "px";
@@ -2815,7 +2885,9 @@ var exportSlides = async function(slides, category, slideRef, setCurrentSlide, s
     var p = visiblePairs[i];
     setExportStatus("Rendering " + (i + 1) + "/" + visiblePairs.length + "...");
     try {
-      var rendered = await renderSlideToCanvas(slideRef, p.idx, setCurrentSlide);
+      // Pass meta.images so the proxy-image swap inside renderSlideToCanvas can map
+      // each live preview thumb URL back to the full-resolution source for export.
+      var rendered = await renderSlideToCanvas(slideRef, p.idx, setCurrentSlide, meta && meta.images);
       var canvas = rendered && rendered.canvas;
       var imgStat = rendered && rendered.imgStatus;
       if (!canvas) { failed.push({ idx: p.idx, reason: "render returned no canvas" }); continue; }
@@ -3426,35 +3498,20 @@ export default function LoathrMediaGenerator() {
       var parsed = JSON.parse(cleaned);
       if (Array.isArray(parsed)) { setSmartAngles(parsed.slice(0, 3)); setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); return; }
       if (parsed.angles && Array.isArray(parsed.angles)) setSmartAngles(parsed.angles.slice(0, 3));
-      // Person detection
+      // Person detection — names only. The chained portrait + Wikidata-network fetches
+      // were removed to cut concurrent API load (search Wikipedia + Wikidata + TMDB +
+      // iTunes + Wikimedia for every detected name fired ~6 parallel requests per
+      // generation). Name pills still render so the user knows who Claude detected.
+      // If we ever want portraits back, wire them to a button in the name-pill UI.
       if (parsed.persons && Array.isArray(parsed.persons) && parsed.persons.length > 0) {
-        var names = parsed.persons.slice(0, 3);
-        setPersonsDetected(names);
+        setPersonsDetected(parsed.persons.slice(0, 3));
         setPersonImages({});
-        names.forEach(function(name) {
-          searchPersonImages(name).then(function(imgs) {
-            setPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = imgs; return n; });
-          }).catch(function(err) {
-            console.error("Person image fetch failed for " + name + ":", err);
-            // Set empty array so the UI exits its loading state instead of spinning forever.
-            setPersonImages(function(prev) { var n = Object.assign({}, prev); n[name] = []; return n; });
-          });
-          // Fetch person network from Wikidata
-          fetchPersonNetwork(name).then(function(network) {
-            if (network.length > 0) setPersonNetwork(function(prev) { var n = Object.assign({}, prev); n[name] = network; return n; });
-          }).catch(function() {});
-        });
+        setPersonNetwork({});
       } else { setPersonsDetected([]); setPersonImages({}); setPersonNetwork({}); }
-      // Location detection
+      // Location detection — names only, same rationale as persons.
       if (parsed.locations && Array.isArray(parsed.locations) && parsed.locations.length > 0) {
-        var places = parsed.locations.slice(0, 3);
-        setLocationsDetected(places);
+        setLocationsDetected(parsed.locations.slice(0, 3));
         setLocationImages({});
-        places.forEach(function(place) {
-          searchLocationImages(place).then(function(imgs) {
-            setLocationImages(function(prev) { var n = Object.assign({}, prev); n[place] = imgs; return n; });
-          }).catch(function() {});
-        });
       } else { setLocationsDetected([]); setLocationImages({}); }
     } catch (e) { console.error("Smart angles error:", e); }
     finally { setIsSearching(false); }
@@ -3560,15 +3617,16 @@ export default function LoathrMediaGenerator() {
     });
     setPersonsDetected([]); setPersonImages({}); setLocationsDetected([]); setLocationImages({});
     if (!query || query.length < 2) return;
-    // Smart angles + person/location detection after 800ms
+    // Smart angles + name detection after 800ms (kept — provides angle suggestions).
     searchTimer.current = setTimeout(function() { fetchSmartAngles(query); }, 800);
-    // Mood-board preview after 1200ms
-    previewTimer.current = setTimeout(function() { fetchPreviewImages(query); }, 1200);
-    // Web search after 1500ms
-    webTimer.current = setTimeout(function() { fetchWebContext(query); }, 1500);
-    // Viral score after 2s
+    // Viral score after 2s (kept — cheap utility, ~$0.04/gen).
     viralTimer.current = setTimeout(function() { fetchViralScore(query); }, 2000);
-  }, [fetchSmartAngles, fetchWebContext, fetchPreviewImages, fetchViralScore]);
+    // REMOVED auto-fires: fetchPreviewImages (mood board) and fetchWebContext.
+    // Together these added ~$0.24/gen of Anthropic cost and ~6 parallel HTTP requests
+    // before the user even clicked Generate, which contributed to concurrent-API
+    // races and timeouts. The functions remain defined and can be wired to buttons
+    // later if power users miss them.
+  }, [fetchSmartAngles, fetchViralScore]);
 
   // Person name detection + image fetch
   // detectPerson now handled by Claude in fetchSmartAngles
@@ -6943,7 +7001,7 @@ export default function LoathrMediaGenerator() {
               setExportStatus("Rendering...");
               try {
                 await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
-                var rendered = await renderSlideToCanvas(slideRef, currentSlide, setCurrentSlide);
+                var rendered = await renderSlideToCanvas(slideRef, currentSlide, setCurrentSlide, images);
                 var canvas = rendered && rendered.canvas;
                 if (canvas) {
                   var blob = await new Promise(function(r) { canvas.toBlob(r, "image/jpeg", 0.96); });
