@@ -4918,9 +4918,13 @@ export default function LoathrMediaGenerator() {
           // 2. Per-slide contextual search for content slides
           setImgStatus("Matching images to slides...");
           for (var ps = 1; ps < Math.min(slides.length - 1, 12); ps++) {
-            recordStep("per-slide image search: slide " + ps);
-            if (imgMap[ps]) continue;
             var slideData = slides[ps] || {};
+            // Log slide-shape fingerprint so we can see what's unusual about the slide
+            // that kills the tab. Captures the first few characters of body + key fields.
+            var slidePerson = typeof slideData.person === "string" ? slideData.person.slice(0, 40) : (slideData.person ? JSON.stringify(slideData.person).slice(0, 40) : "");
+            var slideStamp = "slide " + ps + " (role=" + (slideData.role || "?") + ", person=" + slidePerson + ", lens=" + (typeof slideData.categoryLens === "string" ? slideData.categoryLens : "") + ")";
+            recordStep("per-slide image search: " + slideStamp);
+            if (imgMap[ps]) continue;
             // Use the slide's cross-category lens for search if present.
             // catInfo may be undefined for unknown segments (e.g. studios is not in CATEGORIES);
             // fall back to the category id so we never deref undefined.label.
@@ -4932,21 +4936,35 @@ export default function LoathrMediaGenerator() {
               var lensMatch = CATEGORIES.find(function(c) { return c.label.toLowerCase() === lensStrPs.toLowerCase() || c.id === lensStrPs.toLowerCase(); });
               if (lensMatch) { slideCatLabel = lensMatch.label; slideCatId = lensMatch.id; }
             }
+            recordStep("slide " + ps + ": building query");
             var sq = getSlideImageQuery(slideData, slideCatLabel, topic);
             try {
-              // Person field — search Wikipedia REST for portraits (skip if person already placed)
-              if (slideData.person) {
-                var alreadyPlaced = Object.values(imgMap).some(function(img) { return img && img.alt && img.alt.toLowerCase() === slideData.person.toLowerCase(); });
+              // Person field — search Wikipedia REST for portraits (skip if person already placed).
+              // Coerce slideData.person to string defensively — Claude has been observed emitting
+              // arrays/numbers/objects in this field, which would TypeError on .toLowerCase().
+              var personRaw = slideData.person;
+              var personStr = typeof personRaw === "string" ? personRaw : (Array.isArray(personRaw) && typeof personRaw[0] === "string" ? personRaw[0] : "");
+              if (personStr) {
+                recordStep("slide " + ps + ": person check (" + personStr.slice(0, 30) + ")");
+                var alreadyPlaced = Object.values(imgMap).some(function(img) {
+                  if (!img || !img.alt) return false;
+                  var altStr = typeof img.alt === "string" ? img.alt : "";
+                  return altStr && altStr.toLowerCase() === personStr.toLowerCase();
+                });
                 if (!alreadyPlaced) {
-                  var wikiImgs = await searchWikiRest(slideData.person);
+                  recordStep("slide " + ps + ": calling searchWikiRest");
+                  var wikiImgs = await searchWikiRest(personStr);
+                  recordStep("slide " + ps + ": searchWikiRest returned " + (wikiImgs ? wikiImgs.length : 0) + " results");
                   var wPick = pickUnique(wikiImgs);
                   if (wPick) { imgMap[ps] = wPick; continue; }
                 }
               }
               // Vintage slots use vintage APIs (respecting cross-category lens)
               if (vintageSlots.indexOf(ps) !== -1) {
+                recordStep("slide " + ps + ": calling vintage API");
                 var vApis = VINTAGE_APIS[slideCatId] || VINTAGE_APIS[category] || [searchMetMuseum];
                 var vr = await vApis[ps % vApis.length](sq.split(" ").slice(0, 2).join(" "));
+                recordStep("slide " + ps + ": vintage returned " + (vr ? vr.length : 0));
                 var vPick = pickUnique(vr);
                 if (vPick) { imgMap[ps] = vPick; continue; }
               }
@@ -4954,11 +4972,14 @@ export default function LoathrMediaGenerator() {
               var useSec = secondaryFn && ps % 2 === 0;
               var fn = useSec ? secondaryFn : primaryFn;
               var k = useSec ? secondaryKey : primaryKey;
+              recordStep("slide " + ps + ": calling " + (useSec ? "secondary" : "primary") + " stock API");
               var sr = await fn(sq, k);
+              recordStep("slide " + ps + ": stock API returned " + (sr ? sr.length : 0) + " results");
               var sPick = pickUnique(sr);
               if (sPick) imgMap[ps] = sPick;
               else if (mainImgs.length > ps) { var mPick = pickUnique(mainImgs); if (mPick) imgMap[ps] = mPick; }
             } catch (pe) {
+              recordStep("slide " + ps + ": caught error - " + (pe && pe.message ? pe.message.slice(0, 80) : "unknown"));
               // Fallback: try to pick a unique image from main results
               var catchPick = pickUnique(mainImgs);
               if (catchPick) imgMap[ps] = catchPick;
