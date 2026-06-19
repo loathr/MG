@@ -3183,11 +3183,19 @@ export default function LoathrMediaGenerator() {
     stepRef.current = name;
     setGenStep(name);
     try {
+      // Single-step (back-compat with the existing banner reader)
       localStorage.setItem("loathr_gen_last_step", JSON.stringify({ step: name, at: Date.now(), topic: topic, category: category }));
+      // History — keep last 10 steps so the crash banner can show context, not just the last step.
+      var rawHist = localStorage.getItem("loathr_gen_step_history");
+      var hist = rawHist ? JSON.parse(rawHist) : [];
+      hist.push({ step: name, at: Date.now() });
+      // Cap at 10 entries
+      if (hist.length > 10) hist = hist.slice(hist.length - 10);
+      localStorage.setItem("loathr_gen_step_history", JSON.stringify(hist));
     } catch (e) {}
   }
   // On mount, check if the previous session ended mid-generation. If so, surface
-  // the last step it reached so the user can paste it back without DevTools.
+  // the last step + recent history so the user can paste it back without DevTools.
   _ef(function() {
     try {
       var saved = localStorage.getItem("loathr_gen_last_step");
@@ -3195,7 +3203,21 @@ export default function LoathrMediaGenerator() {
       var parsed = JSON.parse(saved);
       // Only show if recent (within last 10 minutes) AND not cleared by a normal completion
       if (parsed && parsed.step && parsed.at && Date.now() - parsed.at < 10 * 60 * 1000) {
-        setCrashStep(parsed.step + " (topic: " + (parsed.topic || "?") + ", " + new Date(parsed.at).toLocaleTimeString() + ")");
+        var summary = parsed.step + " (topic: " + (parsed.topic || "?") + ", " + new Date(parsed.at).toLocaleTimeString() + ")";
+        try {
+          var rawHist = localStorage.getItem("loathr_gen_step_history");
+          if (rawHist) {
+            var hist = JSON.parse(rawHist);
+            if (Array.isArray(hist) && hist.length > 0) {
+              var tail = hist.slice(-6).map(function(h) {
+                var dt = new Date(h.at);
+                return dt.getMinutes() + ":" + String(dt.getSeconds()).padStart(2, "0") + " — " + h.step;
+              }).join("\n");
+              summary += "\n\nRecent steps:\n" + tail;
+            }
+          }
+        } catch (e) {}
+        setCrashStep(summary);
       }
     } catch (e) {}
   }, []);
@@ -4939,26 +4961,13 @@ export default function LoathrMediaGenerator() {
             recordStep("slide " + ps + ": building query");
             var sq = getSlideImageQuery(slideData, slideCatLabel, topic);
             try {
-              // Person field — search Wikipedia REST for portraits (skip if person already placed).
-              // Coerce slideData.person to string defensively — Claude has been observed emitting
-              // arrays/numbers/objects in this field, which would TypeError on .toLowerCase().
-              var personRaw = slideData.person;
-              var personStr = typeof personRaw === "string" ? personRaw : (Array.isArray(personRaw) && typeof personRaw[0] === "string" ? personRaw[0] : "");
-              if (personStr) {
-                recordStep("slide " + ps + ": person check (" + personStr.slice(0, 30) + ")");
-                var alreadyPlaced = Object.values(imgMap).some(function(img) {
-                  if (!img || !img.alt) return false;
-                  var altStr = typeof img.alt === "string" ? img.alt : "";
-                  return altStr && altStr.toLowerCase() === personStr.toLowerCase();
-                });
-                if (!alreadyPlaced) {
-                  recordStep("slide " + ps + ": calling searchWikiRest");
-                  var wikiImgs = await searchWikiRest(personStr);
-                  recordStep("slide " + ps + ": searchWikiRest returned " + (wikiImgs ? wikiImgs.length : 0) + " results");
-                  var wPick = pickUnique(wikiImgs);
-                  if (wPick) { imgMap[ps] = wPick; continue; }
-                }
-              }
+              // Per-slide Wikipedia portrait fetch was REMOVED — it was reliably
+              // killing the tab when called on certain slide 3/4 person values.
+              // The slide now falls through to the regular stock image search below,
+              // which gets a topically-related photo instead of a personal portrait.
+              // If portrait fetching is wanted back, wire it to an explicit per-slide
+              // "Find portrait" button so the API call only fires on demand instead
+              // of automatically for every slide with a person field.
               // Vintage slots use vintage APIs (respecting cross-category lens)
               if (vintageSlots.indexOf(ps) !== -1) {
                 recordStep("slide " + ps + ": calling vintage API");
@@ -6996,8 +7005,8 @@ export default function LoathrMediaGenerator() {
           before the tab died, without ever opening DevTools. */}
       {crashStep && !isGenerating && <div style={{ padding: "10px 14px", background: "#fff3cd", border: "1px solid #ffeeba", color: "#856404", fontSize: 11, marginBottom: 12, borderRadius: 3 }}>
         <div style={{ fontWeight: 700, marginBottom: 4 }}>⚠ Previous generation didn't finish</div>
-        <div style={{ ...CP, fontSize: 9, lineHeight: 1.5 }}>The last step before the page crashed was: <code style={{ background: "#ffeaa7", padding: "1px 4px", borderRadius: 2 }}>{crashStep}</code></div>
-        <button onClick={function() { try { localStorage.removeItem("loathr_gen_last_step"); } catch (e) {} setCrashStep(""); }}
+        <pre style={{ ...CP, fontSize: 9, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0, background: "#ffeaa7", padding: "4px 6px", borderRadius: 2 }}>{crashStep}</pre>
+        <button onClick={function() { try { localStorage.removeItem("loathr_gen_last_step"); localStorage.removeItem("loathr_gen_step_history"); } catch (e) {} setCrashStep(""); }}
           style={{ marginTop: 6, padding: "3px 8px", border: "0.5px solid #856404", background: "transparent", cursor: "pointer", ...CP, fontSize: 9, color: "#856404" }}>Dismiss</button>
       </div>}
       {error && <div style={{ padding: "14px 18px", background: "var(--color-background-danger)", border: "1px solid var(--color-border-danger)", color: "var(--color-text-danger)", fontSize: 12, marginBottom: 16 }}>{error}</div>}
