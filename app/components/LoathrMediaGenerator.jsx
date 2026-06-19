@@ -3245,7 +3245,12 @@ export default function LoathrMediaGenerator() {
   var rms = _s(false), isRecMode = rms[0], setIsRecMode = rms[1];
   var eds = _s(null), editionData = eds[0], setEditionData = eds[1];
   var eps = _s({ persona: -1, angle: -1, style: -1, tone: "editorial", imageStyle: "mixed", slideCount: 0, customVoice: "" }), editionPicks = eps[0], setEditionPicks = eps[1];
-  var ess = _s(false), showEditionSettings = ess[0], setShowEditionSettings = ess[1];
+  // Edition Settings panel hosts the PAGES (slide count) picker for Enterprise + News
+  // Desk + Studios segments. Default-open so users see the slide-count control
+  // immediately instead of needing to click an unrelated-looking "EDITION SETTINGS"
+  // header to expose it. Users have been reporting Enterprise hardcodes 10 slides
+  // because the picker was hidden by default behind the collapsed panel.
+  var ess = _s(true), showEditionSettings = ess[0], setShowEditionSettings = ess[1];
   var sug = _s([]), suggestions = sug[0], setSuggestions = sug[1];
   var rtp = _s([]), relatedTopics = rtp[0], setRelatedTopics = rtp[1];
   var xcs = _s([]), crossCatSuggestions = xcs[0], setCrossCatSuggestions = xcs[1];
@@ -5018,11 +5023,19 @@ export default function LoathrMediaGenerator() {
               else if (mainImgs.length > ps) { var mPick = pickUnique(mainImgs); if (mPick) imgMap[ps] = mPick; }
             } catch (pe) {
               recordStep("slide " + ps + ": caught error - " + (pe && pe.message ? pe.message.slice(0, 80) : "unknown"));
-              // Fallback: try to pick a unique image from main results
-              var catchPick = pickUnique(mainImgs);
-              if (catchPick) imgMap[ps] = catchPick;
+              // Fallback: try to pick a unique image from main results.
+              // Wrapped defensively because pickUnique was the LAST step seen in some
+              // crash banners, suggesting it may be where cumulative memory pressure
+              // tipped over after many failed API calls.
+              try {
+                var catchPick = pickUnique(mainImgs);
+                if (catchPick) imgMap[ps] = catchPick;
+              } catch (pickErr) {
+                recordStep("slide " + ps + ": pickUnique failed - " + (pickErr && pickErr.message ? pickErr.message.slice(0, 80) : "unknown"));
+              }
             }
           }
+          recordStep("per-slide loop exited cleanly");
 
           recordStep("filling remaining slide gaps from main results");
           // 3. Fill remaining gaps with unique images from main results (no repeats)
