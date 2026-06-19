@@ -2009,14 +2009,15 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
 
 // --- IMAGE SEARCH ---
 var searchUnsplash = async function(query, apiKey, page) {
-  var r = await fetch("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: "Client-ID " + apiKey } });
+  // 8s timeout — Unsplash usually responds in 200-800ms; anything past 8s is a hung connection.
+  var r = await fetchWithTimeout("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: "Client-ID " + apiKey } }, 8000);
   if (!r.ok) throw new Error("Unsplash " + r.status);
   var d = await r.json();
   return (d.results || []).map(function(img) { return { url: img.urls ? (img.urls.full || img.urls.regular) : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; });
 };
 
 var searchPexels = async function(query, apiKey, page) {
-  var r = await fetch("https://api.pexels.com/v1/search?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: apiKey } });
+  var r = await fetchWithTimeout("https://api.pexels.com/v1/search?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: apiKey } }, 8000);
   if (!r.ok) throw new Error("Pexels " + r.status);
   var d = await r.json();
   return (d.photos || []).map(function(img) { return { url: img.src ? (img.src.original || img.src.large2x || img.src.large) : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; });
@@ -2025,10 +2026,18 @@ var searchPexels = async function(query, apiKey, page) {
 
 // --- VINTAGE/PUBLIC DOMAIN IMAGE APIs (all free, no keys) ---
 
-var fetchWithTimeout = function(url, ms) {
+// Polymorphic: fetchWithTimeout(url, 5000) OR fetchWithTimeout(url, {headers: ...}, 5000).
+// Without a timeout, raw fetch can hang indefinitely on unstable networks — the await
+// never resolves, JavaScript stays suspended, accumulated state from React renders
+// builds up, and Chrome eventually kills the unresponsive tab. The "page couldn't
+// load" crash sequence the user has been hitting traces back to this exact pattern
+// on the stock-image search APIs.
+var fetchWithTimeout = function(url, opts, ms) {
+  if (typeof opts === "number") { ms = opts; opts = undefined; }
   var controller = new AbortController();
   var timer = setTimeout(function() { controller.abort(); }, ms || 5000);
-  return fetch(url, { signal: controller.signal }).then(function(r) { clearTimeout(timer); return r; }).catch(function(e) { clearTimeout(timer); throw e; });
+  var finalOpts = Object.assign({}, opts || {}, { signal: controller.signal });
+  return fetch(url, finalOpts).then(function(r) { clearTimeout(timer); return r; }).catch(function(e) { clearTimeout(timer); throw e; });
 };
 
 var searchMetMuseum = async function(query) {
