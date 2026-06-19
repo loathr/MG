@@ -4822,7 +4822,15 @@ export default function LoathrMediaGenerator() {
         try {
           var primaryFn = unsplashKey ? searchUnsplash : searchPexels;
           var primaryKey = unsplashKey || pexelsKey;
-          var secondaryFn = unsplashKey && pexelsKey ? searchPexels : null;
+          // Pexels (secondary) DISABLED — was reliably tab-crashing on the call site
+          // within ~1 second of being invoked, well before any timeout could fire.
+          // The 8s fetchWithTimeout added in 64b77b8 was the right defensive fix for
+          // hung connections but it didn't help here because the crash was
+          // sub-second, meaning either Pexels was returning something tab-fatal
+          // (oversized response, malformed content) or being blocked by a browser
+          // extension / CORS condition that triggered a tab process kill.
+          // Falling back to Unsplash-only image variety until we can isolate further.
+          var secondaryFn = null;
           var secondaryKey = pexelsKey || "";
           var shortTopic = extractKeywords(topic, 3);
           // Enterprise/News Desk: prefix is for the COVER image only — per-slide queries use slide-specific keywords
@@ -4949,6 +4957,11 @@ export default function LoathrMediaGenerator() {
           // 2. Per-slide contextual search for content slides
           setImgStatus("Matching images to slides...");
           for (var ps = 1; ps < Math.min(slides.length - 1, 12); ps++) {
+            // Yield to React + GC between slides so accumulated render work doesn't
+            // push the tab over the memory ceiling during the next await. ~80ms per
+            // gap, ~700ms total cost for 9 slides — negligible vs the 1-2s per-slide
+            // API call we're awaiting anyway.
+            if (ps > 1) await new Promise(function(rr) { setTimeout(rr, 80); });
             var slideData = slides[ps] || {};
             // Log slide-shape fingerprint so we can see what's unusual about the slide
             // that kills the tab. Captures the first few characters of body + key fields.
@@ -4991,7 +5004,14 @@ export default function LoathrMediaGenerator() {
               var fn = useSec ? secondaryFn : primaryFn;
               var k = useSec ? secondaryKey : primaryKey;
               recordStep("slide " + ps + ": calling " + (useSec ? "secondary" : "primary") + " stock API");
-              var sr = await fn(sq, k);
+              // Hard 10s ceiling at the call site, regardless of what timeout the
+              // inner function does or doesn't have. Pexels was crashing the tab
+              // sub-second in earlier reports; this Promise.race guarantees the
+              // await can never hang the main thread for more than 10s.
+              var sr = await Promise.race([
+                fn(sq, k),
+                new Promise(function(_, reject) { setTimeout(function() { reject(new Error("stock API hard timeout 10s")); }, 10000); })
+              ]);
               recordStep("slide " + ps + ": stock API returned " + (sr ? sr.length : 0) + " results");
               var sPick = pickUnique(sr);
               if (sPick) imgMap[ps] = sPick;
