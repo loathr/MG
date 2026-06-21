@@ -5001,13 +5001,30 @@ export default function LoathrMediaGenerator() {
           recordStep("per-slide image search loop starting");
           // 2. Per-slide contextual search for content slides
           setImgStatus("Matching images to slides...");
-          // Circuit breaker: if 2 consecutive per-slide API calls fail with
-          // network errors, the user's connection to Unsplash is unstable —
-          // continuing just adds pressure that can tip the tab over. Abort
-          // the API loop and let the gap-filler reuse mainImgs.
-          var consecutiveFailures = 0;
-          var CIRCUIT_BREAK_THRESHOLD = 2;
+          // Circuit breaker: if ANY per-slide API call fails with a network
+          // error (TypeError / Failed to fetch), the user's connection to
+          // Unsplash is broken — every further call just adds pressure that
+          // can tip the tab over. Abort the API loop on the first network
+          // failure and let the gap-filler reuse mainImgs for everything.
+          // Threshold is 1 (not consecutive, total) because failed fetches
+          // accumulate browser-internal cleanup state that's the proximate
+          // cause of the renderer kill we've been chasing.
+          var networkFailures = 0;
+          var CIRCUIT_BREAK_THRESHOLD = 1;
           var circuitTripped = false;
+          function isNetworkDeadErr(err) {
+            if (!err) return false;
+            var n = err.name || "";
+            var m = err.message || "";
+            return n === "TypeError" || m.indexOf("Failed to fetch") !== -1;
+          }
+          function recordNetworkFailure(where) {
+            networkFailures++;
+            if (networkFailures >= CIRCUIT_BREAK_THRESHOLD && !circuitTripped) {
+              circuitTripped = true;
+              recordStep("circuit breaker TRIPPED at " + where + " (network failures: " + networkFailures + ")");
+            }
+          }
           for (var ps = 1; ps < Math.min(slides.length - 1, 12); ps++) {
             if (circuitTripped) {
               recordStep("slide " + ps + ": skipped (circuit breaker tripped — using main fallback)");
@@ -5074,26 +5091,17 @@ export default function LoathrMediaGenerator() {
               var sr;
               try {
                 sr = await fn(sq, k);
-                consecutiveFailures = 0;
               } catch (firstErr) {
                 var fName = firstErr && firstErr.name ? firstErr.name : "Error";
                 var fMsg = firstErr && firstErr.message ? firstErr.message.slice(0, 80) : "unknown";
-                var isNetworkDead = fName === "TypeError" || (fMsg.indexOf("Failed to fetch") !== -1);
-                if (isNetworkDead) {
-                  consecutiveFailures++;
+                if (isNetworkDeadErr(firstErr)) {
                   recordStep("slide " + ps + ": stock API failed (" + fName + ": " + fMsg + ") — skip retry (network)");
-                  if (consecutiveFailures >= CIRCUIT_BREAK_THRESHOLD) {
-                    circuitTripped = true;
-                    recordStep("circuit breaker TRIPPED after " + consecutiveFailures + " consecutive failures");
-                  }
+                  recordNetworkFailure("slide " + ps + " primary");
                   throw firstErr;
                 }
                 recordStep("slide " + ps + ": stock API failed (" + fName + ": " + fMsg + ") — retrying once");
-                recordStep("slide " + ps + ": sleeping 500ms before retry");
                 await new Promise(function(rr) { setTimeout(rr, 500); });
-                recordStep("slide " + ps + ": sleep done, retrying");
                 sr = await fn(sq, k);
-                consecutiveFailures = 0;
                 recordStep("slide " + ps + ": retry succeeded");
               }
               recordStep("slide " + ps + ": stock API returned " + (sr ? sr.length : 0) + " results");
@@ -5102,13 +5110,14 @@ export default function LoathrMediaGenerator() {
               // because of copyright), retry once with just the topic — usually
               // gets a relevant generic shot instead of falling back to a reused
               // mainImgs pick.
-              if ((!sr || sr.length === 0) && sq && topic && sq !== topic) {
+              if ((!sr || sr.length === 0) && sq && topic && sq !== topic && !circuitTripped) {
                 try {
                   recordStep("slide " + ps + ": 0 results, retrying with topic-only query");
                   sr = await fn(topic, k);
                   recordStep("slide " + ps + ": topic-only retry returned " + (sr ? sr.length : 0) + " results");
                 } catch (softErr) {
                   recordStep("slide " + ps + ": topic-only retry failed - " + (softErr && softErr.message ? softErr.message.slice(0, 60) : "unknown"));
+                  if (isNetworkDeadErr(softErr)) recordNetworkFailure("slide " + ps + " soft-query");
                   sr = [];
                 }
               }
