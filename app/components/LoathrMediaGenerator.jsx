@@ -5163,31 +5163,46 @@ export default function LoathrMediaGenerator() {
           _mosaicExtraImages = [];
           var mosaicFlagged = slides.filter(function(s) { return s && s.mosaic; }).length;
           console.log("Mosaic: " + mosaicFlagged + " slides flagged, " + totalLoaded + " images available");
-          // Fetch extra images specifically for mosaic panels
-          if (mosaicFlagged > 0 || totalLoaded >= 3) {
+          // Fetch extra images specifically for mosaic panels. Gated by the
+          // same circuit breaker as the per-slide loop — if the network is
+          // dead, additional API calls just add pressure that tips the tab
+          // over, and mosaic panels can recycle imgMap urls anyway.
+          if ((mosaicFlagged > 0 || totalLoaded >= 3) && !circuitTripped) {
             var mosaicNeed = Math.max(mosaicFlagged, 2) * 3; // ~3 extra per mosaic slide
             var extraUsed = {};
             Object.values(imgMap).forEach(function(img) { if (img && img.url) { extraUsed[img.url] = true; extraUsed[normalizeImgUrl(img.url)] = true; } });
             try {
               var mosaicBase = shortTopic + " " + (catInfo ? catInfo.label : category);
               var mExtra = [];
-              // Use varied queries to get diverse images
-              if (primaryKey) { try { var me1 = await primaryFn(mosaicBase + " abstract editorial", primaryKey); mExtra = mExtra.concat(me1); } catch(e) {} }
-              if (secondaryKey) { try { var me2 = await secondaryFn(shortTopic + " industry workplace", secondaryKey); mExtra = mExtra.concat(me2); } catch(e) {} }
-              try { var me3 = await searchWikiCommons(shortTopic + " business"); mExtra = mExtra.concat(me3); } catch(e) {}
-              try { var me4 = await searchPixabay(mosaicBase); mExtra = mExtra.concat(me4); } catch(e) {}
-              // Additional variety pass with different terms
-              if (mExtra.length < mosaicNeed) {
-                if (primaryKey) { try { var me5 = await primaryFn(shortTopic + " technology modern", primaryKey); mExtra = mExtra.concat(me5); } catch(e) {} }
-                try { var me6 = await searchWikiCommons(mosaicBase + " industry"); mExtra = mExtra.concat(me6); } catch(e) {}
+              // Helper: bail on any source that throws a network-dead error, and
+              // trip the circuit breaker so subsequent mosaic fetches are skipped.
+              async function tryMosaicFetch(label, getter) {
+                if (circuitTripped) return [];
+                recordStep("mosaic: fetching " + label);
+                try { var out = await getter(); return out || []; }
+                catch (e) {
+                  recordStep("mosaic: " + label + " failed - " + (e && e.message ? e.message.slice(0, 60) : "unknown"));
+                  if (isNetworkDeadErr(e)) recordNetworkFailure("mosaic " + label);
+                  return [];
+                }
+              }
+              if (primaryKey) mExtra = mExtra.concat(await tryMosaicFetch("primary abstract", function() { return primaryFn(mosaicBase + " abstract editorial", primaryKey); }));
+              if (secondaryKey) mExtra = mExtra.concat(await tryMosaicFetch("secondary workplace", function() { return secondaryFn(shortTopic + " industry workplace", secondaryKey); }));
+              mExtra = mExtra.concat(await tryMosaicFetch("wikicommons business", function() { return searchWikiCommons(shortTopic + " business"); }));
+              mExtra = mExtra.concat(await tryMosaicFetch("pixabay base", function() { return searchPixabay(mosaicBase); }));
+              if (mExtra.length < mosaicNeed && !circuitTripped) {
+                if (primaryKey) mExtra = mExtra.concat(await tryMosaicFetch("primary tech", function() { return primaryFn(shortTopic + " technology modern", primaryKey); }));
+                mExtra = mExtra.concat(await tryMosaicFetch("wikicommons industry", function() { return searchWikiCommons(mosaicBase + " industry"); }));
               }
               mExtra.forEach(function(img) {
                 if (img && img.url && !extraUsed[img.url] && !extraUsed[normalizeImgUrl(img.url)] && _mosaicExtraImages.length < mosaicNeed) {
                   _mosaicExtraImages.push(img.url); extraUsed[img.url] = true; extraUsed[normalizeImgUrl(img.url)] = true;
                 }
               });
-              console.log("Mosaic extra images fetched: " + _mosaicExtraImages.length);
-            } catch(e) { console.error("Mosaic extra fetch error:", e); }
+              recordStep("mosaic extras done: " + _mosaicExtraImages.length + " unique images");
+            } catch(e) { console.error("Mosaic extra fetch error:", e); recordStep("mosaic extras outer catch: " + (e && e.message ? e.message.slice(0, 60) : "unknown")); }
+          } else if (circuitTripped) {
+            recordStep("mosaic: skipped extra fetches (circuit tripped)");
           }
           if (totalLoaded >= 3) {
             // Assign mosaic images sequentially so each mosaic knows what previous ones used
