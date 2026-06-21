@@ -2010,17 +2010,35 @@ function SlideRenderer({ category, slideData, slideIndex, totalSlides, images, e
 // --- IMAGE SEARCH ---
 var searchUnsplash = async function(query, apiKey, page) {
   // 8s timeout — Unsplash usually responds in 200-800ms; anything past 8s is a hung connection.
-  var r = await fetchWithTimeout("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: "Client-ID " + apiKey } }, 8000);
-  if (!r.ok) throw new Error("Unsplash " + r.status);
-  var d = await r.json();
-  return (d.results || []).map(function(img) { return { url: img.urls ? (img.urls.full || img.urls.regular) : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; });
+  // Errors are re-thrown with the query and API tag so recordStep traces tell us which
+  // exact request died ("Failed to fetch" alone is useless — it never reaches our line).
+  var qTag = (query || "").slice(0, 40);
+  try {
+    if (!apiKey) throw new Error("missing UNSPLASH_KEY");
+    var r = await fetchWithTimeout("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: "Client-ID " + apiKey } }, 8000);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    var d = await r.json();
+    return (d.results || []).map(function(img) { return { url: img.urls ? (img.urls.full || img.urls.regular) : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; });
+  } catch (e) {
+    var tagged = new Error("[Unsplash q='" + qTag + "'] " + (e && e.message ? e.message : "unknown"));
+    tagged.name = e && e.name ? e.name : "Error";
+    throw tagged;
+  }
 };
 
 var searchPexels = async function(query, apiKey, page) {
-  var r = await fetchWithTimeout("https://api.pexels.com/v1/search?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: apiKey } }, 8000);
-  if (!r.ok) throw new Error("Pexels " + r.status);
-  var d = await r.json();
-  return (d.photos || []).map(function(img) { return { url: img.src ? (img.src.original || img.src.large2x || img.src.large) : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; });
+  var qTag = (query || "").slice(0, 40);
+  try {
+    if (!apiKey) throw new Error("missing PEXELS_KEY");
+    var r = await fetchWithTimeout("https://api.pexels.com/v1/search?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: apiKey } }, 8000);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    var d = await r.json();
+    return (d.photos || []).map(function(img) { return { url: img.src ? (img.src.original || img.src.large2x || img.src.large) : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; });
+  } catch (e) {
+    var tagged = new Error("[Pexels q='" + qTag + "'] " + (e && e.message ? e.message : "unknown"));
+    tagged.name = e && e.name ? e.name : "Error";
+    throw tagged;
+  }
 };
 
 
@@ -3486,10 +3504,14 @@ export default function LoathrMediaGenerator() {
     setViralLoading(true);
     try {
       var segmentCtx = activeSegment === "enterprise" ? "business/industry analysis Instagram carousel" : activeSegment === "newsdesk" ? "news media Instagram carousel" : "editorial Instagram carousel in " + (cat ? cat.label : category);
+      // Inject today's date so timeliness scoring isn't anchored to the model's
+      // training cutoff. Without this, scores for ongoing 2026 events skew low
+      // because the model "doesn't know" what's happened since January 2026.
+      var dateLine = "TODAY'S DATE: " + todayDateStr() + ". Score timeliness relative to this date — do NOT default to your training cutoff. If you're not sure whether the topic is still current, score timeliness conservatively (5-6) and say so in the reason.\n\n";
       var r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-opus-4-7", max_tokens: 200,
           messages: [{ role: "user",
-            content: "Rate the viral potential of this topic for a " + segmentCtx + ":\n\"" + query + "\"\n\nScore 1-10 based on: timeliness, emotional hook, debate potential, visual appeal, shareability, audience size.\n\nRespond ONLY with JSON (no markdown):\n{\"score\":N,\"reason\":\"one sentence why\",\"tip\":\"one sentence to improve it\"}" }] }) });
+            content: dateLine + "Rate the viral potential of this topic for a " + segmentCtx + ":\n\"" + query + "\"\n\nScore 1-10 based on: timeliness, emotional hook, debate potential, visual appeal, shareability, audience size.\n\nRespond ONLY with JSON (no markdown):\n{\"score\":N,\"reason\":\"one sentence why\",\"tip\":\"one sentence to improve it\"}" }] }) });
       var d = await r.json();
       if (d.error) return;
       var text = (d.content || []).filter(function(b) { return b.type === "text"; }).map(function(b) { return b.text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, ""); }).join("");
