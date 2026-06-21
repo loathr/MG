@@ -5001,7 +5001,19 @@ export default function LoathrMediaGenerator() {
           recordStep("per-slide image search loop starting");
           // 2. Per-slide contextual search for content slides
           setImgStatus("Matching images to slides...");
+          // Circuit breaker: if 2 consecutive per-slide API calls fail with
+          // network errors, the user's connection to Unsplash is unstable —
+          // continuing just adds pressure that can tip the tab over. Abort
+          // the API loop and let the gap-filler reuse mainImgs.
+          var consecutiveFailures = 0;
+          var CIRCUIT_BREAK_THRESHOLD = 2;
+          var circuitTripped = false;
           for (var ps = 1; ps < Math.min(slides.length - 1, 12); ps++) {
+            if (circuitTripped) {
+              recordStep("slide " + ps + ": skipped (circuit breaker tripped — using main fallback)");
+              if (mainImgs.length > ps) { var ctPick = pickUnique(mainImgs); if (ctPick) imgMap[ps] = ctPick; }
+              continue;
+            }
             // Yield to React + GC between slides so accumulated render work doesn't
             // push the tab over the memory ceiling during the next await. ~80ms per
             // gap, ~700ms total cost for 9 slides — negligible vs the 1-2s per-slide
@@ -5054,18 +5066,34 @@ export default function LoathrMediaGenerator() {
               // it would leak orphaned setTimeout-rejection promises whenever fn
               // rejects fast — those orphaned rejections become unhandledrejection
               // events that pile up across failed slides and push the tab over.
-              // One retry on transient network failure ("Failed to fetch" — usually
-              // a momentary Unsplash CDN blip or socket exhaustion). 500ms delay so
-              // the connection pool has time to recycle. We only retry once.
+              // Retry policy: only retry on AbortError (our 8s timeout fired —
+              // server might have just been slow) or HTTP errors (transient
+              // 429/5xx). Do NOT retry on TypeError "Failed to fetch" — that's
+              // the browser saying the connection itself dropped, and a 500ms
+              // retry just doubles network pressure on an already-broken link.
               var sr;
               try {
                 sr = await fn(sq, k);
+                consecutiveFailures = 0;
               } catch (firstErr) {
                 var fName = firstErr && firstErr.name ? firstErr.name : "Error";
                 var fMsg = firstErr && firstErr.message ? firstErr.message.slice(0, 80) : "unknown";
+                var isNetworkDead = fName === "TypeError" || (fMsg.indexOf("Failed to fetch") !== -1);
+                if (isNetworkDead) {
+                  consecutiveFailures++;
+                  recordStep("slide " + ps + ": stock API failed (" + fName + ": " + fMsg + ") — skip retry (network)");
+                  if (consecutiveFailures >= CIRCUIT_BREAK_THRESHOLD) {
+                    circuitTripped = true;
+                    recordStep("circuit breaker TRIPPED after " + consecutiveFailures + " consecutive failures");
+                  }
+                  throw firstErr;
+                }
                 recordStep("slide " + ps + ": stock API failed (" + fName + ": " + fMsg + ") — retrying once");
+                recordStep("slide " + ps + ": sleeping 500ms before retry");
                 await new Promise(function(rr) { setTimeout(rr, 500); });
+                recordStep("slide " + ps + ": sleep done, retrying");
                 sr = await fn(sq, k);
+                consecutiveFailures = 0;
                 recordStep("slide " + ps + ": retry succeeded");
               }
               recordStep("slide " + ps + ": stock API returned " + (sr ? sr.length : 0) + " results");
