@@ -5069,9 +5069,25 @@ export default function LoathrMediaGenerator() {
                 recordStep("slide " + ps + ": retry succeeded");
               }
               recordStep("slide " + ps + ": stock API returned " + (sr ? sr.length : 0) + " results");
+              // Soft-query fallback: if the person-tagged query returns 0 results
+              // (Unsplash has very few photos of active athletes / public figures
+              // because of copyright), retry once with just the topic — usually
+              // gets a relevant generic shot instead of falling back to a reused
+              // mainImgs pick.
+              if ((!sr || sr.length === 0) && sq && topic && sq !== topic) {
+                try {
+                  recordStep("slide " + ps + ": 0 results, retrying with topic-only query");
+                  sr = await fn(topic, k);
+                  recordStep("slide " + ps + ": topic-only retry returned " + (sr ? sr.length : 0) + " results");
+                } catch (softErr) {
+                  recordStep("slide " + ps + ": topic-only retry failed - " + (softErr && softErr.message ? softErr.message.slice(0, 60) : "unknown"));
+                  sr = [];
+                }
+              }
               var sPick = pickUnique(sr);
               if (sPick) imgMap[ps] = sPick;
               else if (mainImgs.length > ps) { var mPick = pickUnique(mainImgs); if (mPick) imgMap[ps] = mPick; }
+              recordStep("slide " + ps + ": iteration finished" + (sPick ? " (got own image)" : (imgMap[ps] ? " (fell back to main)" : " (NO IMAGE)")));
             } catch (pe) {
               // Surface error.name (AbortError vs TypeError vs ...) so we can tell
               // whether our 8s timeout is firing or whether it's a true network failure.
