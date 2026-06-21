@@ -5032,13 +5032,30 @@ export default function LoathrMediaGenerator() {
               // it would leak orphaned setTimeout-rejection promises whenever fn
               // rejects fast — those orphaned rejections become unhandledrejection
               // events that pile up across failed slides and push the tab over.
-              var sr = await fn(sq, k);
+              // One retry on transient network failure ("Failed to fetch" — usually
+              // a momentary Unsplash CDN blip or socket exhaustion). 500ms delay so
+              // the connection pool has time to recycle. We only retry once.
+              var sr;
+              try {
+                sr = await fn(sq, k);
+              } catch (firstErr) {
+                var fName = firstErr && firstErr.name ? firstErr.name : "Error";
+                var fMsg = firstErr && firstErr.message ? firstErr.message.slice(0, 80) : "unknown";
+                recordStep("slide " + ps + ": stock API failed (" + fName + ": " + fMsg + ") — retrying once");
+                await new Promise(function(rr) { setTimeout(rr, 500); });
+                sr = await fn(sq, k);
+                recordStep("slide " + ps + ": retry succeeded");
+              }
               recordStep("slide " + ps + ": stock API returned " + (sr ? sr.length : 0) + " results");
               var sPick = pickUnique(sr);
               if (sPick) imgMap[ps] = sPick;
               else if (mainImgs.length > ps) { var mPick = pickUnique(mainImgs); if (mPick) imgMap[ps] = mPick; }
             } catch (pe) {
-              recordStep("slide " + ps + ": caught error - " + (pe && pe.message ? pe.message.slice(0, 80) : "unknown"));
+              // Surface error.name (AbortError vs TypeError vs ...) so we can tell
+              // whether our 8s timeout is firing or whether it's a true network failure.
+              var peName = pe && pe.name ? pe.name : "Error";
+              var peMsg = pe && pe.message ? pe.message.slice(0, 80) : "unknown";
+              recordStep("slide " + ps + ": caught error - " + peName + ": " + peMsg);
               // Fallback: try to pick a unique image from main results.
               // Wrapped defensively because pickUnique was the LAST step seen in some
               // crash banners, suggesting it may be where cumulative memory pressure
