@@ -4948,320 +4948,62 @@ export default function LoathrMediaGenerator() {
             else if (role === "hotTake") imgMap[3] = pvImg;
           });
 
-          recordStep("running main topic image search (cover + closer)");
-          // 1. Main topic search for cover + closer
-          // Cover gets FULL category context (label + topic + force/filter prefix). Per-slide queries (below) stay slim — that was the Commit A intent.
-          var topicTokens = shortTopic.split(/\s+/).filter(Boolean);
-          var coverContext = (coverPrefix + (catInfo && catInfo.label ? catInfo.label + " " : "")).trim();
-          var coverTopic = topicTokens.join(" ") || (topic || "").trim();
-          var mainQuery = (coverContext + " " + coverTopic).trim();
-          var mainImgs = [];
-          if (mainQuery) {
-            try { mainImgs = await primaryFn(mainQuery, primaryKey); } catch (e) {}
-          }
-          // Degrade by dropping topic tokens one at a time, then category label as last resort
-          if (mainImgs.length === 0 && topicTokens.length > 1) {
-            var fallbackQuery = (coverContext + " " + topicTokens.slice(0, topicTokens.length - 1).join(" ")).trim();
-            try { mainImgs = await primaryFn(fallbackQuery, primaryKey); } catch (e) {}
-          }
-          if (mainImgs.length === 0 && coverContext) {
-            // Last resort: just the category context (better than blank cover)
-            try { mainImgs = await primaryFn(coverContext, primaryKey); } catch (e) {}
-          }
-          if (mainImgs.length === 0 && secondaryFn && mainQuery) {
-            try { mainImgs = await secondaryFn(mainQuery, secondaryKey); } catch (e) {}
-          }
-          if (mainImgs.length > 0 && !imgMap[0]) imgMap[0] = mainImgs[0]; // cover (skip if person image locked)
-          // Closer gets a different image from main results (not index 1 which may be too similar to cover)
-          var closerIdx = slides.length ? slides.length - 1 : 9;
-          if (mainImgs.length > 2 && !imgMap[closerIdx]) imgMap[closerIdx] = mainImgs[2];
-          else if (mainImgs.length > 1 && !imgMap[closerIdx]) imgMap[closerIdx] = mainImgs[1];
-
-          // Track used image URLs to prevent duplicates (including locked person images)
-          var usedUrls = {};
-          function markUsed(img) {
-            if (!img) return;
-            if (img.url) { usedUrls[img.url] = true; usedUrls[normalizeImgUrl(img.url)] = true; }
-            if (img.thumb) { usedUrls[img.thumb] = true; usedUrls[normalizeImgUrl(img.thumb)] = true; }
-          }
-          Object.values(imgMap).forEach(markUsed);
-          function pickUnique(results) {
-            for (var u = 0; u < results.length; u++) {
-              var img = results[u];
-              if (!img || !img.url) continue;
-              var norm = normalizeImgUrl(img.url);
-              var normThumb = img.thumb ? normalizeImgUrl(img.thumb) : "";
-              if (usedUrls[img.url] || usedUrls[norm] || (img.thumb && usedUrls[img.thumb]) || (normThumb && usedUrls[normThumb])) continue;
-              markUsed(img);
-              return img;
-            }
-            return null;
-          }
-
-          recordStep("per-slide image search loop starting");
-          // 2. Per-slide contextual search for content slides
-          setImgStatus("Matching images to slides...");
-          // Circuit breaker: if ANY per-slide API call fails with a network
-          // error (TypeError / Failed to fetch), the user's connection to
-          // Unsplash is broken — every further call just adds pressure that
-          // can tip the tab over. Abort the API loop on the first network
-          // failure and let the gap-filler reuse mainImgs for everything.
-          // Threshold is 1 (not consecutive, total) because failed fetches
-          // accumulate browser-internal cleanup state that's the proximate
-          // cause of the renderer kill we've been chasing.
-          var networkFailures = 0;
-          var CIRCUIT_BREAK_THRESHOLD = 1;
-          var circuitTripped = false;
-          function isNetworkDeadErr(err) {
-            if (!err) return false;
-            var n = err.name || "";
-            var m = err.message || "";
-            return n === "TypeError" || m.indexOf("Failed to fetch") !== -1;
-          }
-          function recordNetworkFailure(where) {
-            networkFailures++;
-            if (networkFailures >= CIRCUIT_BREAK_THRESHOLD && !circuitTripped) {
-              circuitTripped = true;
-              recordStep("circuit breaker TRIPPED at " + where + " (network failures: " + networkFailures + ")");
-            }
-          }
-          for (var ps = 1; ps < Math.min(slides.length - 1, 12); ps++) {
-            if (circuitTripped) {
-              recordStep("slide " + ps + ": skipped (circuit breaker tripped — using main fallback)");
-              if (mainImgs.length > ps) { var ctPick = pickUnique(mainImgs); if (ctPick) imgMap[ps] = ctPick; }
-              continue;
-            }
-            // Yield to React + GC between slides so accumulated render work doesn't
-            // push the tab over the memory ceiling during the next await. ~80ms per
-            // gap, ~700ms total cost for 9 slides — negligible vs the 1-2s per-slide
-            // API call we're awaiting anyway.
-            if (ps > 1) await new Promise(function(rr) { setTimeout(rr, 80); });
-            var slideData = slides[ps] || {};
-            // Log slide-shape fingerprint so we can see what's unusual about the slide
-            // that kills the tab. Captures the first few characters of body + key fields.
-            var slidePerson = typeof slideData.person === "string" ? slideData.person.slice(0, 40) : (slideData.person ? JSON.stringify(slideData.person).slice(0, 40) : "");
-            var slideStamp = "slide " + ps + " (role=" + (slideData.role || "?") + ", person=" + slidePerson + ", lens=" + (typeof slideData.categoryLens === "string" ? slideData.categoryLens : "") + ")";
-            recordStep("per-slide image search: " + slideStamp);
-            if (imgMap[ps]) continue;
-            // Use the slide's cross-category lens for search if present.
-            // catInfo may be undefined for unknown segments (e.g. studios is not in CATEGORIES);
-            // fall back to the category id so we never deref undefined.label.
-            var slideCatLabel = (catInfo && catInfo.label) || category || "";
-            var slideCatId = category;
-            var lensRawPs = slideData.categoryLens;
-            var lensStrPs = typeof lensRawPs === "string" ? lensRawPs : (Array.isArray(lensRawPs) && typeof lensRawPs[0] === "string" ? lensRawPs[0] : "");
-            if (lensStrPs) {
-              var lensMatch = CATEGORIES.find(function(c) { return c.label.toLowerCase() === lensStrPs.toLowerCase() || c.id === lensStrPs.toLowerCase(); });
-              if (lensMatch) { slideCatLabel = lensMatch.label; slideCatId = lensMatch.id; }
-            }
-            recordStep("slide " + ps + ": building query");
-            var sq = getSlideImageQuery(slideData, slideCatLabel, topic);
-            try {
-              // Per-slide Wikipedia portrait fetch was REMOVED — it was reliably
-              // killing the tab when called on certain slide 3/4 person values.
-              // The slide now falls through to the regular stock image search below,
-              // which gets a topically-related photo instead of a personal portrait.
-              // If portrait fetching is wanted back, wire it to an explicit per-slide
-              // "Find portrait" button so the API call only fires on demand instead
-              // of automatically for every slide with a person field.
-              // Vintage slots use vintage APIs (respecting cross-category lens)
-              if (vintageSlots.indexOf(ps) !== -1) {
-                recordStep("slide " + ps + ": calling vintage API");
-                var vApis = VINTAGE_APIS[slideCatId] || VINTAGE_APIS[category] || [searchMetMuseum];
-                var vr = await vApis[ps % vApis.length](sq.split(" ").slice(0, 2).join(" "));
-                recordStep("slide " + ps + ": vintage returned " + (vr ? vr.length : 0));
-                var vPick = pickUnique(vr);
-                if (vPick) { imgMap[ps] = vPick; continue; }
-              }
-              // Alternate between primary and secondary stock API
-              var useSec = secondaryFn && ps % 2 === 0;
-              var fn = useSec ? secondaryFn : primaryFn;
-              var k = useSec ? secondaryKey : primaryKey;
-              recordStep("slide " + ps + ": calling " + (useSec ? "secondary" : "primary") + " stock API");
-              // searchUnsplash + searchPexels both use fetchWithTimeout (8s, with
-              // proper AbortController cleanup). No outer Promise.race here because
-              // it would leak orphaned setTimeout-rejection promises whenever fn
-              // rejects fast — those orphaned rejections become unhandledrejection
-              // events that pile up across failed slides and push the tab over.
-              // Retry policy: only retry on AbortError (our 8s timeout fired —
-              // server might have just been slow) or HTTP errors (transient
-              // 429/5xx). Do NOT retry on TypeError "Failed to fetch" — that's
-              // the browser saying the connection itself dropped, and a 500ms
-              // retry just doubles network pressure on an already-broken link.
-              var sr;
-              try {
-                sr = await fn(sq, k);
-              } catch (firstErr) {
-                var fName = firstErr && firstErr.name ? firstErr.name : "Error";
-                var fMsg = firstErr && firstErr.message ? firstErr.message.slice(0, 80) : "unknown";
-                if (isNetworkDeadErr(firstErr)) {
-                  recordStep("slide " + ps + ": stock API failed (" + fName + ": " + fMsg + ") — skip retry (network)");
-                  recordNetworkFailure("slide " + ps + " primary");
-                  throw firstErr;
-                }
-                recordStep("slide " + ps + ": stock API failed (" + fName + ": " + fMsg + ") — retrying once");
-                await new Promise(function(rr) { setTimeout(rr, 500); });
-                sr = await fn(sq, k);
-                recordStep("slide " + ps + ": retry succeeded");
-              }
-              recordStep("slide " + ps + ": stock API returned " + (sr ? sr.length : 0) + " results");
-              // Soft-query fallback: if the person-tagged query returns 0 results
-              // (Unsplash has very few photos of active athletes / public figures
-              // because of copyright), retry once with just the topic — usually
-              // gets a relevant generic shot instead of falling back to a reused
-              // mainImgs pick.
-              if ((!sr || sr.length === 0) && sq && topic && sq !== topic && !circuitTripped) {
-                try {
-                  recordStep("slide " + ps + ": 0 results, retrying with topic-only query");
-                  sr = await fn(topic, k);
-                  recordStep("slide " + ps + ": topic-only retry returned " + (sr ? sr.length : 0) + " results");
-                } catch (softErr) {
-                  recordStep("slide " + ps + ": topic-only retry failed - " + (softErr && softErr.message ? softErr.message.slice(0, 60) : "unknown"));
-                  if (isNetworkDeadErr(softErr)) recordNetworkFailure("slide " + ps + " soft-query");
-                  sr = [];
-                }
-              }
-              var sPick = pickUnique(sr);
-              if (sPick) imgMap[ps] = sPick;
-              else if (mainImgs.length > ps) { var mPick = pickUnique(mainImgs); if (mPick) imgMap[ps] = mPick; }
-              recordStep("slide " + ps + ": iteration finished" + (sPick ? " (got own image)" : (imgMap[ps] ? " (fell back to main)" : " (NO IMAGE)")));
-            } catch (pe) {
-              // Surface error.name (AbortError vs TypeError vs ...) so we can tell
-              // whether our 8s timeout is firing or whether it's a true network failure.
-              var peName = pe && pe.name ? pe.name : "Error";
-              var peMsg = pe && pe.message ? pe.message.slice(0, 80) : "unknown";
-              recordStep("slide " + ps + ": caught error - " + peName + ": " + peMsg);
-              // Fallback: try to pick a unique image from main results.
-              // Wrapped defensively because pickUnique was the LAST step seen in some
-              // crash banners, suggesting it may be where cumulative memory pressure
-              // tipped over after many failed API calls.
-              try {
-                var catchPick = pickUnique(mainImgs);
-                if (catchPick) imgMap[ps] = catchPick;
-              } catch (pickErr) {
-                recordStep("slide " + ps + ": pickUnique failed - " + (pickErr && pickErr.message ? pickErr.message.slice(0, 80) : "unknown"));
-              }
-            }
-          }
-          recordStep("per-slide loop exited cleanly");
-
-          recordStep("filling remaining slide gaps from main results");
-          // 3. Fill remaining gaps with unique images from main results (no repeats)
-          var slideTotal = slides.length || 10;
-          for (var fill = 0; fill < slideTotal; fill++) {
-            if (!imgMap[fill]) {
-              var fillPick = pickUnique(mainImgs);
-              if (fillPick) imgMap[fill] = fillPick;
-            }
-          }
-
-          recordStep("building mosaic configuration");
-          var totalLoaded = Object.keys(imgMap).length;
-          // Build mosaic map for slides Claude flagged as mosaic
-          _mosaicSlides = {};
-          _allImages = imgMap;
-          _mosaicExtraImages = [];
-          var mosaicFlagged = slides.filter(function(s) { return s && s.mosaic; }).length;
-          console.log("Mosaic: " + mosaicFlagged + " slides flagged, " + totalLoaded + " images available");
-          // Fetch extra images specifically for mosaic panels. Gated by the
-          // same circuit breaker as the per-slide loop — if the network is
-          // dead, additional API calls just add pressure that tips the tab
-          // over, and mosaic panels can recycle imgMap urls anyway.
-          if ((mosaicFlagged > 0 || totalLoaded >= 3) && !circuitTripped) {
-            var mosaicNeed = Math.max(mosaicFlagged, 2) * 3; // ~3 extra per mosaic slide
-            var extraUsed = {};
-            Object.values(imgMap).forEach(function(img) { if (img && img.url) { extraUsed[img.url] = true; extraUsed[normalizeImgUrl(img.url)] = true; } });
-            try {
-              var mosaicBase = shortTopic + " " + (catInfo ? catInfo.label : category);
-              var mExtra = [];
-              // Helper: bail on any source that throws a network-dead error, and
-              // trip the circuit breaker so subsequent mosaic fetches are skipped.
-              async function tryMosaicFetch(label, getter) {
-                if (circuitTripped) return [];
-                recordStep("mosaic: fetching " + label);
-                try { var out = await getter(); return out || []; }
-                catch (e) {
-                  recordStep("mosaic: " + label + " failed - " + (e && e.message ? e.message.slice(0, 60) : "unknown"));
-                  if (isNetworkDeadErr(e)) recordNetworkFailure("mosaic " + label);
-                  return [];
-                }
-              }
-              if (primaryKey) mExtra = mExtra.concat(await tryMosaicFetch("primary abstract", function() { return primaryFn(mosaicBase + " abstract editorial", primaryKey); }));
-              if (secondaryKey) mExtra = mExtra.concat(await tryMosaicFetch("secondary workplace", function() { return secondaryFn(shortTopic + " industry workplace", secondaryKey); }));
-              mExtra = mExtra.concat(await tryMosaicFetch("wikicommons business", function() { return searchWikiCommons(shortTopic + " business"); }));
-              mExtra = mExtra.concat(await tryMosaicFetch("pixabay base", function() { return searchPixabay(mosaicBase); }));
-              if (mExtra.length < mosaicNeed && !circuitTripped) {
-                if (primaryKey) mExtra = mExtra.concat(await tryMosaicFetch("primary tech", function() { return primaryFn(shortTopic + " technology modern", primaryKey); }));
-                mExtra = mExtra.concat(await tryMosaicFetch("wikicommons industry", function() { return searchWikiCommons(mosaicBase + " industry"); }));
-              }
-              mExtra.forEach(function(img) {
-                if (img && img.url && !extraUsed[img.url] && !extraUsed[normalizeImgUrl(img.url)] && _mosaicExtraImages.length < mosaicNeed) {
-                  _mosaicExtraImages.push(img.url); extraUsed[img.url] = true; extraUsed[normalizeImgUrl(img.url)] = true;
-                }
-              });
-              recordStep("mosaic extras done: " + _mosaicExtraImages.length + " unique images");
-            } catch(e) { console.error("Mosaic extra fetch error:", e); recordStep("mosaic extras outer catch: " + (e && e.message ? e.message.slice(0, 60) : "unknown")); }
-          } else if (circuitTripped) {
-            recordStep("mosaic: skipped extra fetches (circuit tripped)");
-          }
-          if (totalLoaded >= 3) {
-            // Assign mosaic images sequentially so each mosaic knows what previous ones used
-            var mosaicGlobalUsed = {};
-            Object.values(imgMap).forEach(function(img) { if (img && img.url) { mosaicGlobalUsed[img.url] = true; mosaicGlobalUsed[normalizeImgUrl(img.url)] = true; } });
-            slides.forEach(function(s, si) {
-              if (s && s.mosaic && si > 0 && si < slides.length - 1) {
-                var mUrls = [];
-                var mUsed = Object.assign({}, mosaicGlobalUsed);
-                // Primary image for this slide
-                if (imgMap[si] && imgMap[si].url && !mUsed[imgMap[si].url]) { mUrls.push(imgMap[si].url); mUsed[imgMap[si].url] = true; }
-                // Pull from extra pool first
-                for (var me = 0; me < _mosaicExtraImages.length && mUrls.length < 4; me++) {
-                  var eu = _mosaicExtraImages[me];
-                  if (eu && !mUsed[eu] && !mUsed[normalizeImgUrl(eu)]) { mUrls.push(eu); mUsed[eu] = true; mUsed[normalizeImgUrl(eu)] = true; }
-                }
-                // Fallback: non-adjacent slides (3+ away)
-                if (mUrls.length < 4) {
-                  var keys = Object.keys(imgMap);
-                  for (var mk = 0; mk < keys.length && mUrls.length < 4; mk++) {
-                    var mimg = imgMap[keys[mk]];
-                    if (mimg && mimg.url && !mUsed[mimg.url] && !mUsed[normalizeImgUrl(mimg.url)] && Math.abs(parseInt(keys[mk]) - si) > 2) {
-                      mUrls.push(mimg.url); mUsed[mimg.url] = true;
-                    }
-                  }
-                }
-                console.log("Mosaic slide " + si + ": " + mUrls.length + " images found");
-                if (mUrls.length >= 2) {
-                  _mosaicSlides[si] = mUrls;
-                  // Mark these as globally used so next mosaic won't reuse them
-                  mUrls.forEach(function(u) { mosaicGlobalUsed[u] = true; mosaicGlobalUsed[normalizeImgUrl(u)] = true; });
-                }
-              }
+          // === SERVER-SIDE IMAGE PIPELINE ===
+          // All the per-slide Unsplash/Pexels/Wiki/Pixabay calls used to run in
+          // the browser and kept killing the renderer process on flaky networks.
+          // Now everything happens server-side via /api/images. Browser only
+          // sends the slides + topic + which slots it already filled with
+          // locked images, server returns the rest of imgMap + mosaic config.
+          recordStep("calling /api/images (server-side pipeline)");
+          try {
+            var lockedSlots = {};
+            Object.keys(imgMap).forEach(function(k) { lockedSlots[k] = true; });
+            var imgRes = await fetch("/api/images", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                topic: topic,
+                category: category,
+                categoryLabel: (catInfo && catInfo.label) || "",
+                coverPrefix: coverPrefix,
+                slides: slides,
+                lockedSlots: lockedSlots,
+                wantMosaic: true,
+              }),
             });
-          }
-          // Auto-assign mosaic — Enterprise only (B&W layouts benefit from collage variety)
-          // Editorial and News Desk respect Claude's mosaic flags only
-          if (category === "enterprise") {
-            var contentSlideCount = Math.max(slides.length - 2, 1);
-            var targetMosaic = Math.max(Math.round(contentSlideCount * 0.3), 1);
-            var currentMosaic = Object.keys(_mosaicSlides).length;
-            if (currentMosaic < targetMosaic && totalLoaded >= 3) {
-              slides.forEach(function(s, si) {
-                if (Object.keys(_mosaicSlides).length >= targetMosaic) return;
-                if (si <= 0 || si >= slides.length - 1) return;
-                if (_mosaicSlides[si]) return;
-                if (s.statFormat || s.stat || s.stats || s.before || s.leftStat || s.quote) return;
-                var mUrls = getMosaicImgs(imgMap, si, slides.length);
-                if (mUrls.length >= 2) _mosaicSlides[si] = mUrls;
+            var imgData;
+            try { imgData = await imgRes.json(); } catch (parseErr) { imgData = { error: "Invalid response from /api/images" }; }
+            if (!imgRes.ok || imgData.error) {
+              setImgStatus("Image search failed: " + (imgData.error || ("HTTP " + imgRes.status)));
+              recordStep("image search server error: " + (imgData.error || ("HTTP " + imgRes.status)));
+            } else {
+              recordStep("image server returned " + (imgData.summary ? imgData.summary.totalImages : 0) + " images");
+              // Merge server-returned images (cover/closer/per-slide) with the
+              // locked images browser already placed. Server respects lockedSlots
+              // so there's no overwrite, but we Object.assign for safety.
+              var serverImgs = imgData.imgMap || {};
+              Object.keys(serverImgs).forEach(function(k) {
+                if (!imgMap[k]) imgMap[k] = serverImgs[k];
               });
+              _mosaicSlides = imgData.mosaicSlides || {};
+              _allImages = imgMap;
+              _mosaicExtraImages = imgData.mosaicExtras || [];
+              var loaded = Object.keys(imgMap).length;
+              if (loaded > 0) {
+                setImages(imgMap);
+                setImgStatus(loaded + " contextual images loaded" + (Object.keys(_mosaicSlides).length > 0 ? " (" + Object.keys(_mosaicSlides).length + " mosaic)" : ""));
+              } else {
+                setImgStatus("No images found");
+              }
+              recordStep("image search complete (server-side)");
             }
+          } catch (netErr) {
+            setImgStatus("Image search failed: " + (netErr && netErr.message ? netErr.message : "network error"));
+            recordStep("image search network error: " + (netErr && netErr.message ? netErr.message.slice(0, 80) : "unknown"));
           }
-          recordStep("setting images on slides");
-          if (totalLoaded > 0) {
-            setImages(imgMap);
-            setImgStatus(totalLoaded + " contextual images loaded" + (Object.keys(_mosaicSlides).length > 0 ? " (" + Object.keys(_mosaicSlides).length + " mosaic)" : ""));
-          } else { setImgStatus("No images found"); }
-          recordStep("image search complete");
-        } catch (e) { setImgStatus("Image search failed: " + e.message); }
+        } catch (outerErr) {
+          setImgStatus("Image search failed: " + (outerErr && outerErr.message ? outerErr.message : "unknown"));
+        }
       } else {
         // No stock API keys — vintage APIs only
         setImgStatus("Searching vintage archives...");
