@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "topic": "New York set to weaken landmark climate law in budget deal",
+  "category": "enterprise",
+  "segment": "enterprise",
+  "template": null,
+  "publishDate": null,
+  "slides": [
+    {
+      "role": "COVER",
+      "title": "NEW YORK GUTS LANDMARK CLIMATE LAW IN BUDGET DEAL",
+      "subtitle": "June 1, 2026 at 21:55",
+      "breaking": true,
+      "timestamp": "June 1, 2026 at 21:55"
+    },
+    {
+      "role": "WHAT HAPPENED",
+      "heading": "Hochul Softens 2019 Climate Mandate",
+      "body": "New York's FY2027 budget agreement includes provisions to weaken the Climate Leadership and Community Protection Act (CLCPA), pushing back emissions deadlines and easing the state's 70% renewable electricity mandate. Lawmakers cited affordability and grid reliability concerns as justification for the rollback.",
+      "keywords": [
+        "CLCPA",
+        "emissions deadline",
+        "rollback"
+      ],
+      "sources": [
+        "Bloomberg / Reuters coverage of NY FY2027 budget deal, late May 2026"
+      ]
+    },
+    {
+      "role": "WHO'S AFFECTED",
+      "heading": "Utilities Win, Renewables Squeezed",
+      "body": "Con Edison, National Grid and NYSEG gain breathing room on costly grid upgrades, while offshore wind developers Equinor, Ørsted and solar financiers face weakened demand signals. ESG-tilted bond investors holding NY green debt now confront repricing risk as policy credibility wobbles.",
+      "keywords": [
+        "utilities",
+        "offshore wind",
+        "ESG bonds"
+      ],
+      "sources": [
+        "FT energy desk reporting on NY climate rollback impact"
+      ]
+    },
+    {
+      "role": "THE NUMBERS",
+      "statFormat": "killer",
+      "stat": "70%",
+      "caption": "Renewable electricity target by 2030 now in doubt after budget compromise weakens enforcement language.",
+      "sources": [
+        "Reuters / Bloomberg coverage of CLCPA amendments"
+      ]
+    },
+    {
+      "role": "WHAT TO DO",
+      "heading": "Reposition Before The Repricing",
+      "body": "Clean-energy developers should renegotiate NY PPAs and stress-test project IRRs against delayed mandates. Banks underwriting green munis and climate-linked credits should reassess covenant strength and demand tighter disclosure before the next NY issuance window.",
+      "sources": [
+        "WSJ markets desk on muni & ESG repricing risk"
+      ]
+    },
+    {
+      "role": "CLOSER",
+      "hashtags": [
+        "#ClimatePolicy",
+        "#NewYork",
+        "#CLCPA",
+        "#ESG",
+        "#EnergyTransition",
+        "#LoathrEnterprise"
+      ],
+      "funnyLine": "For entertainment only. Our lawyers made us say that.",
+      "funnyLineAlts": [
+        "Albany discovers physics is negotiable.",
+        "Climate goals: now sold separately.",
+        "If a mandate falls in a budget, does anyone hear it?"
+      ],
+      "disclaimer": "For entertainment and educational purposes only."
+    }
+  ],
+  "images": {
+    "0": {
+      "url": "https://images.unsplash.com/photo-1660626063662-55bb5e169e1d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxnb3Zlcm5tZW50JTIwcmVndWxhdGlvbiUyMEVudGVycHJpc2UlMjBOZXclMjBZb3JrJTIwc2V0fGVufDB8MXx8fDE3ODAzNjUzOTZ8MA&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1660626063662-55bb5e169e1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxnb3Zlcm5tZW50JTIwcmVndWxhdGlvbiUyMEVudGVycHJpc2UlMjBOZXclMjBZb3JrJTIwc2V0fGVufDB8MXx8fDE3ODAzNjUzOTZ8MA&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    },
+    "1": {
+      "url": "https://images.unsplash.com/photo-1580752300969-1ceaaa1f3039?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxOZXclMjBZb3JrJTIwSG9jaHVsJTIwU29mdGVuc3xlbnwwfDF8fHwxNzgwMzY1Mzk2fDA&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1580752300969-1ceaaa1f3039?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxOZXclMjBZb3JrJTIwSG9jaHVsJTIwU29mdGVuc3xlbnwwfDF8fHwxNzgwMzY1Mzk2fDA&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    },
+    "2": {
+      "url": "https://images.pexels.com/photos/37792855/pexels-photo-37792855.jpeg",
+      "thumb": "https://images.pexels.com/photos/37792855/pexels-photo-37792855.jpeg?auto=compress&cs=tinysrgb&h=350",
+      "source": "Pexels"
+    },
+    "3": {
+      "url": "https://images.unsplash.com/photo-1541336032412-2048a678540d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxOZXclMjBZb3JrfGVufDB8MXx8fDE3ODAzNjUzOTd8MA&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1541336032412-2048a678540d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxOZXclMjBZb3JrfGVufDB8MXx8fDE3ODAzNjUzOTd8MA&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    },
+    "4": {
+      "url": "https://images.pexels.com/photos/29476040/pexels-photo-29476040.jpeg",
+      "thumb": "https://images.pexels.com/photos/29476040/pexels-photo-29476040.jpeg?auto=compress&cs=tinysrgb&h=350",
+      "source": "Pexels"
+    },
+    "5": {
+      "url": "https://images.unsplash.com/photo-1556736320-a01f69a8f641?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwzfHxnb3Zlcm5tZW50JTIwcmVndWxhdGlvbiUyMEVudGVycHJpc2UlMjBOZXclMjBZb3JrJTIwc2V0fGVufDB8MXx8fDE3ODAzNjUzOTZ8MA&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1556736320-a01f69a8f641?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwzfHxnb3Zlcm5tZW50JTIwcmVndWxhdGlvbiUyMEVudGVycHJpc2UlMjBOZXclMjBZb3JrJTIwc2V0fGVufDB8MXx8fDE3ODAzNjUzOTZ8MA&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    }
+  },
+  "mosaics": {
+    "1": [
+      "https://images.unsplash.com/photo-1580752300969-1ceaaa1f3039?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxOZXclMjBZb3JrJTIwSG9jaHVsJTIwU29mdGVuc3xlbnwwfDF8fHwxNzgwMzY1Mzk2fDA&ixlib=rb-4.1.0&q=85",
+      "https://images.pexels.com/photos/9502807/pexels-photo-9502807.jpeg",
+      "https://images.pexels.com/photos/29498263/pexels-photo-29498263.jpeg",
+      "https://images.pexels.com/photos/36244031/pexels-photo-36244031.jpeg"
+    ]
+  },
+  "exportDate": "2026-06-02T01:57:20.143Z"
+}

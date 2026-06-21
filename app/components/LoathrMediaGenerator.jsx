@@ -3203,6 +3203,24 @@ export default function LoathrMediaGenerator() {
       localStorage.setItem("loathr_gen_step_history", JSON.stringify(hist));
     } catch (e) {}
   }
+  // Global safety net for unhandled promise rejections during generation.
+  // We don't want orphaned rejections (e.g. fire-and-forget background fetches
+  // that rejected after the consumer moved on) to accumulate and tip the tab
+  // over its limit. Just absorb them silently with a log breadcrumb.
+  _ef(function() {
+    var handler = function(ev) {
+      try {
+        var msg = ev && ev.reason ? (ev.reason.message || String(ev.reason)) : "unknown";
+        // Use console.warn so it shows in DevTools but doesn't crash anything.
+        console.warn("[unhandledrejection]", msg);
+        // Prevent default to avoid React/Next.js dev overlay re-rendering on every
+        // orphaned rejection. In production builds this is a no-op for behavior.
+        if (ev && ev.preventDefault) ev.preventDefault();
+      } catch (e) {}
+    };
+    window.addEventListener("unhandledrejection", handler);
+    return function() { window.removeEventListener("unhandledrejection", handler); };
+  }, []);
   // On mount, check if the previous session ended mid-generation. If so, surface
   // the last step + recent history so the user can paste it back without DevTools.
   _ef(function() {
@@ -5009,14 +5027,12 @@ export default function LoathrMediaGenerator() {
               var fn = useSec ? secondaryFn : primaryFn;
               var k = useSec ? secondaryKey : primaryKey;
               recordStep("slide " + ps + ": calling " + (useSec ? "secondary" : "primary") + " stock API");
-              // Hard 10s ceiling at the call site, regardless of what timeout the
-              // inner function does or doesn't have. Pexels was crashing the tab
-              // sub-second in earlier reports; this Promise.race guarantees the
-              // await can never hang the main thread for more than 10s.
-              var sr = await Promise.race([
-                fn(sq, k),
-                new Promise(function(_, reject) { setTimeout(function() { reject(new Error("stock API hard timeout 10s")); }, 10000); })
-              ]);
+              // searchUnsplash + searchPexels both use fetchWithTimeout (8s, with
+              // proper AbortController cleanup). No outer Promise.race here because
+              // it would leak orphaned setTimeout-rejection promises whenever fn
+              // rejects fast — those orphaned rejections become unhandledrejection
+              // events that pile up across failed slides and push the tab over.
+              var sr = await fn(sq, k);
               recordStep("slide " + ps + ": stock API returned " + (sr ? sr.length : 0) + " results");
               var sPick = pickUnique(sr);
               if (sPick) imgMap[ps] = sPick;

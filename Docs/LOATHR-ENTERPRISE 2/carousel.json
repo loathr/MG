@@ -1,0 +1,217 @@
+{
+  "version": 1,
+  "topic": "The $100B weight loss drug war that's reshaping Big Pharma",
+  "category": "enterprise",
+  "segment": "enterprise",
+  "template": null,
+  "slides": [
+    {
+      "type": "COVER",
+      "title": "The $100B weight loss drug war that's reshaping Big Pharma",
+      "titleHighlight": "$100B weight loss",
+      "subtitle": "How AI & Automation is accelerating discovery, capturing market share, and determining who wins the metabolic medicine revolution"
+    },
+    {
+      "type": "THE LANDSCAPE",
+      "heading": "Market giants in a feeding frenzy",
+      "body": "The weight loss drug market exploded from $13.84B in 2024 to a projected $48.84B by 2030. Novo Nordisk's Wegovy holds 60.7% market share, with Q1 2026 sales jumping 12% to 18.2 billion kronor. Eli Lilly aggressively captured 60.5% of the US obesity/diabetes market.",
+      "highlight": "$48.84B by 2030",
+      "keywords": [
+        "Wegovy",
+        "60.7% market share",
+        "18.2 billion kronor"
+      ],
+      "textPosition": "bottom-left",
+      "sources": [
+        "Grand View Research GLP-1 Weight Loss Drugs Market, 2024",
+        "CNBC Novo Nordisk Q1 2026 earnings"
+      ],
+      "mosaic": true,
+      "imageLayout": "2v5050"
+    },
+    {
+      "type": "THE FORCE",
+      "heading": "AI rewrites the drug discovery playbook",
+      "body": "The pharma industry's AI investment hits $2.51 billion in 2026, with Eli Lilly and NVIDIA jointly investing up to $1 billion over five years in their co-innovation lab. AI-designed obesity drugs show 31% weight loss in preclinical studies, targeting pathways beyond current blockbusters.",
+      "highlight": "$2.51 billion AI investment",
+      "keywords": [
+        "$2.51 billion",
+        "31% weight loss",
+        "AI-designed drugs"
+      ],
+      "textPosition": "side-right",
+      "sources": [
+        "Precedence Research 2026",
+        "MedIndia AI Obesity Drug Study 2026"
+      ]
+    },
+    {
+      "type": "THE IMPACT",
+      "heading": "Speed becomes the ultimate weapon",
+      "body": "Novo Nordisk partners with OpenAI to accelerate drug discovery through large dataset analysis, completing company-wide integration by late 2026. AI could reduce pharma R&D costs by 30-40% and shorten timelines by 1-4 years. Insilico Medicine secured $186M in partnerships for AI-driven cardiometabolic drugs.",
+      "highlight": "30-40% cost reduction",
+      "keywords": [
+        "OpenAI partnership",
+        "30-40%",
+        "$186M partnerships"
+      ],
+      "textPosition": "bottom-right",
+      "sources": [
+        "Quartz Novo Nordisk OpenAI Partnership 2026",
+        "247 Wall St Lilly-NVIDIA Analysis"
+      ]
+    },
+    {
+      "type": "THE WINNERS",
+      "heading": "Platform builders capture the throne",
+      "body": "Novo Nordisk's Wegovy pill achieved the strongest-ever GLP-1 volume launch with 2 million prescriptions since January. Chai Discovery reached $1.3B valuation in 18 months through AI biologics design. Pfizer allocates $11B for R&D with AI representing $1B in spending.",
+      "highlight": "2 million prescriptions",
+      "keywords": [
+        "Wegovy pill",
+        "$1.3B valuation",
+        "$11B R&D"
+      ],
+      "textPosition": "l-shape",
+      "sources": [
+        "Novo Nordisk SEC Filing Q1 2026",
+        "GEN Edge Pharma AI Deals 2026"
+      ],
+      "mosaic": true
+    },
+    {
+      "type": "THE LOSERS",
+      "heading": "Legacy players scramble for relevance",
+      "body": "Merck's Januvia revenue dropped from $3.7B in 2017 to $1.3B in 2024 as GLP-1s dominated. Multiple AI programmes failed in 2025 with CEO noting \"AI has really let us all down in drug discovery\". Traditional pharma faces $2B+ development costs and 90% failure rates.",
+      "highlight": "90% failure rates",
+      "keywords": [
+        "Januvia",
+        "$3.7B to $1.3B",
+        "90% failure"
+      ],
+      "textPosition": "top-left",
+      "sources": [
+        "Statista Ozempic Diabetes Market Analysis",
+        "Drug Target Review AI Predictions 2026"
+      ],
+      "enterpriseLayout": 0,
+      "imgFilter": "none",
+      "highlightStyle": "quote"
+    },
+    {
+      "type": "THE DATA",
+      "statFormat": "killer",
+      "stat": "$2.51B",
+      "caption": "Global pharma AI investment in 2026, up from $5-7B total market size as companies race to automate discovery",
+      "sources": [
+        "Precedence Research 2026",
+        "Drug Target Review Market Forecasts"
+      ]
+    },
+    {
+      "type": "THE PLAYBOOK",
+      "heading": "Your AI acceleration roadmap",
+      "body": "1. Partner with AI platforms like Chai Discovery or Insilico Medicine for immediate molecule design capabilities 2. Invest in computational infrastructure - follow Lilly's $1B NVIDIA partnership model for scale 3. Target combination therapies using AI-discovered compounds with existing GLP-1s for synergistic effects 4. Automate clinical trial recruitment and regulatory submissions where AI delivers fastest ROI 5. Build data partnerships for training proprietary models on your therapeutic area datasets",
+      "textPosition": "side-left",
+      "sources": [
+        "GEN Edge Industry Analysis 2026",
+        "Fortune Big Pharma AI Strategy"
+      ],
+      "enterpriseLayout": 1
+    },
+    {
+      "type": "THE FORECAST",
+      "heading": "The metabolism machine takes over",
+      "body": "By 2030, the global incretin market reaches $200B with 25M Americans on GLP-1 treatment. AI will enable \"dozens of drugs each year\" through virtual cell modeling. The obesity market surpasses $90B driven by novel GLP-1+ combinations as AI discovers previously impossible drug targets.",
+      "highlight": "$200B incretin market",
+      "keywords": [
+        "$200B market",
+        "25M Americans",
+        "dozens of drugs"
+      ],
+      "textPosition": "bottom-left",
+      "sources": [
+        "J.P. Morgan Global Research 2026",
+        "Fortune AI Drug Discovery Analysis"
+      ],
+      "mosaic": true,
+      "enterpriseLayout": 1
+    },
+    {
+      "type": "CLOSER",
+      "hashtags": "#WeightLossDrugs #AIInPharma #BigPharma #GLP1 #DrugDiscovery #Biotech #HealthTech #Innovation #Obesity #Diabetes #FutureOfMedicine #TechDisruption",
+      "funnyLine": "Not financial advice. We can barely manage our own subscriptions.",
+      "funnyLineAlts": [
+        "The future belongs to those who move fast and break biological things.",
+        "Turns out robots are better at chemistry than we thought. Who knew?",
+        "Ready to disrupt healthcare? Your metabolism will thank you later.",
+        "Will AI cure obesity before it cures our addiction to buzzwords?"
+      ],
+      "disclaimer": "This carousel is for entertainment and educational purposes only. Not professional advice."
+    }
+  ],
+  "images": {
+    "0": {
+      "url": "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxhcnRpZmljaWFsJTIwaW50ZWxsaWdlbmNlJTIwcm9ib3QlMjBFbnRlcnByaXNlfGVufDB8MXx8fDE3ODAwNTU1ODh8MA&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxhcnRpZmljaWFsJTIwaW50ZWxsaWdlbmNlJTIwcm9ib3QlMjBFbnRlcnByaXNlfGVufDB8MXx8fDE3ODAwNTU1ODh8MA&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    },
+    "1": {
+      "url": "https://images.unsplash.com/photo-1586205208433-fe039dfc86c8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHwxMDBCJTIwd2VpZ2h0JTIwTWFya2V0JTIwZ2lhbnRzfGVufDB8MXx8fDE3ODAwNTU1ODl8MA&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1586205208433-fe039dfc86c8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHwxMDBCJTIwd2VpZ2h0JTIwTWFya2V0JTIwZ2lhbnRzfGVufDB8MXx8fDE3ODAwNTU1ODl8MA&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    },
+    "2": {
+      "url": "https://images.pexels.com/photos/9259936/pexels-photo-9259936.jpeg",
+      "thumb": "https://images.pexels.com/photos/9259936/pexels-photo-9259936.jpeg?auto=compress&cs=tinysrgb&h=350",
+      "source": "Pexels"
+    },
+    "3": {
+      "url": "https://images.unsplash.com/photo-1717778171135-0703550459a3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHwxMDBCJTIwd2VpZ2h0JTIwU3BlZWQlMjBiZWNvbWVzfGVufDB8MXx8fDE3ODAwNTU1OTB8MA&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1717778171135-0703550459a3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHwxMDBCJTIwd2VpZ2h0JTIwU3BlZWQlMjBiZWNvbWVzfGVufDB8MXx8fDE3ODAwNTU1OTB8MA&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    },
+    "4": {
+      "url": "https://images.pexels.com/photos/14008743/pexels-photo-14008743.jpeg",
+      "thumb": "https://images.pexels.com/photos/14008743/pexels-photo-14008743.jpeg?auto=compress&cs=tinysrgb&h=350",
+      "source": "Pexels"
+    },
+    "5": {
+      "url": "https://images.unsplash.com/photo-1711234247732-d9b008a3b072?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHwxMDBCJTIwd2VpZ2h0JTIwTGVnYWN5JTIwcGxheWVyc3xlbnwwfDF8fHwxNzgwMDU1NTkxfDA&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1711234247732-d9b008a3b072?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHwxMDBCJTIwd2VpZ2h0JTIwTGVnYWN5JTIwcGxheWVyc3xlbnwwfDF8fHwxNzgwMDU1NTkxfDA&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    },
+    "6": {
+      "url": "https://images.pexels.com/photos/6511601/pexels-photo-6511601.jpeg",
+      "thumb": "https://images.pexels.com/photos/6511601/pexels-photo-6511601.jpeg?auto=compress&cs=tinysrgb&h=350",
+      "source": "Pexels"
+    },
+    "7": {
+      "url": "https://images.unsplash.com/photo-1577710215899-12a9b58d2d5c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHwxMDBCJTIwd2VpZ2h0JTIwYWNjZWxlcmF0aW9uJTIwcm9hZG1hcHxlbnwwfDF8fHwxNzgwMDU1NTkyfDA&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1577710215899-12a9b58d2d5c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHwxMDBCJTIwd2VpZ2h0JTIwYWNjZWxlcmF0aW9uJTIwcm9hZG1hcHxlbnwwfDF8fHwxNzgwMDU1NTkyfDA&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    },
+    "8": {
+      "url": "https://images.pexels.com/photos/7772655/pexels-photo-7772655.jpeg",
+      "thumb": "https://images.pexels.com/photos/7772655/pexels-photo-7772655.jpeg?auto=compress&cs=tinysrgb&h=350",
+      "source": "Pexels"
+    },
+    "9": {
+      "url": "https://images.unsplash.com/photo-1593376853899-fbb47a057fa0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwzfHxhcnRpZmljaWFsJTIwaW50ZWxsaWdlbmNlJTIwcm9ib3QlMjBFbnRlcnByaXNlfGVufDB8MXx8fDE3ODAwNTU1ODh8MA&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1593376853899-fbb47a057fa0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwzfHxhcnRpZmljaWFsJTIwaW50ZWxsaWdlbmNlJTIwcm9ib3QlMjBFbnRlcnByaXNlfGVufDB8MXx8fDE3ODAwNTU1ODh8MA&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    }
+  },
+  "mosaics": {
+    "1": [
+      "https://images.unsplash.com/photo-1729704200280-0d0dda0f3c60?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHwxMDBCJTIwd2VpZ2h0JTIwbG9zcyUyMEVudGVycHJpc2UlMjBhYnN0cmFjdCUyMGVkaXRvcmlhbHxlbnwwfDF8fHwxNzgwMDU1NTkzfDA&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1729704200287-166cf62c9e36?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwyfHwxMDBCJTIwd2VpZ2h0JTIwbG9zcyUyMEVudGVycHJpc2UlMjBhYnN0cmFjdCUyMGVkaXRvcmlhbHxlbnwwfDF8fHwxNzgwMDU1NTkzfDA&ixlib=rb-4.1.0&q=85"
+    ],
+    "4": [
+      "https://images.unsplash.com/photo-1729704200283-a41b04e18da8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHw1fHwxMDBCJTIwd2VpZ2h0JTIwbG9zcyUyMEVudGVycHJpc2UlMjBhYnN0cmFjdCUyMGVkaXRvcmlhbHxlbnwwfDF8fHwxNzgwMDU1NTkzfDA&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1664447993750-bc1447893d4f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHw2fHwxMDBCJTIwd2VpZ2h0JTIwbG9zcyUyMEVudGVycHJpc2UlMjBhYnN0cmFjdCUyMGVkaXRvcmlhbHxlbnwwfDF8fHwxNzgwMDU1NTkzfDA&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1675270597478-0b21922d0c92?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHw3fHwxMDBCJTIwd2VpZ2h0JTIwbG9zcyUyMEVudGVycHJpc2UlMjBhYnN0cmFjdCUyMGVkaXRvcmlhbHxlbnwwfDF8fHwxNzgwMDU1NTkzfDA&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1698587173600-7c393b980627?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHw4fHwxMDBCJTIwd2VpZ2h0JTIwbG9zcyUyMEVudGVycHJpc2UlMjBhYnN0cmFjdCUyMGVkaXRvcmlhbHxlbnwwfDF8fHwxNzgwMDU1NTkzfDA&ixlib=rb-4.1.0&q=85"
+    ]
+  },
+  "exportDate": "2026-05-29T11:57:26.846Z"
+}

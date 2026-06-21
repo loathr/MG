@@ -1,0 +1,300 @@
+{
+  "version": 1,
+  "topic": "The Governance Crisis: Who's Accountable When AI Agents Make Banking Decisions?",
+  "category": "enterprise",
+  "segment": "enterprise",
+  "template": null,
+  "publishDate": null,
+  "slides": [
+    {
+      "role": "COVER",
+      "title": "The Governance Crisis: Who's Accountable When AI Agents Make Banking Decisions?",
+      "titleHighlight": "Who's Accountable",
+      "subtitle": "Banks are deploying autonomous AI at scale. Regulators just said the liability still sits with you.",
+      "enterpriseSplit": 50,
+      "enterpriseTextOffset": {
+        "top": -130,
+        "left": 0
+      },
+      "enterpriseCoverLayout": 1
+    },
+    {
+      "role": "THE LANDSCAPE",
+      "heading": "Banking 4.0 Has Already Shipped",
+      "body": "Banks are moving from pilot projects to deploying production-scale, autonomous, governed AI agents that transform how they engage customers, make decisions, and operate. BCG research highlights banking and fintech as the industries with the highest concentration of AI leaders, and nearly half of financial institutions already report regular use of advanced AI systems.",
+      "highlight": "Half of FIs already run advanced AI in production.",
+      "keywords": [
+        "Banking 4.0",
+        "agentic AI",
+        "production-scale"
+      ],
+      "textPosition": "bottom-left",
+      "sources": [
+        "Oracle, 'The Future of Banking: Scaling AI Agents in 2026 & Beyond,' Dec 2025",
+        "Neontri, 'Agentic AI in Banking: 2026 Implementation Guide,' 2026"
+      ],
+      "enterpriseLayout": 6,
+      "customPosition": {
+        "heading": {
+          "top": 50,
+          "left": 0
+        }
+      },
+      "highlightSize": -2,
+      "highlightStyle": "pill",
+      "headingSize": 8,
+      "headingAlign": "justify",
+      "headingColor": "#ffffff"
+    },
+    {
+      "role": "THE FORCE",
+      "heading": "From Chatbots to Autonomous Decision-Makers",
+      "body": "Agentic AI represents a significant evolution from reactive chatbots and rules-based robo-advisors to autonomous systems capable of making real-time decisions, executing complex workflows, and continuously learning — monitoring transactions, detecting fraud, and adjusting actions dynamically. But operational failures now happen at machine speed: a flawed pricing model can cost millions before anyone notices, and autonomous systems execute bad decisions faster than humans can intervene.",
+      "highlight": "Speed is the new systemic risk.",
+      "keywords": [
+        "autonomous",
+        "real-time decisions",
+        "machine speed"
+      ],
+      "textPosition": "side-right",
+      "sources": [
+        "Finastra, 'AI in banking and financial services: Trends for 2026,' Feb 2026",
+        "Backbase, 'AI governance in banking: the complete guide for 2026,' May 2026"
+      ],
+      "highlightStyle": "pill",
+      "highlightSize": -4
+    },
+    {
+      "role": "THE IMPACT",
+      "heading": "Regulators Just Drew a Line",
+      "body": "On April 17, OCC Bulletin 2026-13, jointly designated SR 26-2 by the Federal Reserve, replaced SR 11-7 with revised model risk management guidance — with generative AI and agentic AI placed outside the scope of this guidance, pending a forthcoming interagency request for information on banks' use of AI. Examiners will still ask what your unique monitoring and testing framework is. SR 26-2 gives institutions freedom to answer — it does not give them freedom to leave those questions unanswered.",
+      "highlight": "Silence from regulators is not safety.",
+      "keywords": [
+        "SR 26-2",
+        "OCC",
+        "model risk"
+      ],
+      "textPosition": "l-shape",
+      "mosaic": true,
+      "sources": [
+        "American Banker, 'Regulators' guidance on model risk leaves many questions unanswered,' June 1, 2026"
+      ],
+      "highlightStyle": "tag",
+      "highlightSize": -3,
+      "sourcesSize": -1,
+      "enterpriseTextOffset": {
+        "top": 0,
+        "left": 0
+      },
+      "customPosition": {
+        "sources": {
+          "top": 0,
+          "left": 10
+        },
+        "highlight": {
+          "top": 10,
+          "left": 0
+        }
+      },
+      "enterpriseLayout": 1,
+      "imageLayout": "2v5050",
+      "bodyAlign": "left"
+    },
+    {
+      "role": "THE WINNERS",
+      "heading": "Banks Building Governance Into the Stack",
+      "person": "Lori Beer",
+      "body": "Citi debuted its Arc platform to launch AI agents across the firm for research, synthesis, preparation, and execution. The bank pledged every agent will be monitored, auditable and governed. At JPMorgan, CIO Lori Beer is navigating AI agents working alongside a workforce of 319,000 with HR rules where a human has broader license to see employee data than an agent — keeping agents inside specific task bounds.",
+      "highlight": "Identity and access controls are the new moat.",
+      "keywords": [
+        "Citi Arc",
+        "JPMorgan",
+        "auditable"
+      ],
+      "textPosition": "bottom-right",
+      "mosaic": true,
+      "sources": [
+        "PYMNTS, 'Citi Debuts Platform to Bring AI Agents to Banking Work,' May 3, 2026",
+        "Fortune, 'How JPMorgan's CIO is reshaping work at the bank,' April 29, 2026"
+      ],
+      "enterpriseTextOffset": {
+        "top": 30,
+        "left": 0
+      },
+      "highlightStyle": "pill",
+      "highlightAlign": "center",
+      "highlightSize": -3,
+      "customPosition": {
+        "highlight": {
+          "top": 10,
+          "left": 0
+        }
+      },
+      "enterpriseLayout": 2,
+      "imageLayout": "single"
+    },
+    {
+      "role": "THE LOSERS",
+      "heading": "The 'Just a Vendor' Defense Is Dead",
+      "body": "Vendor contracts cap liability at 12 months of fees, courts are placing liability on the deploying organization, regulatory accountability rests on the institution, vendor indemnification is minimal, and insurance exclusions may have taken effect. The 'AI is just a tool' defense does not absorb fiduciary or supervisory obligations — the bank is accountable for the AI's behavior as if a registered person produced it.",
+      "highlight": "Outsource the model. Own the outcome.",
+      "keywords": [
+        "vendor liability",
+        "12 months",
+        "accountability"
+      ],
+      "textPosition": "top-left",
+      "sources": [
+        "American Banker, 'Regulators' guidance on model risk,' June 1, 2026",
+        "IBL.ai, 'AI Governance for Banks: 90-Day Framework for 2026,' May 2026"
+      ],
+      "highlightStyle": "underline",
+      "dividerWeight": 0
+    },
+    {
+      "role": "THE DATA",
+      "statFormat": "killer",
+      "stat": "978%",
+      "caption": "Growth in U.S. generative AI-related lawsuits between 2021 and 2025, per a Gallagher Re report produced with MIT and Testudo Global — while standard insurance policies leave significant coverage gaps.",
+      "sources": [
+        "American Banker citing Gallagher Re/MIT report, June 1, 2026"
+      ],
+      "enterpriseTextOffset": {
+        "top": 140,
+        "left": 0
+      }
+    },
+    {
+      "role": "THE PLAYBOOK",
+      "heading": "What to Do This Week",
+      "body": "1. Run an honest AI inventory — most banks underestimate how much AI is already in production through SaaS tools, embedded features, and shadow usage.\n2. Establish a human-in-the-loop operating model and risk framework aligned with regulatory expectations from day one.\n3. Assign a named executive owner — someone at the executive level must own every AI outcome.\n4. Rewrite vendor contracts: assume indemnification will fail and price the residual risk.\n5. Pre-draft your examiner answer to SR 26-2: what is your unique monitoring framework for agentic AI?",
+      "sources": [
+        "IBL.ai, '90-Day Framework for 2026'",
+        "Oracle Banking 4.0 outlook, Dec 2025",
+        "American Banker, June 1, 2026"
+      ],
+      "enterpriseTextOffset": {
+        "top": 130,
+        "left": 0
+      },
+      "customPosition": {
+        "heading": {
+          "top": 50,
+          "left": 0
+        },
+        "body": {
+          "top": 50,
+          "left": 0
+        },
+        "highlight": {
+          "top": 50,
+          "left": 0
+        },
+        "sources": {
+          "top": 50,
+          "left": 0
+        },
+        "quote": {
+          "top": 50,
+          "left": 0
+        },
+        "stat": {
+          "top": 50,
+          "left": 0
+        }
+      },
+      "_deleted": true,
+      "_deletedAt": 1780355551484
+    },
+    {
+      "role": "THE FORECAST",
+      "heading": "The Next 24 Months",
+      "body": "Regulators worldwide are tightening their grip on automated systems, and fragmented AI regulation is expected to drive material increases in bank compliance spend. If employed at scale, AI agents all reacting the same way to reports of a liquidity issue at a bank could trigger a run by moving funds to other institutions — meaning governance is no longer a compliance line item, it's systemic risk infrastructure.",
+      "highlight": "Correlated agents = correlated bank runs.",
+      "keywords": [
+        "$1B compliance",
+        "systemic risk",
+        "bank run"
+      ],
+      "textPosition": "split-corners",
+      "sources": [
+        "Backbase AI governance guide, May 2026",
+        "Hogan Lovells, 'Agentic AI in Financial Services,' Dec 2025"
+      ],
+      "highlightStyle": "box",
+      "highlightSize": -4,
+      "highlightColor": "#ec4899"
+    },
+    {
+      "role": "CLOSER",
+      "hashtags": "#AIgovernance #banking #agenticAI #fintech #regtech #compliance #riskmanagement #AIregulation #financialservices #LOATHR",
+      "funnyLine": "Not responsible for any pivot decisions made at 2am after reading this.",
+      "funnyLineAlts": [
+        "Accountability is the only feature that doesn't ship in the next model release.",
+        "Sure, deploy the agents. Just remember the regulator has your CEO's email.",
+        "Govern boldly. The banks that win 2027 are writing the playbook tonight.",
+        "If your AI made the decision, who signs the consent order?"
+      ],
+      "disclaimer": "This carousel is for entertainment and educational purposes only. Not professional advice."
+    }
+  ],
+  "images": {
+    "0": {
+      "url": "https://images.unsplash.com/photo-1612540646801-4d5d183e6bc1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHw2fHxUaGUlMjBHb3Zlcm5hbmNlJTIwQ3Jpc2lzJTNBJTIwV2hvJTI3cyUyMEFjY291bnRhYmxlJTIwV2hlbiUyMEFJJTIwQWdlbnRzJTIwTWFrZSUyMEJhbmtpbmclMjBEZWNpc2lvbnMlM0Z8ZW58MHwxfHx8MTc4MDM1NDYyMnww&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1612540646801-4d5d183e6bc1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHw2fHxUaGUlMjBHb3Zlcm5hbmNlJTIwQ3Jpc2lzJTNBJTIwV2hvJTI3cyUyMEFjY291bnRhYmxlJTIwV2hlbiUyMEFJJTIwQWdlbnRzJTIwTWFrZSUyMEJhbmtpbmclMjBEZWNpc2lvbnMlM0Z8ZW58MHwxfHx8MTc4MDM1NDYyMnww&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    },
+    "1": {
+      "url": "https://images.unsplash.com/photo-1517561706694-342a492f7785?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxHb3Zlcm5hbmNlJTIwQ3Jpc2lzJTIwQmFua2luZyUyMEFscmVhZHl8ZW58MHwxfHx8MTc4MDM1NDU5Nnww&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1517561706694-342a492f7785?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxHb3Zlcm5hbmNlJTIwQ3Jpc2lzJTIwQmFua2luZyUyMEFscmVhZHl8ZW58MHwxfHx8MTc4MDM1NDU5Nnww&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    },
+    "2": {
+      "url": "https://images.pexels.com/photos/30530412/pexels-photo-30530412.jpeg",
+      "thumb": "https://images.pexels.com/photos/30530412/pexels-photo-30530412.jpeg?auto=compress&cs=tinysrgb&h=350",
+      "source": "Pexels"
+    },
+    "3": {
+      "url": "https://images.unsplash.com/photo-1699041662600-2235d20d2445?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxHb3Zlcm5hbmNlJTIwQ3Jpc2lzJTIwUmVndWxhdG9ycyUyMERyZXd8ZW58MHwxfHx8MTc4MDM1NDU5N3ww&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1699041662600-2235d20d2445?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxHb3Zlcm5hbmNlJTIwQ3Jpc2lzJTIwUmVndWxhdG9ycyUyMERyZXd8ZW58MHwxfHx8MTc4MDM1NDU5N3ww&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    },
+    "4": {
+      "url": "https://images.pexels.com/photos/36185805/pexels-photo-36185805.jpeg",
+      "thumb": "https://images.pexels.com/photos/36185805/pexels-photo-36185805.jpeg?auto=compress&cs=tinysrgb&h=350",
+      "source": "Pexels"
+    },
+    "5": {
+      "url": "https://images.unsplash.com/photo-1534723328310-e82dad3ee43f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwyfHxhcnRpZmljaWFsJTIwaW50ZWxsaWdlbmNlJTIwcm9ib3QlMjBFbnRlcnByaXNlJTIwR292ZXJuYW5jZSUyMENyaXNpcyUyMFdobyUyN3N8ZW58MHwxfHx8MTc4MDM1NDU5Nnww&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1534723328310-e82dad3ee43f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwyfHxhcnRpZmljaWFsJTIwaW50ZWxsaWdlbmNlJTIwcm9ib3QlMjBFbnRlcnByaXNlJTIwR292ZXJuYW5jZSUyMENyaXNpcyUyMFdobyUyN3N8ZW58MHwxfHx8MTc4MDM1NDU5Nnww&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    },
+    "6": {
+      "url": "https://images.pexels.com/photos/32416491/pexels-photo-32416491.jpeg",
+      "thumb": "https://images.pexels.com/photos/32416491/pexels-photo-32416491.jpeg?auto=compress&cs=tinysrgb&h=350",
+      "source": "Pexels"
+    },
+    "7": {
+      "url": "https://images.unsplash.com/photo-1663839278992-12242aac15a1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxHb3Zlcm5hbmNlJTIwQ3Jpc2lzJTIwV2VlayUyMFJ1bnxlbnwwfDF8fHwxNzgwMzU0NTk5fDA&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1663839278992-12242aac15a1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxHb3Zlcm5hbmNlJTIwQ3Jpc2lzJTIwV2VlayUyMFJ1bnxlbnwwfDF8fHwxNzgwMzU0NTk5fDA&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    },
+    "8": {
+      "url": "https://images.pexels.com/photos/6863531/pexels-photo-6863531.jpeg",
+      "thumb": "https://images.pexels.com/photos/6863531/pexels-photo-6863531.jpeg?auto=compress&cs=tinysrgb&h=350",
+      "source": "Pexels"
+    },
+    "9": {
+      "url": "https://images.unsplash.com/photo-1593376853899-fbb47a057fa0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwzfHxhcnRpZmljaWFsJTIwaW50ZWxsaWdlbmNlJTIwcm9ib3QlMjBFbnRlcnByaXNlJTIwR292ZXJuYW5jZSUyMENyaXNpcyUyMFdobyUyN3N8ZW58MHwxfHx8MTc4MDM1NDU5Nnww&ixlib=rb-4.1.0&q=85",
+      "thumb": "https://images.unsplash.com/photo-1593376853899-fbb47a057fa0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwzfHxhcnRpZmljaWFsJTIwaW50ZWxsaWdlbmNlJTIwcm9ib3QlMjBFbnRlcnByaXNlJTIwR292ZXJuYW5jZSUyMENyaXNpcyUyMFdobyUyN3N8ZW58MHwxfHx8MTc4MDM1NDU5Nnww&ixlib=rb-4.1.0&q=80&w=400",
+      "source": "Unsplash"
+    }
+  },
+  "mosaics": {
+    "3": [
+      "https://images.unsplash.com/photo-1579532537598-459ecdaf39cc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwxfHxHb3Zlcm5hbmNlJTIwQ3Jpc2lzJTIwV2hvJTI3cyUyMEVudGVycHJpc2UlMjBhYnN0cmFjdCUyMGVkaXRvcmlhbHxlbnwwfDF8fHwxNzgwMzU0NjAwfDA&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1566378246598-5b11a0d486cc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w5MTUzMzl8MHwxfHNlYXJjaHwyfHxHb3Zlcm5hbmNlJTIwQ3Jpc2lzJTIwV2hvJTI3cyUyMEVudGVycHJpc2UlMjBhYnN0cmFjdCUyMGVkaXRvcmlhbHxlbnwwfDF8fHwxNzgwMzU0NjAwfDA&ixlib=rb-4.1.0&q=85"
+    ]
+  },
+  "exportDate": "2026-06-01T23:19:05.307Z"
+}
