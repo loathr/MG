@@ -4647,6 +4647,13 @@ export default function LoathrMediaGenerator() {
   }, []);
 
   var generate = _cb(async function() {
+    // Earliest possible recordStep — fires before any other code in generate()
+    // so empty crash banners can still show that generate() at least entered.
+    // If the crash banner shows THIS as the last step but nothing later, the
+    // crash is in the very first setIsGenerating/setError/setOptions React
+    // state update batch. If it doesn't show even THIS, the crash is upstream
+    // of generate() — likely in the click handler / Button onClick wrap.
+    try { recordStep("generate() entered"); } catch (e) {}
     if (!topic.trim() || !category) return;
     if (!canGenerate()) { setError("Daily generation limit reached (15/15). Try again tomorrow."); return; }
     if (abortRef.current) abortRef.current.abort();
