@@ -4967,33 +4967,62 @@ export default function LoathrMediaGenerator() {
           // Now everything happens server-side via /api/images. Browser only
           // sends the slides + topic + which slots it already filled with
           // locked images, server returns the rest of imgMap + mosaic config.
-          recordStep("calling /api/images (server-side pipeline)");
+          recordStep("calling /api/images: building lockedSlots map");
           try {
             var lockedSlots = {};
             Object.keys(imgMap).forEach(function(k) { lockedSlots[k] = true; });
+            recordStep("calling /api/images: lockedSlots=" + Object.keys(lockedSlots).length + ", stringifying body");
+            // Stringify a SMALLER slide payload — we only need the fields the
+            // server pipeline reads (role/person/heading/body/mosaic/statFormat).
+            // The full slide objects can be 5-15 KB each with sources arrays,
+            // citations, highlights — sending 11 of those is ~100 KB and the
+            // server doesn't use most of it.
+            var slimSlides = (slides || []).map(function(s) {
+              if (!s) return {};
+              return {
+                role: s.role,
+                person: s.person,
+                heading: s.heading || s.title,
+                body: typeof s.body === "string" ? s.body.slice(0, 200) : "",
+                mosaic: s.mosaic,
+                categoryLens: s.categoryLens,
+                statFormat: s.statFormat,
+                stat: s.stat,
+                stats: s.stats,
+                before: s.before,
+                leftStat: s.leftStat,
+                quote: s.quote,
+              };
+            });
+            var reqBody = JSON.stringify({
+              topic: topic,
+              category: category,
+              categoryLabel: (catInfo && catInfo.label) || "",
+              coverPrefix: coverPrefix,
+              slides: slimSlides,
+              lockedSlots: lockedSlots,
+              wantMosaic: true,
+            });
+            recordStep("calling /api/images: body=" + reqBody.length + " bytes, sending POST");
             var imgRes = await fetch("/api/images", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                topic: topic,
-                category: category,
-                categoryLabel: (catInfo && catInfo.label) || "",
-                coverPrefix: coverPrefix,
-                slides: slides,
-                lockedSlots: lockedSlots,
-                wantMosaic: true,
-              }),
+              body: reqBody,
             });
+            recordStep("calling /api/images: response received status=" + imgRes.status);
             var imgData;
-            try { imgData = await imgRes.json(); } catch (parseErr) { imgData = { error: "Invalid response from /api/images" }; }
+            try {
+              imgData = await imgRes.json();
+              recordStep("calling /api/images: JSON parsed");
+            } catch (parseErr) {
+              imgData = { error: "Invalid response from /api/images" };
+              recordStep("calling /api/images: JSON parse FAILED - " + (parseErr && parseErr.message ? parseErr.message.slice(0, 60) : "unknown"));
+            }
             if (!imgRes.ok || imgData.error) {
               setImgStatus("Image search failed: " + (imgData.error || ("HTTP " + imgRes.status)));
               recordStep("image search server error: " + (imgData.error || ("HTTP " + imgRes.status)));
             } else {
-              recordStep("image server returned " + (imgData.summary ? imgData.summary.totalImages : 0) + " images");
-              // Merge server-returned images (cover/closer/per-slide) with the
-              // locked images browser already placed. Server respects lockedSlots
-              // so there's no overwrite, but we Object.assign for safety.
+              recordStep("image server returned " + (imgData.summary ? imgData.summary.totalImages : 0) + " images, merging");
               var serverImgs = imgData.imgMap || {};
               Object.keys(serverImgs).forEach(function(k) {
                 if (!imgMap[k]) imgMap[k] = serverImgs[k];
@@ -5002,6 +5031,7 @@ export default function LoathrMediaGenerator() {
               _allImages = imgMap;
               _mosaicExtraImages = imgData.mosaicExtras || [];
               var loaded = Object.keys(imgMap).length;
+              recordStep("calling /api/images: merge done, " + loaded + " images, calling setImages");
               if (loaded > 0) {
                 setImages(imgMap);
                 setImgStatus(loaded + " contextual images loaded" + (Object.keys(_mosaicSlides).length > 0 ? " (" + Object.keys(_mosaicSlides).length + " mosaic)" : ""));
