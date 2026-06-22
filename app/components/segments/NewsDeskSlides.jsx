@@ -386,7 +386,8 @@ function CoverFullBleed({ slide, url }) {
 // ===== COVER ROUTER =====
 var COVERS = [CoverBroadsheet, CoverTabloid, CoverModernSplit, CoverBreakingBanner, CoverFullBleed];
 export function NewsFrontPage({ slide, images, index }) {
-  var url = images && images[0] ? images[0].url : null;
+  // Thumb for live preview, full url is swapped in by export pipeline.
+  var url = images && images[0] ? (images[0].thumb || images[0].url) : null;
   var li = typeof slide.newsCoverLayout === "number" ? slide.newsCoverLayout : 0;
   var L = COVERS[li] || CoverBroadsheet;
   return <L slide={slide} url={url} images={images} />;

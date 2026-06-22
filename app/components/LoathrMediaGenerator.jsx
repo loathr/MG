@@ -656,8 +656,13 @@ function getMosaicImgs(images, idx, totalSlides) {
       _mosaicSlides[k].forEach(function(u) { if (typeof u === "string") { allUsed[u] = true; allUsed[normalizeImgUrl(u)] = true; } });
     }
   });
-  // Primary image for this slide
-  if (images[idx] && images[idx].url) { urls.push(images[idx].url); used[images[idx].url] = true; }
+  // Primary image for this slide — use thumb for live render, full url goes
+  // into export. Mosaic panels render multiple <img>s per slide so the
+  // memory pressure of full-res here is multiplicative.
+  if (images[idx] && (images[idx].thumb || images[idx].url)) {
+    var primaryUrl = images[idx].thumb || images[idx].url;
+    urls.push(primaryUrl); used[primaryUrl] = true; used[images[idx].url] = true;
+  }
   // First: pull from extra mosaic images (dedicated, never used by single-image slides)
   for (var e = 0; e < _mosaicExtraImages.length && urls.length < 4; e++) {
     var eUrl = _mosaicExtraImages[e];
@@ -665,14 +670,15 @@ function getMosaicImgs(images, idx, totalSlides) {
       urls.push(eUrl); used[eUrl] = true; allUsed[eUrl] = true;
     }
   }
-  // Second: non-adjacent images as fallback (2+ slides away)
+  // Second: non-adjacent images as fallback (2+ slides away) — use thumb
   if (urls.length < 4) {
     var keys = Object.keys(images);
     for (var k = 0; k < keys.length && urls.length < 4; k++) {
       var img = images[keys[k]];
       var ki = parseInt(keys[k]);
       if (img && img.url && !used[img.url] && !used[normalizeImgUrl(img.url)] && Math.abs(ki - idx) > 2) {
-        urls.push(img.url); used[img.url] = true;
+        var thumbUrl = img.thumb || img.url;
+        urls.push(thumbUrl); used[thumbUrl] = true; used[img.url] = true;
       }
     }
   }

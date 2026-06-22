@@ -202,7 +202,9 @@ function CoverTitle({ slide }) {
 
 // Cover
 export function EnterpriseCover({ slide, images, index }) {
-  var url = images && images[0] ? images[0].url : null;
+  // Use thumb for the live preview to keep memory pressure manageable.
+  // Full url is used by the export pipeline (renderSlideToCanvas swaps it back).
+  var url = images && images[0] ? (images[0].thumb || images[0].url) : null;
   var isBreaking = slide.breaking;
   var sp = getSplit(slide);
   var imgF = getImgFilter(slide);
