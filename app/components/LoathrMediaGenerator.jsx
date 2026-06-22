@@ -3303,6 +3303,12 @@ export default function LoathrMediaGenerator() {
   var spv = _s(null), sourcesPreview = spv[0], setSourcesPreview = spv[1]; // pre-flight source list { topic, sources: [{publication, title, date, url}], error? }
   var spvl = _s(false), sourcesPreviewLoading = spvl[0], setSourcesPreviewLoading = spvl[1];
   var pdt = _s(""), publishDate = pdt[0], setPublishDate = pdt[1]; // "" = use today, else YYYY-MM-DD
+  // Skip-images mode: bypass /api/images entirely on generate. Carousel
+  // renders text-only and the user can upload images manually per slide,
+  // or click "Find images" after the fact. Lets the tool stay usable even
+  // when the image pipeline is failing. Persisted across reloads.
+  var sip = _s(function() { try { return localStorage.getItem("loathr_skip_images") === "1"; } catch (e) { return false; } }), skipImages = sip[0], setSkipImagesRaw = sip[1];
+  function setSkipImages(v) { setSkipImagesRaw(v); try { localStorage.setItem("loathr_skip_images", v ? "1" : "0"); } catch (e) {} }
   var sas = _s([]), smartAngles = sas[0], setSmartAngles = sas[1];
   var ccr = _s([]), crossCatRelated = ccr[0], setCrossCatRelated = ccr[1];
   var shp = _s(false), showPastGen = shp[0], setShowPastGen = shp[1];
@@ -4875,7 +4881,15 @@ export default function LoathrMediaGenerator() {
       var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
       var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
       var imgKey = unsplashKey || pexelsKey;
-      if (imgKey) {
+      // SAFE MODE: skip the entire image pipeline when toggled. Carousel
+      // renders with empty image slots that the user can populate manually
+      // via the upload UI on each slide, or via a manual "Find images" run
+      // after the gen settles. Lets the tool stay functional even when the
+      // image pipeline is the killer.
+      if (skipImages) {
+        recordStep("skip-images mode: bypassing /api/images");
+        setImgStatus("Image search skipped — upload manually per slide or use Find Images");
+      } else if (imgKey) {
         setImgStatus("Searching for images...");
         try {
           var primaryFn = unsplashKey ? searchUnsplash : searchPexels;
@@ -6291,6 +6305,11 @@ export default function LoathrMediaGenerator() {
                   style={{ padding: "10px 10px", background: "transparent", color: topic.trim() ? "#8b5cf6" : "#ccc", border: "0.5px solid " + (topic.trim() ? "#8b5cf6" : "#ddd"), cursor: topic.trim() && !sourcesPreviewLoading ? "pointer" : "default", ...CP, fontSize: 7, letterSpacing: "0.08em", opacity: sourcesPreviewLoading ? 0.5 : 1 }}>
                   {sourcesPreviewLoading ? "Loading..." : "✱ Preview sources"}
                 </button>
+                <button onClick={function() { setSkipImages(!skipImages); }}
+                  title={skipImages ? "Image search is OFF — gen will not fetch any images. Click to enable." : "Click to skip image search on next gen — useful if image pipeline is failing."}
+                  style={{ padding: "10px 10px", background: skipImages ? "#f59e0b22" : "transparent", color: skipImages ? "#f59e0b" : "#666", border: "0.5px solid " + (skipImages ? "#f59e0b" : "#ccc"), cursor: "pointer", ...CP, fontSize: 7, letterSpacing: "0.08em" }}>
+                  {skipImages ? "✗ Images off" : "✓ Images on"}
+                </button>
               </div>
             ) : (
               <button onClick={cancelGenerate}
@@ -7134,6 +7153,30 @@ export default function LoathrMediaGenerator() {
           <button onClick={function() { setEditMode(!editMode); setEditField(null); }}
             style={{ padding: "4px 10px", border: "0.5px solid " + (editMode ? uiAccent : "#ccc"), background: editMode ? uiAccent + "22" : "transparent", cursor: "pointer", ...CP, fontSize: 7, color: editMode ? uiAccent : "#999" }}>
             {editMode ? "\u2713 Done Editing" : "\u270E Edit"}</button>
+          {Object.keys(images || {}).length === 0 && options && options[selectedOption] && options[selectedOption].slides && (
+            <button onClick={async function() {
+              setImgStatus("Finding images...");
+              try {
+                var s = options[selectedOption].slides || [];
+                var ci = CATEGORIES.find(function(c) { return c.id === category; });
+                var slim = s.map(function(x) { return { role: x && x.role, person: x && x.person, heading: x && (x.heading || x.title), body: x && typeof x.body === "string" ? x.body.slice(0, 200) : "", mosaic: x && x.mosaic, statFormat: x && x.statFormat, quote: x && x.quote }; });
+                var r = await fetch("/api/images", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ topic: topic, category: category, categoryLabel: ci ? ci.label : "", coverPrefix: "", slides: slim, lockedSlots: {}, wantMosaic: true }),
+                });
+                var d = await r.json();
+                if (!r.ok || d.error) { setImgStatus("Find images failed: " + (d.error || r.status)); return; }
+                _mosaicSlides = d.mosaicSlides || {};
+                _mosaicExtraImages = d.mosaicExtras || [];
+                _allImages = d.imgMap || {};
+                setImages(d.imgMap || {});
+                setImgStatus(Object.keys(d.imgMap || {}).length + " images loaded");
+              } catch (e) { setImgStatus("Find images failed: " + (e && e.message ? e.message : "error")); }
+            }}
+            title="Run image search now (in safe mode, gen skips images by default)"
+            style={{ padding: "4px 10px", border: "0.5px solid #f59e0b", background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: "#f59e0b" }}>
+            {"\uD83D\uDDBC"} Find images
+          </button>)}
           <button onClick={function() { generate(); }}
             style={{ padding: "4px 10px", border: "0.5px solid " + uiAccent, background: "transparent", cursor: "pointer", ...CP, fontSize: 7, color: uiAccent }}>
             {"\u21BB"} Regenerate</button>
