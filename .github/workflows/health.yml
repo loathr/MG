@@ -1,0 +1,47 @@
+name: Post-deploy health check
+
+# Vercel (and other deploy integrations) post a `deployment_status` to GitHub
+# when a deployment finishes. When one reports success, hit that deployment's
+# own /api/health and fail if the environment's keys aren't wired. This catches
+# "key set in Development but forgotten in Production" — the failure mode the
+# endpoint exists to surface — against the REAL deployed URL, per environment.
+on:
+  deployment_status: {}
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    # Only act on successful deployments; ignore pending/failure/error states.
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe /api/health on the deployed environment
+        env:
+          TARGET_URL: ${{ github.event.deployment_status.target_url }}
+          ENVIRONMENT: ${{ github.event.deployment_status.environment }}
+        run: |
+          set -euo pipefail
+          BASE="${TARGET_URL%/}"
+          URL="$BASE/api/health?strict=1"
+          echo "environment: ${ENVIRONMENT:-unknown}"
+          echo "checking:    $URL"
+
+          # ?strict=1 → 503 when keys are missing. Retry a few times to ride out
+          # cold starts / propagation right after a deploy.
+          code=000
+          for attempt in 1 2 3 4 5; do
+            code=$(curl -s -o body.json -w '%{http_code}' --max-time 15 "$URL" || echo 000)
+            echo "attempt $attempt → HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "Health OK:"
+              cat body.json || true
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "::error::/api/health not ready for ${BASE} (last HTTP ${code})"
+          cat body.json 2>/dev/null || true
+          exit 1

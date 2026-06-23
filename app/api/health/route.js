@@ -7,11 +7,14 @@ import { getAnthropicConfig } from "../../lib/anthropic.js";
 //
 // force-dynamic so the handler reads the live environment at request time
 // instead of anything that could be baked at build.
+//
+// GET /api/health          → always 200, readiness in the body (status/ready).
+// GET /api/health?strict=1 → 503 when not ready, for `curl --fail` in CI.
 export const dynamic = "force-dynamic";
 
 const has = (v) => Boolean((v || "").trim());
 
-export function GET() {
+export function GET(request) {
   const anthropic = getAnthropicConfig();
 
   // Mirror the fallback the image route uses: server key, then NEXT_PUBLIC_*.
@@ -32,7 +35,7 @@ export function GET() {
   const imageSearch = keys.unsplash || keys.pexels || keys.pixabay;
   const ready = keys.anthropic && imageSearch;
 
-  return NextResponse.json({
+  const body = {
     status: ready ? "ok" : "degraded",
     ready,
     keys,
@@ -43,5 +46,14 @@ export function GET() {
     },
     anthropicBaseUrl: anthropic.baseUrl, // non-secret; confirms gateway wiring
     timestamp: new Date().toISOString(),
-  });
+  };
+
+  // ?strict=1 makes the HTTP status reflect readiness (503 when not ready), so a
+  // CI step can rely on `curl --fail` instead of parsing the JSON. The default
+  // (non-strict) always returns 200 with the detail in the body.
+  const strict = ["1", "true", "yes"].includes(
+    (new URL(request.url).searchParams.get("strict") || "").toLowerCase()
+  );
+
+  return NextResponse.json(body, { status: strict && !ready ? 503 : 200 });
 }
