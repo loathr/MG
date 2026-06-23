@@ -502,6 +502,24 @@ function formatCoverTitle(title, accentColor, highlightWord) {
   return <>{mainWords} <span style={{ color: accentColor, whiteSpace: "nowrap" }}>{accentWords}</span></>;
 }
 
+// Compact, render-deciding signature of a slide. Recorded synchronously right
+// before we navigate to a slide, so if rendering that slide crashes the tab the
+// recovery banner pinpoints exactly which slide + which render branch/data did
+// it (e.g. the reproducible "4th slide" crash). Diagnostic only — cheap to build.
+function slideSig(s) {
+  if (!s) return "null";
+  var t = function(v) { return v == null ? "-" : (typeof v === "string" ? ("s" + v.length) : (Array.isArray(v) ? ("arr" + v.length) : typeof v)); };
+  return "{role=" + (s.role || s.type || "-") +
+    ",lay=" + (typeof s.enterpriseLayout === "number" ? s.enterpriseLayout : "-") +
+    ",stat=" + (s.statFormat || s.stat || s.stats ? "y" : "-") +
+    ",mos=" + (s.mosaic ? "y" : "-") +
+    ",body=" + t(s.body) +
+    ",head=" + t(s.heading || s.title) +
+    ",src=" + t(s.sources) +
+    ",cp=" + (s.customPosition && typeof s.customPosition === "object" ? Object.keys(s.customPosition).length : 0) +
+    ",hl=" + (s.highlightStyle || "-") + "}";
+}
+
 function EditorialFill({ pal, category }) {
   var label = CAT_LABELS[category] || "";
   return (
@@ -512,6 +530,29 @@ function EditorialFill({ pal, category }) {
       <div style={{ position: "absolute", top: 0, left: "65%", width: 1, height: "100%", background: (pal.accent2 || pal.accent) + "06", transform: "rotate(-10deg)" }} />
     </div>
   );
+}
+
+// Only mount heavy children once the host element scrolls near the viewport.
+// The "All Slides" filmstrip renders a full SlideRenderer per slide; mounting
+// every cell at once (11+ on an Enterprise carousel, each a complex layout) is a
+// heavy synchronous render that scales with slide count and was a prime suspect
+// for tipping the tab over during generation — it paints right as the thread
+// yields to the /api/images fetch. Gating each cell on visibility caps the
+// number of concurrent heavy renders to the handful actually on screen.
+function LazyMount({ children, placeholder }) {
+  var ref = useRef(null);
+  var st = useState(false), visible = st[0], setVisible = st[1];
+  useEffect(function() {
+    if (visible) return;
+    var el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") { setVisible(true); return; }
+    var io = new IntersectionObserver(function(entries) {
+      if (entries && entries[0] && entries[0].isIntersecting) { setVisible(true); io.disconnect(); }
+    }, { rootMargin: "150px" });
+    io.observe(el);
+    return function() { io.disconnect(); };
+  }, [visible]);
+  return <div ref={ref} style={{ width: "100%", height: "100%" }}>{visible ? children : (placeholder || null)}</div>;
 }
 
 // Module-level image style — set by generate(), read by ImgBg
@@ -611,10 +652,11 @@ var MOSAIC_LAYOUTS = [
 function toDisplayUrl(url, width) {
   if (!url || typeof url !== "string") return url;
   var w = width || 1000;
+  var q = w <= 700 ? 60 : 80;
   try {
     // Unsplash / Pexels are imgix-backed and resize server-side from a w/q param.
     if (url.indexOf("images.unsplash.com") !== -1) {
-      return url.split("?")[0] + "?w=" + w + "&q=60&fm=jpg";
+      return url.split("?")[0] + "?w=" + w + "&q=" + q + "&fm=jpg";
     }
     if (url.indexOf("images.pexels.com") !== -1) {
       return url.split("?")[0] + "?auto=compress&cs=tinysrgb&w=" + w;
@@ -623,9 +665,10 @@ function toDisplayUrl(url, width) {
     if (url.indexOf("upload.wikimedia.org") !== -1 && /\/\d+px-/.test(url)) {
       return url.replace(/\/\d+px-/, "/" + w + "px-");
     }
-    // Pixabay serves fixed sizes; swap the 1280 variant for the 640 one.
+    // Pixabay serves fixed sizes: shrink to the 640 variant for small previews,
+    // keep the 1280 original for export-size requests.
     if (url.indexOf("pixabay.com") !== -1) {
-      return url.replace(/_1280\.(jpe?g|png)/i, "_640.$1");
+      return w <= 700 ? url.replace(/_1280\.(jpe?g|png)/i, "_640.$1") : url;
     }
   } catch (e) { /* fall through to original */ }
   return url;
@@ -651,10 +694,13 @@ function MosaicBg({ urls, pal, children, category, slideIndex, darken }) {
       <div style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: layout.cols, gridTemplateRows: layout.rows, gridTemplateAreas: layout.areas, gap: 2, background: "#ffffff" }}>
         {areaNames.slice(0, layout.count).map(function(area, ai) {
           var imgUrl = urls[ai] || null;
-          // Render a downscaled variant — full-res mosaic panels are the documented
-          // tab-crash (decoded-bitmap OOM). Seed the filter off the original URL so
-          // it stays stable regardless of the display transform.
-          var dispUrl = toDisplayUrl(imgUrl);
+          // Render a SMALL (~500px) variant for the live preview — the panel is at
+          // most ~170px wide on screen, so this is plenty, and it keeps decoded-image
+          // memory low as the user clicks through slides (clicking through several
+          // mosaic slides at full/1000px was stacking ~24MB/slide until the tab OOM'd).
+          // renderSlideToCanvas swaps each panel up to a sharp ~1280px export variant.
+          // Seed the filter off the original URL so it stays stable across transforms.
+          var dispUrl = toDisplayUrl(imgUrl, 500);
           var urlSeed = 0;
           if (imgUrl) { for (var ci = 0; ci < Math.min(imgUrl.length, 50); ci++) urlSeed += imgUrl.charCodeAt(ci); }
           var filt = preset && preset.filters ? preset.filters[0] : IMG_FILTERS[(slideIndex + ai + urlSeed) % IMG_FILTERS.length];
@@ -2742,6 +2788,21 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide, 
       }
     });
   }
+  // Mosaic panels render at ~500px live (to keep navigation memory low); map each
+  // small display URL back to a sharp ~1280px export variant so the onclone swap
+  // below upgrades them. Deterministic — toDisplayUrl(url,500) here matches exactly
+  // what MosaicBg rendered, so the swap keys line up.
+  try {
+    var addMosaicPair = function(u) {
+      if (typeof u !== "string" || !u) return;
+      thumbToFull[toDisplayUrl(u, 500)] = toDisplayUrl(u, 1280);
+    };
+    Object.keys(_mosaicSlides || {}).forEach(function(mk) {
+      var arr = _mosaicSlides[mk];
+      if (Array.isArray(arr)) arr.forEach(addMosaicPair);
+    });
+    (_mosaicExtraImages || []).forEach(addMosaicPair);
+  } catch (e) { /* export still works with live-res mosaics */ }
   // Pre-load the full-res URLs so they sit in the browser cache before html2canvas
   // tries to read pixels from them. Without this the onclone swap would point <img>
   // at a URL the browser hasn't downloaded yet and html2canvas would either skip
@@ -4706,7 +4767,7 @@ export default function LoathrMediaGenerator() {
     // crash is in the very first setIsGenerating/setError/setOptions React
     // state update batch. If it doesn't show even THIS, the crash is upstream
     // of generate() — likely in the click handler / Button onClick wrap.
-    try { recordStep("generate() entered"); } catch (e) {}
+    try { recordStep("generate() entered [build: nav-trace]"); } catch (e) {}
     if (!topic.trim() || !category) return;
     if (!canGenerate()) { setError("Daily generation limit reached (15/15). Try again tomorrow."); return; }
     if (abortRef.current) abortRef.current.abort();
@@ -4714,6 +4775,12 @@ export default function LoathrMediaGenerator() {
     abortRef.current = controller;
     recordStep("starting generation");
     setIsGenerating(true); setError(null); setOptions(null); setImages({});
+    // Reset mosaic globals up front — they are module-level and were only cleared
+    // by the "Reset All Slides" button, so a repeat generation would render the
+    // PREVIOUS run's (full-res) mosaic URLs against the freshly-rendered slides
+    // before the new image fetch returned. Clear them so a new gen never paints
+    // stale full-res mosaics during the render that precedes /api/images.
+    _mosaicSlides = {}; _allImages = {}; _mosaicExtraImages = [];
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
     var thisGen = genCount + 1;
     genCountPrevRef.current = genCount;
@@ -4894,6 +4961,20 @@ export default function LoathrMediaGenerator() {
       });
       recordStep("rendering " + (results[0] && results[0].slides ? results[0].slides.length : "?") + " slides");
       setOptions(results);
+      // Decisive crash-locator: this fires only AFTER the browser commits AND
+      // paints the post-setOptions render (double-rAF). If a crash trace ends at
+      // "sending POST" WITHOUT this step, the carousel render/paint is the killer.
+      // If this step IS present, the render survived and the killer is later
+      // (response handling / image render).
+      try {
+        if (typeof requestAnimationFrame !== "undefined") {
+          requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+              try { recordStep("carousel painted (render survived)"); } catch (e) {}
+            });
+          });
+        }
+      } catch (e) {}
       incrementGenCount();
       // Save to recent and history
       try {
@@ -5158,6 +5239,12 @@ export default function LoathrMediaGenerator() {
     var controller = new AbortController();
     abortRef.current = controller;
     setIsGenerating(true); setError(null); setOptions(null); setImages({});
+    // Reset mosaic globals up front — they are module-level and were only cleared
+    // by the "Reset All Slides" button, so a repeat generation would render the
+    // PREVIOUS run's (full-res) mosaic URLs against the freshly-rendered slides
+    // before the new image fetch returned. Clear them so a new gen never paints
+    // stale full-res mosaics during the render that precedes /api/images.
+    _mosaicSlides = {}; _allImages = {}; _mosaicExtraImages = [];
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
     var thisGen = genCount + 1;
     genCountPrevRef.current = genCount;
@@ -7095,12 +7182,12 @@ export default function LoathrMediaGenerator() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 14 }}>
-          <button onClick={function() { var i = currentSlide - 1; while (i >= 0 && cur.slides[i] && cur.slides[i]._deleted) i--; if (i >= 0) setCurrentSlide(i); }} disabled={currentSlide === 0}
+          <button onClick={function() { var i = currentSlide - 1; while (i >= 0 && cur.slides[i] && cur.slides[i]._deleted) i--; if (i >= 0) { try { recordStep("show slide " + i + " " + slideSig(cur.slides[i])); } catch (e) {} setCurrentSlide(i); } }} disabled={currentSlide === 0}
             style={{ width: 34, height: 34, cursor: currentSlide === 0 ? "default" : "pointer", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", opacity: currentSlide === 0 ? 0.3 : 1 }}>{"\u2039"}</button>
           <div style={{ display: "flex", gap: 5 }}>
-            {cur.slides.map(function(s, i) { if (s && s._deleted) return null; return <button key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: i === currentSlide ? 18 : 6, height: 6, cursor: "pointer", border: "none", background: i === currentSlide ? uiAccent : "var(--color-border-tertiary)", transition: "all 0.2s" }} />; })}
+            {cur.slides.map(function(s, i) { if (s && s._deleted) return null; return <button key={i} onClick={function() { try { recordStep("show slide " + i + " " + slideSig(s)); } catch (e) {} setCurrentSlide(i); }} style={{ width: i === currentSlide ? 18 : 6, height: 6, cursor: "pointer", border: "none", background: i === currentSlide ? uiAccent : "var(--color-border-tertiary)", transition: "all 0.2s" }} />; })}
           </div>
-          <button onClick={function() { var i = currentSlide + 1; while (i < total && cur.slides[i] && cur.slides[i]._deleted) i++; if (i < total) setCurrentSlide(i); }} disabled={currentSlide === total - 1}
+          <button onClick={function() { var i = currentSlide + 1; while (i < total && cur.slides[i] && cur.slides[i]._deleted) i++; if (i < total) { try { recordStep("show slide " + i + " " + slideSig(cur.slides[i])); } catch (e) {} setCurrentSlide(i); } }} disabled={currentSlide === total - 1}
             style={{ width: 34, height: 34, cursor: currentSlide === total - 1 ? "default" : "pointer", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", opacity: currentSlide === total - 1 ? 0.3 : 1 }}>{"\u203A"}</button>
         </div>
         {/* Image swap controls */}
@@ -8583,11 +8670,20 @@ export default function LoathrMediaGenerator() {
         <div style={{ marginTop: 18 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 8, textTransform: "uppercase" }}>All Slides</div>
           <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 8, paddingLeft: 2, paddingRight: 2 }}>
-            {cur.slides.map(function(slide, i) { if (!slide) return null; return (
-              <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? uiAccent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
-                <div style={{ width: 340, height: 425, transform: "scale(0.2)", transformOrigin: "top left", pointerEvents: "none" }}>
-                  {isRecMode ? <RecSlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={applyTemplate(slide, i, total)} slideIndex={i} totalSlides={total} images={images} edition={editionData} />}
-                </div>
+            {cur.slides.map(function(slide, i) { if (!slide) return null;
+              // Lightweight nav thumbnail — NOT a live SlideRenderer. Rendering a
+              // full slide component per cell (with images + a scale(0.2) GPU layer)
+              // for all 11 cells kept the page resident-memory pinned at Chrome's
+              // per-tab ceiling, so the first repaint from ANY mouse movement OOM'd
+              // the renderer ("page failed to load"). A text+color card costs a
+              // fraction of the memory and is enough for navigation.
+              var hdg = (slide.heading || slide.title || slide.headline || slide.name || slide.role || ("Slide " + (i + 1)));
+              if (typeof hdg !== "string") hdg = "Slide " + (i + 1);
+              return (
+              <div key={i} onClick={function() { try { recordStep("show slide " + i + " " + slideSig(slide)); } catch (e) {} setCurrentSlide(i); }} title={hdg}
+                style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, boxSizing: "border-box", padding: 5, display: "flex", flexDirection: "column", background: "var(--color-bg-secondary, #141414)", border: "2px solid " + (i === currentSlide ? uiAccent : "transparent"), opacity: i === currentSlide ? 1 : 0.65, transition: "opacity 0.2s" }}>
+                <div style={{ ...CP, fontSize: 7, fontWeight: 700, color: uiAccent, marginBottom: 3 }}>{i + 1}</div>
+                <div style={{ ...CP, fontSize: 6, lineHeight: 1.25, color: "var(--color-text-secondary, #bbb)", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 5, WebkitBoxOrient: "vertical" }}>{hdg}</div>
               </div>); })}
           </div>
         </div>
