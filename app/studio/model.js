@@ -101,6 +101,30 @@ export function sampleDoc() {
   return { id: uid("doc"), slides: [sampleSlide()] };
 }
 
+// A new empty slide: a single solid background, no elements. Respects §3 (one
+// background, flat element list). Used by the "+" in the slide strip.
+export function blankSlide(background) {
+  return {
+    id: uid("slide"),
+    w: ARTBOARD_W,
+    h: ARTBOARD_H,
+    background: background || { type: "color", color: "#0c0c0c" },
+    elements: [],
+  };
+}
+
+// Deep-ish clone of a slide with fresh ids (background is a value object, so a
+// shallow copy is enough; elements get new ids so selection stays unambiguous).
+export function cloneSlide(slide) {
+  return {
+    id: uid("slide"),
+    w: slide.w,
+    h: slide.h,
+    background: Object.assign({}, slide.background),
+    elements: (slide.elements || []).map((e) => Object.assign({}, e, { id: uid(e.type) })),
+  };
+}
+
 // --- selectors / helpers --------------------------------------------------
 export function findElement(slide, id) {
   if (!slide || !id) return null;

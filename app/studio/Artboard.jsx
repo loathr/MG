@@ -110,7 +110,11 @@ export default function Artboard({ slide, selectedId, editingId, dispatch }) {
           onPointerDown={() => dispatch({ type: "deselect" })}
         >
           {bg.type === "image" && bg.src && (
-            <img src={bg.src} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+            // The ONE heavy decoded image per slide (§3). data-role lets the
+            // crash-safety test assert that only the *current* slide mounts a
+            // full-res background — off-screen slides live in the strip as
+            // lightweight thumbnails, never as a second full-bleed decode.
+            <img src={bg.src} data-role="artboard-bg" alt="" draggable={false} crossOrigin="anonymous" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
           )}
           {bg.type === "image" && bg.scrim ? (
             <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0," + bg.scrim + ")" }} />
