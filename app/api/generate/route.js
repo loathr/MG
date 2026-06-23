@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAnthropicConfig, anthropicHeaders } from "../../lib/anthropic.js";
 
 // Vercel kills serverless functions after their maxDuration regardless of
 // streaming. Editorial generations with Claude Opus + web_search routinely take
@@ -13,14 +14,10 @@ export const maxDuration = 300;
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [2000, 5000, 10000]; // 2s, 5s, 10s backoff
 
-async function callAnthropic(payload, apiKey, attempt) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+async function callAnthropic(payload, cfg, attempt) {
+  const response = await fetch(cfg.messagesUrl, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
+    headers: anthropicHeaders(cfg.apiKey),
     body: JSON.stringify(payload),
   });
 
@@ -43,7 +40,7 @@ async function callAnthropic(payload, apiKey, attempt) {
   ) {
     const delay = RETRY_DELAYS[attempt] || 5000;
     await new Promise((r) => setTimeout(r, delay));
-    return callAnthropic(payload, apiKey, attempt + 1);
+    return callAnthropic(payload, cfg, attempt + 1);
   }
 
   // Retry on rate limit (429) with longer delay
@@ -51,7 +48,7 @@ async function callAnthropic(payload, apiKey, attempt) {
     const retryAfter = parseInt(response.headers.get("retry-after") || "5", 10);
     const delay = Math.max(retryAfter * 1000, RETRY_DELAYS[attempt] || 5000);
     await new Promise((r) => setTimeout(r, delay));
-    return callAnthropic(payload, apiKey, attempt + 1);
+    return callAnthropic(payload, cfg, attempt + 1);
   }
 
   if (!response.ok) {
@@ -65,9 +62,9 @@ async function callAnthropic(payload, apiKey, attempt) {
 }
 
 export async function POST(request) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const cfg = getAnthropicConfig();
 
-  if (!apiKey) {
+  if (!cfg.configured) {
     return NextResponse.json(
       { error: "ANTHROPIC_API_KEY is not configured" },
       { status: 500 }
@@ -94,13 +91,9 @@ export async function POST(request) {
     // being killed.
     if (body.stream === true) {
       payload.stream = true;
-      const upstream = await fetch("https://api.anthropic.com/v1/messages", {
+      const upstream = await fetch(cfg.messagesUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
+        headers: anthropicHeaders(cfg.apiKey),
         body: JSON.stringify(payload),
       });
 
@@ -125,7 +118,7 @@ export async function POST(request) {
     }
 
     // Non-streaming path (existing behavior) — used by short utility calls.
-    const result = await callAnthropic(payload, apiKey, 0);
+    const result = await callAnthropic(payload, cfg, 0);
 
     if (result.error) {
       return NextResponse.json(

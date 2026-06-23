@@ -6,6 +6,7 @@ import {
   SCRIPT_TOOL,
   VALID_MODES,
 } from "../../lib/scriptSchema.js";
+import { getAnthropicConfig, anthropicHeaders } from "../../lib/anthropic.js";
 
 // See app/api/generate/route.js for context. Script generation is comparable in
 // runtime to carousel generation (Claude Opus + tool calls) so the same ceiling applies.
@@ -15,14 +16,10 @@ export const maxDuration = 300;
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [2000, 5000, 10000];
 
-async function callAnthropic(payload, apiKey, attempt) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+async function callAnthropic(payload, cfg, attempt) {
+  const response = await fetch(cfg.messagesUrl, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
+    headers: anthropicHeaders(cfg.apiKey),
     body: JSON.stringify(payload),
   });
 
@@ -41,14 +38,14 @@ async function callAnthropic(payload, apiKey, attempt) {
     attempt < MAX_RETRIES
   ) {
     await new Promise((r) => setTimeout(r, RETRY_DELAYS[attempt] || 5000));
-    return callAnthropic(payload, apiKey, attempt + 1);
+    return callAnthropic(payload, cfg, attempt + 1);
   }
 
   if (response.status === 429 && attempt < MAX_RETRIES) {
     const retryAfter = parseInt(response.headers.get("retry-after") || "5", 10);
     const delay = Math.max(retryAfter * 1000, RETRY_DELAYS[attempt] || 5000);
     await new Promise((r) => setTimeout(r, delay));
-    return callAnthropic(payload, apiKey, attempt + 1);
+    return callAnthropic(payload, cfg, attempt + 1);
   }
 
   if (!response.ok) {
@@ -149,8 +146,8 @@ function fillTemplate(text, vars) {
 }
 
 export async function POST(request) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  const cfg = getAnthropicConfig();
+  if (!cfg.configured) {
     return NextResponse.json(
       { error: "ANTHROPIC_API_KEY is not configured" },
       { status: 500 }
@@ -252,7 +249,7 @@ export async function POST(request) {
       tool_choice: { type: "tool", name: "submit_script" },
     };
 
-    const result = await callAnthropic(payload, apiKey, 0);
+    const result = await callAnthropic(payload, cfg, 0);
     if (result.error) {
       return NextResponse.json(
         { error: result.error },
