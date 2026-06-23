@@ -506,6 +506,21 @@ function formatCoverTitle(title, accentColor, highlightWord) {
 // before we navigate to a slide, so if rendering that slide crashes the tab the
 // recovery banner pinpoints exactly which slide + which render branch/data did
 // it (e.g. the reproducible "4th slide" crash). Diagnostic only — cheap to build.
+// Current JS heap size (Chrome-only) — appended to each nav step so the crash
+// trace shows whether memory climbs per navigation (JS-heap leak, with the
+// magnitude visible) or stays flat (the growth is native/GPU/DOM, not JS heap —
+// a different class of fix). performance.memory is non-standard but present in
+// the Chrome the user is on.
+function memMB() {
+  try {
+    if (typeof performance !== "undefined" && performance.memory) {
+      return "mem=" + Math.round(performance.memory.usedJSHeapSize / 1048576) +
+        "/" + Math.round(performance.memory.jsHeapSizeLimit / 1048576) + "MB";
+    }
+  } catch (e) {}
+  return "mem=?";
+}
+
 function slideSig(s) {
   if (!s) return "null";
   var t = function(v) { return v == null ? "-" : (typeof v === "string" ? ("s" + v.length) : (Array.isArray(v) ? ("arr" + v.length) : typeof v)); };
@@ -4767,7 +4782,7 @@ export default function LoathrMediaGenerator() {
     // crash is in the very first setIsGenerating/setError/setOptions React
     // state update batch. If it doesn't show even THIS, the crash is upstream
     // of generate() — likely in the click handler / Button onClick wrap.
-    try { recordStep("generate() entered [build: nav-trace]"); } catch (e) {}
+    try { recordStep("generate() entered [build: nav-trace2]"); } catch (e) {}
     if (!topic.trim() || !category) return;
     if (!canGenerate()) { setError("Daily generation limit reached (15/15). Try again tomorrow."); return; }
     if (abortRef.current) abortRef.current.abort();
@@ -7182,12 +7197,12 @@ export default function LoathrMediaGenerator() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 14 }}>
-          <button onClick={function() { var i = currentSlide - 1; while (i >= 0 && cur.slides[i] && cur.slides[i]._deleted) i--; if (i >= 0) { try { recordStep("show slide " + i + " " + slideSig(cur.slides[i])); } catch (e) {} setCurrentSlide(i); } }} disabled={currentSlide === 0}
+          <button onClick={function() { var i = currentSlide - 1; while (i >= 0 && cur.slides[i] && cur.slides[i]._deleted) i--; if (i >= 0) { try { recordStep("show slide " + i + " " + slideSig(cur.slides[i]) + " " + memMB()); } catch (e) {} setCurrentSlide(i); } }} disabled={currentSlide === 0}
             style={{ width: 34, height: 34, cursor: currentSlide === 0 ? "default" : "pointer", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", opacity: currentSlide === 0 ? 0.3 : 1 }}>{"\u2039"}</button>
           <div style={{ display: "flex", gap: 5 }}>
-            {cur.slides.map(function(s, i) { if (s && s._deleted) return null; return <button key={i} onClick={function() { try { recordStep("show slide " + i + " " + slideSig(s)); } catch (e) {} setCurrentSlide(i); }} style={{ width: i === currentSlide ? 18 : 6, height: 6, cursor: "pointer", border: "none", background: i === currentSlide ? uiAccent : "var(--color-border-tertiary)", transition: "all 0.2s" }} />; })}
+            {cur.slides.map(function(s, i) { if (s && s._deleted) return null; return <button key={i} onClick={function() { try { recordStep("show slide " + i + " " + slideSig(s) + " " + memMB()); } catch (e) {} setCurrentSlide(i); }} style={{ width: i === currentSlide ? 18 : 6, height: 6, cursor: "pointer", border: "none", background: i === currentSlide ? uiAccent : "var(--color-border-tertiary)", transition: "all 0.2s" }} />; })}
           </div>
-          <button onClick={function() { var i = currentSlide + 1; while (i < total && cur.slides[i] && cur.slides[i]._deleted) i++; if (i < total) { try { recordStep("show slide " + i + " " + slideSig(cur.slides[i])); } catch (e) {} setCurrentSlide(i); } }} disabled={currentSlide === total - 1}
+          <button onClick={function() { var i = currentSlide + 1; while (i < total && cur.slides[i] && cur.slides[i]._deleted) i++; if (i < total) { try { recordStep("show slide " + i + " " + slideSig(cur.slides[i]) + " " + memMB()); } catch (e) {} setCurrentSlide(i); } }} disabled={currentSlide === total - 1}
             style={{ width: 34, height: 34, cursor: currentSlide === total - 1 ? "default" : "pointer", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", opacity: currentSlide === total - 1 ? 0.3 : 1 }}>{"\u203A"}</button>
         </div>
         {/* Image swap controls */}
@@ -8680,7 +8695,7 @@ export default function LoathrMediaGenerator() {
               var hdg = (slide.heading || slide.title || slide.headline || slide.name || slide.role || ("Slide " + (i + 1)));
               if (typeof hdg !== "string") hdg = "Slide " + (i + 1);
               return (
-              <div key={i} onClick={function() { try { recordStep("show slide " + i + " " + slideSig(slide)); } catch (e) {} setCurrentSlide(i); }} title={hdg}
+              <div key={i} onClick={function() { try { recordStep("show slide " + i + " " + slideSig(slide) + " " + memMB()); } catch (e) {} setCurrentSlide(i); }} title={hdg}
                 style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, boxSizing: "border-box", padding: 5, display: "flex", flexDirection: "column", background: "var(--color-bg-secondary, #141414)", border: "2px solid " + (i === currentSlide ? uiAccent : "transparent"), opacity: i === currentSlide ? 1 : 0.65, transition: "opacity 0.2s" }}>
                 <div style={{ ...CP, fontSize: 7, fontWeight: 700, color: uiAccent, marginBottom: 3 }}>{i + 1}</div>
                 <div style={{ ...CP, fontSize: 6, lineHeight: 1.25, color: "var(--color-text-secondary, #bbb)", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 5, WebkitBoxOrient: "vertical" }}>{hdg}</div>
