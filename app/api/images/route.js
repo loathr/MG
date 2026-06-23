@@ -56,20 +56,32 @@ const searchPexels = async (query, page) => {
     );
     if (!r.ok) return [];
     const d = await r.json();
-    return (d.photos || []).filter(Boolean).map((img) => ({
-      url: img.src ? (img.src.original || img.src.large2x || img.src.large) : null,
+    return (d.photos || []).filter(Boolean).map((img) => {
+      // Cap the served image to slide-ish dimensions. Pexels supports on-the-fly
+      // resizing via query params, so we never hand the browser a multi-thousand-
+      // pixel `original`. That original was the real crash cause: a 4000x6000 JPEG
+      // decodes to ~96MB of *native/GPU* bitmap memory (invisible to the JS heap,
+      // which stayed flat at ~5MB in the crash traces); 9 of them on a carousel
+      // blew past the device's compositor budget and the OS killed the tab. At
+      // 1280x1600 each image decodes to ~8MB — and 1280px still meets the export
+      // pipeline's stated "~1280px" sharpness target, so quality is unaffected.
+      const raw = img.src ? (img.src.original || img.src.large2x || img.src.large) : null;
+      const url = raw ? raw.split("?")[0] + "?auto=compress&cs=tinysrgb&fit=crop&w=1280&h=1600" : null;
+      return {
+      url,
       thumb: img.src ? img.src.medium : null,
       alt: query,
       credit: img.photographer || "",
       source: "Pexels",
-    }));
+      };
+    });
   } catch (e) { return []; }
 };
 
 const searchWikiCommons = async (query) => {
   try {
     const r = await fetchWithTimeout(
-      "https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=" + encodeURIComponent(query) + "&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1920&format=json",
+      "https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=" + encodeURIComponent(query) + "&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1280&format=json",
       6000,
     );
     if (!r.ok) return [];
