@@ -514,6 +514,29 @@ function EditorialFill({ pal, category }) {
   );
 }
 
+// Only mount heavy children once the host element scrolls near the viewport.
+// The "All Slides" filmstrip renders a full SlideRenderer per slide; mounting
+// every cell at once (11+ on an Enterprise carousel, each a complex layout) is a
+// heavy synchronous render that scales with slide count and was a prime suspect
+// for tipping the tab over during generation — it paints right as the thread
+// yields to the /api/images fetch. Gating each cell on visibility caps the
+// number of concurrent heavy renders to the handful actually on screen.
+function LazyMount({ children, placeholder }) {
+  var ref = useRef(null);
+  var st = useState(false), visible = st[0], setVisible = st[1];
+  useEffect(function() {
+    if (visible) return;
+    var el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") { setVisible(true); return; }
+    var io = new IntersectionObserver(function(entries) {
+      if (entries && entries[0] && entries[0].isIntersecting) { setVisible(true); io.disconnect(); }
+    }, { rootMargin: "150px" });
+    io.observe(el);
+    return function() { io.disconnect(); };
+  }, [visible]);
+  return <div ref={ref} style={{ width: "100%", height: "100%" }}>{visible ? children : (placeholder || null)}</div>;
+}
+
 // Module-level image style — set by generate(), read by ImgBg
 var _activeImageStyle = "mixed";
 var _activeSegment = null; // "enterprise"|null — forces B&W when enterprise
@@ -4706,7 +4729,7 @@ export default function LoathrMediaGenerator() {
     // crash is in the very first setIsGenerating/setError/setOptions React
     // state update batch. If it doesn't show even THIS, the crash is upstream
     // of generate() — likely in the click handler / Button onClick wrap.
-    try { recordStep("generate() entered"); } catch (e) {}
+    try { recordStep("generate() entered [build: lazy-filmstrip]"); } catch (e) {}
     if (!topic.trim() || !category) return;
     if (!canGenerate()) { setError("Daily generation limit reached (15/15). Try again tomorrow."); return; }
     if (abortRef.current) abortRef.current.abort();
@@ -4714,6 +4737,12 @@ export default function LoathrMediaGenerator() {
     abortRef.current = controller;
     recordStep("starting generation");
     setIsGenerating(true); setError(null); setOptions(null); setImages({});
+    // Reset mosaic globals up front — they are module-level and were only cleared
+    // by the "Reset All Slides" button, so a repeat generation would render the
+    // PREVIOUS run's (full-res) mosaic URLs against the freshly-rendered slides
+    // before the new image fetch returned. Clear them so a new gen never paints
+    // stale full-res mosaics during the render that precedes /api/images.
+    _mosaicSlides = {}; _allImages = {}; _mosaicExtraImages = [];
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
     var thisGen = genCount + 1;
     genCountPrevRef.current = genCount;
@@ -4894,6 +4923,20 @@ export default function LoathrMediaGenerator() {
       });
       recordStep("rendering " + (results[0] && results[0].slides ? results[0].slides.length : "?") + " slides");
       setOptions(results);
+      // Decisive crash-locator: this fires only AFTER the browser commits AND
+      // paints the post-setOptions render (double-rAF). If a crash trace ends at
+      // "sending POST" WITHOUT this step, the carousel render/paint is the killer.
+      // If this step IS present, the render survived and the killer is later
+      // (response handling / image render).
+      try {
+        if (typeof requestAnimationFrame !== "undefined") {
+          requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+              try { recordStep("carousel painted (render survived)"); } catch (e) {}
+            });
+          });
+        }
+      } catch (e) {}
       incrementGenCount();
       // Save to recent and history
       try {
@@ -5158,6 +5201,12 @@ export default function LoathrMediaGenerator() {
     var controller = new AbortController();
     abortRef.current = controller;
     setIsGenerating(true); setError(null); setOptions(null); setImages({});
+    // Reset mosaic globals up front — they are module-level and were only cleared
+    // by the "Reset All Slides" button, so a repeat generation would render the
+    // PREVIOUS run's (full-res) mosaic URLs against the freshly-rendered slides
+    // before the new image fetch returned. Clear them so a new gen never paints
+    // stale full-res mosaics during the render that precedes /api/images.
+    _mosaicSlides = {}; _allImages = {}; _mosaicExtraImages = [];
     setSelectedOption(0); setCurrentSlide(0); setImgStatus(null);
     var thisGen = genCount + 1;
     genCountPrevRef.current = genCount;
@@ -8586,7 +8635,9 @@ export default function LoathrMediaGenerator() {
             {cur.slides.map(function(slide, i) { if (!slide) return null; return (
               <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? uiAccent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
                 <div style={{ width: 340, height: 425, transform: "scale(0.2)", transformOrigin: "top left", pointerEvents: "none" }}>
-                  {isRecMode ? <RecSlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={applyTemplate(slide, i, total)} slideIndex={i} totalSlides={total} images={images} edition={editionData} />}
+                  <LazyMount placeholder={<div style={{ width: "100%", height: "100%", background: "rgba(128,128,128,0.12)" }} />}>
+                    {isRecMode ? <RecSlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={applyTemplate(slide, i, total)} slideIndex={i} totalSlides={total} images={images} edition={editionData} />}
+                  </LazyMount>
                 </div>
               </div>); })}
           </div>
