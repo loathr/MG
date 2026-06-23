@@ -634,10 +634,11 @@ var MOSAIC_LAYOUTS = [
 function toDisplayUrl(url, width) {
   if (!url || typeof url !== "string") return url;
   var w = width || 1000;
+  var q = w <= 700 ? 60 : 80;
   try {
     // Unsplash / Pexels are imgix-backed and resize server-side from a w/q param.
     if (url.indexOf("images.unsplash.com") !== -1) {
-      return url.split("?")[0] + "?w=" + w + "&q=60&fm=jpg";
+      return url.split("?")[0] + "?w=" + w + "&q=" + q + "&fm=jpg";
     }
     if (url.indexOf("images.pexels.com") !== -1) {
       return url.split("?")[0] + "?auto=compress&cs=tinysrgb&w=" + w;
@@ -646,9 +647,10 @@ function toDisplayUrl(url, width) {
     if (url.indexOf("upload.wikimedia.org") !== -1 && /\/\d+px-/.test(url)) {
       return url.replace(/\/\d+px-/, "/" + w + "px-");
     }
-    // Pixabay serves fixed sizes; swap the 1280 variant for the 640 one.
+    // Pixabay serves fixed sizes: shrink to the 640 variant for small previews,
+    // keep the 1280 original for export-size requests.
     if (url.indexOf("pixabay.com") !== -1) {
-      return url.replace(/_1280\.(jpe?g|png)/i, "_640.$1");
+      return w <= 700 ? url.replace(/_1280\.(jpe?g|png)/i, "_640.$1") : url;
     }
   } catch (e) { /* fall through to original */ }
   return url;
@@ -674,10 +676,13 @@ function MosaicBg({ urls, pal, children, category, slideIndex, darken }) {
       <div style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: layout.cols, gridTemplateRows: layout.rows, gridTemplateAreas: layout.areas, gap: 2, background: "#ffffff" }}>
         {areaNames.slice(0, layout.count).map(function(area, ai) {
           var imgUrl = urls[ai] || null;
-          // Render a downscaled variant — full-res mosaic panels are the documented
-          // tab-crash (decoded-bitmap OOM). Seed the filter off the original URL so
-          // it stays stable regardless of the display transform.
-          var dispUrl = toDisplayUrl(imgUrl);
+          // Render a SMALL (~500px) variant for the live preview — the panel is at
+          // most ~170px wide on screen, so this is plenty, and it keeps decoded-image
+          // memory low as the user clicks through slides (clicking through several
+          // mosaic slides at full/1000px was stacking ~24MB/slide until the tab OOM'd).
+          // renderSlideToCanvas swaps each panel up to a sharp ~1280px export variant.
+          // Seed the filter off the original URL so it stays stable across transforms.
+          var dispUrl = toDisplayUrl(imgUrl, 500);
           var urlSeed = 0;
           if (imgUrl) { for (var ci = 0; ci < Math.min(imgUrl.length, 50); ci++) urlSeed += imgUrl.charCodeAt(ci); }
           var filt = preset && preset.filters ? preset.filters[0] : IMG_FILTERS[(slideIndex + ai + urlSeed) % IMG_FILTERS.length];
@@ -2765,6 +2770,21 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide, 
       }
     });
   }
+  // Mosaic panels render at ~500px live (to keep navigation memory low); map each
+  // small display URL back to a sharp ~1280px export variant so the onclone swap
+  // below upgrades them. Deterministic — toDisplayUrl(url,500) here matches exactly
+  // what MosaicBg rendered, so the swap keys line up.
+  try {
+    var addMosaicPair = function(u) {
+      if (typeof u !== "string" || !u) return;
+      thumbToFull[toDisplayUrl(u, 500)] = toDisplayUrl(u, 1280);
+    };
+    Object.keys(_mosaicSlides || {}).forEach(function(mk) {
+      var arr = _mosaicSlides[mk];
+      if (Array.isArray(arr)) arr.forEach(addMosaicPair);
+    });
+    (_mosaicExtraImages || []).forEach(addMosaicPair);
+  } catch (e) { /* export still works with live-res mosaics */ }
   // Pre-load the full-res URLs so they sit in the browser cache before html2canvas
   // tries to read pixels from them. Without this the onclone swap would point <img>
   // at a URL the browser hasn't downloaded yet and html2canvas would either skip
