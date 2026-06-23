@@ -8632,13 +8632,20 @@ export default function LoathrMediaGenerator() {
         <div style={{ marginTop: 18 }}>
           <div style={{ ...CP, fontSize: 10, letterSpacing: "0.15em", color: "var(--color-text-tertiary)", marginBottom: 8, textTransform: "uppercase" }}>All Slides</div>
           <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 8, paddingLeft: 2, paddingRight: 2 }}>
-            {cur.slides.map(function(slide, i) { if (!slide) return null; return (
-              <div key={i} onClick={function() { setCurrentSlide(i); }} style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, border: "2px solid " + (i === currentSlide ? uiAccent : "transparent"), opacity: i === currentSlide ? 1 : 0.6, transition: "all 0.2s" }}>
-                <div style={{ width: 340, height: 425, transform: "scale(0.2)", transformOrigin: "top left", pointerEvents: "none" }}>
-                  <LazyMount placeholder={<div style={{ width: "100%", height: "100%", background: "rgba(128,128,128,0.12)" }} />}>
-                    {isRecMode ? <RecSlideRenderer category={category} slideData={slide} slideIndex={i} totalSlides={total} images={images} /> : <SlideRenderer category={category} slideData={applyTemplate(slide, i, total)} slideIndex={i} totalSlides={total} images={images} edition={editionData} />}
-                  </LazyMount>
-                </div>
+            {cur.slides.map(function(slide, i) { if (!slide) return null;
+              // Lightweight nav thumbnail — NOT a live SlideRenderer. Rendering a
+              // full slide component per cell (with images + a scale(0.2) GPU layer)
+              // for all 11 cells kept the page resident-memory pinned at Chrome's
+              // per-tab ceiling, so the first repaint from ANY mouse movement OOM'd
+              // the renderer ("page failed to load"). A text+color card costs a
+              // fraction of the memory and is enough for navigation.
+              var hdg = (slide.heading || slide.title || slide.headline || slide.name || slide.role || ("Slide " + (i + 1)));
+              if (typeof hdg !== "string") hdg = "Slide " + (i + 1);
+              return (
+              <div key={i} onClick={function() { setCurrentSlide(i); }} title={hdg}
+                style={{ width: 68, height: 85, overflow: "hidden", cursor: "pointer", flexShrink: 0, boxSizing: "border-box", padding: 5, display: "flex", flexDirection: "column", background: "var(--color-bg-secondary, #141414)", border: "2px solid " + (i === currentSlide ? uiAccent : "transparent"), opacity: i === currentSlide ? 1 : 0.65, transition: "opacity 0.2s" }}>
+                <div style={{ ...CP, fontSize: 7, fontWeight: 700, color: uiAccent, marginBottom: 3 }}>{i + 1}</div>
+                <div style={{ ...CP, fontSize: 6, lineHeight: 1.25, color: "var(--color-text-secondary, #bbb)", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 5, WebkitBoxOrient: "vertical" }}>{hdg}</div>
               </div>); })}
           </div>
         </div>
