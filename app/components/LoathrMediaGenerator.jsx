@@ -601,6 +601,36 @@ var MOSAIC_LAYOUTS = [
   { id: "4wide", cols: "2fr 1fr", rows: "1fr 1fr", areas: '"a b" "c d"', count: 4, label: "4 Wide L" },
 ];
 
+// Downscale a CDN image URL for lightweight live rendering. Mosaic panels render
+// 2-4 <img>s per slide and the "All Slides" strip mounts every slide at once, so
+// loading full-res originals (an Unsplash urls.full can decode to ~90MB of bitmap
+// regardless of CSS scale) blows past Chrome's per-tab memory and kills the tab.
+// ~1000px is plenty sharp for the small collage cells — even at 2160px export —
+// and decodes to ~6MB. Single-image slides already render thumbs; only mosaics
+// reach for the full URL, so this is the one render path that needs downscaling.
+function toDisplayUrl(url, width) {
+  if (!url || typeof url !== "string") return url;
+  var w = width || 1000;
+  try {
+    // Unsplash / Pexels are imgix-backed and resize server-side from a w/q param.
+    if (url.indexOf("images.unsplash.com") !== -1) {
+      return url.split("?")[0] + "?w=" + w + "&q=60&fm=jpg";
+    }
+    if (url.indexOf("images.pexels.com") !== -1) {
+      return url.split("?")[0] + "?auto=compress&cs=tinysrgb&w=" + w;
+    }
+    // Wikimedia thumbnails carry their width inline as ".../NNNpx-Name".
+    if (url.indexOf("upload.wikimedia.org") !== -1 && /\/\d+px-/.test(url)) {
+      return url.replace(/\/\d+px-/, "/" + w + "px-");
+    }
+    // Pixabay serves fixed sizes; swap the 1280 variant for the 640 one.
+    if (url.indexOf("pixabay.com") !== -1) {
+      return url.replace(/_1280\.(jpe?g|png)/i, "_640.$1");
+    }
+  } catch (e) { /* fall through to original */ }
+  return url;
+}
+
 function MosaicBg({ urls, pal, children, category, slideIndex, darken }) {
   if (!urls || urls.length < 2) return null;
   var preset = _activeImageStyle && IMAGE_STYLE_PRESETS[_activeImageStyle] ? IMAGE_STYLE_PRESETS[_activeImageStyle] : null;
@@ -621,11 +651,15 @@ function MosaicBg({ urls, pal, children, category, slideIndex, darken }) {
       <div style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: layout.cols, gridTemplateRows: layout.rows, gridTemplateAreas: layout.areas, gap: 2, background: "#ffffff" }}>
         {areaNames.slice(0, layout.count).map(function(area, ai) {
           var imgUrl = urls[ai] || null;
+          // Render a downscaled variant — full-res mosaic panels are the documented
+          // tab-crash (decoded-bitmap OOM). Seed the filter off the original URL so
+          // it stays stable regardless of the display transform.
+          var dispUrl = toDisplayUrl(imgUrl);
           var urlSeed = 0;
           if (imgUrl) { for (var ci = 0; ci < Math.min(imgUrl.length, 50); ci++) urlSeed += imgUrl.charCodeAt(ci); }
           var filt = preset && preset.filters ? preset.filters[0] : IMG_FILTERS[(slideIndex + ai + urlSeed) % IMG_FILTERS.length];
           return <div key={area} style={{ gridArea: area, overflow: "hidden", position: "relative" }}>
-            {imgUrl ? <img src={imgUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: filt }} onError={function(e) { e.target.style.display = "none"; }} />
+            {dispUrl ? <img src={dispUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: filt }} onError={function(e) { e.target.style.display = "none"; }} />
               : <div style={{ width: "100%", height: "100%", background: pal.bg }} />}
           </div>;
         })}
@@ -2024,7 +2058,7 @@ var searchUnsplash = async function(query, apiKey, page) {
     var r = await fetchWithTimeout("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: "Client-ID " + apiKey } }, 8000);
     if (!r.ok) throw new Error("HTTP " + r.status);
     var d = await r.json();
-    return (d.results || []).map(function(img) { return { url: img.urls ? (img.urls.full || img.urls.regular) : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; });
+    return (d.results || []).filter(Boolean).map(function(img) { return { url: img.urls ? (img.urls.full || img.urls.regular) : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; });
   } catch (e) {
     var tagged = new Error("[Unsplash q='" + qTag + "'] " + (e && e.message ? e.message : "unknown"));
     tagged.name = e && e.name ? e.name : "Error";
@@ -2039,7 +2073,7 @@ var searchPexels = async function(query, apiKey, page) {
     var r = await fetchWithTimeout("https://api.pexels.com/v1/search?query=" + encodeURIComponent(query) + "&per_page=10&page=" + (page || 1) + "&orientation=portrait", { headers: { Authorization: apiKey } }, 8000);
     if (!r.ok) throw new Error("HTTP " + r.status);
     var d = await r.json();
-    return (d.photos || []).map(function(img) { return { url: img.src ? (img.src.original || img.src.large2x || img.src.large) : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; });
+    return (d.photos || []).filter(Boolean).map(function(img) { return { url: img.src ? (img.src.original || img.src.large2x || img.src.large) : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; });
   } catch (e) {
     var tagged = new Error("[Pexels q='" + qTag + "'] " + (e && e.message ? e.message : "unknown"));
     tagged.name = e && e.name ? e.name : "Error";
@@ -2233,7 +2267,7 @@ var searchPixabay = async function(query) {
     var r = await fetchWithTimeout("https://pixabay.com/api/?key=" + pixKey + "&q=" + encodeURIComponent(query) + "&image_type=photo&orientation=vertical&per_page=8&safesearch=true", 5000);
     if (!r.ok) return [];
     var d = await r.json();
-    return (d.hits || []).slice(0, 5).map(function(img) {
+    return (d.hits || []).filter(Boolean).slice(0, 5).map(function(img) {
       return { url: img.largeImageURL || img.webformatURL, thumb: img.previewURL || img.webformatURL, alt: img.tags || query, credit: img.user || "Pixabay", source: "Pixabay" };
     });
   } catch (e) { return []; }
@@ -2712,7 +2746,17 @@ var renderSlideToCanvas = async function(slideRef, slideIndex, setCurrentSlide, 
   // tries to read pixels from them. Without this the onclone swap would point <img>
   // at a URL the browser hasn't downloaded yet and html2canvas would either skip
   // or fail to render the image.
-  var fullUrlsToPrefetch = Object.keys(thumbToFull).map(function(t) { return thumbToFull[t]; });
+  // Only preload the full-res images that actually appear in THIS slide. Export
+  // runs one slide at a time, so the old behavior — prefetching every carousel
+  // image at once — decoded all of them simultaneously and was a second OOM path
+  // independent of the mosaic crash. Scope it to the current slide's <img>s.
+  var neededFull = {};
+  var slideImgEls = el.querySelectorAll("img");
+  for (var qi = 0; qi < slideImgEls.length; qi++) {
+    var liveSrc = slideImgEls[qi].getAttribute("src") || slideImgEls[qi].src || "";
+    if (thumbToFull[liveSrc]) neededFull[thumbToFull[liveSrc]] = true;
+  }
+  var fullUrlsToPrefetch = Object.keys(neededFull);
   if (fullUrlsToPrefetch.length > 0) {
     await Promise.all(fullUrlsToPrefetch.map(function(fullUrl) {
       return new Promise(function(resolve) {
@@ -3662,20 +3706,17 @@ export default function LoathrMediaGenerator() {
     previewPage.current = page + 1; // next call gets different page
     try {
       var unsplashKey = apiKeys.unsplash || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
-      var pexelsKey = apiKeys.pexels || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
       var keywords = extractKeywords(query, 3);
       var catLabel = cat ? cat.label : category;
       var results = [];
       if (unsplashKey) {
         try {
-          var ur = await fetch("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(catLabel + " " + keywords) + "&per_page=6&page=" + page + "&orientation=portrait", { headers: { Authorization: "Client-ID " + unsplashKey } });
-          if (ur.ok) { var ud = await ur.json(); results = results.concat((ud.results || []).map(function(img) { return { url: img.urls ? (img.urls.full || img.urls.regular) : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; }).slice(0, 4)); }
-        } catch (e) {}
-      }
-      if (pexelsKey && results.length < 4) {
-        try {
-          var pr = await fetch("https://api.pexels.com/v1/search?query=" + encodeURIComponent(catLabel + " " + keywords) + "&per_page=4&page=" + page + "&orientation=portrait", { headers: { Authorization: pexelsKey } });
-          if (pr.ok) { var pd = await pr.json(); results = results.concat((pd.photos || []).map(function(img) { return { url: img.src ? (img.src.original || img.src.large2x || img.src.large) : null, thumb: img.src ? img.src.medium : null, alt: query, credit: img.photographer || "", source: "Pexels" }; }).slice(0, 4 - results.length)); }
+          // 8s AbortController-backed timeout — a bare browser fetch here with no
+          // timeout hangs the await indefinitely on a flaky network. Pexels is NOT
+          // called from the browser at all: it reliably tab-crashes sub-second
+          // (see ISSUE 3) — the server /api/images pipeline handles Pexels instead.
+          var ur = await fetchWithTimeout("https://api.unsplash.com/search/photos?query=" + encodeURIComponent(catLabel + " " + keywords) + "&per_page=6&page=" + page + "&orientation=portrait", { headers: { Authorization: "Client-ID " + unsplashKey } }, 8000);
+          if (ur.ok) { var ud = await ur.json(); results = results.concat((ud.results || []).filter(Boolean).map(function(img) { return { url: img.urls ? (img.urls.full || img.urls.regular) : null, thumb: img.urls ? img.urls.small : null, alt: img.alt_description || query, credit: img.user ? img.user.name : "", source: "Unsplash" }; }).slice(0, 4)); }
         } catch (e) {}
       }
       try { var vi = await searchVintage(category, keywords); results = results.concat(vi.slice(0, 2)); } catch (e) {}
