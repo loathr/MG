@@ -36,7 +36,7 @@ const searchUnsplash = async (query, page) => {
     );
     if (!r.ok) return [];
     const d = await r.json();
-    return (d.results || []).map((img) => ({
+    return (d.results || []).filter(Boolean).map((img) => ({
       url: img.urls ? (img.urls.full || img.urls.regular) : null,
       thumb: img.urls ? img.urls.small : null,
       alt: img.alt_description || query,
@@ -56,7 +56,7 @@ const searchPexels = async (query, page) => {
     );
     if (!r.ok) return [];
     const d = await r.json();
-    return (d.photos || []).map((img) => ({
+    return (d.photos || []).filter(Boolean).map((img) => ({
       url: img.src ? (img.src.original || img.src.large2x || img.src.large) : null,
       thumb: img.src ? img.src.medium : null,
       alt: query,
@@ -102,7 +102,7 @@ const searchPixabay = async (query) => {
     );
     if (!r.ok) return [];
     const d = await r.json();
-    return (d.hits || []).slice(0, 5).map((img) => ({
+    return (d.hits || []).filter(Boolean).slice(0, 5).map((img) => ({
       url: img.largeImageURL || img.webformatURL,
       thumb: img.previewURL || img.webformatURL,
       alt: img.tags || query,
