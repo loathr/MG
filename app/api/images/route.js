@@ -36,13 +36,22 @@ const searchUnsplash = async (query, page) => {
     );
     if (!r.ok) return [];
     const d = await r.json();
-    return (d.results || []).filter(Boolean).map((img) => ({
-      url: img.urls ? (img.urls.full || img.urls.regular) : null,
-      thumb: img.urls ? img.urls.small : null,
-      alt: img.alt_description || query,
-      credit: img.user ? img.user.name : "",
-      source: "Unsplash",
-    }));
+    return (d.results || []).filter(Boolean).map((img) => {
+      // Cap the served image to the artboard's 4:5 at <=1280x1600 (§3). Unsplash
+      // `urls.full`/`raw` are full-resolution (often 4000px+); handing that to the
+      // browser as a slide background decodes to tens of MB of native/GPU memory —
+      // the exact cost that crashed the old app. `urls.raw` is the unsized base
+      // that accepts Imgix params, so we pin width/height/crop/quality here.
+      const raw = img.urls ? (img.urls.raw || img.urls.full || img.urls.regular) : null;
+      const url = raw ? raw + (raw.indexOf("?") >= 0 ? "&" : "?") + "w=1280&h=1600&fit=crop&q=80&fm=jpg" : null;
+      return {
+        url,
+        thumb: img.urls ? img.urls.small : null,
+        alt: img.alt_description || query,
+        credit: img.user ? img.user.name : "",
+        source: "Unsplash",
+      };
+    });
   } catch (e) { return []; }
 };
 
