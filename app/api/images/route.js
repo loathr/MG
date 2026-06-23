@@ -163,6 +163,36 @@ const normalizeImgUrl = (url) => {
   return u;
 };
 
+// --- simple search (Photos panel) ---
+// The editor's Photos panel needs a plain "type a query, get a grid" search,
+// not the carousel pipeline below. We fan out across the same providers, merge,
+// and de-duplicate. Every returned `url` is already capped to <=1280x1600 by the
+// provider-specific search functions, so the browser never decodes an oversized
+// image (§3). `thumb` is a small image used for the grid and for lightweight
+// slide-strip thumbnails.
+async function runImageSearch(query, page) {
+  const q = (query || "").trim();
+  if (!q) return { results: [] };
+  const batches = await Promise.all([
+    searchUnsplash(q, page),
+    searchPexels(q, page),
+    searchPixabay(q),
+    searchWikiCommons(q),
+  ]);
+  const merged = [];
+  const seen = {};
+  batches.forEach((list) => {
+    (list || []).forEach((img) => {
+      if (!img || !img.url) return;
+      const key = normalizeImgUrl(img.url);
+      if (seen[key]) return;
+      seen[key] = true;
+      merged.push(img);
+    });
+  });
+  return { results: merged };
+}
+
 // --- main pipeline ---
 async function runImagePipeline(body) {
   const slides = Array.isArray(body.slides) ? body.slides : [];
@@ -378,6 +408,11 @@ export async function POST(request) {
         { error: "No image API keys configured on the server (UNSPLASH_KEY / PEXELS_KEY / PIXABAY_KEY)" },
         { status: 500 },
       );
+    }
+    // Photos-panel search mode: `{ q: "query" }` -> flat result grid.
+    if (typeof body.q === "string" || typeof body.search === "string") {
+      const result = await runImageSearch(body.q || body.search, body.page);
+      return NextResponse.json(result);
     }
     const result = await runImagePipeline(body);
     return NextResponse.json(result);

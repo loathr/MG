@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "gen:demo-photos": "node scripts/gen-demo-photos.mjs",
+    "proof:carousel": "node scripts/proof-carousel.mjs",
+    "proof:photos": "node scripts/proof-photos.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.7.0",
@@ -18,6 +21,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "playwright": "^1.61.0",
     "typescript": "^5"
   }
 }

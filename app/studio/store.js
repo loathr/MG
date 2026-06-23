@@ -4,11 +4,13 @@
 // own object identity changes — i.e. dragging one element never re-renders the
 // others. This isolation is the whole fix for the old monolith's re-render OOM.
 // ============================================================================
-import { sampleDoc } from "./model";
+import { sampleDoc, blankSlide, cloneSlide } from "./model";
 
-export function initStudio() {
+export function initStudio(initial) {
+  const doc = (initial && initial.doc) || sampleDoc();
   return {
-    doc: sampleDoc(),
+    doc,
+    name: (initial && initial.name) || "Untitled carousel",
     slideIndex: 0,
     selectedId: null,
     editingId: null,
@@ -68,9 +70,51 @@ export function reducer(state, a) {
         background: Object.assign({}, s.background, a.patch),
       }));
     case "loadDoc":
-      return { doc: a.doc, slideIndex: 0, selectedId: null, editingId: null };
-    case "setSlide":
-      return Object.assign({}, state, { slideIndex: a.index, selectedId: null, editingId: null });
+      return Object.assign({}, state, {
+        doc: a.doc,
+        name: a.name || state.name,
+        slideIndex: 0,
+        selectedId: null,
+        editingId: null,
+      });
+    case "setSlide": {
+      const n = state.doc.slides.length;
+      const index = Math.max(0, Math.min(n - 1, a.index));
+      return Object.assign({}, state, { slideIndex: index, selectedId: null, editingId: null });
+    }
+    case "setName":
+      return Object.assign({}, state, { name: a.name });
+    case "addSlide": {
+      // Insert a fresh blank slide after the current one and jump to it.
+      const slides = state.doc.slides.slice();
+      const at = state.slideIndex + 1;
+      slides.splice(at, 0, blankSlide());
+      return Object.assign({}, state, {
+        doc: Object.assign({}, state.doc, { slides }),
+        slideIndex: at, selectedId: null, editingId: null,
+      });
+    }
+    case "duplicateSlide": {
+      const i = a.index == null ? state.slideIndex : a.index;
+      const src = state.doc.slides[i];
+      if (!src) return state;
+      const slides = state.doc.slides.slice();
+      slides.splice(i + 1, 0, cloneSlide(src));
+      return Object.assign({}, state, {
+        doc: Object.assign({}, state.doc, { slides }),
+        slideIndex: i + 1, selectedId: null, editingId: null,
+      });
+    }
+    case "deleteSlide": {
+      if (state.doc.slides.length <= 1) return state; // never leave an empty deck
+      const i = a.index == null ? state.slideIndex : a.index;
+      const slides = state.doc.slides.filter((_, idx) => idx !== i);
+      const slideIndex = Math.max(0, Math.min(slides.length - 1, state.slideIndex > i ? state.slideIndex - 1 : state.slideIndex));
+      return Object.assign({}, state, {
+        doc: Object.assign({}, state.doc, { slides }),
+        slideIndex, selectedId: null, editingId: null,
+      });
+    }
     default:
       return state;
   }
