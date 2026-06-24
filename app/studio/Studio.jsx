@@ -8,6 +8,7 @@ import Artboard from "./Artboard";
 import SlideThumb from "./SlideThumb";
 import PhotosPanel from "./PhotosPanel";
 import CreateScreen from "./CreateScreen";
+import { exportSlide, exportSlides } from "./export";
 
 const hbtn = {
   height: 32, padding: "0 12px", background: "#26262b", color: "#e8e8e8",
@@ -42,6 +43,8 @@ export default function Studio() {
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState("");
   const [activePanel, setActivePanel] = useState("photos");
+  const [dlOpen, setDlOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const booted = useRef(false);
   const dragFrom = useRef(null); // slide index being drag-reordered in the strip
   const slide = state.doc.slides[state.slideIndex];
@@ -131,6 +134,15 @@ export default function Studio() {
     w: 560, h: 700, src: img.url, thumb: img.thumb || img.url, fit: "cover",
   }) });
 
+  const exportCurrent = async () => {
+    setDlOpen(false); setExporting(true);
+    try { await exportSlide(slide, projectName, state.slideIndex); } finally { setExporting(false); }
+  };
+  const exportDeck = async () => {
+    setDlOpen(false); setExporting(true);
+    try { await exportSlides(state.doc.slides, projectName); } finally { setExporting(false); }
+  };
+
   const toggle = (key) => setActivePanel((p) => (p === key ? null : key));
 
   if (screen === "create") {
@@ -152,9 +164,28 @@ export default function Studio() {
         <button style={iconBtn(state.past.length > 0)} disabled={state.past.length === 0} onClick={() => dispatch({ type: "undo" })} title="Undo (Ctrl/Cmd+Z)">↶</button>
         <button style={iconBtn(state.future.length > 0)} disabled={state.future.length === 0} onClick={() => dispatch({ type: "redo" })} title="Redo (Ctrl/Cmd+Shift+Z)">↷</button>
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: "#777" }}>
+        <span style={{ fontSize: 11, color: "#777", marginRight: 4 }}>
           {state.doc.slides.length} slide{state.doc.slides.length === 1 ? "" : "s"}
         </span>
+        <div style={{ position: "relative" }}>
+          <button
+            style={{ ...hbtn, background: "#2d8cff", color: "#fff", border: "none", fontWeight: 600 }}
+            disabled={exporting}
+            onClick={() => setDlOpen((o) => !o)}
+            title="Download as PNG"
+          >
+            {exporting ? "Exporting…" : "⬇ Download ▾"}
+          </button>
+          {dlOpen && (
+            <>
+              <div onClick={() => setDlOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+              <div style={{ position: "absolute", right: 0, top: 38, minWidth: 176, background: "#26262b", border: "1px solid #36363c", borderRadius: 8, padding: 4, zIndex: 50, boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}>
+                <button style={menuItem} onClick={exportCurrent}>This slide (PNG)</button>
+                <button style={menuItem} onClick={exportDeck}>All {state.doc.slides.length} slides (PNG)</button>
+              </div>
+            </>
+          )}
+        </div>
       </header>
 
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
@@ -238,6 +269,11 @@ export default function Studio() {
 }
 
 const panelNote = { color: "#8a8a8a", fontSize: 12, lineHeight: 1.5, margin: 0 };
+const menuItem = {
+  display: "block", width: "100%", textAlign: "left", height: 32, padding: "0 10px",
+  background: "transparent", color: "#e8e8e8", border: "none", borderRadius: 6,
+  cursor: "pointer", fontSize: 13,
+};
 
 function SidePanel({ title, onClose, children }) {
   return (
