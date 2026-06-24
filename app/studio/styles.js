@@ -26,6 +26,8 @@ export const STYLES = {
     kickerWeight: 700,
     kickerSpacing: 4,
     accentBar: true,
+    // Over-photo palette: light, readable text on a darkened photo background.
+    onPhoto: { ink: "#ffffff", sub: "#f0f0f0", muted: "#d0d0d0", accent: "#e23744", scrim: 0.5 },
   },
   bold: {
     key: "bold",
@@ -43,6 +45,7 @@ export const STYLES = {
     kickerWeight: 800,
     kickerSpacing: 2,
     accentBar: true,
+    onPhoto: { ink: "#ffffff", sub: "#f4f4f4", muted: "#d6d6d6", accent: "#ffd400", scrim: 0.52 },
   },
   minimal: {
     key: "minimal",
@@ -60,6 +63,8 @@ export const STYLES = {
     kickerWeight: 600,
     kickerSpacing: 6,
     accentBar: false,
+    // Minimal is light-on-light; over a photo it flips to white text so it reads.
+    onPhoto: { ink: "#ffffff", sub: "#ececec", muted: "#cccccc", accent: "#ffffff", scrim: 0.46 },
   },
 };
 

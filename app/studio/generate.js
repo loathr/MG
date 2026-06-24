@@ -47,6 +47,25 @@ export function parseSlides(text) {
   return obj.slides;
 }
 
+// After the text is written, fetch one photo per slide from the existing
+// /api/images carousel pipeline (returns { imgMap: { slideIndex: {url,thumb,…} } }).
+// Best-effort: any failure (no keys, network, timeout) just yields {} and the
+// deck renders on solid backgrounds — generation never fails for lack of photos.
+async function fetchSlideImages(slides, topic) {
+  try {
+    const res = await fetch("/api/images", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slides, topic, wantMosaic: false }),
+    });
+    if (!res.ok) return {};
+    const data = await res.json();
+    return (data && data.imgMap) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
 export async function generateCarousel(topic, opts) {
   const prompt = buildEditorialPrompt(topic);
   const res = await fetch("/api/generate", {
@@ -63,5 +82,7 @@ export async function generateCarousel(topic, opts) {
     throw new Error((data && (data.error.message || data.error)) || ("HTTP " + res.status));
   }
   const slides = parseSlides(extractText(data));
-  return slidesToDoc(slides, opts && opts.style);
+  const wantPhotos = !opts || opts.photos !== false;
+  const imgMap = wantPhotos ? await fetchSlideImages(slides, topic) : {};
+  return slidesToDoc(slides, opts && opts.style, imgMap);
 }
