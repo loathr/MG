@@ -115,6 +115,11 @@ export function blankSlide() {
   };
 }
 
+// A fresh single-slide document for "start from blank".
+export function blankDoc() {
+  return { id: uid("doc"), slides: [blankSlide()] };
+}
+
 // Build a FLAT-LAYERS-safe image background from a Photos-panel search result.
 // One decoded image (`src`, pre-capped server-side) + at most one scrim overlay
 // (a single rgba layer baked in Artboard) + a small `thumb` for the strip. No

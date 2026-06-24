@@ -1,20 +1,21 @@
 "use client";
 import React, { useEffect, useReducer, useRef, useState } from "react";
 import { reducer, initStudio } from "./store";
-import { makeElement, imageBackground, ARTBOARD_W, ARTBOARD_H } from "./model";
+import { makeElement, imageBackground, blankDoc, ARTBOARD_W, ARTBOARD_H } from "./model";
 import { generateCarousel } from "./generate";
 import { photosDemoDoc } from "./demo";
 import Artboard from "./Artboard";
 import SlideThumb from "./SlideThumb";
 import PhotosPanel from "./PhotosPanel";
+import CreateScreen from "./CreateScreen";
 
 const hbtn = {
   height: 32, padding: "0 12px", background: "#26262b", color: "#e8e8e8",
   border: "1px solid #36363c", borderRadius: 6, cursor: "pointer", fontSize: 12,
 };
 
-// Left tool rail (spec §5). Photos is the focus of this pass; Text/Elements drop
-// pre-styled content; Templates/Brand are placeholders for later passes.
+// Left tool rail (spec §5). Photos is wired; Text/Elements drop pre-styled
+// content; Templates/Brand are placeholders for later passes.
 const TOOLS = [
   { key: "text", label: "Text", glyph: "T" },
   { key: "elements", label: "Elements", glyph: "▢" },
@@ -32,25 +33,29 @@ const TEXT_PRESETS = {
 
 export default function Studio() {
   const [state, dispatch] = useReducer(reducer, undefined, initStudio);
-  const [topic, setTopic] = useState("");
+  const [screen, setScreen] = useState("create"); // "create" | "editor"
+  const [projectName, setProjectName] = useState("Untitled");
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState("");
   const [activePanel, setActivePanel] = useState("photos");
-  const demoLoaded = useRef(false);
+  const booted = useRef(false);
   const slide = state.doc.slides[state.slideIndex];
 
-  // Optional demo deck for the FLAT-LAYERS image-path proof: ?demo=photos9.
-  // Client-only (avoids any SSR mismatch) and runs once.
+  // Optional demo deck for the FLAT-LAYERS image-path proof: ?demo=photos9 jumps
+  // straight into the editor. Client-only (avoids SSR mismatch) and runs once.
   useEffect(() => {
-    if (demoLoaded.current) return;
-    demoLoaded.current = true;
+    if (booted.current) return;
+    booted.current = true;
     const params = new URLSearchParams(window.location.search);
     if (params.get("demo") === "photos9") {
       dispatch({ type: "loadDoc", doc: photosDemoDoc() });
+      setProjectName("Photo demo");
+      setScreen("editor");
     }
   }, []);
 
   useEffect(() => {
+    if (screen !== "editor") return;
     const onKey = (e) => {
       if (state.editingId) return;
       const tag = (e.target && e.target.tagName) || "";
@@ -64,19 +69,29 @@ export default function Studio() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [state.editingId, state.selectedId]);
+  }, [screen, state.editingId, state.selectedId]);
 
-  const generate = async () => {
-    if (!topic.trim() || generating) return;
+  // Create screen → generate in the chosen style → land in the editor.
+  const handleGenerate = async ({ style, topic }) => {
+    if (generating) return;
     setGenerating(true); setGenError("");
     try {
-      const doc = await generateCarousel(topic.trim());
+      const doc = await generateCarousel(topic, { style });
       dispatch({ type: "loadDoc", doc });
+      setProjectName(topic);
+      setScreen("editor");
     } catch (e) {
       setGenError(e && e.message ? e.message : "Generation failed");
     } finally {
       setGenerating(false);
     }
+  };
+
+  const startBlank = () => {
+    dispatch({ type: "loadDoc", doc: blankDoc() });
+    setProjectName("Untitled");
+    setGenError("");
+    setScreen("editor");
   };
 
   const addText = (kind) => {
@@ -102,32 +117,27 @@ export default function Studio() {
 
   const toggle = (key) => setActivePanel((p) => (p === key ? null : key));
 
+  if (screen === "create") {
+    return <CreateScreen onGenerate={handleGenerate} onBlank={startBlank} generating={generating} error={genError} />;
+  }
+
   return (
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: "#161618", color: "#eee", fontFamily: "Helvetica, Arial, sans-serif" }}>
-      <header style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderBottom: "1px solid #2a2a2f", flexShrink: 0 }}>
-        <strong style={{ fontSize: 13, letterSpacing: 1 }}>LOATHR STUDIO</strong>
-        <span style={{ fontSize: 10, color: "#777", border: "1px solid #333", padding: "2px 6px", borderRadius: 4 }}>Editorial</span>
+      <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: "1px solid #2a2a2f", flexShrink: 0 }}>
+        <button style={hbtn} onClick={() => setScreen("create")} title="Back to start">‹ New</button>
         <input
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") generate(); }}
-          placeholder="Enter a topic, e.g. FIFA World Cup recap…"
-          style={{ flex: 1, maxWidth: 460, height: 32, padding: "0 12px", background: "#1d1d21", color: "#fff", border: "1px solid #36363c", borderRadius: 6, fontSize: 13 }}
+          value={projectName}
+          onChange={(e) => setProjectName(e.target.value)}
+          title="Project name"
+          style={{ width: 260, height: 32, padding: "0 10px", background: "transparent", color: "#fff", border: "1px solid transparent", borderRadius: 6, fontSize: 14, fontWeight: 600 }}
+          onFocus={(e) => { e.target.style.border = "1px solid #36363c"; e.target.style.background = "#1d1d21"; }}
+          onBlur={(e) => { e.target.style.border = "1px solid transparent"; e.target.style.background = "transparent"; }}
         />
-        <button style={{ ...hbtn, background: generating ? "#2d8cff55" : "#2d8cff", color: "#fff", border: "none", minWidth: 96 }} onClick={generate} disabled={generating}>
-          {generating ? "Generating…" : "Generate"}
-        </button>
         <div style={{ flex: 1 }} />
         <span style={{ fontSize: 11, color: "#777" }}>
           {state.doc.slides.length} slide{state.doc.slides.length === 1 ? "" : "s"}
         </span>
       </header>
-
-      {genError && (
-        <div style={{ padding: "6px 16px", background: "#3a1f22", color: "#ff9a9a", fontSize: 12, flexShrink: 0 }}>
-          {genError}
-        </div>
-      )}
 
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
         {/* Left tool rail */}
@@ -169,7 +179,7 @@ export default function Studio() {
         )}
         {activePanel === "templates" && (
           <SidePanel title="Templates" onClose={() => setActivePanel(null)}>
-            <p style={panelNote}>Premium layout swaps land in a later pass. Today, generate a deck from a topic above.</p>
+            <p style={panelNote}>Premium layout swaps land in a later pass. Today, pick a look on the start screen.</p>
           </SidePanel>
         )}
         {activePanel === "brand" && (

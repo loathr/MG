@@ -63,5 +63,5 @@ export async function generateCarousel(topic, opts) {
     throw new Error((data && (data.error.message || data.error)) || ("HTTP " + res.status));
   }
   const slides = parseSlides(extractText(data));
-  return slidesToDoc(slides);
+  return slidesToDoc(slides, opts && opts.style);
 }
