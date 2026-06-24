@@ -4,6 +4,67 @@
 > It captures decisions already made with the product owner; don't relitigate
 > them, build to them.
 
+## 0. Status — as built (2026-06-24)
+
+**The §11 build order is complete.** Everything in §1–§12 below is now realised
+in code on branch `claude/charming-fermat-2niyvq` (PR #9). This section is the
+as-built snapshot; the rest of the doc is the plan that produced it and still
+governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrails).
+
+### Shipped, by build-order step (§11)
+1. **Editor shell** — top bar (back · project name · undo/redo · Download ▾),
+   left tool rail (Text · Elements · Photos · Templates · Brand), center
+   artboard, right contextual toolbar, bottom thumbnail strip.
+   `Studio.jsx`, `Artboard.jsx`, `Toolbar.jsx`.
+2. **Photos panel + §3 image path** — `/api/images` search grid; set-as-background
+   with an automatic readability scrim; place-as-element. Off-screen slides
+   render as lightweight thumbnails (`SlideThumb.jsx`); served images capped
+   ≤1280×1600. The 9-slide photo carousel stays light — the crux the old app
+   failed. **No URL input anywhere.**
+3. **Create screen → generation** — "pick a look" style gallery + topic input +
+   content category, wired to `/api/generate`. `CreateScreen.jsx`, `generate.js`.
+4. **Undo/redo + snapping + slide ops** — global history (Cmd/Ctrl+Z / Shift+Z,
+   buttons); smart guides snapping to artboard center/edges + siblings
+   (`geometry.js` `snapMove`, live guides in `Artboard.jsx`); 15° rotate snap;
+   slide reorder/duplicate/delete. `store.js`.
+5. **Style families + Brand + Templates** — Editorial / Bold / Minimal as
+   palette + font sets (`styles.js`); deck-wide Brand panel (accent, fonts,
+   wordmark — `BrandPanel.jsx`); Templates panel with a 5-layout registry applied
+   on explicit click (`TemplatesPanel.jsx`, `templates.js`). Plus §8
+   auto-photo-per-slide on generation and §9 export.
+6. **Editorial voice pass** — content categories with distinct per-category
+   briefs (`categories.js`) and a universal craft bar + banned-phrase list in the
+   prompt (`generate.js`).
+
+### Also shipped
+- **Export (§9):** "This slide" → PNG; "All slides" → a single **`.zip`**
+  (dependency-free STORE-method writer — `zip.js` / `export.js`). Replaces the
+  N-sequential-downloads approach browsers throttle and silently drop.
+
+### Deliberately deferred (scoped out, not bugs)
+- **Per-family _layout_ divergence.** Families currently diverge by palette +
+  fonts only; the same layout geometry renders all three. `templates.js` flags
+  this as the intended "later pass" — a natural next chunk of work.
+- **More premium layouts** beyond the current five (cover / classic / centered /
+  statement / bottom) in the Templates panel.
+- **Recent-projects shelf** on the Create screen. Blank-start exists; a recents
+  list does not (§4's "quiet secondary affordance").
+- **Grid snapping.** Snapping targets artboard center/edges + siblings; the §6
+  "snap to the artboard grid" line is not implemented (low priority).
+
+### Known taste-iteration (needs owner reaction to real output)
+- Generated **voice** is subjective. Tune the per-category briefs, the
+  banned-phrase list, and heading length/casing against decks you actually
+  generate. The structure is stable — this is dial-turning, not rebuilding.
+
+### Notes for whoever picks this up
+- **Do not regress §3 FLAT LAYERS or the §12 guardrails** (no stacked
+  compositing, no image-URL input, output stays premium/editorial).
+- The generation model is configurable via `generateCarousel(opts.model)`;
+  `generate.js` carries the default — change it there to adopt a newer model.
+- All work is committed and pushed; working tree clean. Read this doc in full
+  before extending.
+
 ## 1. What we're building & why
 
 An AI-first Instagram **carousel maker**. You pick a look, type a topic, and AI
