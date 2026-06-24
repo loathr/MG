@@ -36,15 +36,19 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
    briefs (`categories.js`) and a universal craft bar + banned-phrase list in the
    prompt (`generate.js`).
 
-### Also shipped
+### Also shipped (beyond the build order)
 - **Export (§9):** "This slide" → PNG; "All slides" → a single **`.zip`**
   (dependency-free STORE-method writer — `zip.js` / `export.js`). Replaces the
   N-sequential-downloads approach browsers throttle and silently drop.
+- **Per-family layout divergence:** each family maps cover/content to distinct
+  layouts — Editorial left-aligned & sourced (`cover`/`classic`), Bold big &
+  bottom-anchored (`statement`/`bottom`), Minimal centered & airy (`centered`).
+  Families now differ in arrangement, not just palette + fonts. `styles.js`
+  `layouts` + `templates.js` `slidesToDoc`/`previewCover`. (The closer stays
+  brand-anchored and uniform; a side effect is that Bold/Minimal don't render a
+  sources line — see taste-iteration.)
 
 ### Deliberately deferred (scoped out, not bugs)
-- **Per-family _layout_ divergence.** Families currently diverge by palette +
-  fonts only; the same layout geometry renders all three. `templates.js` flags
-  this as the intended "later pass" — a natural next chunk of work.
 - **More premium layouts** beyond the current five (cover / classic / centered /
   statement / bottom) in the Templates panel.
 - **Recent-projects shelf** on the Create screen. Blank-start exists; a recents
@@ -56,6 +60,11 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
 - Generated **voice** is subjective. Tune the per-category briefs, the
   banned-phrase list, and heading length/casing against decks you actually
   generate. The structure is stable — this is dial-turning, not rebuilding.
+- **Per-family layout trade-offs:** Bold's `statement` cover drops the subhead,
+  and Bold/Minimal don't show a sources line (the `bottom` layout would collide
+  with it; `centered` omits it). Fine as a family identity — but if News/
+  Editorial-style credibility wants sources everywhere, add a sources variant to
+  those layouts. The per-family map (`styles.js` `layouts`) is the one knob.
 
 ### Notes for whoever picks this up
 - **Do not regress §3 FLAT LAYERS or the §12 guardrails** (no stacked
