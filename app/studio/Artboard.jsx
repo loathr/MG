@@ -109,8 +109,13 @@ export default function Artboard({ slide, selectedId, editingId, dispatch }) {
           style={{ position: "absolute", top: 0, left: 0, width: ARTBOARD_W, height: ARTBOARD_H, transform: "scale(" + scale + ")", transformOrigin: "top left", overflow: "hidden", background: bg.color || "#0c0c0c" }}
           onPointerDown={() => dispatch({ type: "deselect" })}
         >
+          {/* The ONE heavy decode: the active slide's full-res background. Off-
+              screen slides never mount this (they render bg.thumb in SlideThumb),
+              so a 9-slide photo deck only ever holds one full-res image in native
+              memory at a time — the FLAT-LAYERS §3 invariant. data-role makes that
+              assertable from the browser. */}
           {bg.type === "image" && bg.src && (
-            <img src={bg.src} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+            <img data-role="artboard-bg" src={bg.src} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
           )}
           {bg.type === "image" && bg.scrim ? (
             <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0," + bg.scrim + ")" }} />

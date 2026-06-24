@@ -35,7 +35,10 @@ export const ELEMENT_DEFAULTS = {
     letterSpacing: 0,
     opacity: 1,
   },
-  image: { src: "", fit: "cover", opacity: 1, radius: 0 },
+  // `thumb` is a small (<=~400px) variant of `src`. Off-screen slide thumbnails
+  // render `thumb` so navigating a deck never decodes a second full-res image
+  // (FLAT-LAYERS §3). Empty `thumb` falls back to a neutral placeholder there.
+  image: { src: "", thumb: "", fit: "cover", opacity: 1, radius: 0 },
   rect: { fill: "#e23744", stroke: "none", strokeWidth: 0, radius: 0, opacity: 1 },
   line: { fill: "#ffffff", opacity: 1 },
 };
@@ -99,6 +102,33 @@ export function sampleSlide() {
 
 export function sampleDoc() {
   return { id: uid("doc"), slides: [sampleSlide()] };
+}
+
+// An empty slide on a solid background, ready for elements.
+export function blankSlide() {
+  return {
+    id: uid("slide"),
+    w: ARTBOARD_W,
+    h: ARTBOARD_H,
+    background: { type: "color", color: "#0c0c0c" },
+    elements: [],
+  };
+}
+
+// Build a FLAT-LAYERS-safe image background from a Photos-panel search result.
+// One decoded image (`src`, pre-capped server-side) + at most one scrim overlay
+// (a single rgba layer baked in Artboard) + a small `thumb` for the strip. No
+// stacked compositing — this is the only shape a photo background may take (§3).
+export function imageBackground(img, scrim) {
+  return {
+    type: "image",
+    src: img.url || "",
+    thumb: img.thumb || img.url || "",
+    scrim: scrim == null ? 0.4 : scrim,
+    color: "#0c0c0c",
+    credit: img.credit || "",
+    source: img.source || "",
+  };
 }
 
 // --- selectors / helpers --------------------------------------------------

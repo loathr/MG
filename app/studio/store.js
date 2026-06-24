@@ -4,7 +4,7 @@
 // own object identity changes — i.e. dragging one element never re-renders the
 // others. This isolation is the whole fix for the old monolith's re-render OOM.
 // ============================================================================
-import { sampleDoc } from "./model";
+import { sampleDoc, blankSlide } from "./model";
 
 export function initStudio() {
   return {
@@ -69,6 +69,15 @@ export function reducer(state, a) {
       }));
     case "loadDoc":
       return { doc: a.doc, slideIndex: 0, selectedId: null, editingId: null };
+    case "addSlide": {
+      const slides = state.doc.slides.concat([a.slide || blankSlide()]);
+      return Object.assign({}, state, {
+        doc: Object.assign({}, state.doc, { slides }),
+        slideIndex: slides.length - 1,
+        selectedId: null,
+        editingId: null,
+      });
+    }
     case "setSlide":
       return Object.assign({}, state, { slideIndex: a.index, selectedId: null, editingId: null });
     default:

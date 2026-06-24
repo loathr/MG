@@ -26,6 +26,20 @@ const fetchWithTimeout = (url, opts, ms) => {
 };
 
 // --- search functions ---
+
+// Cap an Unsplash image to <=1280x1600 (FLAT-LAYERS §3). Unsplash serves imgix
+// URLs; `urls.raw` is the param-less base we append sizing to (`full`/`regular`
+// already embed a width, so prefer `raw`). A 1280x1600 JPEG decodes to ~8MB of
+// native bitmap; an uncapped `full` (often 4000px+) decodes to ~90MB — the exact
+// native/GPU cost that killed the old app. Capping here makes the route's stated
+// "<=1280x1600" guarantee true for Unsplash too, not just Pexels.
+const capUnsplash = (urls) => {
+  const base = urls && (urls.raw || urls.full || urls.regular);
+  if (!base) return null;
+  const sep = base.indexOf("?") >= 0 ? "&" : "?";
+  return base + sep + "w=1280&h=1600&fit=crop&q=70&fm=jpg";
+};
+
 const searchUnsplash = async (query, page) => {
   if (!UNSPLASH_KEY) return [];
   try {
@@ -37,7 +51,7 @@ const searchUnsplash = async (query, page) => {
     if (!r.ok) return [];
     const d = await r.json();
     return (d.results || []).filter(Boolean).map((img) => ({
-      url: img.urls ? (img.urls.full || img.urls.regular) : null,
+      url: capUnsplash(img.urls),
       thumb: img.urls ? img.urls.small : null,
       alt: img.alt_description || query,
       credit: img.user ? img.user.name : "",
@@ -370,6 +384,39 @@ async function runImagePipeline(body) {
   };
 }
 
+// --- flat free-text search for the Studio Photos panel ---
+// Returns a deduped, source-mixed list of portrait photos. Every `url` is
+// pre-capped to <=1280x1600 (FLAT-LAYERS §3) so setting one as a slide
+// background can never reintroduce the multi-thousand-pixel decode that took the
+// old app down. `thumb` is a small image used by the search grid itself, so the
+// panel stays light even with 30 results on screen.
+async function runSearch(rawQuery) {
+  const query = (rawQuery || "").trim().slice(0, 80);
+  if (!query) return [];
+  const groups = await Promise.all([
+    searchUnsplash(query),
+    searchPexels(query),
+    searchPixabay(query),
+    searchWikiCommons(query),
+  ]);
+  const seen = {};
+  const out = [];
+  const maxLen = groups.reduce((m, g) => Math.max(m, g.length), 0);
+  // Round-robin interleave so the grid mixes providers rather than showing all
+  // of one source before the next.
+  for (let i = 0; i < maxLen && out.length < 30; i++) {
+    for (let g = 0; g < groups.length; g++) {
+      const img = groups[g][i];
+      if (!img || !img.url || !img.thumb) continue;
+      const key = normalizeImgUrl(img.url);
+      if (seen[key]) continue;
+      seen[key] = true;
+      out.push(img);
+    }
+  }
+  return out;
+}
+
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -378,6 +425,12 @@ export async function POST(request) {
         { error: "No image API keys configured on the server (UNSPLASH_KEY / PEXELS_KEY / PIXABAY_KEY)" },
         { status: 500 },
       );
+    }
+    // Studio Photos panel sends { q } for a flat free-text search -> { results }.
+    // Carousel-pipeline callers send { slides, topic, ... } and are unaffected.
+    if (typeof body.q === "string") {
+      const results = await runSearch(body.q);
+      return NextResponse.json({ results });
     }
     const result = await runImagePipeline(body);
     return NextResponse.json(result);
