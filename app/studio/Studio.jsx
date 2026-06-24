@@ -8,6 +8,7 @@ import Artboard from "./Artboard";
 import SlideThumb from "./SlideThumb";
 import PhotosPanel from "./PhotosPanel";
 import BrandPanel from "./BrandPanel";
+import TemplatesPanel from "./TemplatesPanel";
 import CreateScreen from "./CreateScreen";
 import { exportSlide, exportSlides } from "./export";
 
@@ -228,9 +229,12 @@ export default function Studio() {
           </SidePanel>
         )}
         {activePanel === "templates" && (
-          <SidePanel title="Templates" onClose={() => setActivePanel(null)}>
-            <p style={panelNote}>Premium layout swaps land in a later pass. Today, pick a look on the start screen.</p>
-          </SidePanel>
+          <TemplatesPanel
+            slide={slide}
+            onApply={(layout) => dispatch({ type: "setLayout", layout })}
+            onApplyAll={(layout) => dispatch({ type: "setLayout", layout, all: true })}
+            onClose={() => setActivePanel(null)}
+          />
         )}
         {activePanel === "brand" && (
           <BrandPanel

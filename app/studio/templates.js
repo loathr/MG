@@ -108,6 +108,108 @@ export function closerTemplate(s, style, image) {
   ]);
 }
 
+// --- Layout registry -------------------------------------------------------
+// A layout is a pure (content, style, palette) -> elements arrangement of the
+// slide's text. The Templates panel re-flows a slide's content through any of
+// these on explicit click; nothing auto-reflows, so manual edits persist until
+// the user picks a layout. Each obeys the same palette + photo-awareness.
+
+// Normalize any slide content (generated cover/content/closer, or derived) into
+// the four fields layouts arrange.
+function norm(content) {
+  const c = content || {};
+  return {
+    kicker: c.kicker || c.role || "",
+    heading: c.heading || c.title || "Untitled",
+    body: c.body || c.subhead || c.cta || "",
+    sources: Array.isArray(c.sources) ? c.sources : (c.sources ? [c.sources] : []),
+  };
+}
+
+function centeredKicker(st, pal, content, y) {
+  return content ? makeText(st.kickerFont, { x: M, y, w: ARTBOARD_W - 2 * M, h: 40, content: content.toUpperCase(), fontSize: 24, fontWeight: st.kickerWeight, color: pal.accent, letterSpacing: st.kickerSpacing, align: "center", lineHeight: 1.2 }) : null;
+}
+
+function L_classic(c, st, pal) {
+  return [
+    pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 232, w: 48, h: 6, fill: pal.accent }) : null,
+    c.kicker ? kickerEl(st, pal, c.kicker, 258, 22) : null,
+    makeText(st.headFont, { x: M, y: 312, w: ARTBOARD_W - 2 * M, h: 360, content: c.heading, fontSize: 60, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
+    c.body ? makeText(st.headFont, { x: M, y: 712, w: ARTBOARD_W - 2 * M, h: 470, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.46 }) : null,
+    sourcesEl(st, pal, c.sources),
+  ];
+}
+
+function L_cover(c, st, pal) {
+  return [
+    pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 232, w: 64, h: 7, fill: pal.accent }) : null,
+    kickerEl(st, pal, c.kicker || "EDITORIAL", 262, 25),
+    makeText(st.headFont, { x: M, y: 320, w: ARTBOARD_W - 2 * M, h: 560, content: c.heading, fontSize: 94, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.03 }),
+    c.body ? makeText(st.headFont, { x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 180, content: c.body, fontSize: 33, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
+    sourcesEl(st, pal, c.sources),
+  ];
+}
+
+function L_centered(c, st, pal) {
+  return [
+    centeredKicker(st, pal, c.kicker, 430),
+    makeText(st.headFont, { x: M, y: 490, w: ARTBOARD_W - 2 * M, h: 360, content: c.heading, fontSize: 78, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.05 }),
+    c.body ? makeText(st.headFont, { x: M, y: 880, w: ARTBOARD_W - 2 * M, h: 260, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.45 }) : null,
+  ];
+}
+
+function L_statement(c, st, pal) {
+  return [
+    centeredKicker(st, pal, c.kicker, 300),
+    makeText(st.headFont, { x: M, y: 380, w: ARTBOARD_W - 2 * M, h: 600, content: c.heading, fontSize: 118, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.0 }),
+  ];
+}
+
+function L_bottom(c, st, pal) {
+  return [
+    c.kicker ? kickerEl(st, pal, c.kicker, 742, 22) : null,
+    pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 720, w: 48, h: 6, fill: pal.accent }) : null,
+    makeText(st.headFont, { x: M, y: 800, w: ARTBOARD_W - 2 * M, h: 300, content: c.heading, fontSize: 66, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.06 }),
+    c.body ? makeText(st.headFont, { x: M, y: 1120, w: ARTBOARD_W - 2 * M, h: 150, content: c.body, fontSize: 28, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
+  ];
+}
+
+const LAYOUT_FNS = { classic: L_classic, cover: L_cover, centered: L_centered, statement: L_statement, bottom: L_bottom };
+
+export const LAYOUT_LIST = [
+  { key: "cover", label: "Cover" },
+  { key: "classic", label: "Classic" },
+  { key: "centered", label: "Centered" },
+  { key: "statement", label: "Statement" },
+  { key: "bottom", label: "Bottom" },
+];
+
+// Render a slide's content through a layout -> elements. `hasImage` switches the
+// text to the readable over-photo palette.
+export function renderLayout(layoutKey, content, style, hasImage) {
+  const st = getStyle(style);
+  const pal = palette(st, !!hasImage);
+  const fn = LAYOUT_FNS[layoutKey] || LAYOUT_FNS.classic;
+  return fn(norm(content), st, pal).filter(Boolean);
+}
+
+// Best-effort content for a slide that wasn't generated from a template (sample,
+// blank, demo, or hand-built): infer heading/body/sources from its text.
+export function deriveContent(slide) {
+  if (slide && slide.content) return slide.content;
+  const texts = ((slide && slide.elements) || []).filter((e) => e.type === "text" && e.content);
+  if (!texts.length) return { heading: "Untitled" };
+  const bySize = texts.slice().sort((a, b) => (b.fontSize || 0) - (a.fontSize || 0));
+  const headEl = bySize[0];
+  const srcEl = texts.find((t) => /^sources:/i.test(t.content));
+  const rest = texts.filter((t) => t !== headEl && t !== srcEl);
+  return {
+    heading: headEl ? headEl.content : "Untitled",
+    body: rest.map((t) => t.content).join("\n\n"),
+    sources: srcEl ? [srcEl.content.replace(/^sources:\s*/i, "")] : [],
+  };
+}
+
 // Map a generated slides array into a full document of canvas slides in `style`.
 // `imgMap` (optional) is { slideIndex: { url, thumb, credit, source } } from
 // /api/images — each becomes that slide's single §3-safe photo background.
@@ -117,9 +219,16 @@ export function slidesToDoc(slides, style, imgMap) {
   const out = arr.map((s, i) => {
     const image = imgs[i] || null;
     const role = String(s.role || "").toUpperCase();
-    if (i === 0 || role === "COVER") return coverTemplate(s, style, image);
-    if (i === arr.length - 1 || role === "CLOSER" || role === "OUTRO") return closerTemplate(s, style, image);
-    return contentTemplate(s, i, style, image);
+    let slide, layout;
+    if (i === 0 || role === "COVER") { slide = coverTemplate(s, style, image); layout = "cover"; }
+    else if (i === arr.length - 1 || role === "CLOSER" || role === "OUTRO") { slide = closerTemplate(s, style, image); layout = "closer"; }
+    else { slide = contentTemplate(s, i, style, image); layout = "classic"; }
+    // Keep the source content + style + layout so the Templates panel can re-flow
+    // this slide into another layout without losing its text.
+    slide.content = s;
+    slide.style = style || "editorial";
+    slide.layout = layout;
+    return slide;
   });
   return { id: uid("doc"), brand: brandFromStyle(style), slides: out.length ? out : [coverTemplate({ heading: "Empty" }, style)] };
 }

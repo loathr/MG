@@ -10,6 +10,7 @@
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
 import { sampleDoc, blankSlide, cloneSlide } from "./model";
+import { renderLayout, deriveContent } from "./templates";
 
 const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
 
@@ -137,6 +138,24 @@ function docReducer(state, a) {
       const slides = state.doc.slides.map((s) => Object.assign({}, s, { elements: s.elements.map(remapEl) }));
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { brand: b, slides }) });
     }
+    case "setLayout": {
+      // Re-flow a slide's stored/derived content through a new layout. Explicit,
+      // never automatic — so manual edits persist until the user picks a layout.
+      const relayout = (s) => {
+        const content = s.content || deriveContent(s);
+        const style = s.style || "editorial";
+        const hasImage = !!(s.background && s.background.type === "image");
+        return Object.assign({}, s, {
+          elements: renderLayout(a.layout, content, style, hasImage),
+          layout: a.layout,
+          content,
+        });
+      };
+      const slides = a.all
+        ? state.doc.slides.map(relayout)
+        : state.doc.slides.map((s, idx) => (idx === (a.index == null ? state.slideIndex : a.index) ? relayout(s) : s));
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides }), selectedId: null, editingId: null });
+    }
     case "setSlide":
       return Object.assign({}, state, { slideIndex: a.index, selectedId: null, editingId: null });
     default:
@@ -146,7 +165,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1 };
+const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLayout: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
 
 function snap(state) {
