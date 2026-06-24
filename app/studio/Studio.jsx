@@ -92,11 +92,11 @@ export default function Studio() {
   }, [screen, state.editingId, state.selectedId]);
 
   // Create screen → generate in the chosen style → land in the editor.
-  const handleGenerate = async ({ style, topic }) => {
+  const handleGenerate = async ({ style, category, topic }) => {
     if (generating) return;
     setGenerating(true); setGenError("");
     try {
-      const doc = await generateCarousel(topic, { style });
+      const doc = await generateCarousel(topic, { style, category });
       dispatch({ type: "loadDoc", doc });
       setProjectName(topic);
       setScreen("editor");

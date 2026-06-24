@@ -2,20 +2,25 @@
 // parse the slides JSON, and instantiate the canvas document. Content-quality
 // tuning lives here (Phase 4) — for now a focused editorial brief.
 import { slidesToDoc } from "./templates";
+import { getCategory } from "./categories";
 
-const ROLES = ["THE ORIGIN", "THE TURNING POINT", "THE EVIDENCE", "THE HUMAN STORY", "THE STAKES", "THE FORECAST"];
-
-export function buildEditorialPrompt(topic) {
+// Build the generation prompt for a topic in a given content category. The
+// category supplies the voice (persona + brief), the content-slide role labels,
+// and the closing CTA; the JSON shape is constant so parsing stays stable.
+export function buildPrompt(topic, categoryKey) {
+  const cat = getCategory(categoryKey);
+  const roles = cat.roles;
   return [
-    'You are an editorial director writing a premium Instagram carousel.',
+    "You are " + cat.persona + " writing a premium Instagram carousel.",
     'Topic: "' + topic + '".',
+    cat.brief,
     "",
     "Return ONLY a JSON object (no prose, no markdown fences) of this exact shape:",
     '{"slides":[',
     '  {"role":"COVER","kicker":"SHORT SECTION LABEL","heading":"punchy headline, <= 9 words","subhead":"one vivid sentence that sets up the story"},',
-    '  {"role":"' + ROLES[0] + '","heading":"slide headline","body":"2-3 tight, specific sentences","sources":["Source A","Source B"]},',
-    "  ... 4 to 6 content slides, each with a DIFFERENT role drawn from: " + ROLES.join(", ") + " ...",
-    '  {"role":"CLOSER","heading":"a resonant closing line","cta":"Follow @loathr for more"}',
+    '  {"role":"' + roles[0] + '","heading":"slide headline","body":"2-3 tight, specific sentences","sources":["Source A","Source B"]},',
+    "  ... 4 to 6 content slides, each with a DIFFERENT role drawn from: " + roles.join(", ") + " ...",
+    '  {"role":"CLOSER","heading":"a resonant closing line","cta":"' + cat.cta + '"}',
     "]}",
     "",
     "Rules:",
@@ -24,6 +29,11 @@ export function buildEditorialPrompt(topic) {
     "- Headlines in Title Case. No hashtags or emoji in body text.",
     "- Keep bodies tight (max ~45 words). Sources: 1-2 short, credible outlet names.",
   ].join("\n");
+}
+
+// Back-compat alias.
+export function buildEditorialPrompt(topic) {
+  return buildPrompt(topic, "editorial");
 }
 
 function extractText(data) {
@@ -67,7 +77,7 @@ async function fetchSlideImages(slides, topic) {
 }
 
 export async function generateCarousel(topic, opts) {
-  const prompt = buildEditorialPrompt(topic);
+  const prompt = buildPrompt(topic, opts && opts.category);
   const res = await fetch("/api/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

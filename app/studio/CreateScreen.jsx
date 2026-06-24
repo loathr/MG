@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { STYLE_LIST, DEFAULT_STYLE } from "./styles";
+import { CATEGORY_LIST, DEFAULT_CATEGORY } from "./categories";
 import StylePreview from "./StylePreview";
 
 // Screen 1 — Create (spec §4). Pick a look first, then type the topic, then one
@@ -9,12 +10,13 @@ import StylePreview from "./StylePreview";
 
 export default function CreateScreen({ onGenerate, onBlank, generating, error }) {
   const [style, setStyle] = useState(DEFAULT_STYLE);
+  const [category, setCategory] = useState(DEFAULT_CATEGORY);
   const [topic, setTopic] = useState("");
 
   const submit = () => {
     const t = topic.trim();
     if (!t || generating) return;
-    onGenerate({ style, topic: t });
+    onGenerate({ style, category, topic: t });
   };
 
   return (
@@ -38,7 +40,19 @@ export default function CreateScreen({ onGenerate, onBlank, generating, error })
           })}
         </div>
 
-        <div style={{ ...label, marginTop: 30 }}>What&apos;s it about?</div>
+        <div style={{ ...label, marginTop: 30 }}>What kind?</div>
+        <div style={chips}>
+          {CATEGORY_LIST.map((c) => {
+            const on = category === c.key;
+            return (
+              <button key={c.key} type="button" onClick={() => setCategory(c.key)} style={chip(on)} title={c.blurb}>
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ ...label, marginTop: 24 }}>What&apos;s it about?</div>
         <input
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
@@ -70,6 +84,16 @@ const col = { width: "100%", maxWidth: 640, display: "flex", flexDirection: "col
 const brand = { fontSize: 13, letterSpacing: 4, color: "#cfcfcf", fontWeight: 700, marginBottom: 36 };
 const label = { fontSize: 13, letterSpacing: 1, color: "#8f8f97", marginBottom: 14, textTransform: "uppercase" };
 const gallery = { display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" };
+const chips = { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" };
+function chip(on) {
+  return {
+    height: 34, padding: "0 16px", borderRadius: 999, cursor: "pointer", fontSize: 13,
+    background: on ? "#2d8cff" : "transparent",
+    color: on ? "#fff" : "#bdbdbd",
+    border: "1.5px solid " + (on ? "#2d8cff" : "#3a3a42"),
+    fontWeight: on ? 600 : 400,
+  };
+}
 
 function card(on) {
   return {
