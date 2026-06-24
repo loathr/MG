@@ -183,7 +183,7 @@ export default function Studio() {
               <div onClick={() => setDlOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
               <div style={{ position: "absolute", right: 0, top: 38, minWidth: 176, background: "#26262b", border: "1px solid #36363c", borderRadius: 8, padding: 4, zIndex: 50, boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}>
                 <button style={menuItem} onClick={exportCurrent}>This slide (PNG)</button>
-                <button style={menuItem} onClick={exportDeck}>All {state.doc.slides.length} slides (PNG)</button>
+                <button style={menuItem} onClick={exportDeck}>All {state.doc.slides.length} slides (.zip)</button>
               </div>
             </>
           )}

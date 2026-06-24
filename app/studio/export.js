@@ -8,6 +8,7 @@
 // this module is SSR/build-safe (no top-level DOM access).
 // ============================================================================
 import { ARTBOARD_W, ARTBOARD_H } from "./model";
+import { makeZip } from "./zip";
 
 function loadImage(src) {
   return new Promise((resolve) => {
@@ -154,28 +155,40 @@ export async function renderSlideToCanvas(slide) {
   return canvas;
 }
 
-function downloadCanvas(canvas, filename) {
+// Canvas → PNG bytes. Resolves null if the canvas is tainted (a photo loaded
+// without CORS makes toBlob throw SecurityError) or encoding otherwise fails.
+function canvasToPngBytes(canvas) {
   return new Promise((resolve) => {
-    let blobbed = false;
     try {
       canvas.toBlob((blob) => {
-        if (!blob) { resolve(false); return; }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        resolve(true);
+        if (!blob) { resolve(null); return; }
+        blob.arrayBuffer().then(
+          (buf) => resolve(new Uint8Array(buf)),
+          () => resolve(null),
+        );
       }, "image/png");
-      blobbed = true;
     } catch (e) {
-      // tainted canvas (a photo without CORS) — toBlob throws SecurityError
-      if (!blobbed) resolve(false);
+      resolve(null);
     }
   });
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function downloadCanvas(canvas, filename) {
+  const bytes = await canvasToPngBytes(canvas);
+  if (!bytes) return false;
+  downloadBlob(new Blob([bytes], { type: "image/png" }), filename);
+  return true;
 }
 
 function slug(name) {
@@ -187,15 +200,18 @@ export async function exportSlide(slide, name, index) {
   return downloadCanvas(canvas, slug(name) + "-" + ((index || 0) + 1) + ".png");
 }
 
+// Render every slide to a PNG and deliver them as ONE .zip — a single download
+// the browser won't throttle or drop (unlike N sequential saves). Tainted
+// slides are skipped; the rest still ship. Returns the count actually zipped.
 export async function exportSlides(slides, name) {
   const base = slug(name);
-  let okCount = 0;
+  const files = [];
   for (let i = 0; i < slides.length; i++) {
     const canvas = await renderSlideToCanvas(slides[i]);
-    const ok = await downloadCanvas(canvas, base + "-" + (i + 1) + ".png");
-    if (ok) okCount += 1;
-    // small gap so browsers don't drop sequential downloads
-    await new Promise((r) => setTimeout(r, 350));
+    const bytes = await canvasToPngBytes(canvas);
+    if (bytes) files.push({ name: base + "-" + (i + 1) + ".png", data: bytes });
   }
-  return okCount;
+  if (files.length === 0) return 0;
+  downloadBlob(makeZip(files), base + ".zip");
+  return files.length;
 }
