@@ -12,7 +12,7 @@
 // family divergence is a later pass (§11 step 5).
 // ============================================================================
 import { ARTBOARD_W, ARTBOARD_H, uid, makeElement } from "./model";
-import { getStyle } from "./styles";
+import { getStyle, brandFromStyle } from "./styles";
 
 const M = 80; // side margin
 
@@ -121,5 +121,5 @@ export function slidesToDoc(slides, style, imgMap) {
     if (i === arr.length - 1 || role === "CLOSER" || role === "OUTRO") return closerTemplate(s, style, image);
     return contentTemplate(s, i, style, image);
   });
-  return { id: uid("doc"), slides: out.length ? out : [coverTemplate({ heading: "Empty" }, style)] };
+  return { id: uid("doc"), brand: brandFromStyle(style), slides: out.length ? out : [coverTemplate({ heading: "Empty" }, style)] };
 }

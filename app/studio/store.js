@@ -115,6 +115,28 @@ function docReducer(state, a) {
       slides.splice(to, 0, s);
       return withDoc(state, slides, to);
     }
+    case "applyBrand": {
+      // Deck-wide re-theme: swap elements whose look matches the previous brand
+      // (accent / fonts / wordmark) to the new brand. Elements the user edited to
+      // something off-brand are left alone. Records the new brand on the doc.
+      const prev = a.prev || {};
+      const b = a.brand || {};
+      const remapEl = (e) => {
+        let n = e;
+        if (b.accent && prev.accent) {
+          if (e.type === "rect" && e.fill === prev.accent) n = Object.assign({}, n, { fill: b.accent });
+          else if (e.type === "text" && e.color === prev.accent) n = Object.assign({}, n, { color: b.accent });
+        }
+        if (e.type === "text") {
+          if (b.headFont && prev.headFont && n.fontFamily === prev.headFont) n = Object.assign({}, n, { fontFamily: b.headFont });
+          else if (b.bodyFont && prev.bodyFont && n.fontFamily === prev.bodyFont) n = Object.assign({}, n, { fontFamily: b.bodyFont });
+          if (b.wordmark && prev.wordmark && n.content === prev.wordmark) n = Object.assign({}, n, { content: b.wordmark });
+        }
+        return n;
+      };
+      const slides = state.doc.slides.map((s) => Object.assign({}, s, { elements: s.elements.map(remapEl) }));
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { brand: b, slides }) });
+    }
     case "setSlide":
       return Object.assign({}, state, { slideIndex: a.index, selectedId: null, editingId: null });
     default:
@@ -124,7 +146,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1 };
+const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
 
 function snap(state) {

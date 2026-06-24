@@ -74,3 +74,9 @@ export const DEFAULT_STYLE = "editorial";
 export function getStyle(key) {
   return STYLES[key] || STYLES.editorial;
 }
+
+// The deck-wide brand defaults for a style — what the Brand panel starts from.
+export function brandFromStyle(key) {
+  const st = getStyle(key);
+  return { accent: st.accent, headFont: st.headFont, bodyFont: st.bodyFont, wordmark: "LOATHR" };
+}

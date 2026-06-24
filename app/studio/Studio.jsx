@@ -7,6 +7,7 @@ import { photosDemoDoc } from "./demo";
 import Artboard from "./Artboard";
 import SlideThumb from "./SlideThumb";
 import PhotosPanel from "./PhotosPanel";
+import BrandPanel from "./BrandPanel";
 import CreateScreen from "./CreateScreen";
 import { exportSlide, exportSlides } from "./export";
 
@@ -232,9 +233,11 @@ export default function Studio() {
           </SidePanel>
         )}
         {activePanel === "brand" && (
-          <SidePanel title="Brand" onClose={() => setActivePanel(null)}>
-            <p style={panelNote}>Deck-wide accent color, fonts, and logo are coming in a later pass.</p>
-          </SidePanel>
+          <BrandPanel
+            brand={state.doc.brand}
+            onApply={(prev, next) => dispatch({ type: "applyBrand", prev, brand: next })}
+            onClose={() => setActivePanel(null)}
+          />
         )}
 
         <Artboard slide={slide} selectedId={state.selectedId} editingId={state.editingId} dispatch={dispatch} />
