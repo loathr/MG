@@ -122,6 +122,7 @@ function norm(content) {
     heading: c.heading || c.title || "Untitled",
     body: c.body || c.subhead || c.cta || "",
     sources: Array.isArray(c.sources) ? c.sources : (c.sources ? [c.sources] : []),
+    number: c.number,
   };
 }
 
@@ -173,7 +174,46 @@ function L_bottom(c, st, pal) {
   ];
 }
 
-const LAYOUT_FNS = { classic: L_classic, cover: L_cover, centered: L_centered, statement: L_statement, bottom: L_bottom };
+// --- New layouts (Phase 1): quote / numbered / split. Pure text + flat rects,
+// reusing the existing content fields (heading/body/kicker/sources + an optional
+// `number`) — no schema change. Available in every family via the panel.
+
+// Pull-quote: a big accent quotation mark, the heading set as a centered italic
+// quote, the kicker as attribution. (Re-flowing turns any headline into a quote.)
+function L_quote(c, st, pal) {
+  return [
+    makeText(st.headFont, { x: M, y: 330, w: ARTBOARD_W - 2 * M, h: 160, content: "“", fontSize: 200, fontWeight: st.headWeight, color: pal.accent, align: "center", lineHeight: 1 }),
+    makeText(st.headFont, { x: M, y: 556, w: ARTBOARD_W - 2 * M, h: 470, content: c.heading, fontSize: 50, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.26, italic: true }),
+    c.kicker ? makeText(st.kickerFont, { x: M, y: 1086, w: ARTBOARD_W - 2 * M, h: 40, content: "— " + c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, align: "center", letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
+  ];
+}
+
+// Numbered "step": a large accent numeral (from `number`, else 01) over the
+// kicker, heading, and body. Reads as a playbook/list slide.
+function L_numbered(c, st, pal) {
+  const n = c.number != null ? String(c.number).padStart(2, "0") : "01";
+  return [
+    makeText(st.headFont, { x: M, y: 244, w: ARTBOARD_W - 2 * M, h: 230, content: n, fontSize: 184, fontWeight: st.headWeight, color: pal.accent, lineHeight: 1, letterSpacing: -2 }),
+    c.kicker ? kickerEl(st, pal, c.kicker, 486, 22) : null,
+    makeText(st.headFont, { x: M, y: 536, w: ARTBOARD_W - 2 * M, h: 320, content: c.heading, fontSize: 58, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
+    c.body ? makeText(st.headFont, { x: M, y: 884, w: ARTBOARD_W - 2 * M, h: 340, content: c.body, fontSize: 30, fontWeight: 400, color: pal.sub, lineHeight: 1.5 }) : null,
+    sourcesEl(st, pal, c.sources),
+  ];
+}
+
+// Split/feature: kicker + heading up top, a full-width rule, body below. The
+// rule gives an editorial "above/below the fold" structure classic lacks.
+function L_split(c, st, pal) {
+  return [
+    c.kicker ? kickerEl(st, pal, c.kicker, 258, 22) : null,
+    makeText(st.headFont, { x: M, y: 312, w: ARTBOARD_W - 2 * M, h: 320, content: c.heading, fontSize: 62, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.06 }),
+    makeElement("rect", { id: uid("r"), x: M, y: 700, w: ARTBOARD_W - 2 * M, h: 2, fill: pal.accentBar ? pal.accent : pal.muted }),
+    c.body ? makeText(st.headFont, { x: M, y: 748, w: ARTBOARD_W - 2 * M, h: 470, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.5 }) : null,
+    sourcesEl(st, pal, c.sources),
+  ];
+}
+
+const LAYOUT_FNS = { classic: L_classic, cover: L_cover, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote };
 
 export const LAYOUT_LIST = [
   { key: "cover", label: "Cover" },
@@ -181,6 +221,9 @@ export const LAYOUT_LIST = [
   { key: "centered", label: "Centered" },
   { key: "statement", label: "Statement" },
   { key: "bottom", label: "Bottom" },
+  { key: "split", label: "Split" },
+  { key: "numbered", label: "Numbered" },
+  { key: "quote", label: "Quote" },
 ];
 
 // Render a slide's content through a layout -> elements. `hasImage` switches the
@@ -231,6 +274,9 @@ export function slidesToDoc(slides, style, imgMap) {
     const role = String(s.role || "").toUpperCase();
     const isCover = i === 0 || role === "COVER";
     const isCloser = !isCover && (i === arr.length - 1 || role === "CLOSER" || role === "OUTRO");
+    // Carry a 1-based slide number so the "numbered" layout has a value to show
+    // (the source content wins on any real conflict).
+    const content = Object.assign({ number: i + 1 }, s);
     let slide, layout;
     if (isCloser) {
       // The closer is brand-anchored (wordmark + CTA), uniform across families.
@@ -238,11 +284,11 @@ export function slidesToDoc(slides, style, imgMap) {
       layout = "closer";
     } else {
       layout = isCover ? lmap.cover : lmap.content;
-      slide = slideShell(st, image, renderLayout(layout, s, style, !!(image && image.url)));
+      slide = slideShell(st, image, renderLayout(layout, content, style, !!(image && image.url)));
     }
     // Keep the source content + style + layout so the Templates panel can re-flow
     // this slide into another layout without losing its text.
-    slide.content = s;
+    slide.content = content;
     slide.style = style || "editorial";
     slide.layout = layout;
     return slide;

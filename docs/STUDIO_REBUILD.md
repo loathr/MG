@@ -49,8 +49,10 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
   sources line — see taste-iteration.)
 
 ### Deliberately deferred (scoped out, not bugs)
-- **More premium layouts** beyond the current five (cover / classic / centered /
-  statement / bottom) in the Templates panel.
+- **More premium layouts.** Eight ship now (cover / classic / centered /
+  statement / bottom / split / numbered / quote) in the Templates panel. Still
+  open: data-driven slides (big-number stat, versus) — those need optional
+  content-schema fields (a prompt/parse change), not just a new arrangement.
 - **Recent-projects shelf** on the Create screen. Blank-start exists; a recents
   list does not (§4's "quiet secondary affordance").
 - **Grid snapping.** Snapping targets artboard center/edges + siblings; the §6
