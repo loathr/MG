@@ -1,10 +1,11 @@
 "use client";
 import React from "react";
-import { coverTemplate } from "./templates";
+import { previewCover } from "./templates";
 import StaticSlide from "./StaticSlide";
 
-// A real rendered cover slide in the given style — the gallery card's preview is
-// the same template code the editor uses, so "what you pick is what you get".
+// A real rendered cover slide in the given style, through that family's OWN cover
+// layout — so the gallery card is exactly what you get: "what you pick is what
+// you get". (Editorial left-aligned, Bold a big statement, Minimal centered.)
 const SAMPLE = {
   kicker: "The Turning Point",
   heading: "How one moment changed the game",
@@ -12,7 +13,7 @@ const SAMPLE = {
 };
 
 function StylePreview({ style, width }) {
-  const slide = React.useMemo(() => coverTemplate(SAMPLE, style.key), [style.key]);
+  const slide = React.useMemo(() => previewCover(SAMPLE, style.key), [style.key]);
   return <StaticSlide slide={slide} width={width} />;
 }
 

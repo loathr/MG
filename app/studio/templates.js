@@ -5,11 +5,10 @@
 // + positioned type + a thin accent bar — no stacked gradient/filter/scrim
 // layers like the old renderers (the native/GPU memory hog behind the crashes).
 //
-// Look is driven by a STYLE family (styles.js): the same layouts render in
-// Editorial / Bold / Minimal by swapping palette + fonts. When a slide has a
-// PHOTO background, text flips to the style's `onPhoto` palette (light, readable
-// over a darkened photo) so even light "Minimal" stays legible. Layout-level
-// family divergence is a later pass (§11 step 5).
+// Look is driven by a STYLE family (styles.js): families swap palette + fonts
+// AND select distinct cover/content layouts (styles.js `layouts`). When a slide
+// has a PHOTO background, text flips to the style's `onPhoto` palette (light,
+// readable over a darkened photo) so even light "Minimal" stays legible.
 // ============================================================================
 import { ARTBOARD_W, ARTBOARD_H, uid, makeElement } from "./model";
 import { getStyle, brandFromStyle } from "./styles";
@@ -193,6 +192,14 @@ export function renderLayout(layoutKey, content, style, hasImage) {
   return fn(norm(content), st, pal).filter(Boolean);
 }
 
+// A single cover slide rendered through a style's OWN cover layout — so the
+// Create-screen gallery card previews exactly what that family will generate.
+export function previewCover(content, style) {
+  const st = getStyle(style);
+  const layout = (st.layouts && st.layouts.cover) || "cover";
+  return slideShell(st, null, renderLayout(layout, content, style, false));
+}
+
 // Best-effort content for a slide that wasn't generated from a template (sample,
 // blank, demo, or hand-built): infer heading/body/sources from its text.
 export function deriveContent(slide) {
@@ -215,14 +222,24 @@ export function deriveContent(slide) {
 // /api/images — each becomes that slide's single §3-safe photo background.
 export function slidesToDoc(slides, style, imgMap) {
   const imgs = imgMap || {};
+  const st = getStyle(style);
+  // Per-family layout map (styles.js); fall back to the editorial arrangement.
+  const lmap = st.layouts || { cover: "cover", content: "classic" };
   const arr = Array.isArray(slides) ? slides.filter(Boolean) : [];
   const out = arr.map((s, i) => {
     const image = imgs[i] || null;
     const role = String(s.role || "").toUpperCase();
+    const isCover = i === 0 || role === "COVER";
+    const isCloser = !isCover && (i === arr.length - 1 || role === "CLOSER" || role === "OUTRO");
     let slide, layout;
-    if (i === 0 || role === "COVER") { slide = coverTemplate(s, style, image); layout = "cover"; }
-    else if (i === arr.length - 1 || role === "CLOSER" || role === "OUTRO") { slide = closerTemplate(s, style, image); layout = "closer"; }
-    else { slide = contentTemplate(s, i, style, image); layout = "classic"; }
+    if (isCloser) {
+      // The closer is brand-anchored (wordmark + CTA), uniform across families.
+      slide = closerTemplate(s, style, image);
+      layout = "closer";
+    } else {
+      layout = isCover ? lmap.cover : lmap.content;
+      slide = slideShell(st, image, renderLayout(layout, s, style, !!(image && image.url)));
+    }
     // Keep the source content + style + layout so the Templates panel can re-flow
     // this slide into another layout without losing its text.
     slide.content = s;

@@ -1,12 +1,13 @@
 // ============================================================================
-// Premium style families. Each is a parameter set the editorial templates render
-// with — same layouts, different look — and the Create-screen gallery previews.
+// Premium style families. Each is a parameter set the templates render with —
+// palette, fonts, AND a per-family layout map — plus the Create-screen previews.
 //
 // "Premium editorial output, kid-simple controls" (spec §1): every family stays
 // grown-up — serif or strong sans, restrained palette, generous type. None of
-// them is childish/rounded/clip-art. Bold and Minimal are real, visually-distinct
-// recolor/refont variants here; they deepen into distinct *layouts* in a later
-// pass (§11 step 5). This registry is the single source of look truth.
+// them is childish/rounded/clip-art. Families also diverge in ARRANGEMENT: each
+// maps cover/content slides to distinct layouts (`layouts`, rendered through
+// templates.js `renderLayout`) — Editorial left-aligned & sourced, Bold big &
+// bottom-anchored, Minimal centered & airy. Single source of look truth.
 // ============================================================================
 
 export const STYLES = {
@@ -14,6 +15,7 @@ export const STYLES = {
     key: "editorial",
     label: "Editorial",
     blurb: "Serif, photo-led, restrained",
+    layouts: { cover: "cover", content: "classic" },
     bg: "#0c0c0c",
     accent: "#e23744",
     ink: "#ffffff",
@@ -33,6 +35,7 @@ export const STYLES = {
     key: "bold",
     label: "Bold",
     blurb: "Big type, high contrast",
+    layouts: { cover: "statement", content: "bottom" },
     bg: "#0a0a0a",
     accent: "#ffd400",
     ink: "#ffffff",
@@ -51,6 +54,7 @@ export const STYLES = {
     key: "minimal",
     label: "Minimal",
     blurb: "Light, airy, refined",
+    layouts: { cover: "centered", content: "centered" },
     bg: "#f4f1ea",
     accent: "#141414",
     ink: "#141414",
