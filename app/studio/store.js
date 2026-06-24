@@ -3,8 +3,15 @@
 // (and the slim path to it), so a memoized <Element> re-renders solely when its
 // own object identity changes — i.e. dragging one element never re-renders the
 // others. This isolation is the whole fix for the old monolith's re-render OOM.
+//
+// History (undo/redo) wraps the pure doc reducer: every mutation snapshots the
+// previous doc onto `past`. A continuous drag/resize fires many "update" actions
+// — those coalesce into ONE undo step via `lastTag` + a `commit` boundary the
+// Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
-import { sampleDoc, blankSlide } from "./model";
+import { sampleDoc, blankSlide, cloneSlide } from "./model";
+
+const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
 
 export function initStudio() {
   return {
@@ -12,6 +19,9 @@ export function initStudio() {
     slideIndex: 0,
     selectedId: null,
     editingId: null,
+    past: [],
+    future: [],
+    lastTag: null,
   };
 }
 
@@ -26,7 +36,17 @@ function patchEl(slide, id, patch) {
   });
 }
 
-export function reducer(state, a) {
+function withDoc(state, slides, slideIndex) {
+  return Object.assign({}, state, {
+    doc: Object.assign({}, state.doc, { slides }),
+    slideIndex: slideIndex == null ? state.slideIndex : slideIndex,
+    selectedId: null,
+    editingId: null,
+  });
+}
+
+// Pure doc/selection transitions. No history bookkeeping — the wrapper adds it.
+function docReducer(state, a) {
   switch (a.type) {
     case "select":
       return Object.assign({}, state, {
@@ -67,20 +87,99 @@ export function reducer(state, a) {
       return withSlide(state, (s) => Object.assign({}, s, {
         background: Object.assign({}, s.background, a.patch),
       }));
-    case "loadDoc":
-      return { doc: a.doc, slideIndex: 0, selectedId: null, editingId: null };
     case "addSlide": {
       const slides = state.doc.slides.concat([a.slide || blankSlide()]);
-      return Object.assign({}, state, {
-        doc: Object.assign({}, state.doc, { slides }),
-        slideIndex: slides.length - 1,
-        selectedId: null,
-        editingId: null,
-      });
+      return withDoc(state, slides, slides.length - 1);
+    }
+    case "duplicateSlide": {
+      const i = a.index == null ? state.slideIndex : a.index;
+      const src = state.doc.slides[i];
+      if (!src) return state;
+      const slides = state.doc.slides.slice();
+      slides.splice(i + 1, 0, cloneSlide(src));
+      return withDoc(state, slides, i + 1);
+    }
+    case "deleteSlide": {
+      if (state.doc.slides.length <= 1) return state; // always keep at least one
+      const i = a.index == null ? state.slideIndex : a.index;
+      if (i < 0 || i >= state.doc.slides.length) return state;
+      const slides = state.doc.slides.filter((_, idx) => idx !== i);
+      return withDoc(state, slides, Math.max(0, Math.min(i, slides.length - 1)));
+    }
+    case "moveSlide": {
+      const { from, to } = a;
+      const n = state.doc.slides.length;
+      if (from == null || to == null || from === to || from < 0 || from >= n || to < 0 || to >= n) return state;
+      const slides = state.doc.slides.slice();
+      const [s] = slides.splice(from, 1);
+      slides.splice(to, 0, s);
+      return withDoc(state, slides, to);
     }
     case "setSlide":
       return Object.assign({}, state, { slideIndex: a.index, selectedId: null, editingId: null });
     default:
       return state;
   }
+}
+
+// Actions that change the document (undoable) vs. interaction boundaries that
+// just reset the coalescing tag so the next edit starts a fresh undo step.
+const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1 };
+const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
+
+function snap(state) {
+  return { doc: state.doc, slideIndex: state.slideIndex };
+}
+
+export function reducer(state, a) {
+  switch (a.type) {
+    case "undo": {
+      if (!state.past.length) return state;
+      const prev = state.past[state.past.length - 1];
+      return Object.assign({}, state, {
+        doc: prev.doc,
+        slideIndex: Math.max(0, Math.min(prev.slideIndex, prev.doc.slides.length - 1)),
+        past: state.past.slice(0, -1),
+        future: [snap(state)].concat(state.future),
+        selectedId: null, editingId: null, lastTag: null,
+      });
+    }
+    case "redo": {
+      if (!state.future.length) return state;
+      const nxt = state.future[0];
+      return Object.assign({}, state, {
+        doc: nxt.doc,
+        slideIndex: Math.max(0, Math.min(nxt.slideIndex, nxt.doc.slides.length - 1)),
+        past: state.past.concat([snap(state)]),
+        future: state.future.slice(1),
+        selectedId: null, editingId: null, lastTag: null,
+      });
+    }
+    case "loadDoc":
+      // A new document is a fresh history.
+      return { doc: a.doc, slideIndex: 0, selectedId: null, editingId: null, past: [], future: [], lastTag: null };
+    case "commit":
+      return state.lastTag == null ? state : Object.assign({}, state, { lastTag: null });
+    default:
+      break;
+  }
+
+  const next = docReducer(state, a);
+  if (next === state) return state;
+
+  if (MUTATES[a.type]) {
+    const tag = a.type === "update" ? "update:" + a.id : null;
+    if (tag && state.lastTag === tag) {
+      // coalesce a continuous drag/resize of one element into a single undo step
+      return Object.assign({}, next, { future: [], lastTag: tag });
+    }
+    let past = state.past.concat([snap(state)]);
+    if (past.length > HISTORY_CAP) past = past.slice(past.length - HISTORY_CAP);
+    return Object.assign({}, next, { past, future: [], lastTag: tag });
+  }
+
+  if (BOUNDARY[a.type]) {
+    return state.lastTag == null ? next : Object.assign({}, next, { lastTag: null });
+  }
+  return next;
 }

@@ -63,11 +63,15 @@ export default function Artboard({ slide, selectedId, editingId, dispatch }) {
   }, [dispatch, toArtboard]);
 
   const endDrag = useCallback(() => {
+    const wasDragging = !!drag.current;
     drag.current = null;
     setGuides([]);
     window.removeEventListener("pointermove", onWindowMove);
     window.removeEventListener("pointerup", endDrag);
-  }, [onWindowMove]);
+    // Close the undo step: continuous move/resize/rotate updates coalesced into
+    // one frame; the next interaction starts fresh.
+    if (wasDragging) dispatch({ type: "commit" });
+  }, [onWindowMove, dispatch]);
 
   const beginDrag = useCallback((mode, id, clientX, clientY, handle) => {
     const startEl = slide.elements.find((e) => e.id === id);

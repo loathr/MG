@@ -120,6 +120,18 @@ export function blankDoc() {
   return { id: uid("doc"), slides: [blankSlide()] };
 }
 
+// Deep-ish copy of a slide with fresh ids (slide + every element), for the
+// strip's "duplicate". Background is a shallow copy (its fields are primitives).
+export function cloneSlide(slide) {
+  return {
+    id: uid("slide"),
+    w: slide.w,
+    h: slide.h,
+    background: Object.assign({}, slide.background),
+    elements: (slide.elements || []).map((e) => Object.assign({}, e, { id: uid(e.type || "el") })),
+  };
+}
+
 // Build a FLAT-LAYERS-safe image background from a Photos-panel search result.
 // One decoded image (`src`, pre-capped server-side) + at most one scrim overlay
 // (a single rgba layer baked in Artboard) + a small `thumb` for the strip. No

@@ -13,6 +13,10 @@ const hbtn = {
   height: 32, padding: "0 12px", background: "#26262b", color: "#e8e8e8",
   border: "1px solid #36363c", borderRadius: 6, cursor: "pointer", fontSize: 12,
 };
+const iconBtn = (enabled) => ({
+  ...hbtn, minWidth: 34, padding: "0 9px", fontSize: 15, lineHeight: 1,
+  opacity: enabled ? 1 : 0.4, cursor: enabled ? "pointer" : "default",
+});
 
 // Left tool rail (spec §5). Photos is wired; Text/Elements drop pre-styled
 // content; Templates/Brand are placeholders for later passes.
@@ -39,6 +43,7 @@ export default function Studio() {
   const [genError, setGenError] = useState("");
   const [activePanel, setActivePanel] = useState("photos");
   const booted = useRef(false);
+  const dragFrom = useRef(null); // slide index being drag-reordered in the strip
   const slide = state.doc.slides[state.slideIndex];
 
   // Optional demo deck for the FLAT-LAYERS image-path proof: ?demo=photos9 jumps
@@ -60,6 +65,17 @@ export default function Studio() {
       if (state.editingId) return;
       const tag = (e.target && e.target.tagName) || "";
       if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && (e.key === "z" || e.key === "Z")) {
+        e.preventDefault();
+        dispatch({ type: e.shiftKey ? "redo" : "undo" });
+        return;
+      }
+      if (meta && (e.key === "y" || e.key === "Y")) {
+        e.preventDefault();
+        dispatch({ type: "redo" });
+        return;
+      }
       if ((e.key === "Delete" || e.key === "Backspace") && state.selectedId) {
         e.preventDefault();
         dispatch({ type: "delete", id: state.selectedId });
@@ -133,6 +149,8 @@ export default function Studio() {
           onFocus={(e) => { e.target.style.border = "1px solid #36363c"; e.target.style.background = "#1d1d21"; }}
           onBlur={(e) => { e.target.style.border = "1px solid transparent"; e.target.style.background = "transparent"; }}
         />
+        <button style={iconBtn(state.past.length > 0)} disabled={state.past.length === 0} onClick={() => dispatch({ type: "undo" })} title="Undo (Ctrl/Cmd+Z)">↶</button>
+        <button style={iconBtn(state.future.length > 0)} disabled={state.future.length === 0} onClick={() => dispatch({ type: "redo" })} title="Redo (Ctrl/Cmd+Shift+Z)">↷</button>
         <div style={{ flex: 1 }} />
         <span style={{ fontSize: 11, color: "#777" }}>
           {state.doc.slides.length} slide{state.doc.slides.length === 1 ? "" : "s"}
@@ -194,14 +212,25 @@ export default function Studio() {
       {/* Slide strip — lightweight thumbnails (FLAT-LAYERS §3) */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderTop: "1px solid #2a2a2f", overflowX: "auto", flexShrink: 0 }}>
         {state.doc.slides.map((s, i) => (
-          <SlideThumb key={s.id} slide={s} index={i} active={i === state.slideIndex} onClick={() => dispatch({ type: "setSlide", index: i })} />
+          <SlideStripItem
+            key={s.id}
+            slide={s}
+            index={i}
+            active={i === state.slideIndex}
+            canDelete={state.doc.slides.length > 1}
+            dragFrom={dragFrom}
+            onSelect={() => dispatch({ type: "setSlide", index: i })}
+            onReorder={(from, to) => dispatch({ type: "moveSlide", from, to })}
+            onDuplicate={() => dispatch({ type: "duplicateSlide", index: i })}
+            onDelete={() => dispatch({ type: "deleteSlide", index: i })}
+          />
         ))}
         <button onClick={() => dispatch({ type: "addSlide" })} title="Add slide"
           style={{ width: 60, height: 75, flexShrink: 0, borderRadius: 5, border: "1.5px dashed #3a3a40", background: "transparent", color: "#888", cursor: "pointer", fontSize: 22 }}>
           +
         </button>
         <span style={{ marginLeft: 6, fontSize: 11, color: "#777", whiteSpace: "nowrap" }}>
-          drag to move · handles resize/rotate · double-click text · Del / Esc
+          drag thumbnails to reorder · hover for ⧉ duplicate / × delete · ⌘/Ctrl+Z undo
         </span>
       </div>
     </div>
@@ -229,5 +258,47 @@ function PanelButton({ onClick, children }) {
       style={{ height: 36, padding: "0 12px", textAlign: "left", background: "#26262b", color: "#e8e8e8", border: "1px solid #36363c", borderRadius: 6, cursor: "pointer", fontSize: 13 }}>
       {children}
     </button>
+  );
+}
+
+const miniBtn = {
+  width: 18, height: 18, lineHeight: "15px", textAlign: "center", fontSize: 12, padding: 0,
+  background: "rgba(18,18,20,0.9)", color: "#fff", border: "1px solid #444", borderRadius: 4,
+  cursor: "pointer", pointerEvents: "auto",
+};
+
+// A slide thumbnail in the strip, wrapped with drag-to-reorder + hover
+// duplicate/delete controls (spec §5). Keeps SlideThumb itself presentational.
+function SlideStripItem({ slide, index, active, canDelete, dragFrom, onSelect, onReorder, onDuplicate, onDelete }) {
+  const [hover, setHover] = useState(false);
+  const [over, setOver] = useState(false);
+  return (
+    <div
+      draggable
+      onDragStart={(e) => { dragFrom.current = index; e.dataTransfer.effectAllowed = "move"; }}
+      onDragOver={(e) => { e.preventDefault(); if (!over) setOver(true); }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setOver(false);
+        const from = dragFrom.current;
+        dragFrom.current = null;
+        if (from != null && from !== index) onReorder(from, index);
+      }}
+      onDragEnd={() => { dragFrom.current = null; setOver(false); }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ position: "relative", flexShrink: 0, borderRadius: 6, outline: over ? "2px solid #2d8cff" : "none", outlineOffset: 1 }}
+    >
+      <SlideThumb slide={slide} index={index} active={active} onClick={onSelect} />
+      {hover && (
+        <div style={{ position: "absolute", top: 2, left: 2, right: 2, display: "flex", justifyContent: "space-between", pointerEvents: "none" }}>
+          <button title="Duplicate slide" onClick={(e) => { e.stopPropagation(); onDuplicate(); }} style={miniBtn}>⧉</button>
+          {canDelete && (
+            <button title="Delete slide" onClick={(e) => { e.stopPropagation(); onDelete(); }} style={{ ...miniBtn, color: "#ff8a8a" }}>×</button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
