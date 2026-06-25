@@ -155,13 +155,17 @@ function docReducer(state, a) {
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { brand: b, slides }) });
     }
     case "setLogo": {
-      // Deck-wide logo stamp. One role-tagged image element per slide at a fixed
-      // top-right anchor; re-upload replaces it, null removes it. It's a normal
-      // element after placement, so the user can drag/resize/delete it per slide.
+      // Brand bookend: place the logo on the cover (first slide) and the closing
+      // slide (last) only — not on content slides. One role-tagged image element
+      // at a fixed top-right anchor; re-upload replaces it, null removes it. Any
+      // prior logo is stripped from EVERY slide first, so a re-scope or a clear
+      // never leaves a stray. After placement it's a normal, draggable element.
       const logo = a.logo && a.logo.src ? a.logo : null;
-      const place = (s) => {
+      const n = state.doc.slides.length;
+      const onBookend = (i) => i === 0 || i === n - 1;
+      const slides = state.doc.slides.map((s, i) => {
         const els = (s.elements || []).filter((e) => e.role !== "logo");
-        if (logo) {
+        if (logo && onBookend(i)) {
           els.push(makeElement("image", {
             id: uid("logo"), role: "logo", src: logo.src, thumb: logo.src,
             x: ARTBOARD_W - 80 - logo.w, y: 60, w: logo.w, h: logo.h,
@@ -169,8 +173,7 @@ function docReducer(state, a) {
           }));
         }
         return Object.assign({}, s, { elements: els });
-      };
-      const slides = state.doc.slides.map(place);
+      });
       const brand = Object.assign({}, state.doc.brand, { logo });
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides, brand }) });
     }

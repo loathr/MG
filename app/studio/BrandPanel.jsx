@@ -122,7 +122,7 @@ export default function BrandPanel({ brand, onApply, onLogo, onClose }) {
         <Field label="Wordmark (closing slide)">
           <input value={cur.wordmark || ""} onChange={(e) => set({ wordmark: e.target.value })} style={inp} placeholder="LOATHR" />
         </Field>
-        <Field label="Logo (every slide)">
+        <Field label="Logo (cover & closing)">
           {cur.logo && cur.logo.src ? (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ width: 64, height: 40, borderRadius: 6, background: "#0e0e12", border: "1px solid #36363c", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
@@ -139,7 +139,8 @@ export default function BrandPanel({ brand, onApply, onLogo, onClose }) {
         </Field>
         <p style={{ fontSize: 11, color: "#777", margin: 0, lineHeight: 1.5 }}>
           Palette, accent, fonts &amp; wordmark apply across every slide. The logo
-          is stamped top-right on each slide — drag to reposition. Undoable (⌘/Ctrl+Z).
+          is stamped top-right on the cover &amp; closing slides — drag to
+          reposition. Undoable (⌘/Ctrl+Z).
         </p>
       </div>
     </div>

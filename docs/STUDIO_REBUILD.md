@@ -59,10 +59,11 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
   `styles.js` `EDITORIAL_PALETTES`/`paletteBrand`; `store.js` `applyBrand` now
   remaps the background + full text-color set (ink-first, so the monochrome
   Minimal family stays readable on a dark palette).
-- **Logo upload (deck-wide):** the Brand panel accepts an uploaded image logo,
-  downscaled to a same-origin PNG dataURL (so PNG/zip export stays untainted)
-  and stamped top-right on every slide as a role-tagged `image` element — a
-  normal element after placement, so it drags/resizes/deletes per slide.
+- **Logo upload (cover + closing):** the Brand panel accepts an uploaded image
+  logo, downscaled to a same-origin PNG dataURL (so PNG/zip export stays
+  untainted) and stamped top-right on the cover and closing slides (brand
+  bookends — not content slides) as a role-tagged `image` element — a normal
+  element after placement, so it drags/resizes/deletes per slide.
   Re-upload replaces, Remove clears; one undoable step. `store.js` `setLogo`;
   `BrandPanel.jsx` upload UI. Coexists with the wordmark (closing-slide text).
   Known gap: the logo lives on the current doc, so regenerating a deck starts
