@@ -122,20 +122,36 @@ function docReducer(state, a) {
       // something off-brand are left alone. Records the new brand on the doc.
       const prev = a.prev || {};
       const b = a.brand || {};
+      // Text color remap, ink-first. For families with distinct ink/accent
+      // (editorial, bold) order is irrelevant; for the monochrome minimal family
+      // (accent === ink) ink-first sends body text to the new ink rather than the
+      // accent, so a palette swap stays readable instead of going all-accent.
+      const COLORS = ["ink", "sub", "muted", "accent"];
       const remapEl = (e) => {
         let n = e;
-        if (b.accent && prev.accent) {
-          if (e.type === "rect" && e.fill === prev.accent) n = Object.assign({}, n, { fill: b.accent });
-          else if (e.type === "text" && e.color === prev.accent) n = Object.assign({}, n, { color: b.accent });
+        if (e.type === "rect" && b.accent && prev.accent && e.fill === prev.accent) {
+          n = Object.assign({}, n, { fill: b.accent });
         }
         if (e.type === "text") {
+          for (const k of COLORS) {
+            if (b[k] && prev[k] && e.color === prev[k]) { n = Object.assign({}, n, { color: b[k] }); break; }
+          }
           if (b.headFont && prev.headFont && n.fontFamily === prev.headFont) n = Object.assign({}, n, { fontFamily: b.headFont });
           else if (b.bodyFont && prev.bodyFont && n.fontFamily === prev.bodyFont) n = Object.assign({}, n, { fontFamily: b.bodyFont });
           if (b.wordmark && prev.wordmark && n.content === prev.wordmark) n = Object.assign({}, n, { content: b.wordmark });
         }
         return n;
       };
-      const slides = state.doc.slides.map((s) => Object.assign({}, s, { elements: s.elements.map(remapEl) }));
+      const slides = state.doc.slides.map((s) => {
+        const elements = s.elements.map(remapEl);
+        // Re-theme the solid background too (the color behind photos as well), so
+        // a palette's background follows the deck. Leaves custom backgrounds alone.
+        let background = s.background;
+        if (b.bg && prev.bg && background && background.color === prev.bg) {
+          background = Object.assign({}, background, { color: b.bg });
+        }
+        return Object.assign({}, s, { elements, background });
+      });
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { brand: b, slides }) });
     }
     case "setLayout": {

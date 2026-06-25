@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { brandFromStyle } from "./styles";
+import { brandFromStyle, EDITORIAL_PALETTES, paletteBrand } from "./styles";
 
 // Brand panel (spec §7). Deck-wide accent color, heading/body fonts, and the
 // closing wordmark — applied across every slide and undoable. Re-themes by
@@ -41,7 +41,9 @@ function Field({ label, children }) {
 }
 
 export default function BrandPanel({ brand, onApply, onClose }) {
-  const cur = brand || brandFromStyle("editorial");
+  // Fill any missing color fields from the editorial defaults so a palette swap
+  // always has a known "previous" to remap from.
+  const cur = Object.assign({}, brandFromStyle("editorial"), brand);
   const set = (patch) => onApply(cur, Object.assign({}, cur, patch));
   return (
     <div style={wrap}>
@@ -50,6 +52,24 @@ export default function BrandPanel({ brand, onApply, onClose }) {
         <button style={xBtn} onClick={onClose} title="Close panel">×</button>
       </div>
       <div style={{ padding: "0 12px 12px", display: "flex", flexDirection: "column", gap: 14 }}>
+        <Field label="Palette">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            {EDITORIAL_PALETTES.map((p) => {
+              const active = cur.accent === p.accent && cur.bg === p.bg;
+              return (
+                <button key={p.id} title={p.label} onClick={() => set(paletteBrand(p))}
+                  style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
+                  <span style={{ display: "block", height: 36, borderRadius: 6, background: p.bg, position: "relative",
+                    boxShadow: active ? "0 0 0 2px #ffffff" : "inset 0 0 0 1px #ffffff22" }}>
+                    <span style={{ position: "absolute", left: 6, bottom: 6, width: 14, height: 14, borderRadius: 7, background: p.accent }} />
+                    <span style={{ position: "absolute", right: 7, top: 5, fontSize: 12, fontWeight: 700, fontFamily: "Georgia, serif", color: p.ink }}>Aa</span>
+                  </span>
+                  <span style={{ display: "block", marginTop: 4, fontSize: 9.5, lineHeight: 1.2, color: active ? "#e8e8e8" : "#8a8a8a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Field>
         <Field label="Accent color">
           <label style={{ display: "flex", alignItems: "center", gap: 8, position: "relative", height: 34, padding: "0 8px", background: "#26262b", border: "1px solid #36363c", borderRadius: 6, cursor: "pointer" }}>
             <span style={{ width: 20, height: 20, borderRadius: 4, background: cur.accent, border: "1px solid #555" }} />

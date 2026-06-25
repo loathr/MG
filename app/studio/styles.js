@@ -80,7 +80,50 @@ export function getStyle(key) {
 }
 
 // The deck-wide brand defaults for a style — what the Brand panel starts from.
+// Carries the full color set (so a palette swap has a known "previous" to remap
+// from) plus fonts and the closing wordmark.
 export function brandFromStyle(key) {
   const st = getStyle(key);
-  return { accent: st.accent, headFont: st.headFont, bodyFont: st.bodyFont, wordmark: "LOATHR" };
+  return {
+    accent: st.accent, bg: st.bg, ink: st.ink, sub: st.sub, muted: st.muted,
+    headFont: st.headFont, bodyFont: st.bodyFont, wordmark: "LOATHR",
+  };
+}
+
+// ----------------------------------------------------------------------------
+// Editorial palettes — the original 9 category color schemes, revived as
+// one-click "looks" in the Brand panel. Color only: accent + background + ink,
+// applied over any family without touching its layout or typography.
+// ----------------------------------------------------------------------------
+
+function clamp8(n) { return n < 0 ? 0 : n > 255 ? 255 : n; }
+
+// Linear blend of two #rrggbb hexes (t=0 → a, t=1 → b). Used to tint sub/muted
+// text between the palette ink and its background so contrast + hierarchy hold.
+function mix(a, b, t) {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  return "#" + pa.map((x, i) => clamp8(Math.round(x + (pb[i] - x) * t)).toString(16).padStart(2, "0")).join("");
+}
+
+export const EDITORIAL_PALETTES = [
+  { id: "film",      label: "Film & TV",        bg: "#1a1a2e", accent: "#e6a817", ink: "#f5f0e4" },
+  { id: "photo",     label: "Photography",      bg: "#0a0a0a", accent: "#ffffff", ink: "#f4f4f4" },
+  { id: "sports",    label: "Sports × Culture", bg: "#111111", accent: "#e63946", ink: "#ffffff" },
+  { id: "trivia",    label: "Did You Know?",    bg: "#0d1f2d", accent: "#1abc9c", ink: "#ffffff" },
+  { id: "art",       label: "Art & Music",      bg: "#1a0a3e", accent: "#ff2d55", ink: "#f8f0ff" },
+  { id: "fashion",   label: "Fashion",          bg: "#141420", accent: "#00d2d3", ink: "#f5f5f0" },
+  { id: "food",      label: "Food & Drink",     bg: "#1a0f0a", accent: "#e67e22", ink: "#fff5eb" },
+  { id: "nightlife", label: "Nightlife",        bg: "#0a0a1a", accent: "#9b59b6", ink: "#f0e6ff" },
+  { id: "gossip",    label: "The Tea",          bg: "#1a0a14", accent: "#ff4081", ink: "#fff0f5" },
+];
+
+// Expand a palette into the brand color set the deck re-themes with. sub/muted
+// are tinted between ink and bg so body/source text stays readable on the new
+// background while keeping a step of hierarchy below the heading.
+export function paletteBrand(p) {
+  return {
+    bg: p.bg, accent: p.accent, ink: p.ink,
+    sub: mix(p.ink, p.bg, 0.14), muted: mix(p.ink, p.bg, 0.46),
+  };
 }

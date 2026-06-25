@@ -47,6 +47,18 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
   `layouts` + `templates.js` `slidesToDoc`/`previewCover`. (The closer stays
   brand-anchored and uniform; a side effect is that Bold/Minimal don't render a
   sources line — see taste-iteration.)
+- **Three more layouts (`split` / `numbered` / `quote`)** in the Templates
+  panel, available across every family, reusing existing content fields only
+  (a derived slide `number` for `numbered`) — no prompt/schema change.
+  `templates.js` `LAYOUT_LIST`/`LAYOUT_FNS`.
+- **Editorial palettes:** the original 9 category color schemes (Film & TV,
+  Photography, Sports × Culture, Did You Know?, Art & Music, Fashion, Food &
+  Drink, Nightlife, The Tea) revived as one-click **looks** in the Brand panel.
+  Color only (accent + background + ink, with sub/muted tinted between ink and
+  bg) — re-themes any family without touching its layout or typography.
+  `styles.js` `EDITORIAL_PALETTES`/`paletteBrand`; `store.js` `applyBrand` now
+  remaps the background + full text-color set (ink-first, so the monochrome
+  Minimal family stays readable on a dark palette).
 
 ### Deliberately deferred (scoped out, not bugs)
 - **More premium layouts.** Eight ship now (cover / classic / centered /
