@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useReducer, useRef, useState } from "react";
-import { reducer, initStudio } from "./store";
+import { reducer, initStudio, carryBrandKit } from "./store";
 import { makeElement, imageBackground, blankDoc, ARTBOARD_W, ARTBOARD_H } from "./model";
 import { generateCarousel } from "./generate";
 import { photosDemoDoc } from "./demo";
@@ -92,13 +92,16 @@ export default function Studio() {
     return () => window.removeEventListener("keydown", onKey);
   }, [screen, state.editingId, state.selectedId]);
 
-  // Create screen → generate in the chosen style → land in the editor.
+  // Create screen → generate in the chosen style → land in the editor. Capture
+  // the current deck before the await so the user's brand kit (custom palette /
+  // fonts / wordmark + logo) carries onto the freshly generated deck (§5).
   const handleGenerate = async ({ style, category, topic }) => {
     if (generating) return;
+    const prevDoc = state.doc;
     setGenerating(true); setGenError("");
     try {
       const doc = await generateCarousel(topic, { style, category });
-      dispatch({ type: "loadDoc", doc });
+      dispatch({ type: "loadDoc", doc: carryBrandKit(doc, prevDoc) });
       setProjectName(topic);
       setScreen("editor");
     } catch (e) {

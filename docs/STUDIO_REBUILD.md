@@ -65,11 +65,19 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
   untainted) and stamped top-right on the cover and closing slides (brand
   bookends — not content slides) as a role-tagged `image` element — a normal
   element after placement, so it drags/resizes/deletes per slide.
-  Re-upload replaces, Remove clears; one undoable step. `store.js` `setLogo`;
-  `BrandPanel.jsx` upload UI. Coexists with the wordmark (closing-slide text).
-  Known gap: the logo lives on the current doc, so regenerating a deck starts
-  fresh without it (re-apply from the panel) — threading brand through
-  generation is a later pass.
+  Re-upload replaces, Remove clears; one undoable step. `store.js` `setLogo` (a
+  thin wrapper over the pure `stampLogo`); `BrandPanel.jsx` upload UI. Coexists
+  with the wordmark (closing-slide text), and now rides through regeneration
+  (see next).
+- **Brand kit carries through regeneration:** generating a new deck no longer
+  discards the brand. `carryBrandKit(newDoc, prevDoc)` (`store.js`, run in
+  `Studio.jsx` `handleGenerate`) re-applies the user's deliberate brand overrides
+  onto the fresh deck — but ONLY the fields that differ from the previous style's
+  defaults, so choosing a new style still adopts that style's look; just the
+  custom palette / fonts / wordmark ride along. The logo always carries (it's
+  never a style default), re-stamped on the new bookends. Pure and a no-op when
+  nothing was customized (first generation, untouched brand). Built on the shared
+  `rethemeDoc` + `stampLogo` helpers the `applyBrand`/`setLogo` actions also use.
 
 ### Deliberately deferred (scoped out, not bugs)
 - **More premium layouts.** Eight ship now (cover / classic / centered /

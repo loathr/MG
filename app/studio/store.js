@@ -11,6 +11,7 @@
 // ============================================================================
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W } from "./model";
 import { renderLayout, deriveContent } from "./templates";
+import { brandFromStyle } from "./styles";
 
 const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
 
@@ -44,6 +45,83 @@ function withDoc(state, slides, slideIndex) {
     selectedId: null,
     editingId: null,
   });
+}
+
+// --- Brand helpers (pure, doc-level) ---------------------------------------
+// Re-theme a doc by remapping every element whose look still matches brand
+// `prev` over to brand `next`: accent rect fills, text colors (ink-first, so the
+// monochrome minimal family sends body text to ink not accent), head/body fonts,
+// the wordmark text, and the solid background color. Elements the user pushed
+// off-brand don't match `prev`, so they're left alone. Shared by the applyBrand
+// action and the regenerate brand-carry.
+export function rethemeDoc(doc, prev, next) {
+  const b = next || {}, p = prev || {};
+  const COLORS = ["ink", "sub", "muted", "accent"];
+  const remapEl = (e) => {
+    let n = e;
+    if (e.type === "rect" && b.accent && p.accent && e.fill === p.accent) n = Object.assign({}, n, { fill: b.accent });
+    if (e.type === "text") {
+      for (const k of COLORS) {
+        if (b[k] && p[k] && e.color === p[k]) { n = Object.assign({}, n, { color: b[k] }); break; }
+      }
+      if (b.headFont && p.headFont && n.fontFamily === p.headFont) n = Object.assign({}, n, { fontFamily: b.headFont });
+      else if (b.bodyFont && p.bodyFont && n.fontFamily === p.bodyFont) n = Object.assign({}, n, { fontFamily: b.bodyFont });
+      if (b.wordmark && p.wordmark && n.content === p.wordmark) n = Object.assign({}, n, { content: b.wordmark });
+    }
+    return n;
+  };
+  const slides = doc.slides.map((s) => {
+    const elements = s.elements.map(remapEl);
+    let background = s.background;
+    if (b.bg && p.bg && background && background.color === p.bg) background = Object.assign({}, background, { color: b.bg });
+    return Object.assign({}, s, { elements, background });
+  });
+  return Object.assign({}, doc, { brand: b, slides });
+}
+
+// Stamp/replace/remove the brand logo on a doc's bookend slides (cover = first,
+// closer = last). Strips any prior logo from EVERY slide first, then re-adds it
+// to the bookends as a draggable, role-tagged image. `null`/empty clears it.
+export function stampLogo(doc, logo) {
+  const lg = logo && logo.src ? logo : null;
+  const n = doc.slides.length;
+  const onBookend = (i) => i === 0 || i === n - 1;
+  const slides = doc.slides.map((s, i) => {
+    const els = (s.elements || []).filter((e) => e.role !== "logo");
+    if (lg && onBookend(i)) {
+      els.push(makeElement("image", {
+        id: uid("logo"), role: "logo", src: lg.src, thumb: lg.src,
+        x: ARTBOARD_W - 80 - lg.w, y: 60, w: lg.w, h: lg.h, fit: "contain", radius: 0,
+      }));
+    }
+    return Object.assign({}, s, { elements: els });
+  });
+  return Object.assign({}, doc, { slides, brand: Object.assign({}, doc.brand, { logo: lg }) });
+}
+
+// Carry a user's brand kit from the previous deck onto a freshly generated one.
+// Only brand fields the user changed FROM the previous style's defaults are
+// carried, so choosing a NEW style still adopts that style's look — just the
+// deliberate overrides (a custom palette, fonts, wordmark) ride along. The logo
+// always carries, since it's never a style default. Pure; returns newDoc
+// unchanged when there's nothing to carry (first generation, or an untouched
+// previous brand), so the common path is a no-op.
+export function carryBrandKit(newDoc, prevDoc) {
+  const prevBrand = prevDoc && prevDoc.brand;
+  if (!prevBrand) return newDoc;
+  const prevStyle = (prevDoc.slides && prevDoc.slides[0] && prevDoc.slides[0].style) || "editorial";
+  const defaults = brandFromStyle(prevStyle);
+  const FIELDS = ["accent", "bg", "ink", "sub", "muted", "headFont", "bodyFont", "wordmark"];
+  const custom = {};
+  for (const k of FIELDS) {
+    if (prevBrand[k] != null && prevBrand[k] !== defaults[k]) custom[k] = prevBrand[k];
+  }
+  const logo = prevBrand.logo && prevBrand.logo.src ? prevBrand.logo : null;
+  if (!Object.keys(custom).length && !logo) return newDoc;
+  let out = newDoc;
+  if (Object.keys(custom).length) out = rethemeDoc(out, newDoc.brand, Object.assign({}, newDoc.brand, custom));
+  if (logo) out = stampLogo(out, logo);
+  return out;
 }
 
 // Pure doc/selection transitions. No history bookkeeping — the wrapper adds it.
@@ -116,67 +194,14 @@ function docReducer(state, a) {
       slides.splice(to, 0, s);
       return withDoc(state, slides, to);
     }
-    case "applyBrand": {
-      // Deck-wide re-theme: swap elements whose look matches the previous brand
-      // (accent / fonts / wordmark) to the new brand. Elements the user edited to
-      // something off-brand are left alone. Records the new brand on the doc.
-      const prev = a.prev || {};
-      const b = a.brand || {};
-      // Text color remap, ink-first. For families with distinct ink/accent
-      // (editorial, bold) order is irrelevant; for the monochrome minimal family
-      // (accent === ink) ink-first sends body text to the new ink rather than the
-      // accent, so a palette swap stays readable instead of going all-accent.
-      const COLORS = ["ink", "sub", "muted", "accent"];
-      const remapEl = (e) => {
-        let n = e;
-        if (e.type === "rect" && b.accent && prev.accent && e.fill === prev.accent) {
-          n = Object.assign({}, n, { fill: b.accent });
-        }
-        if (e.type === "text") {
-          for (const k of COLORS) {
-            if (b[k] && prev[k] && e.color === prev[k]) { n = Object.assign({}, n, { color: b[k] }); break; }
-          }
-          if (b.headFont && prev.headFont && n.fontFamily === prev.headFont) n = Object.assign({}, n, { fontFamily: b.headFont });
-          else if (b.bodyFont && prev.bodyFont && n.fontFamily === prev.bodyFont) n = Object.assign({}, n, { fontFamily: b.bodyFont });
-          if (b.wordmark && prev.wordmark && n.content === prev.wordmark) n = Object.assign({}, n, { content: b.wordmark });
-        }
-        return n;
-      };
-      const slides = state.doc.slides.map((s) => {
-        const elements = s.elements.map(remapEl);
-        // Re-theme the solid background too (the color behind photos as well), so
-        // a palette's background follows the deck. Leaves custom backgrounds alone.
-        let background = s.background;
-        if (b.bg && prev.bg && background && background.color === prev.bg) {
-          background = Object.assign({}, background, { color: b.bg });
-        }
-        return Object.assign({}, s, { elements, background });
-      });
-      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { brand: b, slides }) });
-    }
-    case "setLogo": {
-      // Brand bookend: place the logo on the cover (first slide) and the closing
-      // slide (last) only — not on content slides. One role-tagged image element
-      // at a fixed top-right anchor; re-upload replaces it, null removes it. Any
-      // prior logo is stripped from EVERY slide first, so a re-scope or a clear
-      // never leaves a stray. After placement it's a normal, draggable element.
-      const logo = a.logo && a.logo.src ? a.logo : null;
-      const n = state.doc.slides.length;
-      const onBookend = (i) => i === 0 || i === n - 1;
-      const slides = state.doc.slides.map((s, i) => {
-        const els = (s.elements || []).filter((e) => e.role !== "logo");
-        if (logo && onBookend(i)) {
-          els.push(makeElement("image", {
-            id: uid("logo"), role: "logo", src: logo.src, thumb: logo.src,
-            x: ARTBOARD_W - 80 - logo.w, y: 60, w: logo.w, h: logo.h,
-            fit: "contain", radius: 0,
-          }));
-        }
-        return Object.assign({}, s, { elements: els });
-      });
-      const brand = Object.assign({}, state.doc.brand, { logo });
-      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides, brand }) });
-    }
+    case "applyBrand":
+      // Deck-wide re-theme: remap elements matching the previous brand to the new
+      // one (see rethemeDoc). Elements the user edited off-brand are left alone.
+      return Object.assign({}, state, { doc: rethemeDoc(state.doc, a.prev || {}, a.brand || {}) });
+    case "setLogo":
+      // Brand bookend: stamp the logo on the cover + closing slides only (see
+      // stampLogo). After placement it's a normal, draggable element.
+      return Object.assign({}, state, { doc: stampLogo(state.doc, a.logo) });
     case "setLayout": {
       // Re-flow a slide's stored/derived content through a new layout. Explicit,
       // never automatic — so manual edits persist until the user picks a layout.
