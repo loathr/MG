@@ -240,6 +240,7 @@ export default function Studio() {
           <BrandPanel
             brand={state.doc.brand}
             onApply={(prev, next) => dispatch({ type: "applyBrand", prev, brand: next })}
+            onLogo={(logo) => dispatch({ type: "setLogo", logo })}
             onClose={() => setActivePanel(null)}
           />
         )}

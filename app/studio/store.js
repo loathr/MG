@@ -9,7 +9,7 @@
 // — those coalesce into ONE undo step via `lastTag` + a `commit` boundary the
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
-import { sampleDoc, blankSlide, cloneSlide } from "./model";
+import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W } from "./model";
 import { renderLayout, deriveContent } from "./templates";
 
 const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
@@ -154,6 +154,26 @@ function docReducer(state, a) {
       });
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { brand: b, slides }) });
     }
+    case "setLogo": {
+      // Deck-wide logo stamp. One role-tagged image element per slide at a fixed
+      // top-right anchor; re-upload replaces it, null removes it. It's a normal
+      // element after placement, so the user can drag/resize/delete it per slide.
+      const logo = a.logo && a.logo.src ? a.logo : null;
+      const place = (s) => {
+        const els = (s.elements || []).filter((e) => e.role !== "logo");
+        if (logo) {
+          els.push(makeElement("image", {
+            id: uid("logo"), role: "logo", src: logo.src, thumb: logo.src,
+            x: ARTBOARD_W - 80 - logo.w, y: 60, w: logo.w, h: logo.h,
+            fit: "contain", radius: 0,
+          }));
+        }
+        return Object.assign({}, s, { elements: els });
+      };
+      const slides = state.doc.slides.map(place);
+      const brand = Object.assign({}, state.doc.brand, { logo });
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides, brand }) });
+    }
     case "setLayout": {
       // Re-flow a slide's stored/derived content through a new layout. Explicit,
       // never automatic — so manual edits persist until the user picks a layout.
@@ -181,7 +201,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLayout: 1 };
+const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setLayout: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
 
 function snap(state) {

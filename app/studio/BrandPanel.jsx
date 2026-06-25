@@ -26,9 +26,40 @@ const xBtn = { width: 24, height: 24, lineHeight: "22px", textAlign: "center", b
 const sel = { width: "100%", height: 34, background: "#26262b", color: "#e8e8e8", border: "1px solid #36363c", borderRadius: 6, fontSize: 13, padding: "0 8px" };
 const inp = { width: "100%", height: 34, background: "#26262b", color: "#fff", border: "1px solid #36363c", borderRadius: 6, fontSize: 13, padding: "0 10px" };
 const lbl = { fontSize: 11, color: "#9a9a9a", marginBottom: 6, display: "block" };
+const miniBtn = { height: 30, padding: "0 10px", background: "#26262b", color: "#e8e8e8", border: "1px solid #36363c", borderRadius: 6, fontSize: 12, cursor: "pointer" };
+const uploadBtn = { width: "100%", height: 40, background: "#26262b", color: "#cfcfcf", border: "1px dashed #45454c", borderRadius: 6, fontSize: 13, cursor: "pointer" };
 
 function hex(c) {
   return typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? c : "#000000";
+}
+
+// Read an uploaded image → a small, crisp PNG dataURL + a display size ~50px
+// tall (width by aspect ratio, capped). dataURLs are same-origin, so the export
+// canvas stays untainted. Browser-only (called from a file input's onChange).
+function readLogoFile(file, cb) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 512; // cap the stored bitmap so the dataURL stays light
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const cw = Math.max(1, Math.round(img.width * scale));
+      const ch = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = cw; canvas.height = ch;
+      canvas.getContext("2d").drawImage(img, 0, 0, cw, ch);
+      let src;
+      try { src = canvas.toDataURL("image/png"); } catch (e) { src = String(reader.result); }
+      const ratio = img.width / img.height || 1;
+      const h = 50;
+      const w = Math.min(280, Math.round(h * ratio));
+      cb({ src, w, h: Math.round(w / ratio) });
+    };
+    img.onerror = () => cb(null);
+    img.src = String(reader.result);
+  };
+  reader.onerror = () => cb(null);
+  reader.readAsDataURL(file);
 }
 
 function Field({ label, children }) {
@@ -40,11 +71,12 @@ function Field({ label, children }) {
   );
 }
 
-export default function BrandPanel({ brand, onApply, onClose }) {
+export default function BrandPanel({ brand, onApply, onLogo, onClose }) {
   // Fill any missing color fields from the editorial defaults so a palette swap
   // always has a known "previous" to remap from.
   const cur = Object.assign({}, brandFromStyle("editorial"), brand);
   const set = (patch) => onApply(cur, Object.assign({}, cur, patch));
+  const fileRef = React.useRef(null);
   return (
     <div style={wrap}>
       <div style={head}>
@@ -90,8 +122,24 @@ export default function BrandPanel({ brand, onApply, onClose }) {
         <Field label="Wordmark (closing slide)">
           <input value={cur.wordmark || ""} onChange={(e) => set({ wordmark: e.target.value })} style={inp} placeholder="LOATHR" />
         </Field>
+        <Field label="Logo (every slide)">
+          {cur.logo && cur.logo.src ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 64, height: 40, borderRadius: 6, background: "#0e0e12", border: "1px solid #36363c", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
+                <img src={cur.logo.src} alt="" style={{ maxWidth: "86%", maxHeight: "80%", objectFit: "contain", display: "block" }} />
+              </span>
+              <button style={miniBtn} onClick={() => fileRef.current && fileRef.current.click()}>Replace</button>
+              <button style={miniBtn} onClick={() => onLogo(null)}>Remove</button>
+            </div>
+          ) : (
+            <button style={uploadBtn} onClick={() => fileRef.current && fileRef.current.click()}>Upload image…</button>
+          )}
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
+            onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) readLogoFile(f, (L) => L && onLogo(L)); e.target.value = ""; }} />
+        </Field>
         <p style={{ fontSize: 11, color: "#777", margin: 0, lineHeight: 1.5 }}>
-          Applies across every slide. Undoable (⌘/Ctrl+Z).
+          Palette, accent, fonts &amp; wordmark apply across every slide. The logo
+          is stamped top-right on each slide — drag to reposition. Undoable (⌘/Ctrl+Z).
         </p>
       </div>
     </div>
