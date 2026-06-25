@@ -1,17 +1,36 @@
 "use client";
 import React, { useState } from "react";
 import { STYLE_LIST, DEFAULT_STYLE } from "./styles";
-import { CATEGORY_LIST, DEFAULT_CATEGORY } from "./categories";
+import { CATEGORY_LIST, DEFAULT_CATEGORY, getCategory } from "./categories";
 import StylePreview from "./StylePreview";
 
 // Screen 1 — Create (spec §4). Pick a look first, then type the topic, then one
 // primary button. Nothing else competes for attention. A quiet secondary link
 // opens a blank canvas without crowding the first screen.
 
+// Map a category to a valid style key for seeding the look, guarding against a
+// defaultStyle that isn't a real style family.
+function seedStyleFor(categoryKey) {
+  const ds = getCategory(categoryKey).defaultStyle;
+  return STYLE_LIST.some((s) => s.key === ds) ? ds : DEFAULT_STYLE;
+}
+
 export default function CreateScreen({ onGenerate, onBlank, generating, error }) {
-  const [style, setStyle] = useState(DEFAULT_STYLE);
   const [category, setCategory] = useState(DEFAULT_CATEGORY);
+  // The look is seeded from the category's defaultStyle until the user picks one
+  // explicitly; after that it's theirs and a new category only changes the voice.
+  const [style, setStyle] = useState(() => seedStyleFor(DEFAULT_CATEGORY));
+  const [styleTouched, setStyleTouched] = useState(false);
   const [topic, setTopic] = useState("");
+
+  const pickCategory = (key) => {
+    setCategory(key);
+    if (!styleTouched) setStyle(seedStyleFor(key));
+  };
+  const pickStyle = (key) => {
+    setStyle(key);
+    setStyleTouched(true);
+  };
 
   const submit = () => {
     const t = topic.trim();
@@ -24,29 +43,29 @@ export default function CreateScreen({ onGenerate, onBlank, generating, error })
       <div style={col}>
         <div style={brand}>LOATHR STUDIO</div>
 
-        <div style={label}>Choose a look</div>
-        <div style={gallery}>
-          {STYLE_LIST.map((s) => {
-            const on = style === s.key;
+        <div style={label}>What kind?</div>
+        <div style={chips}>
+          {CATEGORY_LIST.map((c) => {
+            const on = category === c.key;
             return (
-              <button key={s.key} type="button" onClick={() => setStyle(s.key)} style={card(on)}>
-                <div style={{ borderRadius: 6, overflow: "hidden", lineHeight: 0, boxShadow: "0 6px 18px rgba(0,0,0,0.45)" }}>
-                  <StylePreview style={s} width={150} />
-                </div>
-                <div style={cardLabel(on)}>{s.label}</div>
-                <div style={cardBlurb}>{s.blurb}</div>
+              <button key={c.key} type="button" onClick={() => pickCategory(c.key)} style={chip(on)} title={c.blurb}>
+                {c.label}
               </button>
             );
           })}
         </div>
 
-        <div style={{ ...label, marginTop: 30 }}>What kind?</div>
-        <div style={chips}>
-          {CATEGORY_LIST.map((c) => {
-            const on = category === c.key;
+        <div style={{ ...label, marginTop: 30 }}>Choose a look</div>
+        <div style={gallery}>
+          {STYLE_LIST.map((s) => {
+            const on = style === s.key;
             return (
-              <button key={c.key} type="button" onClick={() => setCategory(c.key)} style={chip(on)} title={c.blurb}>
-                {c.label}
+              <button key={s.key} type="button" onClick={() => pickStyle(s.key)} style={card(on)}>
+                <div style={{ borderRadius: 6, overflow: "hidden", lineHeight: 0, boxShadow: "0 6px 18px rgba(0,0,0,0.45)" }}>
+                  <StylePreview style={s} width={150} />
+                </div>
+                <div style={cardLabel(on)}>{s.label}</div>
+                <div style={cardBlurb}>{s.blurb}</div>
               </button>
             );
           })}

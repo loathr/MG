@@ -21,8 +21,9 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
    render as lightweight thumbnails (`SlideThumb.jsx`); served images capped
    ≤1280×1600. The 9-slide photo carousel stays light — the crux the old app
    failed. **No URL input anywhere.**
-3. **Create screen → generation** — "pick a look" style gallery + topic input +
-   content category, wired to `/api/generate`. `CreateScreen.jsx`, `generate.js`.
+3. **Create screen → generation** — content category (kind) first, which seeds
+   the "pick a look" style gallery, then topic input, wired to `/api/generate`.
+   `CreateScreen.jsx`, `generate.js`.
 4. **Undo/redo + snapping + slide ops** — global history (Cmd/Ctrl+Z / Shift+Z,
    buttons); smart guides snapping to artboard center/edges + siblings
    (`geometry.js` `snapMove`, live guides in `Artboard.jsx`); 15° rotate snap;
@@ -161,9 +162,12 @@ compositing must be redesigned to respect it.
 ```
                  LOATHR STUDIO
 
+         What kind?                          ← content/voice; seeds the look
+   ( Editorial ) ( Business ) ( How-to ) …
+
          Choose a look                       ← visual gallery, premium only
    ┌────────┐ ┌────────┐ ┌────────┐
-   │Editorial│ │ Bold   │ │Minimal │         (each is a real rendered preview)
+   │Editorial│ │ Bold   │ │Minimal │         (seeded from the kind; click to override)
    └────────┘ └────────┘ └────────┘
             ● ○ ○
 
@@ -175,7 +179,11 @@ compositing must be redesigned to respect it.
             [ ✨  Make my carousel ]
 ```
 
-- Style gallery first; selecting a card sets the template family for generation.
+- **Kind first, then look.** Picking a content category (voice + role labels)
+  seeds the visual look from its `defaultStyle`; the gallery shows that seed
+  selected and overrides it on click. Once a look is chosen manually, later
+  category changes affect voice only — they don't stomp the explicit pick.
+  (`seedStyleFor` + `styleTouched` in `CreateScreen.jsx`.)
 - Single topic input. One primary button. Nothing else on screen.
 - On submit → run generation (§8) → land in the Editor with slides ready.
 - Keep a quiet secondary affordance to open a recent/blank project (don't crowd
