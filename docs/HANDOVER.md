@@ -6,7 +6,7 @@ first — this file is the working state on top of it.
 
 ## Snapshot
 - **Branch:** `claude/charming-fermat-2niyvq` (develop + push here only).
-- **HEAD at handover:** `3c4cedb`.
+- **HEAD at handover:** `a5d4d60`.
 - **App:** the Studio lives under `app/studio/` (a Canva-style editor). Entry
   `app/studio/page.jsx` → `Studio.jsx`.
 - **Preview:** `https://mg-git-claude-charming-fermat-2niyvq-loathrs-projects.vercel.app/studio`
@@ -32,6 +32,10 @@ first — this file is the working state on top of it.
   read `node_modules/next/dist/docs/` before touching Next APIs.
 
 ## Shipped this session (newest first)
+- `a5d4d60` Side-by-side **"Feature ⇆"** split variant (photo left / text right).
+- `d90bb04` Image+text **"Feature"** layout family (top band + `featureBottom`);
+  photo as canonical `content.image`, moved between bg and element by `reflowSlide`.
+- `bff9b08` Steer **stat/versus onto data/evidence roles** (one prompt nudge).
 - `3c4cedb` Per-category **caution label** on the closing slide (Business/News
   seed one; straight default + witty alts; editable/removable in Brand panel).
 - `4f7235d` Inline **highlight** emphasis (knockout marker) across live canvas,
@@ -51,9 +55,12 @@ first — this file is the working state on top of it.
 - `styles.js` — the 3 style families (Editorial / Enterprise / News Desk):
   palette + fonts + per-family `layouts` map. `brandFromStyle`, the 9
   `EDITORIAL_PALETTES`, `paletteBrand`.
-- `templates.js` — pure layout registry (`LAYOUT_FNS`/`LAYOUT_LIST`),
-  `renderLayout` (+ the `highlight` post-process), `slidesToDoc` (generation →
-  doc, routing incl. stat/versus + caution), `cautionElement`.
+- `templates.js` — pure layout registry (`LAYOUT_FNS`/`LAYOUT_LIST`, incl. the
+  `feature`/`featureBottom`/`featureSplit` image+text layouts), `renderLayout`
+  (+ the `highlight` post-process), `reflowSlide` (re-flow a slide to a layout,
+  moving the photo between the background and a feature element only when crossing
+  the feature boundary), `slidesToDoc` (generation → doc, routing incl.
+  stat/versus + caution; stamps `content.image`), `cautionElement`.
 - `store.js` — reducer + history. Pure brand helpers `rethemeDoc`, `stampLogo`,
   `carryBrandKit`; actions `applyBrand`, `setLogo`, `setCaution`, `setLayout`.
 - `categories.js` — content kinds (voice + role labels + `defaultStyle` +
@@ -68,21 +75,32 @@ first — this file is the working state on top of it.
 
 ## Open items
 
-### ⚠️ Flagged in the phase retrospective (the real "to discuss")
-1. **No image+text "feature" layout (Phase 1).** `split` shipped as a *text*
-   divider, not a composition that places a photo as an *element* beside text.
-   Photos only ever render as full-bleed backgrounds. Lift: **medium** — thread
-   the slide image into `renderLayout` (today it only gets `hasImage`), add a
-   `feature` layout that lays out one image element + text, route image-bearing
-   slides to it, and handle the panel case where the current slide has no image.
-2. **stat/versus prompt is role-agnostic (Phase 3).** The prompt allows ≤1 stat
-   and ≤1 versus but doesn't steer them onto number-heavy roles ("The Numbers",
-   "The Data", "The Proof"). Lift: **trivial** — one nudge line in
-   `generate.js buildPrompt`. Highest value-per-effort of the three.
-3. **"Assets" beyond the logo (Phase 4).** No reusable upload shelf or icon set;
-   the logo is the only persistent brand asset (Photos panel is live search).
-   Lift: **medium**. Defer until there's a concrete need — logo + search cover
-   most workflows.
+### ✅ Resolved since `3c4cedb` (the two flagged ⚠️ gaps)
+1. **Image+text "feature" layout** — shipped (`d90bb04` + `a5d4d60`). Three panel
+   layouts: `feature` (top image band), `featureBottom`, `featureSplit` (left
+   photo / right text). The photo is canonical `content.image`; `reflowSlide`
+   moves it between the background and a feature element only when crossing the
+   feature boundary, so non-feature re-flows keep any manual background. No photo →
+   solid accent block. Same §3 crash profile as a bg photo (one image element +
+   flat type, never stacked). **Panel-only** by choice; auto-routing deferred.
+2. **stat/versus role-tie** — shipped (`bff9b08`). One `buildPrompt` line steers a
+   STAT or VERSUS onto data/evidence roles ("The Numbers", "The Data", "The
+   Evidence", "The Proof", "The Stakes").
+
+### ⚠️ Still open
+- **"Assets" beyond the logo (Phase 4).** No reusable upload shelf or icon set;
+  the logo is the only persistent brand asset (Photos panel is live search).
+  Lift: **medium**. Defer until there's a concrete need — logo + search cover
+  most workflows.
+- **Feature-layout auto-routing.** Generation still emits full-bleed photo
+  backgrounds; `feature` is opt-in from the Templates panel. Auto-selecting it for
+  photo-bearing narrative slides would change default decks — deferred by choice
+  (ship manual, validate the look first). Lift: **small** (a route rule in
+  `slidesToDoc`, like the stat/versus branch).
+- **Caution carry-through-regen.** An *edited* caution is re-seeded from the
+  category on regenerate rather than carried like the brand kit. Lift: **small** —
+  extend `carryBrandKit` to carry a caution that differs from the previous
+  category's default. Offered, not built.
 
 ### Other deferred (from STUDIO_REBUILD.md "Deliberately deferred")
 - **Revived families are visual shells**, not the original generation pipelines
