@@ -49,8 +49,8 @@ function withDoc(state, slides, slideIndex) {
 
 // --- Brand helpers (pure, doc-level) ---------------------------------------
 // Re-theme a doc by remapping every element whose look still matches brand
-// `prev` over to brand `next`: accent rect fills, text colors (ink-first, so the
-// monochrome minimal family sends body text to ink not accent), head/body fonts,
+// `prev` over to brand `next`: accent rect fills, text colors (ink-first, so a
+// monochrome family like Enterprise sends body text to ink not accent), fonts,
 // the wordmark text, and the solid background color. Elements the user pushed
 // off-brand don't match `prev`, so they're left alone. Shared by the applyBrand
 // action and the regenerate brand-carry.

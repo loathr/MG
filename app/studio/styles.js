@@ -6,8 +6,8 @@
 // grown-up — serif or strong sans, restrained palette, generous type. None of
 // them is childish/rounded/clip-art. Families also diverge in ARRANGEMENT: each
 // maps cover/content slides to distinct layouts (`layouts`, rendered through
-// templates.js `renderLayout`) — Editorial left-aligned & sourced, Bold big &
-// bottom-anchored, Minimal centered & airy. Single source of look truth.
+// templates.js `renderLayout`) — Editorial left-aligned & sourced, Enterprise a
+// B&W intelligence brief, News Desk a newspaper nameplate. Single look-truth.
 // ============================================================================
 
 export const STYLES = {
@@ -31,44 +31,27 @@ export const STYLES = {
     // Over-photo palette: light, readable text on a darkened photo background.
     onPhoto: { ink: "#ffffff", sub: "#f0f0f0", muted: "#d0d0d0", accent: "#e23744", scrim: 0.5 },
   },
-  bold: {
-    key: "bold",
-    label: "Bold",
-    blurb: "Big type, high contrast",
-    layouts: { cover: "statement", content: "bottom" },
+  enterprise: {
+    key: "enterprise",
+    label: "Enterprise",
+    blurb: "B&W, data-forward, formal",
+    // Intelligence-brief cover; content runs as classic columns. Monochrome —
+    // white ink AND accent on near-black (the ink-first remap in applyBrand keeps
+    // body text readable on a palette swap).
+    layouts: { cover: "dossier", content: "classic" },
     bg: "#0a0a0a",
-    accent: "#ffd400",
+    accent: "#ffffff",
     ink: "#ffffff",
-    sub: "#f2f2f2",
-    muted: "#c0c0c0",
-    headFont: "'Arial Black', Impact, sans-serif",
-    bodyFont: "Helvetica, Arial, sans-serif",
-    kickerFont: "'Arial Black', Impact, sans-serif",
-    headWeight: 800,
-    kickerWeight: 800,
-    kickerSpacing: 2,
-    accentBar: true,
-    onPhoto: { ink: "#ffffff", sub: "#f4f4f4", muted: "#d6d6d6", accent: "#ffd400", scrim: 0.52 },
-  },
-  minimal: {
-    key: "minimal",
-    label: "Minimal",
-    blurb: "Light, airy, refined",
-    layouts: { cover: "centered", content: "centered" },
-    bg: "#f4f1ea",
-    accent: "#141414",
-    ink: "#141414",
-    sub: "#3a3a3a",
-    muted: "#8a8a8a",
-    headFont: "Georgia, serif",
-    bodyFont: "Helvetica, Arial, sans-serif",
+    sub: "#c8c8c8",
+    muted: "#888888",
+    headFont: "Helvetica, Arial, sans-serif",   // clean corporate sans headlines
+    bodyFont: "Georgia, serif",                  // serif body (the original brief)
     kickerFont: "Helvetica, Arial, sans-serif",
-    headWeight: 600,
-    kickerWeight: 600,
-    kickerSpacing: 6,
-    accentBar: false,
-    // Minimal is light-on-light; over a photo it flips to white text so it reads.
-    onPhoto: { ink: "#ffffff", sub: "#ececec", muted: "#cccccc", accent: "#ffffff", scrim: 0.46 },
+    headWeight: 700,
+    kickerWeight: 700,
+    kickerSpacing: 3,
+    accentBar: true,
+    onPhoto: { ink: "#ffffff", sub: "#ededed", muted: "#cccccc", accent: "#ffffff", scrim: 0.55 },
   },
   newsdesk: {
     key: "newsdesk",
@@ -93,7 +76,7 @@ export const STYLES = {
   },
 };
 
-export const STYLE_LIST = [STYLES.editorial, STYLES.bold, STYLES.minimal, STYLES.newsdesk];
+export const STYLE_LIST = [STYLES.editorial, STYLES.enterprise, STYLES.newsdesk];
 export const DEFAULT_STYLE = "editorial";
 
 export function getStyle(key) {

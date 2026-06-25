@@ -28,7 +28,7 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
    buttons); smart guides snapping to artboard center/edges + siblings
    (`geometry.js` `snapMove`, live guides in `Artboard.jsx`); 15° rotate snap;
    slide reorder/duplicate/delete. `store.js`.
-5. **Style families + Brand + Templates** — Editorial / Bold / Minimal as
+5. **Style families + Brand + Templates** — Editorial / Enterprise / News Desk as
    palette + font sets (`styles.js`); deck-wide Brand panel (accent, fonts,
    wordmark — `BrandPanel.jsx`); Templates panel with a 5-layout registry applied
    on explicit click (`TemplatesPanel.jsx`, `templates.js`). Plus §8
@@ -42,12 +42,13 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
   (dependency-free STORE-method writer — `zip.js` / `export.js`). Replaces the
   N-sequential-downloads approach browsers throttle and silently drop.
 - **Per-family layout divergence:** each family maps cover/content to distinct
-  layouts — Editorial left-aligned & sourced (`cover`/`classic`), Bold big &
-  bottom-anchored (`statement`/`bottom`), Minimal centered & airy (`centered`).
-  Families now differ in arrangement, not just palette + fonts. `styles.js`
-  `layouts` + `templates.js` `slidesToDoc`/`previewCover`. (The closer stays
-  brand-anchored and uniform; a side effect is that Bold/Minimal don't render a
-  sources line — see taste-iteration.)
+  layouts — Editorial left-aligned & sourced (`cover`/`classic`), Enterprise a
+  B&W intelligence-brief cover (`dossier`/`classic`), News Desk a newspaper
+  nameplate (`masthead`/`classic`). Families differ in arrangement, not just
+  palette + fonts. `styles.js` `layouts` + `templates.js` `slidesToDoc`/
+  `previewCover`. (The orphaned `statement`/`bottom`/`centered` layouts — the old
+  Bold/Minimal signatures — remain available in the Templates panel for manual
+  use; no family defaults to them.)
 - **News Desk family (revived segment):** the old newspaper segment, reborn as a
   fourth style family in the new flat-layers model — newsprint cream bg, near-
   black ink, newspaper-red (`#c41e1e`) section flags, serif headlines/body, and a
@@ -77,8 +78,8 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
   Color only (accent + background + ink, with sub/muted tinted between ink and
   bg) — re-themes any family without touching its layout or typography.
   `styles.js` `EDITORIAL_PALETTES`/`paletteBrand`; `store.js` `applyBrand` now
-  remaps the background + full text-color set (ink-first, so the monochrome
-  Minimal family stays readable on a dark palette).
+  remaps the background + full text-color set (ink-first, so a monochrome family
+  like Enterprise stays readable on a palette swap).
 - **Logo upload (cover + closing):** the Brand panel accepts an uploaded image
   logo, downscaled to a same-origin PNG dataURL (so PNG/zip export stays
   untainted) and stamped top-right on the cover and closing slides (brand
@@ -112,11 +113,11 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
 - Generated **voice** is subjective. Tune the per-category briefs, the
   banned-phrase list, and heading length/casing against decks you actually
   generate. The structure is stable — this is dial-turning, not rebuilding.
-- **Per-family layout trade-offs:** Bold's `statement` cover drops the subhead,
-  and Bold/Minimal don't show a sources line (the `bottom` layout would collide
-  with it; `centered` omits it). Fine as a family identity — but if News/
-  Editorial-style credibility wants sources everywhere, add a sources variant to
-  those layouts. The per-family map (`styles.js` `layouts`) is the one knob.
+- **Sources line now ships on every family** (cover + content): all three use
+  `classic` content and a sources-bearing cover (`cover`/`dossier`/`masthead`).
+  The orphaned panel-only layouts (`statement`/`centered`/`bottom`, the old
+  Bold/Minimal signatures) omit it by design — a non-issue unless a family
+  adopts one. The per-family map (`styles.js` `layouts`) is the one knob.
 
 ### Notes for whoever picks this up
 - **Do not regress §3 FLAT LAYERS or the §12 guardrails** (no stacked
@@ -193,9 +194,9 @@ compositing must be redesigned to respect it.
    ( Editorial ) ( Business ) ( How-to ) …
 
          Choose a look                       ← visual gallery, premium only
-   ┌────────┐ ┌────────┐ ┌────────┐
-   │Editorial│ │ Bold   │ │Minimal │         (seeded from the kind; click to override)
-   └────────┘ └────────┘ └────────┘
+   ┌────────┐ ┌──────────┐ ┌──────────┐
+   │Editorial│ │Enterprise│ │News Desk │      (seeded from the kind; click to override)
+   └────────┘ └──────────┘ └──────────┘
             ● ○ ○
 
          What's it about?
@@ -296,8 +297,8 @@ Render the current slide (or all) to image via the existing approach, at
 - The **Editor shell** (top bar, left tool rail, right contextual toolbar,
   bottom thumbnail strip) — replaces the current minimal `Studio.jsx` chrome.
 - The **Photos panel** with search grid (kill the URL prompt).
-- **Style families** (Editorial first; Bold/Minimal as premium variants) as
-  template sets feeding §8.
+- **Style families** (Editorial first; Enterprise/News Desk as premium variants)
+  as template sets feeding §8.
 - **Undo/redo**, snapping guides, slide reorder/duplicate.
 - **Thumbnail rendering** for off-screen slides (lightweight, per §3).
 
@@ -310,7 +311,7 @@ Render the current slide (or all) to image via the existing approach, at
    navigating every slide stays light. **This is the crux the old app failed.**
 3. Create screen with the style gallery → wire to generation.
 4. Undo/redo + snapping + slide reorder/duplicate.
-5. Bold/Minimal style families + Brand panel.
+5. Enterprise/News Desk style families + Brand panel.
 6. Editorial prompt/voice quality pass.
 
 ## 12. Non-goals / guardrails

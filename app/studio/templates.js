@@ -8,7 +8,8 @@
 // Look is driven by a STYLE family (styles.js): families swap palette + fonts
 // AND select distinct cover/content layouts (styles.js `layouts`). When a slide
 // has a PHOTO background, text flips to the style's `onPhoto` palette (light,
-// readable over a darkened photo) so even light "Minimal" stays legible.
+// readable over a darkened photo) so even a light family (News Desk's newsprint
+// cream) stays legible.
 // ============================================================================
 import { ARTBOARD_W, ARTBOARD_H, uid, makeElement } from "./model";
 import { getStyle, brandFromStyle } from "./styles";
@@ -287,11 +288,26 @@ function L_masthead(c, st, pal) {
   ];
 }
 
-const LAYOUT_FNS = { classic: L_classic, cover: L_cover, masthead: L_masthead, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote, stat: L_stat, versus: L_versus };
+// Enterprise "intelligence brief" cover: a thin accent top rule with a small
+// uppercase label, a large left-aligned headline, a serif standfirst, and a meta
+// hairline — austere and corporate (reads as B&W, but generic over palette).
+function L_dossier(c, st, pal) {
+  return [
+    makeElement("rect", { id: uid("r"), x: M, y: 196, w: ARTBOARD_W - 2 * M, h: 2, fill: pal.accent }),
+    makeText(st.kickerFont, { x: M, y: 212, w: ARTBOARD_W - 2 * M, h: 36, content: String(c.kicker || "INTELLIGENCE BRIEF").toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, letterSpacing: 4, lineHeight: 1.2 }),
+    makeText(st.headFont, { x: M, y: 300, w: ARTBOARD_W - 2 * M, h: 600, content: c.heading, fontSize: 92, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.02 }),
+    c.body ? makeText(st.bodyFont, { x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 150, content: c.body, fontSize: 31, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
+    makeElement("rect", { id: uid("r"), x: M, y: 1186, w: ARTBOARD_W - 2 * M, h: 1, fill: pal.muted }),
+    sourcesEl(st, pal, c.sources),
+  ];
+}
+
+const LAYOUT_FNS = { classic: L_classic, cover: L_cover, masthead: L_masthead, dossier: L_dossier, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote, stat: L_stat, versus: L_versus };
 
 export const LAYOUT_LIST = [
   { key: "cover", label: "Cover" },
   { key: "masthead", label: "Masthead" },
+  { key: "dossier", label: "Dossier" },
   { key: "classic", label: "Classic" },
   { key: "centered", label: "Centered" },
   { key: "statement", label: "Statement" },

@@ -5,7 +5,7 @@ import StaticSlide from "./StaticSlide";
 
 // A real rendered cover slide in the given style, through that family's OWN cover
 // layout — so the gallery card is exactly what you get: "what you pick is what
-// you get". (Editorial left-aligned, Bold a big statement, Minimal centered.)
+// you get". (Editorial left-aligned, Enterprise a B&W brief, News Desk a nameplate.)
 const SAMPLE = {
   kicker: "The Turning Point",
   heading: "How one moment changed the game",

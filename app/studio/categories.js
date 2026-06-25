@@ -25,7 +25,7 @@ export const CATEGORIES = {
     brief: "Write like a strategist briefing a busy operator: every slide must be decision-useful. Lead with the implication, back it with a number or named example, and cut anything that isn't actionable.",
     roles: ["THE SHIFT", "THE STAKES", "THE PLAYBOOK", "THE PROOF", "THE RISK", "THE MOVE"],
     cta: "Follow @loathr for more",
-    defaultStyle: "minimal",
+    defaultStyle: "enterprise",
   },
   howto: {
     key: "howto",
@@ -35,7 +35,7 @@ export const CATEGORIES = {
     brief: "Teach one concrete action per slide in plain language a beginner can follow right now. Name the exact tool, setting, or number, and show the common mistake — never vague 'just be consistent' advice.",
     roles: ["WHY IT MATTERS", "STEP ONE", "STEP TWO", "STEP THREE", "THE COMMON MISTAKE", "THE PAYOFF"],
     cta: "Save this for later",
-    defaultStyle: "bold",
+    defaultStyle: "editorial",
   },
   news: {
     key: "news",
@@ -55,7 +55,7 @@ export const CATEGORIES = {
     brief: "Tell it as a human story with a real arc: set a scene, turn on a moment the reader feels, and land an earned, specific lesson. Use sensory detail and past tense; don't moralize.",
     roles: ["THE SETUP", "THE TURN", "THE STRUGGLE", "THE LESSON", "THE NOW"],
     cta: "Follow @loathr for more",
-    defaultStyle: "minimal",
+    defaultStyle: "editorial",
   },
 };
 
