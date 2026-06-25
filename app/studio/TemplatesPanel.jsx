@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { LAYOUT_LIST, renderLayout, deriveContent } from "./templates";
+import { LAYOUT_LIST, reflowSlide } from "./templates";
 import StaticSlide from "./StaticSlide";
 
 // Templates panel (spec §7). Shows the current slide's content rendered through
@@ -18,9 +18,6 @@ function card(active) {
 }
 
 export default function TemplatesPanel({ slide, onApply, onApplyAll, onClose }) {
-  const content = slide.content || deriveContent(slide);
-  const style = slide.style || "editorial";
-  const hasImage = !!(slide.background && slide.background.type === "image");
   const [all, setAll] = useState(false);
   return (
     <div style={wrap}>
@@ -33,7 +30,10 @@ export default function TemplatesPanel({ slide, onApply, onApplyAll, onClose }) 
       </label>
       <div style={grid}>
         {LAYOUT_LIST.map((l) => {
-          const preview = Object.assign({}, slide, { elements: renderLayout(l.key, content, style, hasImage) });
+          // Preview through the same re-flow the store applies, so feature previews
+          // show the photo as an element on a solid panel (and the round-trip back).
+          const r = reflowSlide(slide, l.key);
+          const preview = Object.assign({}, slide, { elements: r.elements, background: r.background });
           const active = slide.layout === l.key;
           return (
             <button key={l.key} type="button" onClick={() => (all ? onApplyAll(l.key) : onApply(l.key))} style={card(active)}>

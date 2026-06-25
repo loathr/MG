@@ -145,6 +145,9 @@ function norm(content) {
     stat: c.stat, statLabel: c.statLabel,
     versus: c.versus, left: c.left, right: c.right,
     highlight: c.highlight,
+    // The slide's photo as canonical data — feature layouts present it as an
+    // element; other layouts use it as a background and ignore this here.
+    image: c.image || null,
   };
 }
 
@@ -319,7 +322,61 @@ function L_dossier(c, st, pal) {
   ];
 }
 
-const LAYOUT_FNS = { classic: L_classic, cover: L_cover, masthead: L_masthead, dossier: L_dossier, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote, stat: L_stat, versus: L_versus };
+// --- Image+text "Feature" layout (Phase 3). The photo becomes an ELEMENT filling
+// a band of the board (top by default, or bottom) while the text sits on a solid
+// panel in the NORMAL palette — the inverse of the full-bleed photo backgrounds
+// the other layouts use. With no photo the band is a solid accent block so the
+// split still reads. Which "home" the photo lives in (background vs element) is
+// reconciled on re-flow by reflowSlide(), so toggling Feature moves it cleanly.
+const FEATURE_BAND = 748; // image-band height (~55% of the 1350 board)
+
+function isFeature(key) {
+  return key === "feature" || key === "featureBottom";
+}
+
+function featureImageEl(image, pal, y, h) {
+  if (image && image.url) {
+    return makeElement("image", {
+      id: uid("img"), x: 0, y, w: ARTBOARD_W, h,
+      src: image.url, thumb: image.thumb || image.url, fit: "cover", radius: 0,
+    });
+  }
+  // No photo: a solid accent band keeps the split composition intact.
+  return makeElement("rect", { id: uid("r"), x: 0, y, w: ARTBOARD_W, h, fill: pal.accent });
+}
+
+// Text panel for a feature layout: accent bar + kicker + heading + body, with the
+// sources line pinned to the bottom of the *panel* (not the board) and the body
+// height bounded to clear it — so both the top and bottom image bands fit.
+function featureText(c, st, pal, topY, panelBottom) {
+  const src = Array.isArray(c.sources) ? c.sources.filter(Boolean).join(" · ") : (c.sources || "");
+  const bodyY = topY + 300;
+  const bodyH = Math.max(70, panelBottom - 56 - bodyY);
+  return [
+    pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: topY - 18, w: 48, h: 6, fill: pal.accent }) : null,
+    c.kicker ? kickerEl(st, pal, c.kicker, topY, 22) : null,
+    makeText(st.headFont, { x: M, y: topY + 52, w: ARTBOARD_W - 2 * M, h: 230, content: c.heading, fontSize: 50, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
+    c.body ? makeText(st.headFont, { x: M, y: bodyY, w: ARTBOARD_W - 2 * M, h: bodyH, content: c.body, fontSize: 27, fontWeight: 400, color: pal.sub, lineHeight: 1.42 }) : null,
+    src ? makeText(st.bodyFont, { x: M, y: panelBottom - 40, w: ARTBOARD_W - 2 * M, h: 40, content: "Sources: " + src, fontSize: 19, fontWeight: 400, color: pal.muted, lineHeight: 1.2, letterSpacing: 0.5 }) : null,
+  ];
+}
+
+function L_feature(c, st, pal) {
+  return [
+    featureImageEl(c.image, pal, 0, FEATURE_BAND),
+    ...featureText(c, st, pal, FEATURE_BAND + 58, ARTBOARD_H - 30),
+  ];
+}
+
+function L_featureBottom(c, st, pal) {
+  const imgY = ARTBOARD_H - FEATURE_BAND;
+  return [
+    featureImageEl(c.image, pal, imgY, FEATURE_BAND),
+    ...featureText(c, st, pal, 150, imgY - 20),
+  ];
+}
+
+const LAYOUT_FNS = { classic: L_classic, cover: L_cover, masthead: L_masthead, dossier: L_dossier, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote, stat: L_stat, versus: L_versus, feature: L_feature, featureBottom: L_featureBottom };
 
 export const LAYOUT_LIST = [
   { key: "cover", label: "Cover" },
@@ -334,6 +391,8 @@ export const LAYOUT_LIST = [
   { key: "quote", label: "Quote" },
   { key: "stat", label: "Stat" },
   { key: "versus", label: "Versus" },
+  { key: "feature", label: "Feature" },
+  { key: "featureBottom", label: "Feature ↓" },
 ];
 
 // Body-band emphasis: a generated `highlight` phrase becomes a knockout marker
@@ -358,11 +417,43 @@ function applyHighlight(els, highlight, color, knockout) {
 // text to the readable over-photo palette. A body `highlight` is applied last.
 export function renderLayout(layoutKey, content, style, hasImage) {
   const st = getStyle(style);
-  const pal = palette(st, !!hasImage);
-  const fn = LAYOUT_FNS[layoutKey] || LAYOUT_FNS.classic;
   const c = norm(content);
+  // Feature layouts carry the photo as an element on a solid panel, so their text
+  // uses the normal palette. Every other layout sets text over the photo bg and
+  // flips to the readable onPhoto palette whenever a photo is present (taken from
+  // the canonical content.image, else the caller's background-derived flag).
+  const feature = isFeature(layoutKey);
+  const overPhoto = !feature && (c.image && c.image.url ? true : !!hasImage);
+  const pal = palette(st, overPhoto);
+  const fn = LAYOUT_FNS[layoutKey] || LAYOUT_FNS.classic;
   const els = fn(c, st, pal).filter(Boolean);
   return applyHighlight(els, c.highlight, pal.accent, st.bg);
+}
+
+// Pure re-flow: the slide patch for applying `layoutKey` to `slide`. The photo is
+// kept as canonical slide data (content.image) and moved between the background
+// and a feature element ONLY when crossing the feature boundary — so re-flowing
+// between two non-feature layouts preserves any manual background the user set.
+export function reflowSlide(slide, layoutKey) {
+  const style = slide.style || "editorial";
+  const st = getStyle(style);
+  const content = slide.content ? Object.assign({}, slide.content) : deriveContent(slide);
+  // Recover the photo from an existing image background if it isn't on content yet
+  // (older docs, or a photo dropped straight onto the background via Photos).
+  if (!content.image && slide.background && slide.background.type === "image") {
+    content.image = { url: slide.background.src, thumb: slide.background.thumb, credit: slide.background.credit, source: slide.background.source };
+  }
+  const wasFeature = isFeature(slide.layout);
+  const willFeature = isFeature(layoutKey);
+  let background = slide.background;
+  if (willFeature && !wasFeature) {
+    // Photo (if any) moves into the element; keep the user's solid color if set.
+    background = { type: "color", color: (slide.background && slide.background.type === "color" && slide.background.color) || st.bg };
+  } else if (!willFeature && wasFeature) {
+    // Restore the photo as a full-bleed background (solid when there's no photo).
+    background = backgroundFor(st, content.image && content.image.url ? content.image : null);
+  }
+  return { elements: renderLayout(layoutKey, content, style), background, layout: layoutKey, content };
 }
 
 // A single cover slide rendered through a style's OWN cover layout — so the
@@ -407,8 +498,10 @@ export function slidesToDoc(slides, style, imgMap, opts) {
     const isCover = i === 0 || role === "COVER";
     const isCloser = !isCover && (i === arr.length - 1 || role === "CLOSER" || role === "OUTRO");
     // Carry a 1-based slide number so the "numbered" layout has a value to show
-    // (the source content wins on any real conflict).
+    // (the source content wins on any real conflict), plus the slide's photo as
+    // canonical data so re-flowing to a feature layout later can find it.
     const content = Object.assign({ number: i + 1 }, s);
+    if (image) content.image = image;
     let slide, layout;
     if (isCloser) {
       // The closer is brand-anchored (wordmark + CTA), uniform across families,

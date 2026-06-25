@@ -10,7 +10,7 @@
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W } from "./model";
-import { renderLayout, deriveContent, cautionElement } from "./templates";
+import { reflowSlide, cautionElement } from "./templates";
 import { brandFromStyle } from "./styles";
 
 const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
@@ -223,16 +223,9 @@ function docReducer(state, a) {
     case "setLayout": {
       // Re-flow a slide's stored/derived content through a new layout. Explicit,
       // never automatic — so manual edits persist until the user picks a layout.
-      const relayout = (s) => {
-        const content = s.content || deriveContent(s);
-        const style = s.style || "editorial";
-        const hasImage = !!(s.background && s.background.type === "image");
-        return Object.assign({}, s, {
-          elements: renderLayout(a.layout, content, style, hasImage),
-          layout: a.layout,
-          content,
-        });
-      };
+      // reflowSlide moves the photo between background<->feature element as needed
+      // and preserves manual backgrounds for non-feature re-flows (see templates.js).
+      const relayout = (s) => Object.assign({}, s, reflowSlide(s, a.layout));
       const slides = a.all
         ? state.doc.slides.map(relayout)
         : state.doc.slides.map((s, idx) => (idx === (a.index == null ? state.slideIndex : a.index) ? relayout(s) : s));
