@@ -2,7 +2,7 @@
 // parse the slides JSON, and instantiate the canvas document. Content-quality
 // tuning lives here (Phase 4) — for now a focused editorial brief.
 import { slidesToDoc } from "./templates";
-import { getCategory } from "./categories";
+import { getCategory, cautionFor } from "./categories";
 
 // Build the generation prompt for a topic in a given content category. The
 // category supplies the voice (persona + brief), the content-slide role labels,
@@ -107,5 +107,8 @@ export async function generateCarousel(topic, opts) {
   const slides = parseSlides(extractText(data));
   const wantPhotos = !opts || opts.photos !== false;
   const imgMap = wantPhotos ? await fetchSlideImages(slides, topic) : {};
-  return slidesToDoc(slides, opts && opts.style, imgMap);
+  // Seed the closing caution from the category (business/news carry one).
+  const category = (opts && opts.category) || null;
+  const cau = category ? cautionFor(category) : null;
+  return slidesToDoc(slides, opts && opts.style, imgMap, { category, caution: cau ? cau.default : "" });
 }

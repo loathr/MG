@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { brandFromStyle, EDITORIAL_PALETTES, paletteBrand } from "./styles";
+import { cautionFor } from "./categories";
 
 // Brand panel (spec §7). Deck-wide accent color, heading/body fonts, and the
 // closing wordmark — applied across every slide and undoable. Re-themes by
@@ -71,12 +72,14 @@ function Field({ label, children }) {
   );
 }
 
-export default function BrandPanel({ brand, onApply, onLogo, onClose }) {
+export default function BrandPanel({ brand, category, onApply, onLogo, onCaution, onClose }) {
   // Fill any missing color fields from the editorial defaults so a palette swap
   // always has a known "previous" to remap from.
   const cur = Object.assign({}, brandFromStyle("editorial"), brand);
   const set = (patch) => onApply(cur, Object.assign({}, cur, patch));
   const fileRef = React.useRef(null);
+  // Caution-label presets for this deck's category (business/news), if any.
+  const caution = cautionFor(category);
   return (
     <div style={wrap}>
       <div style={head}>
@@ -137,10 +140,30 @@ export default function BrandPanel({ brand, onApply, onLogo, onClose }) {
           <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
             onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) readLogoFile(f, (L) => L && onLogo(L)); e.target.value = ""; }} />
         </Field>
+        <Field label="Caution label (closing slide)">
+          <textarea
+            value={cur.caution || ""}
+            onChange={(e) => onCaution(e.target.value)}
+            rows={2}
+            placeholder="No caution label"
+            style={{ ...inp, height: "auto", minHeight: 56, padding: "8px 10px", resize: "vertical", lineHeight: 1.4, fontFamily: "inherit" }}
+          />
+          {caution && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+              <button style={miniBtn} title={caution.default} onClick={() => onCaution(caution.default)}>Default</button>
+              {caution.alts.map((t, i) => (
+                <button key={i} style={miniBtn} title={t} onClick={() => onCaution(t)}>Witty {i + 1}</button>
+              ))}
+            </div>
+          )}
+          {cur.caution ? (
+            <button style={{ ...miniBtn, marginTop: 6 }} onClick={() => onCaution("")}>Remove</button>
+          ) : null}
+        </Field>
         <p style={{ fontSize: 11, color: "#777", margin: 0, lineHeight: 1.5 }}>
           Palette, accent, fonts &amp; wordmark apply across every slide. The logo
-          is stamped top-right on the cover &amp; closing slides — drag to
-          reposition. Undoable (⌘/Ctrl+Z).
+          is stamped top-right on the cover &amp; closing slides. The caution label
+          sits on the closing slide (Business &amp; News seed one). Undoable (⌘/Ctrl+Z).
         </p>
       </div>
     </div>

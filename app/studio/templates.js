@@ -96,7 +96,7 @@ export function contentTemplate(s, index, style, image) {
   ]);
 }
 
-export function closerTemplate(s, style, image) {
+export function closerTemplate(s, style, image, caution) {
   const st = getStyle(style);
   const pal = palette(st, !!(image && image.url));
   const cy = 470;
@@ -105,7 +105,22 @@ export function closerTemplate(s, style, image) {
     makeElement("rect", { id: uid("r"), x: ARTBOARD_W / 2 - 30, y: cy + 86, w: 60, h: 4, fill: pal.accent }),
     makeText(st.headFont, { x: M, y: cy + 130, w: ARTBOARD_W - 2 * M, h: 320, content: s.heading || s.body || "Thanks for reading.", fontSize: 52, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.15 }),
     s.cta ? makeText(st.bodyFont, { x: M, y: cy + 470, w: ARTBOARD_W - 2 * M, h: 60, content: s.cta, fontSize: 26, fontWeight: 400, color: pal.accent, align: "center", lineHeight: 1.3 }) : null,
+    caution ? cautionElement(style, caution, !!(image && image.url)) : null,
   ]);
+}
+
+// Small-print caution line for the closing slide (legal/credibility disclaimer).
+// A role-tagged text element so the Brand panel's setCaution can find/replace it,
+// and it's a normal draggable element after placement. Pinned to the bottom.
+export function cautionElement(style, text, hasImage) {
+  const st = getStyle(style);
+  const pal = palette(st, !!hasImage);
+  return makeText(st.bodyFont, {
+    id: uid("caution"), role: "caution",
+    x: M, y: 1196, w: ARTBOARD_W - 2 * M, h: 96,
+    content: text, fontSize: 18, fontWeight: 400, color: pal.muted,
+    align: "center", lineHeight: 1.35, letterSpacing: 0.2,
+  });
 }
 
 // --- Layout registry -------------------------------------------------------
@@ -378,7 +393,9 @@ export function deriveContent(slide) {
 // Map a generated slides array into a full document of canvas slides in `style`.
 // `imgMap` (optional) is { slideIndex: { url, thumb, credit, source } } from
 // /api/images — each becomes that slide's single §3-safe photo background.
-export function slidesToDoc(slides, style, imgMap) {
+export function slidesToDoc(slides, style, imgMap, opts) {
+  const o = opts || {};
+  const caution = o.caution || "";
   const imgs = imgMap || {};
   const st = getStyle(style);
   // Per-family layout map (styles.js); fall back to the editorial arrangement.
@@ -394,8 +411,9 @@ export function slidesToDoc(slides, style, imgMap) {
     const content = Object.assign({ number: i + 1 }, s);
     let slide, layout;
     if (isCloser) {
-      // The closer is brand-anchored (wordmark + CTA), uniform across families.
-      slide = closerTemplate(s, style, image);
+      // The closer is brand-anchored (wordmark + CTA), uniform across families,
+      // plus an optional small-print caution line (category-seeded).
+      slide = closerTemplate(s, style, image, caution);
       layout = "closer";
     } else {
       // Content slides adopt a data-driven layout when the model supplied the
@@ -412,5 +430,7 @@ export function slidesToDoc(slides, style, imgMap) {
     slide.layout = layout;
     return slide;
   });
-  return { id: uid("doc"), brand: brandFromStyle(style), slides: out.length ? out : [coverTemplate({ heading: "Empty" }, style)] };
+  const brand = brandFromStyle(style);
+  if (caution) brand.caution = caution;
+  return { id: uid("doc"), category: o.category || null, brand, slides: out.length ? out : [coverTemplate({ heading: "Empty" }, style)] };
 }

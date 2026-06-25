@@ -26,6 +26,17 @@ export const CATEGORIES = {
     roles: ["THE SHIFT", "THE STAKES", "THE PLAYBOOK", "THE PROOF", "THE RISK", "THE MOVE"],
     cta: "Follow @loathr for more",
     defaultStyle: "enterprise",
+    // Caution label for the closing slide (business content carries advice risk).
+    // `default` is the straight disclaimer; `alts` are on-brand witty swaps the
+    // Brand panel offers (revived from the original Enterprise closers).
+    caution: {
+      default: "For educational and entertainment purposes only. Not professional or financial advice.",
+      alts: [
+        "Not financial advice — we can barely manage our own subscriptions.",
+        "Our crystal ball is in the shop. Consult actual professionals.",
+        "Past performance doesn't guarantee we know what we're talking about.",
+      ],
+    },
   },
   howto: {
     key: "howto",
@@ -46,6 +57,15 @@ export const CATEGORIES = {
     roles: ["WHAT HAPPENED", "THE CONTEXT", "THE NUMBERS", "WHO IT AFFECTS", "WHAT'S NEXT"],
     cta: "Follow @loathr for more",
     defaultStyle: "newsdesk",
+    // News carries a "details may change" caution rather than an advice one.
+    caution: {
+      default: "Developing story — details may change as more is reported.",
+      alts: [
+        "Reported, not gospel — verify before you repost.",
+        "Accurate as of publish. News moves; so should you.",
+        "We read the wires so you don't have to. Still, check the source.",
+      ],
+    },
   },
   story: {
     key: "story",
@@ -64,4 +84,10 @@ export const DEFAULT_CATEGORY = "editorial";
 
 export function getCategory(key) {
   return CATEGORIES[key] || CATEGORIES.editorial;
+}
+
+// The caution config ({ default, alts }) for a category, or null if it has none
+// (editorial/how-to/story, or an unknown key). No editorial fallback here.
+export function cautionFor(key) {
+  return (CATEGORIES[key] && CATEGORIES[key].caution) || null;
 }

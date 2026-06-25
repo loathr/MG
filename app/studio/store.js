@@ -10,7 +10,7 @@
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W } from "./model";
-import { renderLayout, deriveContent } from "./templates";
+import { renderLayout, deriveContent, cautionElement } from "./templates";
 import { brandFromStyle } from "./styles";
 
 const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
@@ -202,6 +202,24 @@ function docReducer(state, a) {
       // Brand bookend: stamp the logo on the cover + closing slides only (see
       // stampLogo). After placement it's a normal, draggable element.
       return Object.assign({}, state, { doc: stampLogo(state.doc, a.logo) });
+    case "setCaution": {
+      // Caution label lives on the closing slide (last). Replace/clear the
+      // role-tagged element; empty text removes it. Records the text on the brand
+      // so the panel reads it and it survives unrelated edits.
+      const text = (a.text || "").trim();
+      const last = state.doc.slides.length - 1;
+      const slides = state.doc.slides.map((s, i) => {
+        if (i !== last) return s;
+        const els = (s.elements || []).filter((e) => e.role !== "caution");
+        if (text) {
+          const hasImage = !!(s.background && s.background.type === "image");
+          els.push(cautionElement(s.style || "editorial", text, hasImage));
+        }
+        return Object.assign({}, s, { elements: els });
+      });
+      const brand = Object.assign({}, state.doc.brand, { caution: text });
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides, brand }) });
+    }
     case "setLayout": {
       // Re-flow a slide's stored/derived content through a new layout. Explicit,
       // never automatic — so manual edits persist until the user picks a layout.
@@ -229,7 +247,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setLayout: 1 };
+const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setLayout: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
 
 function snap(state) {
