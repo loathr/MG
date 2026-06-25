@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useRef } from "react";
+import RichText from "./RichText";
 
 // One element. Wrapped in React.memo so it re-renders only when its own object
 // (or its editing flag) changes — the key to Canva-like drag performance.
@@ -70,7 +71,7 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
         </div>
       );
     } else {
-      inner = <div style={textStyle}>{el.content}</div>;
+      inner = <div style={textStyle}><RichText el={el} /></div>;
     }
   } else if (el.type === "image") {
     inner = el.src ? (

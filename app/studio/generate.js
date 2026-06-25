@@ -36,6 +36,7 @@ export function buildPrompt(topic, categoryKey) {
     "- Build the content slides from these roles, in a logical order; use each at most once and pick the ones that tell the strongest story: " + roles.join(", ") + ". (A topic that only needs 5 makes a tight 7-slide deck — that's good.)",
     "- Headlines in Title Case; bodies in full sentences. No hashtags or emoji anywhere.",
     "- Keep each body under ~45 words. Sources: 1-2 real, credible outlets; omit rather than invent.",
+    '- On a content slide you MAY add "highlight": one short phrase (2-5 words) copied VERBATIM from that slide\'s own body, to emphasize as a marker. It must be an exact substring of the body — pick the single most striking phrase, and omit it if nothing stands out.',
     "",
     "Optional data slides (use only when the topic genuinely supports them — a clean text deck beats a forced one):",
     '- At most ONE content slide may be a big-number STAT: add "stat" (a short value like "73%", "$2.4B", "10×") and "statLabel" (what it measures) in place of a long body. Use a real, defensible figure — never invent one; if unsure, skip it.',

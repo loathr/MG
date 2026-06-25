@@ -156,3 +156,21 @@ export function findElement(slide, id) {
   }
   return null;
 }
+
+// Split a text element's content around the FIRST (case-insensitive) occurrence
+// of `highlight`, preserving the original casing. Returns [{text, hl}] runs — one
+// run when there's no match, so callers can render plain. Pure; shared by the
+// live canvas, the static/preview renderer, and the PNG export so the emphasis
+// looks identical everywhere.
+export function highlightRuns(content, highlight) {
+  const text = content == null ? "" : String(content);
+  const hl = highlight == null ? "" : String(highlight);
+  if (!hl) return [{ text, hl: false }];
+  const i = text.toLowerCase().indexOf(hl.toLowerCase());
+  if (i < 0) return [{ text, hl: false }];
+  const runs = [];
+  if (i > 0) runs.push({ text: text.slice(0, i), hl: false });
+  runs.push({ text: text.slice(i, i + hl.length), hl: true });
+  if (i + hl.length < text.length) runs.push({ text: text.slice(i + hl.length), hl: false });
+  return runs;
+}

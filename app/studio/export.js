@@ -7,7 +7,7 @@
 // Browser-only: every entry point is called from a click handler, so importing
 // this module is SSR/build-safe (no top-level DOM access).
 // ============================================================================
-import { ARTBOARD_W, ARTBOARD_H } from "./model";
+import { ARTBOARD_W, ARTBOARD_H, highlightRuns } from "./model";
 import { makeZip } from "./zip";
 
 function loadImage(src) {
@@ -95,6 +95,82 @@ function drawText(ctx, el) {
   if (supportsLS) ctx.letterSpacing = "0px";
 }
 
+// Word-wrap a list of {text, hl} runs into lines of tagged tokens, honoring
+// explicit "\n" and trimming whitespace at line edges. Measures with the ctx's
+// current font, so call after the font is set.
+export function wrapRuns(ctx, runs, maxWidth) {
+  const tokens = [];
+  for (const run of runs) {
+    for (const part of String(run.text).split(/(\s+)/)) {
+      if (part === "") continue;
+      if (part.indexOf("\n") >= 0) {
+        const segs = part.split("\n");
+        for (let i = 0; i < segs.length; i++) {
+          if (segs[i]) tokens.push({ text: segs[i], hl: run.hl });
+          if (i < segs.length - 1) tokens.push({ nl: true });
+        }
+      } else {
+        tokens.push({ text: part, hl: run.hl });
+      }
+    }
+  }
+  const lines = [];
+  let line = [], width = 0;
+  const flush = () => { lines.push(line); line = []; width = 0; };
+  for (const tok of tokens) {
+    if (tok.nl) { flush(); continue; }
+    const w = ctx.measureText(tok.text).width;
+    const isSpace = /^\s+$/.test(tok.text);
+    if (!isSpace && width + w > maxWidth && line.some((t) => t.text.trim())) flush();
+    line.push(tok); width += w;
+  }
+  flush();
+  return lines.map((ln) => {
+    let a = 0, b = ln.length;
+    while (a < b && /^\s+$/.test(ln[a].text)) a++;
+    while (b > a && /^\s+$/.test(ln[b - 1].text)) b--;
+    return ln.slice(a, b);
+  });
+}
+
+// Draw a text element that carries a `highlight` phrase: a knockout marker
+// (accent fill behind the run, bg-color text) on the matched run, plain `color`
+// elsewhere. Left-positions each token manually so center/right alignment still
+// works. Mirrors the DOM RichText render.
+export function drawHighlightText(ctx, el) {
+  const weight = el.fontWeight || 400;
+  const fstyle = el.italic ? "italic " : "";
+  const fs = el.fontSize || 16;
+  ctx.font = fstyle + weight + " " + fs + "px " + (el.fontFamily || "Georgia, serif");
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
+  const supportsLS = "letterSpacing" in ctx;
+  if (supportsLS) ctx.letterSpacing = (el.letterSpacing || 0) + "px";
+  const lh = (el.lineHeight || 1.1) * fs;
+  const align = el.align || "left";
+  const pad = Math.round(fs * 0.1);
+  const lines = wrapRuns(ctx, highlightRuns(el.content, el.highlight), el.w);
+  let y = 0;
+  for (const line of lines) {
+    const lineW = line.reduce((s, t) => s + ctx.measureText(t.text).width, 0);
+    let x = align === "center" ? (el.w - lineW) / 2 : align === "right" ? el.w - lineW : 0;
+    for (const tok of line) {
+      const w = ctx.measureText(tok.text).width;
+      if (tok.hl) {
+        ctx.fillStyle = el.highlightColor;
+        ctx.fillRect(x - pad, y, w + pad * 2, lh);
+        ctx.fillStyle = el.highlightText || el.color || "#ffffff";
+      } else {
+        ctx.fillStyle = el.color || "#ffffff";
+      }
+      ctx.fillText(tok.text, x, y);
+      x += w;
+    }
+    y += lh;
+  }
+  if (supportsLS) ctx.letterSpacing = "0px";
+}
+
 export async function renderSlideToCanvas(slide) {
   const canvas = document.createElement("canvas");
   canvas.width = ARTBOARD_W;
@@ -148,7 +224,8 @@ export async function renderSlideToCanvas(slide) {
         ctx.restore();
       }
     } else if (el.type === "text") {
-      drawText(ctx, el);
+      if (el.highlight && el.highlightColor) drawHighlightText(ctx, el);
+      else drawText(ctx, el);
     }
     ctx.restore();
   }

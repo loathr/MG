@@ -72,6 +72,18 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
   sides, else heading-vs-body), so they work on any slide. Fields ride on
   `slide.content`, so a panel re-flow keeps them. `templates.js` `L_stat`/
   `L_versus`/`normVersus`.
+- **Inline `highlight` emphasis (knockout marker):** the generator may add a
+  `highlight` — a short phrase copied verbatim from a slide's body — and
+  `renderLayout` post-processes it onto the body/standfirst text that contains it
+  (a font-size band, 26–44px, keeps it off headings/kickers/sources). Rendered as
+  a knockout marker: accent-fill background, bg-color text — so it's visible in
+  every family, including monochrome Enterprise where an accent-colored word would
+  vanish. One pure splitter (`model.js` `highlightRuns`) feeds all three
+  renderers: the live canvas (`Element` via `RichText`), the static/preview
+  renderer (`StaticSlide` via `RichText`), and the manual PNG draw (`export.js`
+  `drawHighlightText`/`wrapRuns`) — so the marker is identical on screen, in
+  thumbnails, and in the export. Editing a text box shows raw text (no markup);
+  the marker re-applies on commit if the phrase still matches.
 - **Editorial palettes:** the original 9 category color schemes (Film & TV,
   Photography, Sports × Culture, Did You Know?, Art & Music, Fashion, Food &
   Drink, Nightlife, The Tea) revived as one-click **looks** in the Brand panel.

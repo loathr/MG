@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { ARTBOARD_W, ARTBOARD_H } from "./model";
+import RichText from "./RichText";
 
 // A non-interactive, CSS-scaled miniature of a slide. Used by the slide strip
 // (SlideThumb) and the Create-screen style previews (StylePreview), so both are
@@ -37,7 +38,7 @@ function StaticElement({ el }) {
         letterSpacing: (el.letterSpacing || 0) + "px",
         whiteSpace: "pre-wrap",
         wordBreak: "break-word",
-      }}>{el.content}</div>
+      }}><RichText el={el} /></div>
     );
   }
   if (el.type === "image") {

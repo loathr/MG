@@ -124,10 +124,12 @@ function norm(content) {
     body: c.body || c.subhead || c.cta || "",
     sources: Array.isArray(c.sources) ? c.sources : (c.sources ? [c.sources] : []),
     number: c.number,
-    // Optional structured data for the data-driven layouts (stat / versus). Pass
-    // through untouched; the layouts read them and fall back when absent.
+    // Optional structured data for the data-driven layouts (stat / versus) plus
+    // the body `highlight` phrase. Pass through untouched; layouts/post-process
+    // read them and fall back when absent.
     stat: c.stat, statLabel: c.statLabel,
     versus: c.versus, left: c.left, right: c.right,
+    highlight: c.highlight,
   };
 }
 
@@ -319,13 +321,33 @@ export const LAYOUT_LIST = [
   { key: "versus", label: "Versus" },
 ];
 
+// Body-band emphasis: a generated `highlight` phrase becomes a knockout marker
+// on the body/standfirst text that contains it — not headings (too loud) nor
+// kickers/sources. The font-size band keeps it to body-like text across every
+// layout without each layout having to opt in.
+const HL_MIN = 26, HL_MAX = 44;
+function applyHighlight(els, highlight, color, knockout) {
+  const hl = highlight ? String(highlight).trim() : "";
+  if (!hl) return els;
+  const needle = hl.toLowerCase();
+  return els.map((e) => {
+    if (e.type !== "text") return e;
+    const fs = e.fontSize || 0;
+    if (fs < HL_MIN || fs > HL_MAX) return e;
+    if (!e.content || String(e.content).toLowerCase().indexOf(needle) < 0) return e;
+    return Object.assign({}, e, { highlight: hl, highlightColor: color, highlightText: knockout });
+  });
+}
+
 // Render a slide's content through a layout -> elements. `hasImage` switches the
-// text to the readable over-photo palette.
+// text to the readable over-photo palette. A body `highlight` is applied last.
 export function renderLayout(layoutKey, content, style, hasImage) {
   const st = getStyle(style);
   const pal = palette(st, !!hasImage);
   const fn = LAYOUT_FNS[layoutKey] || LAYOUT_FNS.classic;
-  return fn(norm(content), st, pal).filter(Boolean);
+  const c = norm(content);
+  const els = fn(c, st, pal).filter(Boolean);
+  return applyHighlight(els, c.highlight, pal.accent, st.bg);
 }
 
 // A single cover slide rendered through a style's OWN cover layout — so the
