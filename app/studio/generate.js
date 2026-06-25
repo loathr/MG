@@ -41,6 +41,7 @@ export function buildPrompt(topic, categoryKey) {
     "Optional data slides (use only when the topic genuinely supports them — a clean text deck beats a forced one):",
     '- At most ONE content slide may be a big-number STAT: add "stat" (a short value like "73%", "$2.4B", "10×") and "statLabel" (what it measures) in place of a long body. Use a real, defensible figure — never invent one; if unsure, skip it.',
     '- At most ONE content slide may be a head-to-head VERSUS: add "versus":{"left":{"label":"…","value":"…"},"right":{"label":"…","value":"…"}} when there is a natural two-side comparison. Keep each value to a few words.',
+    '- Put a STAT or VERSUS on the slide whose role is most data- or evidence-oriented — e.g. "The Numbers", "The Data", "The Evidence", "The Proof", "The Stakes" — not on a narrative or scene-setting slide.',
   ].join("\n");
 }
 
