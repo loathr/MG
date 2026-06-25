@@ -123,6 +123,10 @@ function norm(content) {
     body: c.body || c.subhead || c.cta || "",
     sources: Array.isArray(c.sources) ? c.sources : (c.sources ? [c.sources] : []),
     number: c.number,
+    // Optional structured data for the data-driven layouts (stat / versus). Pass
+    // through untouched; the layouts read them and fall back when absent.
+    stat: c.stat, statLabel: c.statLabel,
+    versus: c.versus, left: c.left, right: c.right,
   };
 }
 
@@ -213,7 +217,62 @@ function L_split(c, st, pal) {
   ];
 }
 
-const LAYOUT_FNS = { classic: L_classic, cover: L_cover, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote };
+// --- Data-driven layouts (Phase 2): stat / versus. Both read OPTIONAL structured
+// fields the generator may emit (stat/statLabel, versus{left,right}) and degrade
+// gracefully when applied from the Templates panel to a slide that lacks them, so
+// every family can use them on any slide. Same palette + photo-awareness.
+
+// Big-number hero: one large stat in the accent color over a short label. With no
+// `stat` field, the heading becomes the hero (reads as a statement + note).
+function L_stat(c, st, pal) {
+  const hasStat = !!(c.stat != null && String(c.stat).trim());
+  const big = hasStat ? String(c.stat) : c.heading;
+  const label = c.statLabel || (hasStat ? c.heading : c.body) || "";
+  return [
+    centeredKicker(st, pal, c.kicker, 300),
+    makeText(st.headFont, { x: M, y: 372, w: ARTBOARD_W - 2 * M, h: 320, content: big, fontSize: hasStat ? 268 : 150, fontWeight: st.headWeight, color: pal.accent, align: "center", lineHeight: 0.96, letterSpacing: -2 }),
+    label ? makeText(st.headFont, { x: M, y: hasStat ? 720 : 760, w: ARTBOARD_W - 2 * M, h: 240, content: label, fontSize: 40, fontWeight: 400, color: pal.ink, align: "center", lineHeight: 1.3 }) : null,
+    (hasStat && c.body) ? makeText(st.bodyFont, { x: M, y: 1000, w: ARTBOARD_W - 2 * M, h: 180, content: c.body, fontSize: 27, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.45 }) : null,
+    sourcesEl(st, pal, c.sources),
+  ];
+}
+
+// Normalize a versus comparison from explicit data, else by splitting an "A vs B"
+// heading, else heading-vs-body — so the layout always has two sides to show.
+function normVersus(c) {
+  const side = (x) => {
+    if (x && typeof x === "object") return { label: String(x.label || ""), value: String(x.value != null && x.value !== "" ? x.value : (x.label || "")) };
+    return { label: "", value: x != null ? String(x) : "" };
+  };
+  const v = c.versus || (c.left && c.right ? { left: c.left, right: c.right } : null);
+  if (v && v.left && v.right) return { l: side(v.left), r: side(v.right) };
+  const parts = String(c.heading || "").split(/\s+(?:vs\.?|versus)\s+/i);
+  if (parts.length === 2) return { l: { label: "", value: parts[0].trim() }, r: { label: "", value: parts[1].trim() } };
+  return { l: { label: "", value: c.heading || "" }, r: { label: "", value: c.body || "" } };
+}
+
+// Head-to-head: two centered columns with an accent "vs" between them.
+function L_versus(c, st, pal) {
+  const v = normVersus(c);
+  const gap = 76;
+  const colW = (ARTBOARD_W - 2 * M - gap) / 2;
+  const rx = M + colW + gap;
+  const mid = ARTBOARD_W / 2;
+  const colLabel = (txt, x) => txt ? makeText(st.kickerFont, { x, y: 452, w: colW, h: 40, content: txt.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, align: "center", letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null;
+  const colValue = (txt, x) => makeText(st.headFont, { x, y: 520, w: colW, h: 320, content: txt, fontSize: 52, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.12 });
+  return [
+    c.kicker ? centeredKicker(st, pal, c.kicker, 250) : null,
+    colLabel(v.l.label, M),
+    colValue(v.l.value, M),
+    makeText(st.headFont, { x: mid - 70, y: 600, w: 140, h: 90, content: "vs", fontSize: 46, fontWeight: st.headWeight, color: pal.accent, align: "center", italic: true, lineHeight: 1 }),
+    colLabel(v.r.label, rx),
+    colValue(v.r.value, rx),
+    c.body ? makeText(st.bodyFont, { x: M, y: 920, w: ARTBOARD_W - 2 * M, h: 200, content: c.body, fontSize: 28, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.45 }) : null,
+    sourcesEl(st, pal, c.sources),
+  ];
+}
+
+const LAYOUT_FNS = { classic: L_classic, cover: L_cover, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote, stat: L_stat, versus: L_versus };
 
 export const LAYOUT_LIST = [
   { key: "cover", label: "Cover" },
@@ -224,6 +283,8 @@ export const LAYOUT_LIST = [
   { key: "split", label: "Split" },
   { key: "numbered", label: "Numbered" },
   { key: "quote", label: "Quote" },
+  { key: "stat", label: "Stat" },
+  { key: "versus", label: "Versus" },
 ];
 
 // Render a slide's content through a layout -> elements. `hasImage` switches the
@@ -283,7 +344,11 @@ export function slidesToDoc(slides, style, imgMap) {
       slide = closerTemplate(s, style, image);
       layout = "closer";
     } else {
-      layout = isCover ? lmap.cover : lmap.content;
+      // Content slides adopt a data-driven layout when the model supplied the
+      // structured fields (a stat, or a two-sided comparison); otherwise the
+      // family default. Covers always use the family cover layout.
+      const dataLayout = s.stat != null ? "stat" : ((s.versus || (s.left && s.right)) ? "versus" : null);
+      layout = isCover ? lmap.cover : (dataLayout || lmap.content);
       slide = slideShell(st, image, renderLayout(layout, content, style, !!(image && image.url)));
     }
     // Keep the source content + style + layout so the Templates panel can re-flow

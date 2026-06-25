@@ -52,6 +52,16 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
   panel, available across every family, reusing existing content fields only
   (a derived slide `number` for `numbered`) — no prompt/schema change.
   `templates.js` `LAYOUT_LIST`/`LAYOUT_FNS`.
+- **Data-driven layouts (`stat` / `versus`):** a big-number hero and a
+  head-to-head comparison that read OPTIONAL structured fields the generator may
+  now emit — `stat`/`statLabel` and `versus:{left,right}` (bounded to ≤1 of each
+  per deck, real-figures-only, in `generate.js`). `slidesToDoc` routes a content
+  slide to the matching layout when those fields are present; otherwise the family
+  default. Both also degrade gracefully when applied from the Templates panel to a
+  plain slide (heading becomes the stat hero; an "A vs B" heading splits into two
+  sides, else heading-vs-body), so they work on any slide. Fields ride on
+  `slide.content`, so a panel re-flow keeps them. `templates.js` `L_stat`/
+  `L_versus`/`normVersus`.
 - **Editorial palettes:** the original 9 category color schemes (Film & TV,
   Photography, Sports × Culture, Did You Know?, Art & Music, Fashion, Food &
   Drink, Nightlife, The Tea) revived as one-click **looks** in the Brand panel.
@@ -80,10 +90,10 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
   `rethemeDoc` + `stampLogo` helpers the `applyBrand`/`setLogo` actions also use.
 
 ### Deliberately deferred (scoped out, not bugs)
-- **More premium layouts.** Eight ship now (cover / classic / centered /
-  statement / bottom / split / numbered / quote) in the Templates panel. Still
-  open: data-driven slides (big-number stat, versus) — those need optional
-  content-schema fields (a prompt/parse change), not just a new arrangement.
+- **More premium layouts.** Ten ship now (cover / classic / centered /
+  statement / bottom / split / numbered / quote / stat / versus) in the Templates
+  panel, the last two data-driven (see "Data-driven layouts" above). Still open:
+  richer data shapes (timeline, ranked list) if a topic ever needs them.
 - **Recent-projects shelf** on the Create screen. Blank-start exists; a recents
   list does not (§4's "quiet secondary affordance").
 - **Grid snapping.** Snapping targets artboard center/edges + siblings; the §6
