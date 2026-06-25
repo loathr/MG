@@ -45,7 +45,7 @@ export const CATEGORIES = {
     brief: "Report like a wire editor: lead with what's new and verifiable, attribute claims, and give magnitudes (how many, how much, by when). Stay balanced and unhyped — let the facts carry it.",
     roles: ["WHAT HAPPENED", "THE CONTEXT", "THE NUMBERS", "WHO IT AFFECTS", "WHAT'S NEXT"],
     cta: "Follow @loathr for more",
-    defaultStyle: "editorial",
+    defaultStyle: "newsdesk",
   },
   story: {
     key: "story",

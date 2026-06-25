@@ -70,9 +70,30 @@ export const STYLES = {
     // Minimal is light-on-light; over a photo it flips to white text so it reads.
     onPhoto: { ink: "#ffffff", sub: "#ececec", muted: "#cccccc", accent: "#ffffff", scrim: 0.46 },
   },
+  newsdesk: {
+    key: "newsdesk",
+    label: "News Desk",
+    blurb: "Newsprint, serif, red flags",
+    // Front-page nameplate cover; content runs as classic newspaper columns
+    // (red section label + rule + serif headline + body + Courier sources).
+    layouts: { cover: "masthead", content: "classic" },
+    bg: "#f7f5f0",       // newsprint cream
+    accent: "#c41e1e",   // newspaper red (section flags, "BREAKING")
+    ink: "#1a1a1a",
+    sub: "#3a3a3a",
+    muted: "#6a6a6a",
+    headFont: "Georgia, serif",
+    bodyFont: "Georgia, serif",                       // serif body, like newsprint
+    kickerFont: "'Courier New', Courier, monospace",  // wire-copy dateline/sources
+    headWeight: 700,
+    kickerWeight: 700,
+    kickerSpacing: 2,
+    accentBar: true,
+    onPhoto: { ink: "#ffffff", sub: "#f0f0f0", muted: "#d6d6d6", accent: "#e23744", scrim: 0.5 },
+  },
 };
 
-export const STYLE_LIST = [STYLES.editorial, STYLES.bold, STYLES.minimal];
+export const STYLE_LIST = [STYLES.editorial, STYLES.bold, STYLES.minimal, STYLES.newsdesk];
 export const DEFAULT_STYLE = "editorial";
 
 export function getStyle(key) {

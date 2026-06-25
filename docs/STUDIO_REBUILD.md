@@ -48,6 +48,15 @@ governs how to extend safely — especially §3 (FLAT LAYERS) and §12 (guardrai
   `layouts` + `templates.js` `slidesToDoc`/`previewCover`. (The closer stays
   brand-anchored and uniform; a side effect is that Bold/Minimal don't render a
   sources line — see taste-iteration.)
+- **News Desk family (revived segment):** the old newspaper segment, reborn as a
+  fourth style family in the new flat-layers model — newsprint cream bg, near-
+  black ink, newspaper-red (`#c41e1e`) section flags, serif headlines/body, and a
+  Courier kicker for the wire-copy dateline/sources. Its cover uses a new
+  `masthead` layout (an accent top rule + a centered uppercase section name over a
+  hairline, then a big serif headline + standfirst); content runs as `classic`
+  newspaper columns. The custom display fonts (Crown Heritage, Eroded…) are gone,
+  mapped to Georgia + Courier New stacks. Selecting the **News** category now
+  seeds this look. `styles.js` `STYLES.newsdesk`; `templates.js` `L_masthead`.
 - **Three more layouts (`split` / `numbered` / `quote`)** in the Templates
   panel, available across every family, reusing existing content fields only
   (a derived slide `number` for `numbered`) — no prompt/schema change.

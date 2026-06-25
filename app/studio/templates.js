@@ -272,10 +272,26 @@ function L_versus(c, st, pal) {
   ];
 }
 
-const LAYOUT_FNS = { classic: L_classic, cover: L_cover, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote, stat: L_stat, versus: L_versus };
+// Newspaper front-page nameplate (the News Desk cover): a section name set
+// between an accent top rule and a hairline, then a big serif headline and a
+// standfirst. Generic — applies from the panel to any family using its palette.
+function L_masthead(c, st, pal) {
+  const name = String(c.kicker || "NEWS DESK").toUpperCase();
+  return [
+    makeElement("rect", { id: uid("r"), x: M, y: 190, w: ARTBOARD_W - 2 * M, h: 6, fill: pal.accent }),
+    makeText(st.kickerFont, { x: M, y: 214, w: ARTBOARD_W - 2 * M, h: 64, content: name, fontSize: 40, fontWeight: st.kickerWeight, color: pal.ink, align: "center", letterSpacing: 6, lineHeight: 1 }),
+    makeElement("rect", { id: uid("r"), x: M, y: 292, w: ARTBOARD_W - 2 * M, h: 1, fill: pal.ink }),
+    makeText(st.headFont, { x: M, y: 360, w: ARTBOARD_W - 2 * M, h: 540, content: c.heading, fontSize: 86, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.05 }),
+    c.body ? makeText(st.headFont, { x: M, y: 1020, w: ARTBOARD_W - 2 * M, h: 170, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.4 }) : null,
+    sourcesEl(st, pal, c.sources),
+  ];
+}
+
+const LAYOUT_FNS = { classic: L_classic, cover: L_cover, masthead: L_masthead, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote, stat: L_stat, versus: L_versus };
 
 export const LAYOUT_LIST = [
   { key: "cover", label: "Cover" },
+  { key: "masthead", label: "Masthead" },
   { key: "classic", label: "Classic" },
   { key: "centered", label: "Centered" },
   { key: "statement", label: "Statement" },
