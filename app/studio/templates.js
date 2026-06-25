@@ -331,52 +331,67 @@ function L_dossier(c, st, pal) {
 const FEATURE_BAND = 748; // image-band height (~55% of the 1350 board)
 
 function isFeature(key) {
-  return key === "feature" || key === "featureBottom";
+  return key === "feature" || key === "featureBottom" || key === "featureSplit";
 }
 
-function featureImageEl(image, pal, y, h) {
+// The photo element (or, with no photo, a solid accent block) filling a rect.
+// One decoded image, never a stacked layer — same crash profile as a bg photo.
+function featureImageEl(image, pal, rect) {
+  const { x, y, w, h } = rect;
   if (image && image.url) {
     return makeElement("image", {
-      id: uid("img"), x: 0, y, w: ARTBOARD_W, h,
+      id: uid("img"), x, y, w, h,
       src: image.url, thumb: image.thumb || image.url, fit: "cover", radius: 0,
     });
   }
-  // No photo: a solid accent band keeps the split composition intact.
-  return makeElement("rect", { id: uid("r"), x: 0, y, w: ARTBOARD_W, h, fill: pal.accent });
+  return makeElement("rect", { id: uid("r"), x, y, w, h, fill: pal.accent });
 }
 
-// Text panel for a feature layout: accent bar + kicker + heading + body, with the
-// sources line pinned to the bottom of the *panel* (not the board) and the body
-// height bounded to clear it — so both the top and bottom image bands fit.
-function featureText(c, st, pal, topY, panelBottom) {
+// Text panel for a feature layout, laid into a region {x, w, topY, panelBottom}
+// (band variants use full width; the split uses the narrow column, with type
+// sized down via headSize/bodySize). Accent bar + kicker + heading + body, with
+// the sources line pinned to the panel bottom and the body height bounded to it.
+function featureText(c, st, pal, r) {
+  const headSize = r.headSize || 50, bodySize = r.bodySize || 27;
   const src = Array.isArray(c.sources) ? c.sources.filter(Boolean).join(" · ") : (c.sources || "");
-  const bodyY = topY + 300;
-  const bodyH = Math.max(70, panelBottom - 56 - bodyY);
+  const bodyY = r.topY + (r.bodyGap || 300);
+  const bodyH = Math.max(70, r.panelBottom - 56 - bodyY);
   return [
-    pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: topY - 18, w: 48, h: 6, fill: pal.accent }) : null,
-    c.kicker ? kickerEl(st, pal, c.kicker, topY, 22) : null,
-    makeText(st.headFont, { x: M, y: topY + 52, w: ARTBOARD_W - 2 * M, h: 230, content: c.heading, fontSize: 50, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
-    c.body ? makeText(st.headFont, { x: M, y: bodyY, w: ARTBOARD_W - 2 * M, h: bodyH, content: c.body, fontSize: 27, fontWeight: 400, color: pal.sub, lineHeight: 1.42 }) : null,
-    src ? makeText(st.bodyFont, { x: M, y: panelBottom - 40, w: ARTBOARD_W - 2 * M, h: 40, content: "Sources: " + src, fontSize: 19, fontWeight: 400, color: pal.muted, lineHeight: 1.2, letterSpacing: 0.5 }) : null,
+    pal.accentBar ? makeElement("rect", { id: uid("r"), x: r.x, y: r.topY - 18, w: 48, h: 6, fill: pal.accent }) : null,
+    c.kicker ? makeText(st.kickerFont, { x: r.x, y: r.topY, w: r.w, h: 40, content: c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
+    makeText(st.headFont, { x: r.x, y: r.topY + 52, w: r.w, h: 230, content: c.heading, fontSize: headSize, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
+    c.body ? makeText(st.headFont, { x: r.x, y: bodyY, w: r.w, h: bodyH, content: c.body, fontSize: bodySize, fontWeight: 400, color: pal.sub, lineHeight: 1.42 }) : null,
+    src ? makeText(st.bodyFont, { x: r.x, y: r.panelBottom - 40, w: r.w, h: 40, content: "Sources: " + src, fontSize: 19, fontWeight: 400, color: pal.muted, lineHeight: 1.2, letterSpacing: 0.5 }) : null,
   ];
 }
 
 function L_feature(c, st, pal) {
   return [
-    featureImageEl(c.image, pal, 0, FEATURE_BAND),
-    ...featureText(c, st, pal, FEATURE_BAND + 58, ARTBOARD_H - 30),
+    featureImageEl(c.image, pal, { x: 0, y: 0, w: ARTBOARD_W, h: FEATURE_BAND }),
+    ...featureText(c, st, pal, { x: M, w: ARTBOARD_W - 2 * M, topY: FEATURE_BAND + 58, panelBottom: ARTBOARD_H - 30 }),
   ];
 }
 
 function L_featureBottom(c, st, pal) {
   const imgY = ARTBOARD_H - FEATURE_BAND;
   return [
-    featureImageEl(c.image, pal, imgY, FEATURE_BAND),
-    ...featureText(c, st, pal, 150, imgY - 20),
+    featureImageEl(c.image, pal, { x: 0, y: imgY, w: ARTBOARD_W, h: FEATURE_BAND }),
+    ...featureText(c, st, pal, { x: M, w: ARTBOARD_W - 2 * M, topY: 150, panelBottom: imgY - 20 }),
   ];
 }
 
-const LAYOUT_FNS = { classic: L_classic, cover: L_cover, masthead: L_masthead, dossier: L_dossier, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote, stat: L_stat, versus: L_versus, feature: L_feature, featureBottom: L_featureBottom };
+// Side-by-side: photo fills the left half, text the right column. Type is sized
+// down for the narrow (~440px) column. Crash profile is identical to the bands —
+// one image element + flat type, never stacked layers.
+function L_featureSplit(c, st, pal) {
+  const half = 540, padL = 52, padR = 48, tx = half + padL;
+  return [
+    featureImageEl(c.image, pal, { x: 0, y: 0, w: half, h: ARTBOARD_H }),
+    ...featureText(c, st, pal, { x: tx, w: ARTBOARD_W - tx - padR, topY: 250, panelBottom: ARTBOARD_H - 60, headSize: 40, bodySize: 24, bodyGap: 250 }),
+  ];
+}
+
+const LAYOUT_FNS = { classic: L_classic, cover: L_cover, masthead: L_masthead, dossier: L_dossier, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote, stat: L_stat, versus: L_versus, feature: L_feature, featureBottom: L_featureBottom, featureSplit: L_featureSplit };
 
 export const LAYOUT_LIST = [
   { key: "cover", label: "Cover" },
@@ -393,6 +408,7 @@ export const LAYOUT_LIST = [
   { key: "versus", label: "Versus" },
   { key: "feature", label: "Feature" },
   { key: "featureBottom", label: "Feature ↓" },
+  { key: "featureSplit", label: "Feature ⇆" },
 ];
 
 // Body-band emphasis: a generated `highlight` phrase becomes a knockout marker
