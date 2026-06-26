@@ -49,8 +49,11 @@ export default function Studio() {
   const [activePanel, setActivePanel] = useState("photos");
   const [dlOpen, setDlOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [fc, setFc] = useState(null); // fact check: null | { loading, error, result }
+  const [fc, setFc] = useState(null); // fact check: null | { loading, error, result, phase }
+  const [genPhase, setGenPhase] = useState(null); // generation progress: null | "searching" | "writing"
   const booted = useRef(false);
+  const genAbort = useRef(null); // AbortController for the in-flight generation
+  const fcAbort = useRef(null);  // AbortController for the in-flight fact-check
   const dragFrom = useRef(null); // slide index being drag-reordered in the strip
   const slide = state.doc.slides[state.slideIndex];
 
@@ -98,21 +101,35 @@ export default function Studio() {
   // Create screen → generate in the chosen style → land in the editor. Capture
   // the current deck before the await so the user's brand kit (custom palette /
   // fonts / wordmark + logo) carries onto the freshly generated deck (§5).
-  const handleGenerate = async ({ style, category, topic }) => {
+  // The call is cancellable (AbortController) and reports coarse progress
+  // (searching → writing); a "quick draft" skips the web search for speed.
+  const handleGenerate = async ({ style, category, topic, quickDraft }) => {
     if (generating) return;
     const prevDoc = state.doc;
-    setGenerating(true); setGenError("");
+    const ac = new AbortController();
+    genAbort.current = ac;
+    setGenerating(true); setGenError(""); setGenPhase(quickDraft ? "writing" : "searching");
     try {
-      const doc = await generateCarousel(topic, { style, category });
+      const doc = await generateCarousel(topic, {
+        style, category, webSearch: !quickDraft, signal: ac.signal, onPhase: setGenPhase,
+      });
       dispatch({ type: "loadDoc", doc: carryBrandKit(doc, prevDoc) });
       setProjectName(topic);
       setScreen("editor");
     } catch (e) {
-      setGenError(e && e.message ? e.message : "Generation failed");
+      // A user-initiated cancel surfaces as an AbortError — stay on the create
+      // screen quietly; only real failures show an error.
+      if (!(e && (e.name === "AbortError" || /abort/i.test(e.message || "")))) {
+        setGenError(e && e.message ? e.message : "Generation failed");
+      }
     } finally {
       setGenerating(false);
+      setGenPhase(null);
+      genAbort.current = null;
     }
   };
+
+  const cancelGenerate = () => { if (genAbort.current) genAbort.current.abort(); };
 
   const startBlank = () => {
     dispatch({ type: "loadDoc", doc: blankDoc() });
@@ -152,21 +169,36 @@ export default function Studio() {
   };
 
   // Fact-check: send the deck's claims through a live web-search verify pass and
-  // show the per-claim verdict + score in the side panel.
+  // show the per-claim verdict + score in the side panel. Cancellable, and it
+  // reports the same searching → writing progress generation does.
   const runFactCheck = async () => {
-    setFc({ loading: true, error: "", result: null });
+    const ac = new AbortController();
+    fcAbort.current = ac;
+    setFc({ loading: true, error: "", result: null, phase: "searching" });
     try {
-      const result = await verifyDeck(state.doc, { category: state.doc.category });
-      setFc({ loading: false, error: "", result });
+      const result = await verifyDeck(state.doc, {
+        category: state.doc.category,
+        signal: ac.signal,
+        onPhase: (p) => setFc((f) => (f && f.loading ? { ...f, phase: p } : f)),
+      });
+      setFc({ loading: false, error: "", result, phase: null });
     } catch (e) {
-      setFc({ loading: false, error: (e && e.message) || "Fact check failed", result: null });
+      if (e && (e.name === "AbortError" || /abort/i.test(e.message || ""))) {
+        setFc(null); // user cancelled — close the panel
+      } else {
+        setFc({ loading: false, error: (e && e.message) || "Fact check failed", result: null, phase: null });
+      }
+    } finally {
+      fcAbort.current = null;
     }
   };
+
+  const cancelFactCheck = () => { if (fcAbort.current) fcAbort.current.abort(); };
 
   const toggle = (key) => setActivePanel((p) => (p === key ? null : key));
 
   if (screen === "create") {
-    return <CreateScreen onGenerate={handleGenerate} onBlank={startBlank} generating={generating} error={genError} />;
+    return <CreateScreen onGenerate={handleGenerate} onBlank={startBlank} generating={generating} phase={genPhase} onCancel={cancelGenerate} error={genError} />;
   }
 
   return (
@@ -283,8 +315,10 @@ export default function Studio() {
             loading={fc.loading}
             error={fc.error}
             result={fc.result}
+            phase={fc.phase}
             onJump={(i) => dispatch({ type: "setSlide", index: i })}
             onClose={() => setFc(null)}
+            onCancel={cancelFactCheck}
             onRetry={runFactCheck}
           />
         )}

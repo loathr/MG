@@ -15,13 +15,16 @@ function seedStyleFor(categoryKey) {
   return STYLE_LIST.some((s) => s.key === ds) ? ds : DEFAULT_STYLE;
 }
 
-export default function CreateScreen({ onGenerate, onBlank, generating, error }) {
+export default function CreateScreen({ onGenerate, onBlank, generating, phase, onCancel, error }) {
   const [category, setCategory] = useState(DEFAULT_CATEGORY);
   // The look is seeded from the category's defaultStyle until the user picks one
   // explicitly; after that it's theirs and a new category only changes the voice.
   const [style, setStyle] = useState(() => seedStyleFor(DEFAULT_CATEGORY));
   const [styleTouched, setStyleTouched] = useState(false);
   const [topic, setTopic] = useState("");
+  // Quick draft skips the (slow) live web search and writes from the model's
+  // knowledge — faster, but not guaranteed current. Off by default: sourced wins.
+  const [quickDraft, setQuickDraft] = useState(false);
 
   const pickCategory = (key) => {
     setCategory(key);
@@ -35,8 +38,13 @@ export default function CreateScreen({ onGenerate, onBlank, generating, error })
   const submit = () => {
     const t = topic.trim();
     if (!t || generating) return;
-    onGenerate({ style, category, topic: t });
+    onGenerate({ style, category, topic: t, quickDraft });
   };
+
+  // Coarse progress label while generating (the call streams searching → writing).
+  const genLabel = phase === "searching" ? "Researching the web…"
+    : phase === "writing" ? "Writing your carousel…"
+    : quickDraft ? "Drafting…" : "Starting…";
 
   return (
     <div style={screen}>
@@ -81,13 +89,22 @@ export default function CreateScreen({ onGenerate, onBlank, generating, error })
           style={topicInput}
         />
 
+        <label style={quickRow} title="Skip the live web search — faster, but it won't pull in the very latest facts.">
+          <input type="checkbox" checked={quickDraft} disabled={generating} onChange={(e) => setQuickDraft(e.target.checked)} style={{ accentColor: "#2d8cff", width: 15, height: 15 }} />
+          <span>Quick draft — skip web search (faster, less current)</span>
+        </label>
+
         {error && <div style={errBox}>{error}</div>}
 
         <button onClick={submit} disabled={generating || !topic.trim()} style={primary(generating || !topic.trim())}>
-          {generating ? "Making your carousel…" : "✨  Make my carousel"}
+          {generating ? genLabel : (quickDraft ? "⚡  Make a quick draft" : "✨  Make my carousel")}
         </button>
 
-        <button type="button" onClick={onBlank} style={blankLink}>Start from a blank canvas</button>
+        {generating ? (
+          <button type="button" onClick={onCancel} style={cancelLink}>Cancel</button>
+        ) : (
+          <button type="button" onClick={onBlank} style={blankLink}>Start from a blank canvas</button>
+        )}
       </div>
     </div>
   );
@@ -146,4 +163,12 @@ function primary(disabled) {
 const blankLink = {
   marginTop: 16, background: "transparent", border: "none", color: "#8f8f97",
   fontSize: 13, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3,
+};
+const cancelLink = {
+  marginTop: 16, background: "transparent", border: "none", color: "#ff9a9a",
+  fontSize: 13, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3,
+};
+const quickRow = {
+  display: "flex", alignItems: "center", gap: 8, marginTop: 16,
+  color: "#9a9a9a", fontSize: 12.5, cursor: "pointer", userSelect: "none",
 };

@@ -1,17 +1,16 @@
 // Generation: build an editorial prompt (category voice + a seeded angle/voice
-// for variety + today's date) and call the /api/generate proxy, parsing the
-// slides JSON out of the streamed response into the canvas document.
+// for variety + today's date) and call the /api/generate proxy WITH web search
+// (current, sourced decks), parsing the slides JSON out of the streamed response.
 //
-// Web search is OFF for generation by default: a multi-search deck takes
-// MINUTES, so generation drafts FAST (~45s) from the model's knowledge, anchored
-// to today's date. Live sourcing/verification is the on-demand fact-check pass
-// (verify.js) instead. opts.webSearch opts a single generation into slower
-// research-grounded mode.
+// Web search is ON by default — usually ~40-60s but it can spike, so the call is
+// CANCELLABLE (opts.signal -> AbortController) and reports coarse progress
+// (opts.onPhase: "searching" -> "writing"). Pass opts.webSearch:false for a fast
+// no-search "Quick draft" from the model's knowledge.
 //
 // The model is Claude Opus with ADAPTIVE THINKING — reasoning stays in thinking
-// blocks (which we drop), so the visible text is just the JSON. The call STREAMS
-// (the route pipes Anthropic's SSE through) so a long call survives Vercel's 60s
-// cap; we only read it to accumulate the final text.
+// blocks (which we drop). The call STREAMS (the route pipes Anthropic's SSE
+// through) so a long call survives Vercel's 60s cap; we read it to accumulate the
+// final text, surface progress, and honor an abort.
 import { slidesToDoc } from "./templates";
 import { getCategory, cautionFor } from "./categories";
 
@@ -151,12 +150,18 @@ export function foldStreamEvent(acc, evt) {
 }
 
 // Read the route's SSE passthrough to its end, accumulating the final answer
-// text. Defensive: a malformed event line is skipped, not fatal.
-async function readSSEText(body) {
+// text. Defensive: a malformed event line is skipped, not fatal. `onPhase` (if
+// given) is called with "searching" when a web-search tool block opens and
+// "writing" when the model starts emitting the answer text — coarse progress for
+// the UI, fired only on change. The reader's read() rejects if the underlying
+// fetch is aborted, which propagates out as the AbortError the caller swallows.
+async function readSSEText(body, onPhase) {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
   let acc = { text: "", stop: null, error: null };
+  let phase = null;
+  const setPhase = (p) => { if (p !== phase) { phase = p; if (onPhase) try { onPhase(p); } catch (e) {} } };
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -167,7 +172,11 @@ async function readSSEText(body) {
       buf = buf.slice(nl + 2);
       const dataLine = frame.split("\n").find((l) => l.startsWith("data:"));
       if (!dataLine) continue;
-      try { acc = foldStreamEvent(acc, JSON.parse(dataLine.slice(5).trim())); } catch (e) { /* skip */ }
+      let evt;
+      try { evt = JSON.parse(dataLine.slice(5).trim()); } catch (e) { continue; }
+      if (evt.type === "content_block_start" && evt.content_block && evt.content_block.type === "server_tool_use") setPhase("searching");
+      else if (evt.type === "content_block_delta" && evt.delta && evt.delta.type === "text_delta") setPhase("writing");
+      acc = foldStreamEvent(acc, evt);
     }
   }
   if (acc.error) throw new Error(acc.error);
@@ -223,24 +232,26 @@ export async function runPrompt(prompt, opts) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+    signal: o.signal,
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error((data && (data.error && (data.error.message || data.error))) || ("HTTP " + res.status));
   }
   const ct = res.headers.get("content-type") || "";
-  if (stream && res.body && ct.includes("text/event-stream")) return readSSEText(res.body);
+  if (stream && res.body && ct.includes("text/event-stream")) return readSSEText(res.body, o.onPhase);
   return extractText(await res.json());
 }
 
 export async function generateCarousel(topic, opts) {
   const o = opts || {};
-  // Web search OFF by default — a multi-search deck takes minutes. Generation
-  // drafts fast from the model's knowledge (anchored to today's date); live
-  // sourcing is the fact-check pass. opts.webSearch opts into research mode.
-  const webSearch = o.webSearch === true;
+  // Web search ON by default — decks come out current and sourced. It's the slow
+  // path (usually ~40-60s, occasionally minutes), so the call is cancellable
+  // (o.signal) and reports progress (o.onPhase). Pass webSearch:false for a fast
+  // "Quick draft" from the model's knowledge (still anchored to today's date).
+  const webSearch = o.webSearch !== false;
   const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch });
-  const text = await runPrompt(prompt, { model: o.model, webSearch, stream: o.stream });
+  const text = await runPrompt(prompt, { model: o.model, webSearch, stream: o.stream, signal: o.signal, onPhase: o.onPhase });
   const slides = parseSlides(text);
   const wantPhotos = o.photos !== false;
   const imgMap = wantPhotos ? await fetchSlideImages(slides, topic) : {};

@@ -80,6 +80,8 @@ function todayISO() {
 export async function verifyDeck(doc, opts) {
   const o = opts || {};
   const prompt = buildVerifyPrompt(doc, { today: o.today != null ? o.today : todayISO() });
-  const text = await runPrompt(prompt, { stream: o.stream, webSearch: o.webSearch });
+  // Fact-check always searches; like generation it's cancellable (o.signal) and
+  // reports progress (o.onPhase: "searching" -> "writing").
+  const text = await runPrompt(prompt, { stream: o.stream, webSearch: o.webSearch, signal: o.signal, onPhase: o.onPhase });
   return parseVerdict(text);
 }

@@ -33,7 +33,7 @@ function scoreColor(s) {
 
 function isUrl(s) { return /^https?:\/\//i.test(s || ""); }
 
-export default function FactCheckPanel({ loading, error, result, onJump, onClose, onRetry }) {
+export default function FactCheckPanel({ loading, error, result, phase, onJump, onClose, onCancel, onRetry }) {
   const claims = (result && result.claims) ? result.claims.slice().sort((a, b) => vinfo(a.verdict).rank - vinfo(b.verdict).rank) : [];
   const problems = claims.filter((c) => c.verdict === "unsupported" || c.verdict === "misleading").length;
   return (
@@ -46,8 +46,9 @@ export default function FactCheckPanel({ loading, error, result, onJump, onClose
       <div style={body}>
         {loading && (
           <div style={{ color: "#bdbdbd", fontSize: 13, lineHeight: 1.6, padding: "10px 2px" }}>
-            Checking every claim against the web…
+            {phase === "writing" ? "Weighing the evidence…" : "Checking every claim against the web…"}
             <div style={{ color: "#7a7a7a", fontSize: 12, marginTop: 6 }}>This runs a live search pass — about 30–60 seconds.</div>
+            <button onClick={onCancel} style={{ marginTop: 12, height: 30, padding: "0 12px", background: "#26262b", color: "#cfcfcf", border: "1px solid #36363c", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
           </div>
         )}
 
