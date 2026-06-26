@@ -148,6 +148,43 @@ test("setLayout reflows the current slide and drops the selection", () => {
   assert.equal(s.selectedId, null);
 });
 
+// --- #4 brand coherence: a layout change stays on-brand, and a drifted slide is
+// recoverable via resetSlideToBrand (per-slide + all). ----------------------
+function branded(accent) {
+  const doc = slidesToDoc(
+    [{ role: "COVER", heading: "A" }, { heading: "B", body: "x" }, { role: "CLOSER", heading: "Z" }],
+    "editorial",
+  );
+  doc.brand = Object.assign({}, doc.brand, { accent });
+  return { doc, slideIndex: 1, selectedId: null, editingId: null, past: [], future: [], lastTag: null };
+}
+
+test("setLayout reflows in the deck's brand, so a layout change stays on-brand (#4)", () => {
+  let s = branded("#00ff00");
+  s = reducer(s, { type: "setLayout", layout: "split", index: 1 });
+  assert.equal(s.doc.slides[1].layout, "split");
+  assert.ok(s.doc.slides[1].elements.some((e) => e.type === "rect" && e.fill === "#00ff00"));
+});
+
+test("resetSlideToBrand snaps a drifted slide back to the deck look (#4)", () => {
+  let s = branded("#00ff00");
+  // simulate a slide that drifted off-brand (e.g. a pre-fix reflow left the family accent)
+  s.doc.slides[1] = Object.assign({}, s.doc.slides[1], {
+    elements: s.doc.slides[1].elements.map((e) => (e.type === "rect" ? Object.assign({}, e, { fill: "#e23744" }) : e)),
+  });
+  s = reducer(s, { type: "resetSlideToBrand", index: 1 });
+  assert.ok(s.doc.slides[1].elements.some((e) => e.type === "rect" && e.fill === "#00ff00")); // back on brand
+  assert.equal(s.selectedId, null);
+});
+
+test("resetSlideToBrand all re-skins the whole deck and keeps the logo (#4)", () => {
+  let s = branded("#00ff00");
+  s.doc = stampLogo(s.doc, { src: "data:l", w: 100, h: 50 }); // logo on the bookends
+  s = reducer(s, { type: "resetSlideToBrand", all: true });
+  assert.ok(s.doc.slides[0].elements.some((e) => e.type === "rect" && e.fill === "#00ff00")); // cover on brand
+  assert.ok(s.doc.slides[0].elements.some((e) => e.role === "logo"));                          // logo survived
+});
+
 test("setCaution adds then removes the closing caution and records it on the brand", () => {
   let s = initStudio();
   s = reducer(s, { type: "setCaution", text: "Careful" });

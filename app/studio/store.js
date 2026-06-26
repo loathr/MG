@@ -10,7 +10,7 @@
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W } from "./model";
-import { reflowSlide, cautionElement } from "./templates";
+import { reflowSlide, cautionElement, closerTemplate, deriveContent } from "./templates";
 import { brandFromStyle } from "./styles";
 
 const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
@@ -213,7 +213,7 @@ function docReducer(state, a) {
         const els = (s.elements || []).filter((e) => e.role !== "caution");
         if (text) {
           const hasImage = !!(s.background && s.background.type === "image");
-          els.push(cautionElement(s.style || "editorial", text, hasImage));
+          els.push(cautionElement(s.style || "editorial", text, hasImage, state.doc.brand));
         }
         return Object.assign({}, s, { elements: els });
       });
@@ -225,10 +225,36 @@ function docReducer(state, a) {
       // never automatic — so manual edits persist until the user picks a layout.
       // reflowSlide moves the photo between background<->feature element as needed
       // and preserves manual backgrounds for non-feature re-flows (see templates.js).
-      const relayout = (s) => Object.assign({}, s, reflowSlide(s, a.layout));
+      const relayout = (s) => Object.assign({}, s, reflowSlide(s, a.layout, state.doc.brand));
       const slides = a.all
         ? state.doc.slides.map(relayout)
         : state.doc.slides.map((s, idx) => (idx === (a.index == null ? state.slideIndex : a.index) ? relayout(s) : s));
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides }), selectedId: null, editingId: null });
+    }
+    case "resetSlideToBrand": {
+      // Re-skin a slide (or all) to the deck's current brand by re-rendering it
+      // from its own content + layout — the explicit, undoable escape hatch for a
+      // slide that drifted off-brand. Manual element tweaks on that slide are
+      // discarded (that's the point), but the brand logo is carried through.
+      const brand = state.doc.brand;
+      const reset = (s) => {
+        const logos = (s.elements || []).filter((e) => e.role === "logo");
+        let r;
+        if ((s.layout || "") === "closer") {
+          const content = s.content || deriveContent(s);
+          const image = s.background && s.background.type === "image"
+            ? { url: s.background.src, thumb: s.background.thumb, credit: s.background.credit, source: s.background.source }
+            : null;
+          const rebuilt = closerTemplate(content, s.style || "editorial", image, (brand && brand.caution) || "", brand);
+          r = { elements: rebuilt.elements, background: rebuilt.background };
+        } else {
+          r = reflowSlide(s, s.layout || "classic", brand);
+        }
+        return Object.assign({}, s, r, { elements: r.elements.concat(logos) });
+      };
+      const slides = a.all
+        ? state.doc.slides.map(reset)
+        : state.doc.slides.map((s, idx) => (idx === (a.index == null ? state.slideIndex : a.index) ? reset(s) : s));
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides }), selectedId: null, editingId: null });
     }
     case "setSlide":
@@ -240,7 +266,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setLayout: 1 };
+const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setLayout: 1, resetSlideToBrand: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
 
 function snap(state) {

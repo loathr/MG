@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   STYLES, STYLE_LIST, DEFAULT_STYLE, getStyle, brandFromStyle,
-  EDITORIAL_PALETTES, paletteBrand,
+  EDITORIAL_PALETTES, paletteBrand, effectiveStyle,
 } from "../app/studio/styles.js";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -62,4 +62,25 @@ test("paletteBrand passes bg/accent/ink through and tints sub/muted between them
   assert.match(b.muted, HEX);
   assert.notEqual(b.sub, p.ink);   // tints sit between ink and bg, so they differ
   assert.notEqual(b.muted, p.bg);  // from both endpoints
+});
+
+test("effectiveStyle is a strict no-op for a family's own default brand", () => {
+  const st = getStyle("editorial");
+  const eff = effectiveStyle("editorial", brandFromStyle("editorial"));
+  for (const k of ["accent", "bg", "ink", "sub", "muted", "headFont", "bodyFont"]) {
+    assert.equal(eff[k], st[k]);
+  }
+  assert.equal(eff.onPhoto.accent, st.onPhoto.accent); // over-photo accent untouched
+  // News Desk's onPhoto accent differs from its base accent — must NOT be clobbered
+  // by its own default brand.
+  assert.equal(effectiveStyle("newsdesk", brandFromStyle("newsdesk")).onPhoto.accent, getStyle("newsdesk").onPhoto.accent);
+  assert.equal(effectiveStyle("editorial", null), st); // null brand → identity
+});
+
+test("effectiveStyle applies brand overrides, accent reaching the over-photo palette", () => {
+  const eff = effectiveStyle("editorial", Object.assign({}, brandFromStyle("editorial"), { accent: "#00ff00", headFont: "Impact" }));
+  assert.equal(eff.accent, "#00ff00");
+  assert.equal(eff.onPhoto.accent, "#00ff00");          // accent follows the brand on photo slides
+  assert.equal(eff.headFont, "Impact");
+  assert.equal(eff.onPhoto.ink, getStyle("editorial").onPhoto.ink); // light ink kept for legibility
 });

@@ -94,6 +94,31 @@ export function brandFromStyle(key) {
   };
 }
 
+// The style family with the deck's LIVE brand overrides merged on top. This is
+// what lets the renderer draw a re-flowed or reset slide in the current brand
+// instead of snapping back to the family palette (the old "edit a slide and it
+// disconnects from the deck" bug). A null/default brand is a strict no-op, so
+// generation output is unchanged. The accent override also extends into the
+// over-photo palette (so emphasis on photo slides follows the brand), but only
+// when it actually differs — onPhoto's light ink/sub/muted stay put for
+// legibility on a darkened photo.
+export function effectiveStyle(key, brand) {
+  const st = getStyle(key);
+  if (!brand) return st;
+  const out = Object.assign({}, st);
+  if (brand.accent != null) out.accent = brand.accent;
+  if (brand.bg != null) out.bg = brand.bg;
+  if (brand.ink != null) out.ink = brand.ink;
+  if (brand.sub != null) out.sub = brand.sub;
+  if (brand.muted != null) out.muted = brand.muted;
+  if (brand.headFont != null) out.headFont = brand.headFont;
+  if (brand.bodyFont != null) out.bodyFont = brand.bodyFont;
+  if (st.onPhoto && brand.accent != null && brand.accent !== st.accent) {
+    out.onPhoto = Object.assign({}, st.onPhoto, { accent: brand.accent });
+  }
+  return out;
+}
+
 // ----------------------------------------------------------------------------
 // Editorial palettes — the original 9 category color schemes, revived as
 // one-click "looks" in the Brand panel. Color only: accent + background + ink,

@@ -12,7 +12,7 @@
 // cream) stays legible.
 // ============================================================================
 import { ARTBOARD_W, ARTBOARD_H, uid, makeElement } from "./model";
-import { getStyle, brandFromStyle } from "./styles";
+import { getStyle, brandFromStyle, effectiveStyle } from "./styles";
 
 const M = 80; // side margin
 
@@ -96,24 +96,24 @@ export function contentTemplate(s, index, style, image) {
   ]);
 }
 
-export function closerTemplate(s, style, image, caution) {
-  const st = getStyle(style);
+export function closerTemplate(s, style, image, caution, brand) {
+  const st = effectiveStyle(style, brand);
   const pal = palette(st, !!(image && image.url));
   const cy = 470;
   return slideShell(st, image, [
-    makeText(st.bodyFont, { x: M, y: cy, w: ARTBOARD_W - 2 * M, h: 60, content: "LOATHR", fontSize: 30, fontWeight: 700, color: pal.ink, align: "center", letterSpacing: 8, lineHeight: 1 }),
+    makeText(st.bodyFont, { x: M, y: cy, w: ARTBOARD_W - 2 * M, h: 60, content: (brand && brand.wordmark) || "LOATHR", fontSize: 30, fontWeight: 700, color: pal.ink, align: "center", letterSpacing: 8, lineHeight: 1 }),
     makeElement("rect", { id: uid("r"), x: ARTBOARD_W / 2 - 30, y: cy + 86, w: 60, h: 4, fill: pal.accent }),
     makeText(st.headFont, { x: M, y: cy + 130, w: ARTBOARD_W - 2 * M, h: 320, content: s.heading || s.body || "Thanks for reading.", fontSize: 52, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.15 }),
     s.cta ? makeText(st.bodyFont, { x: M, y: cy + 470, w: ARTBOARD_W - 2 * M, h: 60, content: s.cta, fontSize: 26, fontWeight: 400, color: pal.accent, align: "center", lineHeight: 1.3 }) : null,
-    caution ? cautionElement(style, caution, !!(image && image.url)) : null,
+    caution ? cautionElement(style, caution, !!(image && image.url), brand) : null,
   ]);
 }
 
 // Small-print caution line for the closing slide (legal/credibility disclaimer).
 // A role-tagged text element so the Brand panel's setCaution can find/replace it,
 // and it's a normal draggable element after placement. Pinned to the bottom.
-export function cautionElement(style, text, hasImage) {
-  const st = getStyle(style);
+export function cautionElement(style, text, hasImage, brand) {
+  const st = effectiveStyle(style, brand);
   const pal = palette(st, !!hasImage);
   return makeText(st.bodyFont, {
     id: uid("caution"), role: "caution",
@@ -431,8 +431,8 @@ function applyHighlight(els, highlight, color, knockout) {
 
 // Render a slide's content through a layout -> elements. `hasImage` switches the
 // text to the readable over-photo palette. A body `highlight` is applied last.
-export function renderLayout(layoutKey, content, style, hasImage) {
-  const st = getStyle(style);
+export function renderLayout(layoutKey, content, style, hasImage, brand) {
+  const st = effectiveStyle(style, brand);
   const c = norm(content);
   // Feature layouts carry the photo as an element on a solid panel, so their text
   // uses the normal palette. Every other layout sets text over the photo bg and
@@ -450,9 +450,9 @@ export function renderLayout(layoutKey, content, style, hasImage) {
 // kept as canonical slide data (content.image) and moved between the background
 // and a feature element ONLY when crossing the feature boundary — so re-flowing
 // between two non-feature layouts preserves any manual background the user set.
-export function reflowSlide(slide, layoutKey) {
+export function reflowSlide(slide, layoutKey, brand) {
   const style = slide.style || "editorial";
-  const st = getStyle(style);
+  const st = effectiveStyle(style, brand);
   const content = slide.content ? Object.assign({}, slide.content) : deriveContent(slide);
   // Recover the photo from an existing image background if it isn't on content yet
   // (older docs, or a photo dropped straight onto the background via Photos).
@@ -469,7 +469,7 @@ export function reflowSlide(slide, layoutKey) {
     // Restore the photo as a full-bleed background (solid when there's no photo).
     background = backgroundFor(st, content.image && content.image.url ? content.image : null);
   }
-  return { elements: renderLayout(layoutKey, content, style), background, layout: layoutKey, content };
+  return { elements: renderLayout(layoutKey, content, style, undefined, brand), background, layout: layoutKey, content };
 }
 
 // A single cover slide rendered through a style's OWN cover layout — so the

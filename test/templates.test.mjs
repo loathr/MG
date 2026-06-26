@@ -101,6 +101,22 @@ test("reflowSlide between two non-feature layouts keeps the manual background", 
   assert.deepEqual(out.background, { type: "color", color: "#123456" }); // untouched
 });
 
+test("reflowSlide renders in the deck's brand, not the family default (#4)", () => {
+  const slide = {
+    style: "editorial", layout: "classic",
+    background: { type: "color", color: "#0c0c0c" },
+    content: { heading: "H", body: "b" }, elements: [],
+  };
+  const brand = {
+    accent: "#00ff00", bg: "#0c0c0c", ink: "#ffffff", sub: "#eaeaea", muted: "#9a9a9a",
+    headFont: "Georgia, serif", bodyFont: "Helvetica, Arial, sans-serif",
+  };
+  const branded = reflowSlide(slide, "classic", brand);
+  assert.ok(branded.elements.some((e) => e.type === "rect" && e.fill === "#00ff00")); // accent bar follows brand
+  const plain = reflowSlide(slide, "classic");
+  assert.ok(plain.elements.some((e) => e.type === "rect" && e.fill === "#e23744"));   // family default w/o brand
+});
+
 test("slidesToDoc routes cover/closer/stat/versus and tags each slide", () => {
   const slides = [
     { role: "COVER", heading: "Cover" },

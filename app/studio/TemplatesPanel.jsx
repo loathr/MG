@@ -17,7 +17,7 @@ function card(active) {
   return { display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: 6, borderRadius: 8, cursor: "pointer", background: active ? "#222228" : "transparent", border: "1.5px solid " + (active ? "#2d8cff" : "#2c2c32") };
 }
 
-export default function TemplatesPanel({ slide, onApply, onApplyAll, onClose }) {
+export default function TemplatesPanel({ slide, brand, onApply, onApplyAll, onReset, onClose }) {
   const [all, setAll] = useState(false);
   return (
     <div style={wrap}>
@@ -30,9 +30,10 @@ export default function TemplatesPanel({ slide, onApply, onApplyAll, onClose }) 
       </label>
       <div style={grid}>
         {LAYOUT_LIST.map((l) => {
-          // Preview through the same re-flow the store applies, so feature previews
-          // show the photo as an element on a solid panel (and the round-trip back).
-          const r = reflowSlide(slide, l.key);
+          // Preview through the same re-flow the store applies (in the deck's live
+          // brand), so feature previews show the photo as an element on a solid
+          // panel (and the round-trip back) and every preview is on-brand.
+          const r = reflowSlide(slide, l.key, brand);
           const preview = Object.assign({}, slide, { elements: r.elements, background: r.background });
           const active = slide.layout === l.key;
           return (
@@ -45,8 +46,14 @@ export default function TemplatesPanel({ slide, onApply, onApplyAll, onClose }) 
           );
         })}
       </div>
+      <button
+        type="button"
+        onClick={onReset}
+        title="Re-render this slide from its text in the deck's current look — discards manual tweaks on this slide. Undoable."
+        style={{ margin: "0 12px 8px", height: 32, flexShrink: 0, background: "#26262b", color: "#cfcfcf", border: "1px solid #36363c", borderRadius: 6, fontSize: 12, cursor: "pointer" }}
+      >↺ Reset this slide to the look</button>
       <p style={{ fontSize: 11, color: "#777", margin: 0, padding: "0 12px 12px", lineHeight: 1.5 }}>
-        Re-flows this slide&apos;s text into the chosen layout. Undoable.
+        Re-flows this slide&apos;s text into the chosen layout, in the deck&apos;s look. Undoable.
       </p>
     </div>
   );

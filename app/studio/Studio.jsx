@@ -234,8 +234,10 @@ export default function Studio() {
         {activePanel === "templates" && (
           <TemplatesPanel
             slide={slide}
+            brand={state.doc.brand}
             onApply={(layout) => dispatch({ type: "setLayout", layout })}
             onApplyAll={(layout) => dispatch({ type: "setLayout", layout, all: true })}
+            onReset={() => dispatch({ type: "resetSlideToBrand" })}
             onClose={() => setActivePanel(null)}
           />
         )}
@@ -246,6 +248,7 @@ export default function Studio() {
             onApply={(prev, next) => dispatch({ type: "applyBrand", prev, brand: next })}
             onLogo={(logo) => dispatch({ type: "setLogo", logo })}
             onCaution={(text) => dispatch({ type: "setCaution", text })}
+            onResetAll={() => dispatch({ type: "resetSlideToBrand", all: true })}
             onClose={() => setActivePanel(null)}
           />
         )}

@@ -72,7 +72,7 @@ function Field({ label, children }) {
   );
 }
 
-export default function BrandPanel({ brand, category, onApply, onLogo, onCaution, onClose }) {
+export default function BrandPanel({ brand, category, onApply, onLogo, onCaution, onResetAll, onClose }) {
   // Fill any missing color fields from the editorial defaults so a palette swap
   // always has a known "previous" to remap from.
   const cur = Object.assign({}, brandFromStyle("editorial"), brand);
@@ -112,6 +112,12 @@ export default function BrandPanel({ brand, category, onApply, onLogo, onCaution
             <input type="color" value={hex(cur.accent)} onChange={(e) => set({ accent: e.target.value })} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
           </label>
         </Field>
+        <button
+          type="button"
+          onClick={onResetAll}
+          title="Re-render every slide from its text in this look — pulls any slide that drifted off-brand (e.g. after a layout change) back in line. Discards manual per-element tweaks. Undoable."
+          style={{ ...miniBtn, width: "100%", height: 34 }}
+        >↺ Re-apply this look to all slides</button>
         <Field label="Heading font">
           <select value={cur.headFont} onChange={(e) => set({ headFont: e.target.value })} style={sel}>
             {FONTS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
