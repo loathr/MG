@@ -7,11 +7,13 @@ import RichText from "./RichText";
 function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, onCommitText, onEndEdit }) {
   const editRef = useRef(null);
   const pendingRef = useRef(null); // latest typed text, tracked without re-rendering
+  const cancelledRef = useRef(false); // Escape reverts the edit instead of committing
 
   useEffect(() => {
     if (!isEditing || !editRef.current) return;
     const node = editRef.current;
     pendingRef.current = el.content; // baseline at edit start
+    cancelledRef.current = false;
     node.focus();
     // place caret at the end
     const sel = window.getSelection();
@@ -27,6 +29,7 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
     // the element snapped back to its original — the "edit reverts" bug. The
     // effect cleanup always runs on isEditing -> false, so we commit here instead.
     return () => {
+      if (cancelledRef.current) return; // Escape — discard, keep the original
       const text = pendingRef.current;
       if (text != null && text !== el.content) onCommitText(el.id, text);
     };
@@ -75,7 +78,15 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
           onInput={(e) => { pendingRef.current = e.currentTarget.innerText; }}
           onBlur={() => onEndEdit()}
           onKeyDown={(e) => {
-            if (e.key === "Escape") { e.preventDefault(); e.currentTarget.blur(); }
+            // Enter commits; Shift+Enter inserts a line break; Escape cancels.
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              e.currentTarget.blur();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              cancelledRef.current = true;
+              e.currentTarget.blur();
+            }
             e.stopPropagation();
           }}
           onPointerDown={(e) => e.stopPropagation()}
