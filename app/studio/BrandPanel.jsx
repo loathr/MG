@@ -87,7 +87,7 @@ export default function BrandPanel({ brand, category, onApply, onLogo, onCaution
         <button style={xBtn} onClick={onClose} title="Close panel">×</button>
       </div>
       <div style={{ padding: "0 12px 12px", display: "flex", flexDirection: "column", gap: 14 }}>
-        <Field label="Palette">
+        <Field label="Looks">
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
             {EDITORIAL_PALETTES.map((p) => {
               const active = cur.accent === p.accent && cur.bg === p.bg;
@@ -167,7 +167,7 @@ export default function BrandPanel({ brand, category, onApply, onLogo, onCaution
           ) : null}
         </Field>
         <p style={{ fontSize: 11, color: "#777", margin: 0, lineHeight: 1.5 }}>
-          Palette, accent, fonts &amp; wordmark apply across every slide. The logo
+          Looks set the deck&apos;s colors; accent, fonts &amp; wordmark apply across every slide. The logo
           is stamped top-right on the cover &amp; closing slides. The caution label
           sits on the closing slide (Business &amp; News seed one). Undoable (⌘/Ctrl+Z).
         </p>
