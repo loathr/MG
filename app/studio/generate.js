@@ -15,9 +15,14 @@ import { slidesToDoc } from "./templates";
 import { getCategory, cautionFor } from "./categories";
 
 const MODEL = "claude-opus-4-8";
-// Server-side web search (dynamic-filtering variant — Opus 4.8). One tool entry;
-// the model runs the searches and we read the final text it writes.
-const WEB_SEARCH_TOOL = { type: "web_search_20260209", name: "web_search", max_uses: 5 };
+// Server-side web search — the BASIC variant, deliberately. The dynamic-filtering
+// variant (web_search_20260209) runs code execution under the hood to filter
+// results, and on a broad topic that spirals to 20+ tool calls over many minutes
+// — which blows the serverless function's wall-clock cap, so the deck is never
+// written and the client sees "Empty model response". The basic variant just
+// searches and writes: bounded, fast, and far cheaper. max_uses is capped low to
+// keep the whole turn inside the time budget.
+const WEB_SEARCH_TOOL = { type: "web_search_20250305", name: "web_search", max_uses: 4 };
 
 // A fresh lens + a tonal voice, layered on the category's own persona so two
 // decks on different topics (or a regenerate with a new seed) don't read the
@@ -180,9 +185,17 @@ async function readSSEText(body, onPhase) {
     }
   }
   if (acc.error) throw new Error(acc.error);
-  if (acc.stop === "pause_turn") throw new Error("Generation paused before finishing — please try again.");
+  if (acc.stop === "pause_turn") throw new Error("The web search hit its step limit before the deck was written — please try again, or switch on “Quick draft” to skip the search.");
   if (acc.stop === "max_tokens") throw new Error("The response was cut off before finishing — please try again.");
-  return stripCites(acc.text);
+  const out = stripCites(acc.text);
+  // Empty/whitespace output means the stream ended before any deck JSON was
+  // written — almost always the serverless function hitting its wall-clock cap
+  // mid-search on a broad topic. Surface that plainly with a way forward, rather
+  // than letting parseSlides throw a cryptic "Empty model response".
+  if (!out.trim()) {
+    throw new Error("The response was cut off before any slides were written — the web search likely ran past the time limit. Try again, narrow the topic, or switch on “Quick draft” to skip the search.");
+  }
+  return out;
 }
 
 // After the text is written, fetch one photo per slide from the existing
