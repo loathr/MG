@@ -67,6 +67,12 @@ export function rethemeDoc(doc, prev, next) {
       if (b.headFont && p.headFont && n.fontFamily === p.headFont) n = Object.assign({}, n, { fontFamily: b.headFont });
       else if (b.bodyFont && p.bodyFont && n.fontFamily === p.bodyFont) n = Object.assign({}, n, { fontFamily: b.bodyFont });
       if (b.wordmark && p.wordmark && n.content === p.wordmark) n = Object.assign({}, n, { content: b.wordmark });
+      // The inline highlight marker is a DERIVED color pair — its background is the
+      // accent and its knockout text is the deck bg — set only by the renderer, with
+      // no manual-edit path. So a palette swap must carry it too; otherwise the
+      // marker keeps the old accent/bg (the most visible "didn't update" case).
+      if (n.highlightColor && b.accent) n = Object.assign({}, n, { highlightColor: b.accent });
+      if (n.highlightText && b.bg) n = Object.assign({}, n, { highlightText: b.bg });
     }
     return n;
   };

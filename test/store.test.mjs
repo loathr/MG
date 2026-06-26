@@ -204,3 +204,21 @@ test("applyBrand re-themes the live document", () => {
   s = reducer(s, { type: "applyBrand", prev, brand: next });
   assert.ok(cur(s).elements.some((e) => e.type === "rect" && e.fill === "#00ff00"));
 });
+
+test("rethemeDoc carries the inline highlight marker to the new accent + bg", () => {
+  const doc = slidesToDoc(
+    [{ role: "COVER", heading: "A" },
+     { heading: "H", body: "the quick brown fox", highlight: "quick brown" },
+     { role: "CLOSER", heading: "Z" }],
+    "editorial",
+  );
+  const findHL = (d) => d.slides.flatMap((s) => s.elements).find((e) => e.highlightColor);
+  const before = findHL(doc);
+  assert.ok(before, "expected a highlighted element from generation");
+  assert.equal(before.highlightColor, "#e23744"); // editorial accent
+  const prev = doc.brand;
+  const next = Object.assign({}, prev, { accent: "#00ff00", bg: "#111111" });
+  const after = findHL(rethemeDoc(doc, prev, next));
+  assert.equal(after.highlightColor, "#00ff00"); // marker background follows the new accent
+  assert.equal(after.highlightText, "#111111");  // knockout text follows the new deck bg
+});
