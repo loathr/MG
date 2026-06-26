@@ -7,15 +7,20 @@ import {
   buildPrompt, hashStr, stripCites, foldStreamEvent, parseSlides,
 } from "../app/studio/generate.js";
 
-test("buildPrompt threads the category voice, web-search rule, date, and JSON shape", () => {
-  const p = buildPrompt("the rise of A24 horror", "editorial", { seed: 3, today: "2026-06-26" });
+test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabled", () => {
+  const base = { seed: 3, today: "2026-06-26" };
+  const p = buildPrompt("the rise of A24 horror", "editorial", base);
   assert.match(p, /writing a premium Instagram carousel/);
   assert.match(p, /Today's date is 2026-06-26/);          // date anchor
   assert.match(p, /Approach this through/);                // seeded angle
   assert.match(p, /Voice:/);                               // seeded voice
-  assert.match(p, /use web search to verify/);             // sourcing instruction
   assert.match(p, /\{"slides":\[/);                        // exact JSON shape
   assert.match(p, /THE ORIGIN/);                           // editorial role label
+  // default (no web search): a "from knowledge" grounding line, not a search instruction
+  assert.match(p, /Ground every claim/);
+  assert.doesNotMatch(p, /use web search/);
+  // opt-in research mode swaps in the web-search instruction
+  assert.match(buildPrompt("x", "editorial", Object.assign({}, base, { webSearch: true })), /use web search/);
 });
 
 test("buildPrompt is deterministic for a fixed seed and varies the angle by seed", () => {

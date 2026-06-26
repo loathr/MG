@@ -1,14 +1,17 @@
 // Generation: build an editorial prompt (category voice + a seeded angle/voice
-// for variety + today's date), call the /api/generate proxy WITH web search so
-// the copy is current and sourced, parse the slides JSON out of the streamed
-// response, and instantiate the canvas document.
+// for variety + today's date) and call the /api/generate proxy, parsing the
+// slides JSON out of the streamed response into the canvas document.
 //
-// The model is Claude Opus with ADAPTIVE THINKING — its reasoning stays in
-// thinking blocks (which we drop), so the visible text is just the JSON. The
-// call STREAMS: a long Opus + web-search generation can run well past Vercel's
-// 60s function cap, and a streamed response keeps the function alive (the route
-// pipes Anthropic's SSE straight through). We only read it to accumulate the
-// final text — nothing is rendered token-by-token.
+// Web search is OFF for generation by default: a multi-search deck takes
+// MINUTES, so generation drafts FAST (~45s) from the model's knowledge, anchored
+// to today's date. Live sourcing/verification is the on-demand fact-check pass
+// (verify.js) instead. opts.webSearch opts a single generation into slower
+// research-grounded mode.
+//
+// The model is Claude Opus with ADAPTIVE THINKING — reasoning stays in thinking
+// blocks (which we drop), so the visible text is just the JSON. The call STREAMS
+// (the route pipes Anthropic's SSE through) so a long call survives Vercel's 60s
+// cap; we only read it to accumulate the final text.
 import { slidesToDoc } from "./templates";
 import { getCategory, cautionFor } from "./categories";
 
@@ -62,6 +65,9 @@ export function buildPrompt(topic, categoryKey, opts) {
   const seed = o.seed != null ? o.seed >>> 0 : hashStr(topic + "|" + categoryKey);
   const angle = ANGLES[seed % ANGLES.length];
   const voice = VOICES[Math.floor(seed / ANGLES.length) % VOICES.length];
+  const research = o.webSearch
+    ? "Research first: use web search to verify the key facts, figures, names, and recent developments before you write — ground every claim in what you find and cite the 1-2 strongest real, current outlets per slide. Never cite a source you did not find."
+    : "Ground every claim in well-established, real facts, and name 1-2 credible outlets per slide in sources. Do not fabricate statistics or cite events you are unsure occurred; if a topic needs live data you don't have, pick a more evergreen angle.";
   return [
     "You are " + cat.persona + " writing a premium Instagram carousel.",
     'Topic: "' + topic + '".',
@@ -69,7 +75,7 @@ export function buildPrompt(topic, categoryKey, opts) {
     cat.brief,
     "Approach this through " + angle + ". Voice: " + voice + ".",
     "",
-    "Research first: use web search to verify the key facts, figures, names, and any recent developments before you write. Ground every claim in what you actually find, and cite the 1-2 strongest real, current outlets per slide. Never cite a source you did not find, and never invent a statistic.",
+    research,
     "",
     "Craft standards (this is the quality bar — hold to all of them):",
     '- The cover hooks with a specific promise or tension, never a generic label ("The Future of X", "Everything You Need to Know", "A Deep Dive Into...").',
@@ -97,6 +103,8 @@ export function buildPrompt(topic, categoryKey, opts) {
     '- At most ONE content slide may be a big-number STAT: add "stat" (a short value like "73%", "$2.4B", "10x") and "statLabel" (what it measures) in place of a long body. Use a real, verified figure — never invent one; if unsure, skip it.',
     '- At most ONE content slide may be a head-to-head VERSUS: add "versus":{"left":{"label":"...","value":"..."},"right":{"label":"...","value":"..."}} when there is a natural two-side comparison. Keep each value to a few words.',
     '- Put a STAT or VERSUS on the slide whose role is most data- or evidence-oriented — e.g. "The Numbers", "The Data", "The Evidence", "The Proof", "The Stakes" — not on a narrative or scene-setting slide.',
+    "",
+    "Output the JSON object as your entire response. Search the web as needed, then return ONLY the JSON — no preamble, no \"I'll research...\", no commentary before or after, no markdown fences.",
   ].filter((line) => line != null).join("\n");
 }
 
@@ -164,6 +172,7 @@ async function readSSEText(body) {
   }
   if (acc.error) throw new Error(acc.error);
   if (acc.stop === "pause_turn") throw new Error("Generation paused before finishing — please try again.");
+  if (acc.stop === "max_tokens") throw new Error("The response was cut off before finishing — please try again.");
   return stripCites(acc.text);
 }
 
@@ -198,8 +207,13 @@ export async function runPrompt(prompt, opts) {
   const stream = o.stream !== false;
   const payload = {
     model: o.model || MODEL,
-    max_tokens: o.maxTokens || 8000,
+    // Headroom for adaptive thinking + a multi-step web search + the full deck
+    // JSON. At 8000 the JSON was getting truncated after the search narration.
+    max_tokens: o.maxTokens || 16000,
     thinking: { type: "adaptive" },
+    // Medium effort: enough deliberation for editorial quality, but faster and
+    // far fewer thinking tokens than the default (high) — keeps the JSON in budget.
+    output_config: { effort: "medium" },
     messages: [{ role: "user", content: prompt }],
   };
   if (o.webSearch !== false) payload.tools = [WEB_SEARCH_TOOL];
@@ -221,8 +235,12 @@ export async function runPrompt(prompt, opts) {
 
 export async function generateCarousel(topic, opts) {
   const o = opts || {};
-  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO() });
-  const text = await runPrompt(prompt, { model: o.model, webSearch: o.webSearch, stream: o.stream });
+  // Web search OFF by default — a multi-search deck takes minutes. Generation
+  // drafts fast from the model's knowledge (anchored to today's date); live
+  // sourcing is the fact-check pass. opts.webSearch opts into research mode.
+  const webSearch = o.webSearch === true;
+  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch });
+  const text = await runPrompt(prompt, { model: o.model, webSearch, stream: o.stream });
   const slides = parseSlides(text);
   const wantPhotos = o.photos !== false;
   const imgMap = wantPhotos ? await fetchSlideImages(slides, topic) : {};

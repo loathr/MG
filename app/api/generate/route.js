@@ -87,10 +87,13 @@ export async function POST(request) {
       payload.tools = body.tools;
     }
 
-    // Adaptive thinking (and any other passthrough request fields) — forwarded
-    // so the studio generation can run the model with reasoning enabled.
+    // Adaptive thinking + effort (output_config) — forwarded so the studio
+    // generation can run the model with reasoning enabled at a tuned effort.
     if (body.thinking) {
       payload.thinking = body.thinking;
+    }
+    if (body.output_config) {
+      payload.output_config = body.output_config;
     }
 
     // Streaming path: client opts in via body.stream = true. We forward Anthropic's
