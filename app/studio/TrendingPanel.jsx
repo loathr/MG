@@ -111,16 +111,21 @@ function chip(on) {
     border: "1px solid " + (on ? "#2d8cff" : "#34343c"), fontWeight: on ? 600 : 400,
   };
 }
-const cards = { display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" };
-const card = { width: 104, cursor: "pointer", background: "transparent", border: "none", padding: 0, textAlign: "left", display: "block" };
+const cards = { display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" };
+const card = { width: 96, cursor: "pointer", background: "transparent", border: "none", padding: 0, textAlign: "left", display: "block" };
 const thumb = {
-  display: "block", height: 132, borderRadius: 11, backgroundSize: "cover",
+  display: "block", height: 120, borderRadius: 10, backgroundSize: "cover",
   backgroundPosition: "center", backgroundColor: "#202026", boxShadow: "0 8px 20px rgba(0,0,0,0.5)",
 };
 const noimg = {
-  display: "flex", alignItems: "center", justifyContent: "center", height: 132,
-  borderRadius: 11, backgroundColor: "#202026", border: "1px solid #303038",
+  display: "flex", alignItems: "center", justifyContent: "center", height: 120,
+  borderRadius: 10, backgroundColor: "#202026", border: "1px solid #303038",
 };
-const title = { display: "block", marginTop: 9, fontSize: 12, color: "#d8d8d8", lineHeight: 1.22 };
+// Clamp to two lines so long article headlines stay uniform — the key to a tidy
+// rail rather than a ragged grid of 5-6-line cards.
+const title = {
+  display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+  marginTop: 8, fontSize: 11.5, color: "#d8d8d8", lineHeight: 1.25, height: 29,
+};
 const note = { color: "#8a8a8a", fontSize: 13, padding: "16px 4px", textAlign: "center" };
 const foot = { fontSize: 10.5, color: "#5f5f68", marginTop: 12, textAlign: "center" };

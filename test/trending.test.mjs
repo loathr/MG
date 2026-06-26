@@ -34,16 +34,19 @@ test("cleanTitle decodes entities and strips a trailing site suffix", () => {
   assert.equal(cleanTitle("<![CDATA[Burna Boy at the O2]]>"), "Burna Boy at the O2");
 });
 
-test("parseRss pulls title + thumbnail from item/media:content blocks", () => {
+test("parseRss picks the LARGEST media:content and decodes the URL (&amp; -> &)", () => {
   const xml = `<rss><channel>
-    <item><title><![CDATA[A24's next era]]></title><pubDate>Mon, 09 Jun 2026 10:00:00 GMT</pubDate>
-      <media:content url="https://img.example/a24.jpg" type="image/jpeg"/></item>
+    <item><title><![CDATA[Glastonbury the Movie review]]></title><pubDate>Mon, 09 Jun 2026 10:00:00 GMT</pubDate>
+      <media:content width="140" url="https://i.guim.co.uk/x/master/140.jpg?width=140&amp;quality=85"><media:credit>Photograph: x</media:credit></media:content>
+      <media:content width="460" url="https://i.guim.co.uk/x/master/460.jpg?width=460&amp;quality=85"></media:content>
+    </item>
     <item><title>No image story</title></item>
   </channel></rss>`;
   const items = parseRss(xml);
   assert.equal(items.length, 2);
-  assert.equal(items[0].title, "A24's next era");
-  assert.equal(items[0].thumb, "https://img.example/a24.jpg");
+  assert.equal(items[0].title, "Glastonbury the Movie review");
+  // largest (460) chosen, and &amp; decoded so the CSS url() actually loads
+  assert.equal(items[0].thumb, "https://i.guim.co.uk/x/master/460.jpg?width=460&quality=85");
   assert.equal(items[1].thumb, null);
   assert.equal(parseRss("", 5).length, 0);
 });

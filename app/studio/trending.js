@@ -54,9 +54,30 @@ export function cleanTitle(s) {
   return decodeEntities(s).replace(/\s*[|–-]\s*(The Guardian|BBC|Variety|IndieWire|Pitchfork|Reuters)\s*$/i, "").trim();
 }
 
+// Pick the best image URL out of one feed item. Feeds (Guardian especially)
+// carry SEVERAL <media:content width=.. url=..> at different sizes — take the
+// largest, and DECODE the URL (&amp; -> &): the raw XML url has entity-escaped
+// query separators, and passing those into a CSS url() silently breaks the
+// image (the "no pictures, grey tiles" bug). Falls back to an image enclosure.
+export function pickThumb(block) {
+  let best = null, bestW = -1;
+  const tags = block.match(/<media:(?:content|thumbnail)\b[^>]*>/gi) || [];
+  for (const t of tags) {
+    const u = t.match(/\burl="([^"]+)"/i);
+    if (!u) continue;
+    const wm = t.match(/\bwidth="(\d+)"/i);
+    const w = wm ? +wm[1] : 1;
+    if (w > bestW) { bestW = w; best = u[1]; }
+  }
+  if (!best) {
+    const e = block.match(/<enclosure[^>]*\burl="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i);
+    if (e) best = e[1];
+  }
+  return best ? best.replace(/&amp;/g, "&").replace(/&#0?38;/g, "&") : null;
+}
+
 // Parse an RSS/Atom feed string into items. Regex-based (no XML dependency):
-// tolerant of CDATA + entities; pulls a thumbnail from media:content /
-// media:thumbnail / image enclosure when present.
+// tolerant of CDATA + entities; pulls the largest available thumbnail.
 export function parseRss(xml, max) {
   const out = [];
   if (!xml || typeof xml !== "string") return out;
@@ -65,10 +86,8 @@ export function parseRss(xml, max) {
     const tm = b.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
     const title = tm ? cleanTitle(tm[1]) : "";
     if (!title) continue;
-    const im = b.match(/<media:(?:content|thumbnail)[^>]*\burl="([^"]+)"/i)
-      || b.match(/<enclosure[^>]*\burl="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i);
     const dm = b.match(/<(?:pubDate|published|updated)[^>]*>([\s\S]*?)<\//i);
-    out.push({ title, thumb: im ? im[1] : null, when: dm ? dm[1].trim() : "", source: "feed" });
+    out.push({ title, thumb: pickThumb(b), when: dm ? dm[1].trim() : "", source: "feed" });
     if (max && out.length >= max) break;
   }
   return out;
