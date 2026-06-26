@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { STYLE_LIST, DEFAULT_STYLE } from "./styles";
 import { CATEGORY_LIST, getCategory } from "./categories";
 import StylePreview from "./StylePreview";
+import TrendingPanel from "./TrendingPanel";
 
 // Screen 1 — Create (spec §4, Option C: "segment-first + voice override"). Pick a
 // DESK first — the look (Editorial / Enterprise / News Desk). Each desk implies a
@@ -14,14 +15,6 @@ import StylePreview from "./StylePreview";
 // Each desk's implied writing voice (a content category from categories.js).
 // How-to and Story are voice-only — offered under Advanced, never a top-level desk.
 const DESK_VOICE = { editorial: "editorial", enterprise: "business", newsdesk: "news" };
-
-// A few starter topics per desk (#9 — per-segment topic suggestions). Tapping one
-// fills the topic field; the user can edit it or type their own.
-const DESK_IDEAS = {
-  editorial: ["the rise of A24 horror", "why luxury brands buy football clubs", "the second life of vinyl", "how K-pop conquered the West"],
-  enterprise: ["the unit economics of AI startups", "why DTC brands open stores", "the return-to-office reversal", "how Nvidia cornered the GPU market"],
-  newsdesk: ["this week in AI regulation", "the chip-export-control fight", "what the jobs report really says", "the next space-launch milestone"],
-};
 
 function deskLabel(key) {
   const s = STYLE_LIST.find((x) => x.key === key);
@@ -43,6 +36,11 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     if (!voiceTouched) setVoice(DESK_VOICE[key]);
   };
   const pickVoice = (key) => { setVoice(key); setVoiceTouched(true); };
+  // Tap a Trending card → fill the topic and set the matching voice (tie-back).
+  const pickTrending = (t, voiceKey) => {
+    setTopic(t);
+    if (voiceKey) { setVoice(voiceKey); setVoiceTouched(true); }
+  };
 
   const submit = () => {
     const t = topic.trim();
@@ -84,15 +82,11 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-          placeholder="Type a topic — or tap an idea below"
+          placeholder="Type a topic — or open Trending below"
           autoFocus
           style={topicInput}
         />
-        <div style={ideaRow}>
-          {DESK_IDEAS[desk].map((idea) => (
-            <button key={idea} type="button" onClick={() => setTopic(idea)} style={ideaChip} title="Use this topic">{idea}</button>
-          ))}
-        </div>
+        <TrendingPanel onPick={pickTrending} desk={desk} />
 
         {/* Advanced · Writing voice — opt-in override; the default path never sees it. */}
         <button type="button" onClick={() => setAdvanced((v) => !v)} style={advToggle}>
@@ -177,11 +171,6 @@ const topicInput = {
   width: "100%", height: 52, padding: "0 18px", fontSize: 17,
   background: "#1d1d21", color: "#fff", border: "1px solid #3a3a42", borderRadius: 10,
   textAlign: "center", outline: "none",
-};
-const ideaRow = { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginTop: 12, maxWidth: 600 };
-const ideaChip = {
-  height: 30, padding: "0 12px", borderRadius: 999, cursor: "pointer", fontSize: 12.5,
-  background: "transparent", color: "#bdbdbd", border: "1px solid #33333a",
 };
 const advToggle = {
   marginTop: 22, background: "transparent", border: "none", color: "#8f8f97",
