@@ -78,13 +78,19 @@ export async function POST(request) {
     const body = await request.json();
 
     const payload = {
-      model: body.model || "claude-opus-4-7",
+      model: body.model || "claude-opus-4-8",
       max_tokens: body.max_tokens || 8000,
       messages: body.messages,
     };
 
     if (body.tools) {
       payload.tools = body.tools;
+    }
+
+    // Adaptive thinking (and any other passthrough request fields) — forwarded
+    // so the studio generation can run the model with reasoning enabled.
+    if (body.thinking) {
+      payload.thinking = body.thinking;
     }
 
     // Streaming path: client opts in via body.stream = true. We forward Anthropic's
