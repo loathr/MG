@@ -15,14 +15,15 @@ first — this file is the working state on top of it.
 ## How to work here
 - **Build (the real gate):** `npm run build`. Run it before every commit; it's
   the durable check that catches JSX/import errors across the whole module graph.
-- **Ad-hoc unit tests:** the studio modules use extensionless ESM imports
-  (`from "./model"`), which bare Node can't resolve. During this session tests
-  ran via a tiny custom loader that appends `.js`, invoked as
-  `node --no-warnings --loader <resolver>.mjs <test>.mjs` with **absolute**
-  `/home/user/MG/app/studio/*.js` import specifiers. The pure modules
-  (`model.js`, `templates.js`, `store.js`, `styles.js`, `categories.js`,
-  `generate.js`, `export.js`) are designed to be importable headless. There is
-  no committed test runner yet — see Open Items.
+- **Unit tests:** `npm test` (committed). Node's built-in `node:test` runner over
+  `test/*.test.mjs`; a small `module.register` hook (`test/register.mjs` →
+  `test/resolver.mjs`) appends `.js` to the studio modules' extensionless ESM
+  imports (`from "./model"`), which bare Node otherwise can't resolve. The pure
+  modules (`model.js`, `templates.js`, `store.js`, `styles.js`, `categories.js`,
+  `generate.js`, `export.js`) are designed to be importable headless; the suite
+  covers the model, the layout registry + §3 one-image invariant, the reflow
+  photo round-trip, `slidesToDoc` routing, the reducer (undo/redo/coalesce), and
+  the brand helpers. Add a `test/<module>.test.mjs` per new pure module.
 - **Commits:** conventional, imperative subject; end with the `Co-Authored-By`
   / `Claude-Session` trailers used on every commit in `git log`. Do **not** put
   the model id in any committed artifact.
@@ -113,8 +114,11 @@ first — this file is the working state on top of it.
   signatures) remain as manual options; no family defaults to them.
 - **Recent-projects shelf** and **grid snapping** not built (low priority).
 - **Voice/taste pass** — subjective dial-turning against real generated decks.
-- **No committed automated test runner** — unit checks were ad-hoc; `npm run
-  build` is the only standing gate.
+
+### ✅ Resolved
+- **Committed test runner** — `npm test` (53 checks over the pure modules via
+  `node:test` + an extensionless-import resolver). `npm run build` remains the
+  JSX/module-graph gate; the two together are the standing checks before a commit.
 
 ## Gotchas
 - **Export draws text to canvas manually** (`export.js`), not via DOM
