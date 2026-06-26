@@ -102,6 +102,7 @@ export function buildPrompt(topic, categoryKey, opts) {
     "- Headlines in Title Case; bodies in full sentences. No hashtags or emoji anywhere.",
     "- Keep each body under ~45 words. Sources: 1-2 real, credible outlets you verified; omit rather than invent.",
     '- On a content slide you MAY add "highlight": one short phrase (2-5 words) copied VERBATIM from that slide\'s own body, to emphasize as a marker. It must be an exact substring of the body — pick the single most striking phrase, and omit it if nothing stands out.',
+    '- On any slide built around ONE specific named person, place, organisation, or single work (a film, album, book, product), add "entity" (its exact canonical name) and "entityType" (one of "person", "place", "org", "work") so a real photo of it can be sourced. Use the precise name a reader would search — e.g. "Burna Boy", "Studio Ghibli", "Parasite (2019 film)". Omit both fields when the slide is about a general concept rather than one named thing.',
     "",
     "Optional data slides (use only when the topic genuinely supports them — a clean text deck beats a forced one):",
     '- At most ONE content slide may be a big-number STAT: add "stat" (a short value like "73%", "$2.4B", "10x") and "statLabel" (what it measures) in place of a long body. Use a real, verified figure — never invent one; if unsure, skip it.',

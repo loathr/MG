@@ -16,6 +16,8 @@ test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabl
   assert.match(p, /Voice:/);                               // seeded voice
   assert.match(p, /\{"slides":\[/);                        // exact JSON shape
   assert.match(p, /THE ORIGIN/);                           // editorial role label
+  assert.match(p, /"entity"/);                             // #6 entity capture instruction
+  assert.match(p, /"entityType"/);
   // default (no web search): a "from knowledge" grounding line, not a search instruction
   assert.match(p, /Ground every claim/);
   assert.doesNotMatch(p, /use web search/);

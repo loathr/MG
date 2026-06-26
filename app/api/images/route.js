@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { summaryUrl, wikidataSearchUrl, wikidataClaimsUrl, imageFromSummary, wikidataId, imageFromClaims, slideEntity } from "../../studio/entity";
 
 // Image search runs server-side because doing 10-30 sequential Unsplash/Pexels
 // calls from the browser kept killing the renderer process on flaky networks —
@@ -119,6 +120,37 @@ const searchWikiCommons = async (query) => {
   } catch (e) { return []; }
 };
 
+// Entity-first resolution (#6): a genuine, openly-licensed photo of a SPECIFIC
+// named person/place/org/work from Wikipedia, then Wikidata P18 — keyless and
+// global, so it covers the names stock catalogs return generic or Western-skewed
+// results for. Every URL is width-capped to ~1280px by the MediaWiki thumbnailer
+// (FLAT-LAYERS §3). Best-effort: any miss returns null and the caller falls back
+// to keyword stock search. Pure URL building + parsing live in studio/entity.js.
+const resolveEntity = async (name) => {
+  if (!name) return null;
+  try {
+    const r = await fetchWithTimeout(summaryUrl(name), { headers: { Accept: "application/json" } }, 6000);
+    if (r.ok) {
+      const url = imageFromSummary(await r.json());
+      if (url) return { url, thumb: url, alt: name, credit: "Wikipedia", source: "Wikipedia" };
+    }
+  } catch (e) { /* fall through to Wikidata */ }
+  try {
+    const sr = await fetchWithTimeout(wikidataSearchUrl(name), 6000);
+    if (sr.ok) {
+      const qid = wikidataId(await sr.json());
+      if (qid) {
+        const cr = await fetchWithTimeout(wikidataClaimsUrl(qid), 6000);
+        if (cr.ok) {
+          const url = imageFromClaims(await cr.json());
+          if (url) return { url, thumb: url, alt: name, credit: "Wikimedia Commons", source: "Wikidata" };
+        }
+      }
+    }
+  } catch (e) { /* give up; keyword search covers it */ }
+  return null;
+};
+
 const searchPixabay = async (query) => {
   if (!PIXABAY_KEY) return [];
   try {
@@ -156,7 +188,8 @@ const extractKeywords = (text, max) => {
 };
 
 const getSlideImageQuery = (slide, categoryLabel, topic) => {
-  if (slide.person) return slide.person + " " + extractKeywords(topic, 2);
+  const ent = slideEntity(slide);
+  if (ent) return ent.name + " " + extractKeywords(topic, 2);
   const heading = slide.heading || slide.title || slide.name || slide.headline || "";
   const body = slide.body || slide.leadParagraph || "";
   const headKw = heading.length > 3 ? extractKeywords(heading, 3) : "";
@@ -191,6 +224,18 @@ async function runImagePipeline(body) {
   const trace = [];
   const tr = (msg) => trace.push(msg);
 
+  // 0. Entity-first pass (#6): resolve any slide that names a specific
+  // person/place/org/work to a real Wikipedia/Wikidata photo before keyword
+  // stock search. Populating imgMap here means the markUsed sweep (below)
+  // dedupes them and the keyword steps skip slots already filled.
+  for (let ei = 0; ei < slides.length; ei++) {
+    if (lockedSlots[ei]) continue;
+    const ent = slideEntity(slides[ei]);
+    if (!ent) continue;
+    const eimg = await resolveEntity(ent.name);
+    if (eimg) { imgMap[ei] = eimg; tr("slide " + ei + ": entity '" + ent.name + "' -> " + eimg.source); }
+  }
+
   // 1. Main topic search for cover + closer
   const shortTopic = topic.length > 80 ? topic.slice(0, 80) : topic;
   const topicTokens = shortTopic.split(/\s+/).filter(Boolean);
@@ -216,10 +261,11 @@ async function runImagePipeline(body) {
   }
   tr("mainImgs total: " + mainImgs.length);
 
-  // 2. Place cover + closer from mainImgs (unless browser locked them)
-  if (mainImgs.length > 0 && !lockedSlots[0]) imgMap[0] = mainImgs[0];
+  // 2. Place cover + closer from mainImgs (unless browser-locked or already
+  // filled by the entity pass).
+  if (mainImgs.length > 0 && !lockedSlots[0] && !imgMap[0]) imgMap[0] = mainImgs[0];
   const closerIdx = slides.length ? slides.length - 1 : 9;
-  if (!lockedSlots[closerIdx]) {
+  if (!lockedSlots[closerIdx] && !imgMap[closerIdx]) {
     if (mainImgs.length > 2) imgMap[closerIdx] = mainImgs[2];
     else if (mainImgs.length > 1) imgMap[closerIdx] = mainImgs[1];
   }
@@ -251,6 +297,7 @@ async function runImagePipeline(body) {
   // that takes down the process. Each iteration is independent.
   for (let ps = 1; ps < Math.min(slides.length - 1, 12); ps++) {
     if (lockedSlots[ps]) { tr("slide " + ps + ": locked by browser, skipping"); continue; }
+    if (imgMap[ps]) continue; // already placed by the entity pass
     const slideData = slides[ps] || {};
     const sq = getSlideImageQuery(slideData, categoryLabel, topic);
     let sr = await searchUnsplash(sq);
@@ -420,12 +467,10 @@ async function runSearch(rawQuery) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    if (!UNSPLASH_KEY && !PEXELS_KEY && !PIXABAY_KEY) {
-      return NextResponse.json(
-        { error: "No image API keys configured on the server (UNSPLASH_KEY / PEXELS_KEY / PIXABAY_KEY)" },
-        { status: 500 },
-      );
-    }
+    // No hard fail when stock keys are absent: entity resolution (Wikipedia /
+    // Wikidata) and Wikimedia Commons are keyless, so #6 entity photos and a
+    // Commons-only Photos search still work. Missing keys just narrow the stock
+    // providers (reported in the pipeline summary's keysConfigured).
     // Studio Photos panel sends { q } for a flat free-text search -> { results }.
     // Carousel-pipeline callers send { slides, topic, ... } and are unaffected.
     if (typeof body.q === "string") {
