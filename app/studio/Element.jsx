@@ -4,21 +4,33 @@ import RichText from "./RichText";
 
 // One element. Wrapped in React.memo so it re-renders only when its own object
 // (or its editing flag) changes — the key to Canva-like drag performance.
-function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, onCommitText }) {
+function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, onCommitText, onEndEdit }) {
   const editRef = useRef(null);
+  const pendingRef = useRef(null); // latest typed text, tracked without re-rendering
 
   useEffect(() => {
-    if (isEditing && editRef.current) {
-      const node = editRef.current;
-      node.focus();
-      // place caret at the end
-      const sel = window.getSelection();
-      const range = document.createRange();
-      range.selectNodeContents(node);
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    }
+    if (!isEditing || !editRef.current) return;
+    const node = editRef.current;
+    pendingRef.current = el.content; // baseline at edit start
+    node.focus();
+    // place caret at the end
+    const sel = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    // Commit when editing ends by ANY path — blur, clicking the canvas
+    // (deselect), selecting another element, a slide change, or unmount. The old
+    // code committed only in the contentEditable's onBlur, but clicking outside
+    // unmounts this node before its blur fires, so the typed text was dropped and
+    // the element snapped back to its original — the "edit reverts" bug. The
+    // effect cleanup always runs on isEditing -> false, so we commit here instead.
+    return () => {
+      const text = pendingRef.current;
+      if (text != null && text !== el.content) onCommitText(el.id, text);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing]);
 
   const frame = {
@@ -60,7 +72,8 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
           contentEditable
           suppressContentEditableWarning
           style={textStyle}
-          onBlur={(e) => onCommitText(el.id, e.currentTarget.innerText)}
+          onInput={(e) => { pendingRef.current = e.currentTarget.innerText; }}
+          onBlur={() => onEndEdit()}
           onKeyDown={(e) => {
             if (e.key === "Escape") { e.preventDefault(); e.currentTarget.blur(); }
             e.stopPropagation();

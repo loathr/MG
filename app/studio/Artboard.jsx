@@ -98,6 +98,9 @@ export default function Artboard({ slide, selectedId, editingId, dispatch }) {
     dispatch({ type: "update", id, patch: { content: text } });
     dispatch({ type: "endEdit" });
   }, [dispatch]);
+  // End editing without a content change (blur with no edit) — the actual text
+  // commit happens in Element's effect cleanup so it survives an unmount race.
+  const onEndEdit = useCallback(() => dispatch({ type: "endEdit" }), [dispatch]);
 
   useEffect(() => () => endDrag(), [endDrag]);
 
@@ -133,6 +136,7 @@ export default function Artboard({ slide, selectedId, editingId, dispatch }) {
               onPointerDownBody={onPointerDownBody}
               onStartEdit={onStartEdit}
               onCommitText={onCommitText}
+              onEndEdit={onEndEdit}
             />
           ))}
 
