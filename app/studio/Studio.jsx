@@ -11,6 +11,8 @@ import BrandPanel from "./BrandPanel";
 import TemplatesPanel from "./TemplatesPanel";
 import CreateScreen from "./CreateScreen";
 import { exportSlide, exportSlides } from "./export";
+import { verifyDeck } from "./verify";
+import FactCheckPanel from "./FactCheckPanel";
 
 const hbtn = {
   height: 32, padding: "0 12px", background: "#26262b", color: "#e8e8e8",
@@ -47,6 +49,7 @@ export default function Studio() {
   const [activePanel, setActivePanel] = useState("photos");
   const [dlOpen, setDlOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [fc, setFc] = useState(null); // fact check: null | { loading, error, result }
   const booted = useRef(false);
   const dragFrom = useRef(null); // slide index being drag-reordered in the strip
   const slide = state.doc.slides[state.slideIndex];
@@ -148,6 +151,18 @@ export default function Studio() {
     try { await exportSlides(state.doc.slides, projectName); } finally { setExporting(false); }
   };
 
+  // Fact-check: send the deck's claims through a live web-search verify pass and
+  // show the per-claim verdict + score in the side panel.
+  const runFactCheck = async () => {
+    setFc({ loading: true, error: "", result: null });
+    try {
+      const result = await verifyDeck(state.doc, { category: state.doc.category });
+      setFc({ loading: false, error: "", result });
+    } catch (e) {
+      setFc({ loading: false, error: (e && e.message) || "Fact check failed", result: null });
+    }
+  };
+
   const toggle = (key) => setActivePanel((p) => (p === key ? null : key));
 
   if (screen === "create") {
@@ -172,6 +187,14 @@ export default function Studio() {
         <span style={{ fontSize: 11, color: "#777", marginRight: 4 }}>
           {state.doc.slides.length} slide{state.doc.slides.length === 1 ? "" : "s"}
         </span>
+        <button
+          style={{ ...hbtn, opacity: fc && fc.loading ? 0.6 : 1 }}
+          disabled={!!(fc && fc.loading)}
+          onClick={runFactCheck}
+          title="Fact-check the deck against a live web search"
+        >
+          {fc && fc.loading ? "Checking…" : "✓ Check facts"}
+        </button>
         <div style={{ position: "relative" }}>
           <button
             style={{ ...hbtn, background: "#2d8cff", color: "#fff", border: "none", fontWeight: 600 }}
@@ -254,6 +277,17 @@ export default function Studio() {
         )}
 
         <Artboard slide={slide} selectedId={state.selectedId} editingId={state.editingId} dispatch={dispatch} />
+
+        {fc && (
+          <FactCheckPanel
+            loading={fc.loading}
+            error={fc.error}
+            result={fc.result}
+            onJump={(i) => dispatch({ type: "setSlide", index: i })}
+            onClose={() => setFc(null)}
+            onRetry={runFactCheck}
+          />
+        )}
       </div>
 
       {/* Slide strip — lightweight thumbnails (FLAT-LAYERS §3) */}

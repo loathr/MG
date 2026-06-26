@@ -189,18 +189,20 @@ function todayISO() {
   try { return new Date().toISOString().slice(0, 10); } catch (e) { return ""; }
 }
 
-export async function generateCarousel(topic, opts) {
+// Run one prompt through the /api/generate proxy and return the final answer
+// text. Streams (a web-search + Opus call can exceed Vercel's 60s cap) and drops
+// the thinking + search-tool blocks. Shared by carousel generation and the
+// fact-check pass (verify.js).
+export async function runPrompt(prompt, opts) {
   const o = opts || {};
-  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO() });
-  const webSearch = o.webSearch !== false;
   const stream = o.stream !== false;
   const payload = {
     model: o.model || MODEL,
-    max_tokens: 8000,
+    max_tokens: o.maxTokens || 8000,
     thinking: { type: "adaptive" },
     messages: [{ role: "user", content: prompt }],
   };
-  if (webSearch) payload.tools = [WEB_SEARCH_TOOL];
+  if (o.webSearch !== false) payload.tools = [WEB_SEARCH_TOOL];
   if (stream) payload.stream = true;
 
   const res = await fetch("/api/generate", {
@@ -212,15 +214,15 @@ export async function generateCarousel(topic, opts) {
     const data = await res.json().catch(() => ({}));
     throw new Error((data && (data.error && (data.error.message || data.error))) || ("HTTP " + res.status));
   }
-
-  let text;
   const ct = res.headers.get("content-type") || "";
-  if (stream && res.body && ct.includes("text/event-stream")) {
-    text = await readSSEText(res.body);
-  } else {
-    text = extractText(await res.json());
-  }
+  if (stream && res.body && ct.includes("text/event-stream")) return readSSEText(res.body);
+  return extractText(await res.json());
+}
 
+export async function generateCarousel(topic, opts) {
+  const o = opts || {};
+  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO() });
+  const text = await runPrompt(prompt, { model: o.model, webSearch: o.webSearch, stream: o.stream });
   const slides = parseSlides(text);
   const wantPhotos = o.photos !== false;
   const imgMap = wantPhotos ? await fetchSlideImages(slides, topic) : {};
