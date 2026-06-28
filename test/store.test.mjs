@@ -315,6 +315,36 @@ test("setCaption stores the caption text on the doc and is NOT an undo frame", (
   assert.equal(s.past.length, past); // caption edits don't crowd the undo history
 });
 
+test("setChrome toggles deck-wide chrome; page numbers renumber correctly on re-show (R2)", () => {
+  let s = initStudio();
+  const doc = slidesToDoc([
+    { role: "COVER", heading: "C" },
+    { kicker: "K", heading: "H", body: "b" },
+    { kicker: "K2", heading: "H2", body: "b2" },
+    { role: "CLOSER", heading: "Z" },
+  ], "editorial");
+  s = reducer(s, { type: "loadDoc", doc });
+  // baseline: cover wordmark + content footer + page numbers all present
+  assert.ok(s.doc.slides[0].elements.some((e) => e.role === "wordmark"));
+  assert.ok(s.doc.slides[1].elements.some((e) => e.role === "footer"));
+  assert.ok(s.doc.slides[1].elements.some((e) => e.role === "pageno"));
+  // hide page numbers deck-wide; footer stays
+  s = reducer(s, { type: "setChrome", key: "pageno", on: false });
+  assert.equal(s.doc.brand.show.pageno, false);
+  assert.ok(s.doc.slides.every((sl) => !sl.elements.some((e) => e.role === "pageno")));
+  assert.ok(s.doc.slides[1].elements.some((e) => e.role === "footer"), "footer kept");
+  // hide footer too → the hairline (footrule) goes with it
+  s = reducer(s, { type: "setChrome", key: "footer", on: false });
+  assert.ok(s.doc.slides.every((sl) => !sl.elements.some((e) => e.role === "footer" || e.role === "footrule")));
+  // hide the cover wordmark
+  s = reducer(s, { type: "setChrome", key: "wordmark", on: false });
+  assert.ok(!s.doc.slides[0].elements.some((e) => e.role === "wordmark"));
+  // re-show page numbers → 1-based numbering restored across content slides
+  s = reducer(s, { type: "setChrome", key: "pageno", on: true });
+  const pagenos = s.doc.slides.flatMap((sl) => sl.elements.filter((e) => e.role === "pageno").map((e) => e.content));
+  assert.deepEqual(pagenos, ["1", "2"]);
+});
+
 test("the deck frame survives reset + a layout change (carried chrome) (R4)", () => {
   let s = initStudio();
   const doc = slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }], "editorial");

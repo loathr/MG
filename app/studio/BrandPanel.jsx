@@ -69,10 +69,12 @@ function readLogoFile(file, cb) {
   reader.readAsDataURL(file);
 }
 
-export default function BrandPanel({ brand, category, slideFrame, onApply, onLogo, onCaution, onFrame, onResetAll, onClose }) {
+export default function BrandPanel({ brand, category, slideFrame, onApply, onLogo, onCaution, onFrame, onChrome, onResetAll, onClose }) {
   // Fill any missing fields from the editorial defaults so a swap always has a
   // known "previous" to remap from.
   const cur = Object.assign({}, brandFromStyle("editorial"), brand);
+  // Auto-chrome visibility (R2). Absent = shown.
+  const show = Object.assign({ wordmark: true, footer: true, pageno: true }, (brand && brand.show) || {});
   const set = (patch) => onApply(cur, Object.assign({}, cur, patch));
   const fileRef = React.useRef(null);
   const [looksOpen, setLooksOpen] = React.useState(false);
@@ -179,6 +181,26 @@ export default function BrandPanel({ brand, category, slideFrame, onApply, onLog
         <div style={frow}><span style={frowK}>Heading</span><FontSelect title="Heading font" value={cur.headFont} options={FONT_OPTIONS} onChange={(v) => set({ headFont: v })} /></div>
         <div style={frow}><span style={frowK}>Body</span><FontSelect title="Body font" value={cur.bodyFont} options={FONT_OPTIONS} onChange={(v) => set({ bodyFont: v })} /></div>
         <div style={lock}>🔒 LOATHR marks (wordmark · footer · sign-off) stay Courier — not affected by these.</div>
+
+        {/* ---------- ELEMENTS ---------- */}
+        <div style={sec}>Elements</div>
+        {[
+          { k: "wordmark", label: "Cover wordmark", sub: "struck LOATHR / desk lockup" },
+          { k: "footer", label: "Running footer", sub: "LOATHR · content slides" },
+          { k: "pageno", label: "Page numbers", sub: "bottom-right" },
+        ].map((row) => {
+          const on = show[row.k] !== false;
+          return (
+            <div key={row.k} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 38 }}>
+              <span style={{ fontSize: 12.5, color: "#dcdcdc" }}>{row.label}<small style={{ display: "block", fontSize: 10, color: "#7c7c84" }}>{row.sub}</small></span>
+              <button onClick={() => onChrome(row.k, !on)} title={(on ? "Hide" : "Show") + " " + row.label.toLowerCase() + " on every slide"}
+                style={{ width: 36, height: 20, borderRadius: 11, border: "none", cursor: "pointer", position: "relative", background: on ? "#2d8cff" : "#3a3a42", flexShrink: 0 }}>
+                <span style={{ position: "absolute", top: 2, left: on ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff" }} />
+              </button>
+            </div>
+          );
+        })}
+        <div style={{ fontSize: 10.5, color: "#7c7c84", lineHeight: 1.4, marginTop: 6 }}>Deck-wide. Frame is per-slide in Look; logo &amp; caution below.</div>
 
         {/* ---------- BRAND MARKS ---------- */}
         <div style={sec}>Brand marks</div>

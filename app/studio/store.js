@@ -10,7 +10,7 @@
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H } from "./model";
-import { reflowSlide, cautionElement, frameElements } from "./templates";
+import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements } from "./templates";
 import { brandFromStyle } from "./styles";
 
 const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
@@ -257,6 +257,37 @@ function docReducer(state, a) {
       // The Instagram caption (doc-level post text). Deliberately NOT in MUTATES:
       // caption edits/regenerations shouldn't crowd the canvas undo history.
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { caption: a.text }) });
+    case "setChrome": {
+      // Brand · Elements (R2): deck-wide show/hide for the auto brand chrome —
+      // the cover wordmark, the running footer (LOATHR), and page numbers. Rebuilt
+      // per slide from brand.show so page numbers stay correct: strip the managed
+      // roles, then re-add the ones still shown (wordmark on covers; footer rule /
+      // LOATHR / page number on content slides). The footrule shows if either the
+      // footer or the page number is on.
+      const show = Object.assign({ wordmark: true, footer: true, pageno: true }, state.doc.brand.show || {}, { [a.key]: !!a.on });
+      const brand = Object.assign({}, state.doc.brand, { show });
+      const slides = state.doc.slides;
+      const n = slides.length;
+      const roleOf = (s) => String((s.content && s.content.role) || s.role || "").toUpperCase();
+      let pageNum = 0;
+      const next = slides.map((s, i) => {
+        const isCover = i === 0 || roleOf(s) === "COVER";
+        const isCloser = !isCover && (i === n - 1 || roleOf(s) === "CLOSER" || roleOf(s) === "OUTRO");
+        let els = (s.elements || []).filter((e) => e.role !== "wordmark" && e.role !== "footer" && e.role !== "pageno" && e.role !== "footrule");
+        const sStyle = s.style || "editorial";
+        if (isCover) {
+          if (show.wordmark) els = els.concat(coverWordmark(sStyle, brand));
+        } else if (!isCloser) {
+          pageNum += 1;
+          const fe = footerElements(sStyle, pageNum, brand).filter((e) =>
+            e.role === "footer" ? show.footer : e.role === "pageno" ? show.pageno : (show.footer || show.pageno),
+          );
+          els = els.concat(fe);
+        }
+        return Object.assign({}, s, { elements: els });
+      });
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides: next, brand }) });
+    }
     case "setFrame": {
       // Per-slide slide frame (R4). Apply to the CURRENT slide by default, or
       // every slide when a.all. Each slide records its own `frame` mode; the bars
@@ -353,7 +384,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, resetSlideToBrand: 1 };
+const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, resetSlideToBrand: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
 
 function snap(state) {

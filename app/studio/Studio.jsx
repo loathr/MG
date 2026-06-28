@@ -307,6 +307,7 @@ export default function Studio() {
             onLogo={(logo) => dispatch({ type: "setLogo", logo })}
             onCaution={(text) => dispatch({ type: "setCaution", text })}
             onFrame={(frame, all) => dispatch({ type: "setFrame", frame, all })}
+            onChrome={(key, on) => dispatch({ type: "setChrome", key, on })}
             onResetAll={() => dispatch({ type: "resetSlideToBrand", all: true })}
             onClose={() => setActivePanel(null)}
           />
