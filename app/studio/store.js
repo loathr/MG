@@ -258,19 +258,22 @@ function docReducer(state, a) {
       // caption edits/regenerations shouldn't crowd the canvas undo history.
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { caption: a.text }) });
     case "setFrame": {
-      // Deck-wide slide frame (R4). Strip any existing frame bars from every
-      // slide, then (unless "off") re-add them for that slide's desk in the
-      // current brand. Records the choice on the brand so it survives unrelated
-      // edits and the Brand panel reads it back. carryChrome preserves the bars
-      // across reset/layout; rethemeDoc recolors them on a palette swap.
+      // Per-slide slide frame (R4). Apply to the CURRENT slide by default, or
+      // every slide when a.all. Each slide records its own `frame` mode; the bars
+      // are role-tagged chrome (carryChrome preserves them across reset/layout;
+      // rethemeDoc recolors them on a palette swap). "All slides" also stamps a
+      // deck default on the brand.
       const mode = a.frame || "off";
-      const slides = state.doc.slides.map((s) => {
+      const brand = state.doc.brand;
+      const idx = a.index == null ? state.slideIndex : a.index;
+      const applyFrame = (s) => {
         const kept = (s.elements || []).filter((e) => e.role !== "frame");
-        const bars = mode === "off" ? [] : frameElements(s.style || "editorial", Object.assign({}, state.doc.brand, { frame: mode }));
-        return Object.assign({}, s, { elements: kept.concat(bars) });
-      });
-      const brand = Object.assign({}, state.doc.brand, { frame: mode });
-      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides, brand }) });
+        const bars = mode === "off" ? [] : frameElements(s.style || "editorial", Object.assign({}, brand, { frame: mode }));
+        return Object.assign({}, s, { frame: mode, elements: kept.concat(bars) });
+      };
+      const slides = state.doc.slides.map((s, i) => (a.all || i === idx ? applyFrame(s) : s));
+      const nextBrand = a.all ? Object.assign({}, brand, { frame: mode }) : brand;
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides, brand: nextBrand }) });
     }
     case "detachPhoto": {
       // F1: convert the current slide's image BACKGROUND into a movable/resizable

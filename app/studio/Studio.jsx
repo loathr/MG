@@ -302,10 +302,11 @@ export default function Studio() {
           <BrandPanel
             brand={state.doc.brand}
             category={state.doc.category}
+            slideFrame={(slide && slide.frame) || "off"}
             onApply={(prev, next) => dispatch({ type: "applyBrand", prev, brand: next })}
             onLogo={(logo) => dispatch({ type: "setLogo", logo })}
             onCaution={(text) => dispatch({ type: "setCaution", text })}
-            onFrame={(frame) => dispatch({ type: "setFrame", frame })}
+            onFrame={(frame, all) => dispatch({ type: "setFrame", frame, all })}
             onResetAll={() => dispatch({ type: "resetSlideToBrand", all: true })}
             onClose={() => setActivePanel(null)}
           />

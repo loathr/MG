@@ -69,13 +69,14 @@ function readLogoFile(file, cb) {
   reader.readAsDataURL(file);
 }
 
-export default function BrandPanel({ brand, category, onApply, onLogo, onCaution, onFrame, onResetAll, onClose }) {
+export default function BrandPanel({ brand, category, slideFrame, onApply, onLogo, onCaution, onFrame, onResetAll, onClose }) {
   // Fill any missing fields from the editorial defaults so a swap always has a
   // known "previous" to remap from.
   const cur = Object.assign({}, brandFromStyle("editorial"), brand);
   const set = (patch) => onApply(cur, Object.assign({}, cur, patch));
   const fileRef = React.useRef(null);
   const [looksOpen, setLooksOpen] = React.useState(false);
+  const [frameAll, setFrameAll] = React.useState(false); // frame scope: this slide vs all
   const caution = cautionFor(category);
 
   const curLook = EDITORIAL_PALETTES.find((p) => cur.accent === p.accent && cur.bg === p.bg);
@@ -133,19 +134,34 @@ export default function BrandPanel({ brand, category, onApply, onLogo, onCaution
           </label>
         </div>
         <div style={{ ...frow, marginTop: 2 }}>
-          <span style={frowK}>Frame</span>
-          <div style={{ flex: 1, display: "flex", gap: 3 }} title="A deck-wide border on every slide — themed to the accent (News Desk uses ink).">
-            {FRAME_MODES.map((m) => {
-              const on = (cur.frame || "off") === m.id;
-              return (
-                <button key={m.id} onClick={() => onFrame(m.id)}
-                  style={{ flex: 1, height: 30, borderRadius: 6, cursor: "pointer", fontSize: 11,
-                    background: on ? "#2d8cff" : "#26262b", color: on ? "#fff" : "#cfcfcf",
-                    border: "1px solid " + (on ? "#2d8cff" : "#36363c"), fontWeight: on ? 600 : 400 }}>
-                  {m.label}
-                </button>
-              );
-            })}
+          <span style={{ ...frowK, marginTop: 7 }}>Frame</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", border: "1px solid #36363c", borderRadius: 6, overflow: "hidden", marginBottom: 6 }}
+              title="Scope: frame just this slide, or the whole deck.">
+              {[["one", "This slide"], ["all", "All slides"]].map(([k, label]) => {
+                const on = (frameAll ? "all" : "one") === k;
+                return (
+                  <button key={k} onClick={() => setFrameAll(k === "all")}
+                    style={{ flex: 1, height: 26, fontSize: 11, cursor: "pointer", border: "none",
+                      background: on ? "#2d8cff" : "#26262b", color: on ? "#fff" : "#bbb", fontWeight: on ? 600 : 400 }}>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", gap: 3 }} title="Border themed to the accent (News Desk uses ink).">
+              {FRAME_MODES.map((m) => {
+                const on = (slideFrame || "off") === m.id; // active = THIS slide's frame
+                return (
+                  <button key={m.id} onClick={() => onFrame(m.id, frameAll)}
+                    style={{ flex: 1, height: 30, borderRadius: 6, cursor: "pointer", fontSize: 11,
+                      background: on ? "#2d8cff" : "#26262b", color: on ? "#fff" : "#cfcfcf",
+                      border: "1px solid " + (on ? "#2d8cff" : "#36363c"), fontWeight: on ? 600 : 400 }}>
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

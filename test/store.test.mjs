@@ -276,19 +276,35 @@ test("setLayout preserves brand chrome (cover wordmark survives a layout change)
   assert.ok(s.doc.slides[0].elements.some((e) => e.role === "wordmark"), "wordmark survives a layout change");
 });
 
-test("setFrame adds a locked frame to every slide + records it on the brand; off clears it (R4)", () => {
+test("setFrame all:true frames every slide + records the deck default; off clears it (R4)", () => {
   let s = initStudio();
   const doc = slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }, { role: "CLOSER", heading: "Z" }], "editorial");
   s = reducer(s, { type: "loadDoc", doc });
-  s = reducer(s, { type: "setFrame", frame: "inset" });
+  s = reducer(s, { type: "setFrame", frame: "inset", all: true });
   assert.equal(s.doc.brand.frame, "inset");
   assert.ok(s.doc.slides.every((sl) => sl.elements.some((e) => e.role === "frame" && e.locked)));
   // re-applying a different style replaces, never duplicates
-  s = reducer(s, { type: "setFrame", frame: "edge" });
+  s = reducer(s, { type: "setFrame", frame: "edge", all: true });
   assert.ok(s.doc.slides.every((sl) => sl.elements.filter((e) => e.role === "frame").length === 4));
-  s = reducer(s, { type: "setFrame", frame: "off" });
+  s = reducer(s, { type: "setFrame", frame: "off", all: true });
   assert.equal(s.doc.brand.frame, "off");
   assert.ok(s.doc.slides.every((sl) => !sl.elements.some((e) => e.role === "frame")));
+});
+
+test("setFrame is per-slide: frames only the current slide by default, independently (R4)", () => {
+  let s = initStudio();
+  const doc = slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }, { role: "CLOSER", heading: "Z" }], "editorial");
+  s = reducer(s, { type: "loadDoc", doc });   // lands on slide 0
+  s = reducer(s, { type: "setFrame", frame: "inset" });
+  assert.equal(s.doc.slides[0].frame, "inset");
+  assert.ok(s.doc.slides[0].elements.some((e) => e.role === "frame"));
+  assert.ok(!s.doc.slides[1].elements.some((e) => e.role === "frame"), "other slides untouched");
+  assert.equal(s.doc.brand.frame, "off", "a single-slide apply doesn't change the deck default");
+  // another slide, independently, by index
+  s = reducer(s, { type: "setFrame", frame: "corners", index: 1 });
+  assert.equal(s.doc.slides[1].frame, "corners");
+  assert.equal(s.doc.slides[1].elements.filter((e) => e.role === "frame").length, 8);
+  assert.equal(s.doc.slides[0].frame, "inset", "slide 0 keeps its own frame");
 });
 
 test("setCaption stores the caption text on the doc and is NOT an undo frame", () => {
@@ -303,7 +319,7 @@ test("the deck frame survives reset + a layout change (carried chrome) (R4)", ()
   let s = initStudio();
   const doc = slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }], "editorial");
   s = reducer(s, { type: "loadDoc", doc });
-  s = reducer(s, { type: "setFrame", frame: "inset" });
+  s = reducer(s, { type: "setFrame", frame: "inset", all: true });
   s = reducer(s, { type: "setLayout", layout: "classic", index: 1 });
   assert.ok(s.doc.slides[1].elements.some((e) => e.role === "frame"), "frame survives a layout change");
   s = reducer(s, { type: "resetSlideToBrand", all: true });
@@ -314,14 +330,14 @@ test("rethemeDoc recolors the deck frame to the new look — accent, but News De
   // editorial: frame follows the accent
   let s = initStudio();
   s = reducer(s, { type: "loadDoc", doc: slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }], "editorial") });
-  s = reducer(s, { type: "setFrame", frame: "inset" });
+  s = reducer(s, { type: "setFrame", frame: "inset", all: true });
   let out = rethemeDoc(s.doc, s.doc.brand, Object.assign({}, s.doc.brand, { accent: "#00ccff" }));
   assert.equal(out.slides[1].elements.find((e) => e.role === "frame").fill, "#00ccff");
 
   // newsdesk: frame follows ink, NOT the accent
   let s2 = initStudio();
   s2 = reducer(s2, { type: "loadDoc", doc: slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }], "newsdesk") });
-  s2 = reducer(s2, { type: "setFrame", frame: "edge" });
+  s2 = reducer(s2, { type: "setFrame", frame: "edge", all: true });
   let out2 = rethemeDoc(s2.doc, s2.doc.brand, Object.assign({}, s2.doc.brand, { ink: "#222233", accent: "#ff0000" }));
   assert.equal(out2.slides[1].elements.find((e) => e.role === "frame").fill, "#222233");
 });
