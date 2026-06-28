@@ -96,6 +96,7 @@ export function brandFromStyle(key) {
   return {
     accent: st.accent, bg: st.bg, ink: st.ink, sub: st.sub, muted: st.muted,
     labelFont: st.kickerFont, headFont: st.headFont, bodyFont: st.bodyFont, wordmark: "LOATHR",
+    frame: "off",
   };
 }
 

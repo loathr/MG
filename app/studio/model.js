@@ -148,6 +148,16 @@ export function imageBackground(img, scrim) {
   };
 }
 
+// A Photos-panel result built from a user UPLOAD (vs. a web search). Same shape
+// a search result has — `url` (full) + `thumb` (small) as same-origin dataURLs —
+// so it flows through the exact same set-background / add-to-slide handlers and
+// keeps the FLAT-LAYERS invariant (one capped image + a thumb; see PhotosPanel's
+// readUploadFile, which downscales before calling this). `uploaded` flags the
+// card badge; no credit line for own uploads.
+export function uploadResult(src, thumb, name) {
+  return { url: src, thumb: thumb || src, uploaded: true, source: "Upload", credit: "", alt: name || "" };
+}
+
 // --- selectors / helpers --------------------------------------------------
 export function findElement(slide, id) {
   if (!slide || !id) return null;

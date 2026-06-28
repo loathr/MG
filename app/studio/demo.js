@@ -27,7 +27,7 @@ const SLIDES = [
   { seed: "forecast", kicker: "THE FORECAST", heading: "Where it goes from here" },
   { seed: "signal", kicker: "THE SIGNAL", heading: "Reading what comes next" },
   { seed: "voices", kicker: "THE VOICES", heading: "What the experts are saying" },
-  { seed: "closer", kicker: "", heading: "Follow @loathr for more" },
+  { seed: "closer", kicker: "", heading: "Follow @loathrdotcom for more" },
 ];
 
 function txt(props) {

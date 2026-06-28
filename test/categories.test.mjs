@@ -40,3 +40,11 @@ test("cautionFor: only business & news carry one; others are null", () => {
   assert.equal(cautionFor("story"), null);
   assert.equal(cautionFor("unknown"), null);
 });
+
+test("the follow CTA points at @loathrdotcom (renamed); how-to keeps Save this", () => {
+  assert.equal(CATEGORIES.editorial.cta, "Follow @loathrdotcom for more");
+  assert.equal(CATEGORIES.business.cta, "Follow @loathrdotcom for more");
+  assert.equal(CATEGORIES.news.cta, "Follow @loathrdotcom for more");
+  assert.equal(CATEGORIES.story.cta, "Follow @loathrdotcom for more");
+  assert.equal(CATEGORIES.howto.cta, "Save this for later");
+});

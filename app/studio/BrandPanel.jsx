@@ -33,6 +33,14 @@ function hex(c) {
   return typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? c : "#000000";
 }
 
+// Deck-wide slide frame (R4). "Off" by default; the others map to frameElements.
+const FRAME_MODES = [
+  { id: "off", label: "Off" },
+  { id: "edge", label: "Edge" },
+  { id: "inset", label: "Inset" },
+  { id: "corners", label: "Corners" },
+];
+
 // Read an uploaded image → a small, crisp PNG dataURL + a display size ~50px tall.
 // dataURLs are same-origin, so the export canvas stays untainted. Browser-only.
 function readLogoFile(file, cb) {
@@ -61,7 +69,7 @@ function readLogoFile(file, cb) {
   reader.readAsDataURL(file);
 }
 
-export default function BrandPanel({ brand, category, onApply, onLogo, onCaution, onResetAll, onClose }) {
+export default function BrandPanel({ brand, category, onApply, onLogo, onCaution, onFrame, onResetAll, onClose }) {
   // Fill any missing fields from the editorial defaults so a swap always has a
   // known "previous" to remap from.
   const cur = Object.assign({}, brandFromStyle("editorial"), brand);
@@ -123,6 +131,22 @@ export default function BrandPanel({ brand, category, onApply, onLogo, onCaution
             <span style={{ fontSize: 12, color: "#bbb" }}>{cur.accent}</span>
             <input type="color" value={hex(cur.accent)} onChange={(e) => set({ accent: e.target.value })} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
           </label>
+        </div>
+        <div style={{ ...frow, marginTop: 2 }}>
+          <span style={frowK}>Frame</span>
+          <div style={{ flex: 1, display: "flex", gap: 3 }} title="A deck-wide border on every slide — themed to the accent (News Desk uses ink).">
+            {FRAME_MODES.map((m) => {
+              const on = (cur.frame || "off") === m.id;
+              return (
+                <button key={m.id} onClick={() => onFrame(m.id)}
+                  style={{ flex: 1, height: 30, borderRadius: 6, cursor: "pointer", fontSize: 11,
+                    background: on ? "#2d8cff" : "#26262b", color: on ? "#fff" : "#cfcfcf",
+                    border: "1px solid " + (on ? "#2d8cff" : "#36363c"), fontWeight: on ? 600 : 400 }}>
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* ---------- TYPE ---------- */}

@@ -173,6 +173,46 @@ export function footerElements(style, pageNum, brand) {
   return els;
 }
 
+// The deck-wide slide frame (R4), revived from the old carousel's per-slide
+// border. `brand.frame` selects the treatment: "edge" (a rule near the bezel),
+// "inset" (a rule set further in — the editorial default), "corners" (L-marks
+// only), or "off". Built from thin FILLED bars rather than one hollow stroked
+// rect so it renders identically in all three renderers (Element / StaticSlide /
+// export, which all draw rect fills) and — being thin, edge-pinned, and locked —
+// never intercepts a click in the content area. Color follows the brand: the
+// accent, except News Desk (its accent is loud red on cream) which uses ink, the
+// near-black the old News border used. Re-themes via store.rethemeDoc.
+export function frameColor(st) {
+  return st.key === "newsdesk" ? st.ink : st.accent;
+}
+
+export function frameElements(style, brand) {
+  const mode = (brand && brand.frame) || "off";
+  if (mode === "off") return [];
+  const st = effectiveStyle(style, brand);
+  const color = frameColor(st);
+  const W = ARTBOARD_W, H = ARTBOARD_H;
+  const bar = (x, y, w, h) => makeElement("rect", { id: uid("frame"), role: "frame", locked: true, x, y, w, h, fill: color });
+  if (mode === "corners") {
+    const L = 120, t = 5, m = 30; // arm length, thickness, inset
+    return [
+      bar(m, m, L, t), bar(m, m, t, L),                         // top-left
+      bar(W - m - L, m, L, t), bar(W - m - t, m, t, L),         // top-right
+      bar(m, H - m - t, L, t), bar(m, H - m - L, t, L),         // bottom-left
+      bar(W - m - L, H - m - t, L, t), bar(W - m - t, H - m - L, t, L), // bottom-right
+    ];
+  }
+  const m = mode === "edge" ? 16 : 32; // inset distance
+  const t = mode === "edge" ? 4 : 3;   // bar thickness
+  const x1 = W - m, y1 = H - m;
+  return [
+    bar(m, m, x1 - m, t),        // top
+    bar(m, y1 - t, x1 - m, t),   // bottom
+    bar(m, m, t, y1 - m),        // left
+    bar(x1 - t, m, t, y1 - m),   // right
+  ];
+}
+
 // --- Layout registry -------------------------------------------------------
 // A layout is a pure (content, style, palette) -> elements arrangement of the
 // slide's text. The Templates panel re-flows a slide's content through any of

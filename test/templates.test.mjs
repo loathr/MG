@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import {
   coverTemplate, closerTemplate, cautionElement, LAYOUT_LIST,
   renderLayout, reflowSlide, slidesToDoc, deriveContent, previewCover,
-  coverWordmark, footerElements,
+  coverWordmark, footerElements, frameElements,
 } from "../app/studio/templates.js";
 import { makeElement } from "../app/studio/model.js";
 import { BRAND_FONT, STYLES, brandFromStyle } from "../app/studio/styles.js";
@@ -288,4 +288,21 @@ test("closer is a registered layout; renderLayout('closer') builds the sign-off"
   const els = renderLayout("closer", { heading: "Thanks", cta: "Follow" }, "editorial", false, brandFromStyle("editorial"));
   assert.ok(els.some((e) => e.content === "LOATHR" && /Courier/.test(e.fontFamily)));
   assert.ok(els.some((e) => e.content === "Thanks"));
+});
+
+test("frameElements: off yields nothing; edge/inset are 4 locked bars; corners are 8 (R4)", () => {
+  assert.deepEqual(frameElements("editorial", { frame: "off" }), []);
+  assert.deepEqual(frameElements("editorial", null), []);
+  const inset = frameElements("editorial", { frame: "inset" });
+  assert.equal(inset.length, 4);
+  assert.ok(inset.every((e) => e.type === "rect" && e.role === "frame" && e.locked === true));
+  assert.ok(inset.every((e) => e.fill === STYLES.editorial.accent)); // editorial frame = accent
+  assert.equal(frameElements("editorial", { frame: "edge" }).length, 4);
+  assert.equal(frameElements("editorial", { frame: "corners" }).length, 8);
+});
+
+test("frameElements: News Desk frames in ink (near-black), not its loud accent (R4)", () => {
+  const nw = frameElements("newsdesk", { frame: "inset" });
+  assert.ok(nw.length === 4 && nw.every((e) => e.fill === STYLES.newsdesk.ink));
+  assert.notEqual(STYLES.newsdesk.ink, STYLES.newsdesk.accent);
 });

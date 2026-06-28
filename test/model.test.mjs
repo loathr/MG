@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import {
   ARTBOARD_W, ARTBOARD_H, uid, makeElement, ELEMENT_DEFAULTS,
   blankSlide, sampleSlide, cloneSlide, imageBackground,
-  findElement, highlightRuns,
+  findElement, highlightRuns, uploadResult,
 } from "../app/studio/model.js";
 
 test("artboard is Instagram portrait 1080x1350", () => {
@@ -87,4 +87,15 @@ test("highlightRuns: match at the start or end gives two runs", () => {
     { text: "the ", hl: false },
     { text: "fox", hl: true },
   ]);
+});
+
+test("uploadResult mirrors a search-result shape (url+thumb, flagged uploaded)", () => {
+  const r = uploadResult("data:src", "data:thumb", "beach.jpg");
+  assert.equal(r.url, "data:src");
+  assert.equal(r.thumb, "data:thumb");
+  assert.equal(r.uploaded, true);
+  assert.equal(r.source, "Upload");
+  assert.equal(r.credit, "");                 // own uploads show a badge, not a credit strip
+  assert.equal(r.alt, "beach.jpg");
+  assert.equal(uploadResult("data:only").thumb, "data:only"); // thumb falls back to full src
 });

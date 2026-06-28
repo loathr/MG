@@ -10,7 +10,7 @@
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W } from "./model";
-import { reflowSlide, cautionElement } from "./templates";
+import { reflowSlide, cautionElement, frameElements } from "./templates";
 import { brandFromStyle } from "./styles";
 
 const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
@@ -19,7 +19,7 @@ const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
 // renderLayout), so they must be carried over when a slide is re-rendered by a
 // layout change or a brand reset — otherwise the cover wordmark, the content
 // footer + page number, and the logo vanish.
-const CHROME_ROLES = { logo: 1, wordmark: 1, footer: 1, footrule: 1, pageno: 1 };
+const CHROME_ROLES = { logo: 1, wordmark: 1, footer: 1, footrule: 1, pageno: 1, frame: 1 };
 function carryChrome(slide, patch) {
   const chrome = (slide.elements || []).filter((e) => CHROME_ROLES[e.role]);
   return Object.assign({}, slide, patch, { elements: (patch.elements || []).concat(chrome) });
@@ -93,7 +93,17 @@ export function rethemeDoc(doc, prev, next) {
     return n;
   };
   const slides = doc.slides.map((s) => {
-    const elements = s.elements.map(remapEl);
+    // The deck frame (R4) follows the brand: News Desk uses ink (near-black),
+    // every other desk uses the accent. Recolor frame bars unconditionally so a
+    // palette swap carries them — they're a derived chrome color with no manual
+    // edit path, like the strike/highlight above.
+    const style = s.style || "editorial";
+    const frameCol = style === "newsdesk" ? b.ink : b.accent;
+    const elements = s.elements.map((e) => {
+      const n = remapEl(e);
+      if (e.role === "frame" && frameCol) return Object.assign({}, n, { fill: frameCol });
+      return n;
+    });
     let background = s.background;
     if (b.bg && p.bg && background && background.color === p.bg) background = Object.assign({}, background, { color: b.bg });
     return Object.assign({}, s, { elements, background });
@@ -243,6 +253,21 @@ function docReducer(state, a) {
       const brand = Object.assign({}, state.doc.brand, { caution: text });
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides, brand }) });
     }
+    case "setFrame": {
+      // Deck-wide slide frame (R4). Strip any existing frame bars from every
+      // slide, then (unless "off") re-add them for that slide's desk in the
+      // current brand. Records the choice on the brand so it survives unrelated
+      // edits and the Brand panel reads it back. carryChrome preserves the bars
+      // across reset/layout; rethemeDoc recolors them on a palette swap.
+      const mode = a.frame || "off";
+      const slides = state.doc.slides.map((s) => {
+        const kept = (s.elements || []).filter((e) => e.role !== "frame");
+        const bars = mode === "off" ? [] : frameElements(s.style || "editorial", Object.assign({}, state.doc.brand, { frame: mode }));
+        return Object.assign({}, s, { elements: kept.concat(bars) });
+      });
+      const brand = Object.assign({}, state.doc.brand, { frame: mode });
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides, brand }) });
+    }
     case "setLayout": {
       // Re-flow a slide's stored/derived content through a new layout. Explicit,
       // never automatic — so manual edits persist until the user picks a layout.
@@ -278,7 +303,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setLayout: 1, resetSlideToBrand: 1 };
+const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setFrame: 1, setLayout: 1, resetSlideToBrand: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
 
 function snap(state) {

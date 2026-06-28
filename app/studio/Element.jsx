@@ -49,6 +49,10 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
     userSelect: isEditing ? "text" : "none",
     touchAction: "none",
   };
+  // Locked elements (e.g. the deck frame bars) are pure chrome: non-interactive,
+  // so a full-bleed-edge frame never intercepts a click meant for the content
+  // beneath it. Removed/changed via its own control (Brand → Look), not the canvas.
+  if (el.locked) { frame.pointerEvents = "none"; frame.cursor = "default"; }
 
   let inner = null;
   if (el.type === "text") {
@@ -128,7 +132,7 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
   return (
     <div
       style={frame}
-      onPointerDown={(e) => { if (!isEditing) onPointerDownBody(e, el.id); }}
+      onPointerDown={(e) => { if (!isEditing && !el.locked) onPointerDownBody(e, el.id); }}
       onDoubleClick={(e) => { if (el.type === "text") { e.stopPropagation(); onStartEdit(el.id); } }}
     >
       {inner}

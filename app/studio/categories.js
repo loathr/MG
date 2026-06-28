@@ -14,7 +14,7 @@ export const CATEGORIES = {
     persona: "an editorial director",
     brief: "Write like a senior magazine editor: measured and authoritative, earning confidence with specifics rather than adjectives. Open on tension, not summary, and give one vivid, concrete detail per slide.",
     roles: ["THE ORIGIN", "THE TURNING POINT", "THE EVIDENCE", "THE HUMAN STORY", "THE STAKES", "THE FORECAST"],
-    cta: "Follow @loathr for more",
+    cta: "Follow @loathrdotcom for more",
     defaultStyle: "editorial",
   },
   business: {
@@ -24,7 +24,7 @@ export const CATEGORIES = {
     persona: "a sharp business strategist",
     brief: "Write like a strategist briefing a busy operator: every slide must be decision-useful. Lead with the implication, back it with a number or named example, and cut anything that isn't actionable.",
     roles: ["THE SHIFT", "THE STAKES", "THE PLAYBOOK", "THE PROOF", "THE RISK", "THE MOVE"],
-    cta: "Follow @loathr for more",
+    cta: "Follow @loathrdotcom for more",
     defaultStyle: "enterprise",
     // Caution label for the closing slide (business content carries advice risk).
     // `default` is the straight disclaimer; `alts` are on-brand witty swaps the
@@ -55,7 +55,7 @@ export const CATEGORIES = {
     persona: "a sharp news editor",
     brief: "Report like a wire editor: lead with what's new and verifiable, attribute claims, and give magnitudes (how many, how much, by when). Stay balanced and unhyped — let the facts carry it.",
     roles: ["WHAT HAPPENED", "THE CONTEXT", "THE NUMBERS", "WHO IT AFFECTS", "WHAT'S NEXT"],
-    cta: "Follow @loathr for more",
+    cta: "Follow @loathrdotcom for more",
     defaultStyle: "newsdesk",
     // News carries a "details may change" caution rather than an advice one.
     caution: {
@@ -74,7 +74,7 @@ export const CATEGORIES = {
     persona: "a gifted narrative writer",
     brief: "Tell it as a human story with a real arc: set a scene, turn on a moment the reader feels, and land an earned, specific lesson. Use sensory detail and past tense; don't moralize.",
     roles: ["THE SETUP", "THE TURN", "THE STRUGGLE", "THE LESSON", "THE NOW"],
-    cta: "Follow @loathr for more",
+    cta: "Follow @loathrdotcom for more",
     defaultStyle: "editorial",
   },
 };
