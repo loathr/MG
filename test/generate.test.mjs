@@ -18,6 +18,10 @@ test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabl
   assert.match(p, /THE ORIGIN/);                           // editorial role label
   assert.match(p, /"entity"/);                             // #6 entity capture instruction
   assert.match(p, /"entityType"/);
+  // cohesion: a deck spine + arc, a callback closer, and rising-arc role order
+  assert.match(p, /decide the SPINE first/);
+  assert.match(p, /Callback: the closer pays off the cover/);
+  assert.match(p, /rising arc/);
   // default (no web search): a "from knowledge" grounding line, not a search instruction
   assert.match(p, /Ground every claim/);
   assert.doesNotMatch(p, /use web search/);
