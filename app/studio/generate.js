@@ -13,6 +13,7 @@
 // final text, surface progress, and honor an abort.
 import { slidesToDoc } from "./templates";
 import { getCategory, cautionFor } from "./categories";
+import { normalizeCaption, captionText, fallbackCaption } from "./captions";
 
 const MODEL = "claude-opus-4-8";
 // Server-side web search — the BASIC variant, deliberately. The dynamic-filtering
@@ -94,13 +95,23 @@ export function buildPrompt(topic, categoryKey, opts) {
     "- Callback: the closer pays off the cover's exact hook — answer the question it raised or land the turn it promised, so the deck feels whole.",
     "- Earn every slide: never make the same point twice; if two slides could swap order with no loss, the deck isn't building — fix it.",
     "",
+    "Also write the Instagram CAPTION (the post text under the carousel), built to perform:",
+    "- hook: ONE scroll-stopping line, <= 125 chars (only this part shows before the fold) — carry the cover's tension.",
+    "- body: the deck's spine in 2-4 short, skimmable lines (separate them with \\n) — it should read even without swiping.",
+    "- cta: drive SAVES and SHARES (the strongest signals), ask a question to invite comments, then end on the follow (@loathrdotcom).",
+    "- hashtags: 10-15 relevant tags mixing broad and niche; words only, lowercase, no # symbol.",
+    "- Weave a few plain topic keywords into the body (Instagram indexes caption text for search).",
+    "",
     "Return ONLY a JSON object (no prose, no markdown fences) of this exact shape:",
-    '{"slides":[',
-    '  {"role":"COVER","kicker":"SHORT SECTION LABEL","heading":"the hook, <= 9 words","subhead":"one vivid sentence that makes the swipe irresistible"},',
-    '  {"role":"' + roles[0] + '","heading":"a specific, concrete headline","body":"2-3 tight sentences carrying one proof point","sources":["Outlet"]},',
-    "  ... more content slides, same shape ...",
-    '  {"role":"CLOSER","heading":"a resonant closing line","cta":"' + cat.cta + '"}',
-    "]}",
+    '{',
+    '  "caption": {"hook":"<= 125 chars, scroll-stopping","body":"2-4 short lines, use \\n between them","cta":"save/share line + a question + the follow","hashtags":["tag","tag"]},',
+    '  "slides": [',
+    '    {"role":"COVER","kicker":"SHORT SECTION LABEL","heading":"the hook, <= 9 words","subhead":"one vivid sentence that makes the swipe irresistible"},',
+    '    {"role":"' + roles[0] + '","heading":"a specific, concrete headline","body":"2-3 tight sentences carrying one proof point","sources":["Outlet"]},',
+    "    ... more content slides, same shape ...",
+    '    {"role":"CLOSER","heading":"a resonant closing line","cta":"' + cat.cta + '"}',
+    '  ]',
+    '}',
     "",
     "Rules:",
     "- 7 to 9 slides total: cover + 5-7 content + closer.",
@@ -131,17 +142,37 @@ function extractText(data) {
   );
 }
 
-export function parseSlides(text) {
+// Pull the deck JSON object out of the model's answer — tolerant of fences,
+// preamble/suffix, trailing commas, and either field order of caption / slides.
+function parseDeckJSON(text) {
   if (!text) throw new Error("Empty model response");
   let cleaned = text.replace(/```json|```/g, "").trim();
-  let start = cleaned.indexOf('{"slides"');
+  let start = -1;
+  for (const probe of ['{"caption"', '{"slides"']) {
+    const i = cleaned.indexOf(probe);
+    if (i >= 0 && (start < 0 || i < start)) start = i;
+  }
   if (start < 0) start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start >= 0 && end > start) cleaned = cleaned.slice(start, end + 1);
   cleaned = cleaned.replace(/,\s*([}\]])/g, "$1"); // tolerate trailing commas
-  const obj = JSON.parse(cleaned);
+  return JSON.parse(cleaned);
+}
+
+export function parseSlides(text) {
+  const obj = parseDeckJSON(text);
   if (!obj || !Array.isArray(obj.slides)) throw new Error("No slides array in response");
   return obj.slides;
+}
+
+// The Instagram caption object from the deck JSON, or null if absent/unparseable.
+export function parseCaption(text) {
+  try {
+    const obj = parseDeckJSON(text);
+    return obj && obj.caption ? obj.caption : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 // Fold one parsed Anthropic SSE event into the accumulator. We only keep the
@@ -239,12 +270,15 @@ export async function runPrompt(prompt, opts) {
     // Headroom for adaptive thinking + a multi-step web search + the full deck
     // JSON. At 8000 the JSON was getting truncated after the search narration.
     max_tokens: o.maxTokens || 16000,
-    thinking: { type: "adaptive" },
-    // Medium effort: enough deliberation for editorial quality, but faster and
-    // far fewer thinking tokens than the default (high) — keeps the JSON in budget.
-    output_config: { effort: "medium" },
     messages: [{ role: "user", content: prompt }],
   };
+  // Adaptive thinking + medium effort by default — editorial quality without the
+  // high-effort token cost. A cheap utility call (the Haiku caption rewrite)
+  // passes thinking:false to skip reasoning entirely: faster and lighter.
+  if (o.thinking !== false) {
+    payload.thinking = { type: "adaptive" };
+    payload.output_config = { effort: o.effort || "medium" };
+  }
   if (o.webSearch !== false) payload.tools = [WEB_SEARCH_TOOL];
   if (stream) payload.stream = true;
 
@@ -278,5 +312,44 @@ export async function generateCarousel(topic, opts) {
   // Seed the closing caution from the category (business/news carry one).
   const category = o.category || null;
   const cau = category ? cautionFor(category) : null;
-  return slidesToDoc(slides, o.style, imgMap, { category, caution: cau ? cau.default : "" });
+  const doc = slidesToDoc(slides, o.style, imgMap, { category, caution: cau ? cau.default : "" });
+  // Fold in the Instagram caption the same Opus call already wrote; if it's
+  // missing/unparseable, assemble a usable one from the deck (no extra call).
+  const cap = normalizeCaption(parseCaption(text)) || fallbackCaption(slides);
+  doc.caption = captionText(cap);
+  return doc;
+}
+
+// Regenerate ONLY the caption from an existing deck — a cheap, no-search call on
+// a small, fast model (Haiku), with reasoning off. Returns the assembled caption
+// string, or "" on failure (the caller keeps the current caption). The model
+// here only rewrites content already on screen, so it never needs the web.
+const CAPTION_MODEL = "claude-haiku-4-5";
+function deckBeats(doc) {
+  return ((doc && doc.slides) || []).map((s, i) => {
+    const c = (s && s.content) || {};
+    const head = c.heading || c.title || "";
+    const sub = c.subhead || c.body || c.cta || "";
+    const line = [head, sub].filter(Boolean).join(" — ");
+    return line ? (i + 1) + ". " + line : "";
+  }).filter(Boolean).join("\n");
+}
+export async function regenerateCaption(doc, opts) {
+  const o = opts || {};
+  const beats = deckBeats(doc);
+  if (!beats) return "";
+  const prompt = [
+    "Write a high-performing Instagram caption for this carousel. Take a fresh angle on the hook.",
+    "",
+    "Carousel beats:",
+    beats,
+    "",
+    'Build it to perform: hook <= 125 chars (scroll-stopping); body 2-4 short skimmable lines separated by \\n; cta drives saves and shares, asks a question, then ends on the follow (@loathrdotcom); weave in plain keywords.',
+    'Return ONLY this JSON, no prose, no fences: {"caption":{"hook":"...","body":"...","cta":"...","hashtags":["tag","tag"]}}. hashtags: words only, lowercase, no # symbol, 10-15 of them.',
+  ].join("\n");
+  const text = await runPrompt(prompt, {
+    model: o.model || CAPTION_MODEL, webSearch: false, stream: false, thinking: false, maxTokens: 1200, signal: o.signal,
+  });
+  const cap = normalizeCaption(parseCaption(text));
+  return cap ? captionText(cap) : "";
 }

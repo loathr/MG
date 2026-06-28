@@ -253,6 +253,10 @@ function docReducer(state, a) {
       const brand = Object.assign({}, state.doc.brand, { caution: text });
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides, brand }) });
     }
+    case "setCaption":
+      // The Instagram caption (doc-level post text). Deliberately NOT in MUTATES:
+      // caption edits/regenerations shouldn't crowd the canvas undo history.
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { caption: a.text }) });
     case "setFrame": {
       // Deck-wide slide frame (R4). Strip any existing frame bars from every
       // slide, then (unless "off") re-add them for that slide's desk in the

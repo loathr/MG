@@ -291,6 +291,14 @@ test("setFrame adds a locked frame to every slide + records it on the brand; off
   assert.ok(s.doc.slides.every((sl) => !sl.elements.some((e) => e.role === "frame")));
 });
 
+test("setCaption stores the caption text on the doc and is NOT an undo frame", () => {
+  let s = initStudio();
+  const past = s.past.length;
+  s = reducer(s, { type: "setCaption", text: "Hook\n\nBody\n\n#tag" });
+  assert.equal(s.doc.caption, "Hook\n\nBody\n\n#tag");
+  assert.equal(s.past.length, past); // caption edits don't crowd the undo history
+});
+
 test("the deck frame survives reset + a layout change (carried chrome) (R4)", () => {
   let s = initStudio();
   const doc = slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }], "editorial");

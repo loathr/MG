@@ -2,12 +2,13 @@
 import React, { useEffect, useReducer, useRef, useState } from "react";
 import { reducer, initStudio, carryBrandKit } from "./store";
 import { makeElement, imageBackground, blankDoc, ARTBOARD_W, ARTBOARD_H } from "./model";
-import { generateCarousel } from "./generate";
+import { generateCarousel, regenerateCaption } from "./generate";
 import { photosDemoDoc } from "./demo";
 import Artboard from "./Artboard";
 import SlideThumb from "./SlideThumb";
 import PhotosPanel from "./PhotosPanel";
 import BrandPanel from "./BrandPanel";
+import CaptionPanel from "./CaptionPanel";
 import TemplatesPanel from "./TemplatesPanel";
 import CreateScreen from "./CreateScreen";
 import { exportSlide, exportSlides } from "./export";
@@ -31,6 +32,7 @@ const TOOLS = [
   { key: "photos", label: "Photos", glyph: "⛰" },
   { key: "templates", label: "Templates", glyph: "▤" },
   { key: "brand", label: "Brand", glyph: "✦" },
+  { key: "caption", label: "Caption", glyph: "✍" },
 ];
 
 // Pre-styled text presets for the Text panel (centered when dropped).
@@ -165,7 +167,7 @@ export default function Studio() {
   };
   const exportDeck = async () => {
     setDlOpen(false); setExporting(true);
-    try { await exportSlides(state.doc.slides, projectName); } finally { setExporting(false); }
+    try { await exportSlides(state.doc.slides, projectName, state.doc.caption); } finally { setExporting(false); }
   };
 
   // Fact-check: send the deck's claims through a live web-search verify pass and
@@ -305,6 +307,14 @@ export default function Studio() {
             onCaution={(text) => dispatch({ type: "setCaution", text })}
             onFrame={(frame) => dispatch({ type: "setFrame", frame })}
             onResetAll={() => dispatch({ type: "resetSlideToBrand", all: true })}
+            onClose={() => setActivePanel(null)}
+          />
+        )}
+        {activePanel === "caption" && (
+          <CaptionPanel
+            caption={state.doc.caption || ""}
+            onChange={(text) => dispatch({ type: "setCaption", text })}
+            onRegenerate={async () => { const t = await regenerateCaption(state.doc); if (t) dispatch({ type: "setCaption", text: t }); }}
             onClose={() => setActivePanel(null)}
           />
         )}

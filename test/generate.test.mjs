@@ -4,7 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  buildPrompt, hashStr, stripCites, foldStreamEvent, parseSlides,
+  buildPrompt, hashStr, stripCites, foldStreamEvent, parseSlides, parseCaption,
 } from "../app/studio/generate.js";
 
 test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabled", () => {
@@ -14,7 +14,7 @@ test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabl
   assert.match(p, /Today's date is 2026-06-26/);          // date anchor
   assert.match(p, /Approach this through/);                // seeded angle
   assert.match(p, /Voice:/);                               // seeded voice
-  assert.match(p, /\{"slides":\[/);                        // exact JSON shape
+  assert.match(p, /"slides": \[/);                         // JSON shape (caption + slides)
   assert.match(p, /THE ORIGIN/);                           // editorial role label
   assert.match(p, /"entity"/);                             // #6 entity capture instruction
   assert.match(p, /"entityType"/);
@@ -22,6 +22,10 @@ test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabl
   assert.match(p, /decide the SPINE first/);
   assert.match(p, /Callback: the closer pays off the cover/);
   assert.match(p, /rising arc/);
+  // caption: an algorithm-aware Instagram caption in the JSON shape
+  assert.match(p, /Instagram CAPTION/);
+  assert.match(p, /"caption":/);
+  assert.match(p, /hashtags/);
   // default (no web search): a "from knowledge" grounding line, not a search instruction
   assert.match(p, /Ground every claim/);
   assert.doesNotMatch(p, /use web search/);
@@ -78,4 +82,14 @@ test("parseSlides tolerates fences, preamble, and trailing commas", () => {
 test("parseSlides throws on empty or shapeless responses", () => {
   assert.throws(() => parseSlides(""));
   assert.throws(() => parseSlides('{"nope":1}'));
+});
+
+test("parseCaption pulls the caption out of the deck JSON; slides still parse alongside it", () => {
+  const txt = '{"caption":{"hook":"H","body":"B","cta":"C","hashtags":["ai"]},"slides":[{"role":"COVER","heading":"X"}]}';
+  const cap = parseCaption(txt);
+  assert.equal(cap.hook, "H");
+  assert.deepEqual(cap.hashtags, ["ai"]);
+  assert.equal(parseSlides(txt).length, 1);            // caption present, slides still found
+  assert.equal(parseCaption('{"slides":[]}'), null);   // no caption → null
+  assert.equal(parseCaption("not json"), null);        // unparseable → null, never throws
 });

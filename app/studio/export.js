@@ -297,7 +297,7 @@ export async function exportSlide(slide, name, index) {
 // Render every slide to a PNG and deliver them as ONE .zip — a single download
 // the browser won't throttle or drop (unlike N sequential saves). Tainted
 // slides are skipped; the rest still ship. Returns the count actually zipped.
-export async function exportSlides(slides, name) {
+export async function exportSlides(slides, name, caption) {
   const base = slug(name);
   const files = [];
   for (let i = 0; i < slides.length; i++) {
@@ -306,6 +306,10 @@ export async function exportSlides(slides, name) {
     if (bytes) files.push({ name: base + "-" + (i + 1) + ".png", data: bytes });
   }
   if (files.length === 0) return 0;
+  // Drop the Instagram caption beside the slides as caption.txt (UTF-8).
+  if (caption && String(caption).trim()) {
+    files.push({ name: base + "-caption.txt", data: new TextEncoder().encode(String(caption)) });
+  }
   downloadBlob(makeZip(files), base + ".zip");
   return files.length;
 }
