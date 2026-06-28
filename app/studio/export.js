@@ -9,6 +9,10 @@
 // ============================================================================
 import { ARTBOARD_W, ARTBOARD_H, highlightRuns } from "./model";
 import { makeZip } from "./zip";
+import {
+  stickerPaint, stickerRadius, stickerBorderW, tagNotch, speechTail,
+  noteEar, hexA, BURST_POINTS, BANNER_RULE, STICKER_PAPER_EAR,
+} from "./stickers";
 
 function loadImage(src) {
   return new Promise((resolve) => {
@@ -183,6 +187,110 @@ export function drawHighlightText(ctx, el) {
   if (supportsLS) ctx.letterSpacing = "0px";
 }
 
+function burstPath(ctx, w, h) {
+  ctx.beginPath();
+  for (let i = 0; i < BURST_POINTS.length; i++) {
+    const x = (BURST_POINTS[i][0] / 100) * w;
+    const y = (BURST_POINTS[i][1] / 100) * h;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+}
+
+function tagPath(ctx, w, h, notch) {
+  ctx.beginPath();
+  ctx.moveTo(notch, 0);
+  ctx.lineTo(w, 0);
+  ctx.lineTo(w, h);
+  ctx.lineTo(notch, h);
+  ctx.lineTo(0, h / 2);
+  ctx.closePath();
+}
+
+// Draw a sticker element (local origin already at its top-left). Mirrors the CSS
+// in Sticker.jsx off the same geometry helpers so the PNG matches the canvas.
+function drawSticker(ctx, el) {
+  const p = stickerPaint(el);
+  const variant = el.variant || "speech";
+  const w = el.w, h = el.h;
+  const radius = stickerRadius(el);
+  const bw = stickerBorderW(el);
+
+  if (variant === "burst") {
+    burstPath(ctx, w, h);
+    ctx.fillStyle = p.bg;
+    ctx.fill();
+  } else if (variant === "tag") {
+    const notch = tagNotch(el);
+    tagPath(ctx, w, h, notch);
+    ctx.fillStyle = p.bg;
+    ctx.fill();
+    if (p.border && p.border !== "none") {
+      ctx.lineWidth = bw;
+      ctx.strokeStyle = p.border;
+      ctx.stroke();
+    }
+  } else {
+    if (variant === "cloud") { // soft accent glow ring behind
+      roundRectPath(ctx, -4, -4, w + 8, h + 8, radius + 4);
+      ctx.fillStyle = hexA(el.fill || "#e23744", 0.1);
+      ctx.fill();
+    }
+    roundRectPath(ctx, 0, 0, w, h, radius);
+    if (p.bg && p.bg !== "transparent") {
+      ctx.fillStyle = p.bg;
+      ctx.fill();
+    }
+    if (p.border && p.border !== "none") {
+      ctx.lineWidth = bw;
+      ctx.strokeStyle = p.border;
+      if (p.dashed && ctx.setLineDash) ctx.setLineDash([14, 9]);
+      ctx.stroke();
+      if (ctx.setLineDash) ctx.setLineDash([]);
+    }
+    if (variant === "banner") {
+      ctx.fillStyle = p.rule || el.fill || "#e23744";
+      ctx.fillRect(0, 0, w, BANNER_RULE);
+      ctx.fillRect(0, h - BANNER_RULE, w, BANNER_RULE);
+    }
+  }
+
+  if (variant === "speech") {
+    const t = speechTail(el);
+    ctx.beginPath();
+    ctx.moveTo(t.x, t.y);
+    ctx.lineTo(t.x + t.w, t.y);
+    ctx.lineTo(t.x + t.w / 2, t.y + t.h);
+    ctx.closePath();
+    ctx.fillStyle = el.fill || "#e23744";
+    ctx.fill();
+  } else if (variant === "note") {
+    const e = noteEar(el);
+    ctx.beginPath();
+    ctx.moveTo(w - e, h);
+    ctx.lineTo(w, h);
+    ctx.lineTo(w, h - e);
+    ctx.closePath();
+    ctx.fillStyle = STICKER_PAPER_EAR;
+    ctx.fill();
+  }
+
+  // Centered single-line label (stickers are short callouts).
+  const fs = el.fontSize || 30;
+  const weight = el.fontWeight || 700;
+  const fstyle = el.italic ? "italic " : "";
+  ctx.font = fstyle + weight + " " + fs + "px " + (el.fontFamily || "Helvetica, Arial, sans-serif");
+  ctx.fillStyle = p.text;
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+  const supportsLS = "letterSpacing" in ctx;
+  if (supportsLS) ctx.letterSpacing = (el.letterSpacing || 0) + "px";
+  let cx = w / 2;
+  if (variant === "tag") cx = (tagNotch(el) + w) / 2;
+  ctx.fillText(String(el.text == null ? "" : el.text), cx, h / 2 + 1);
+  if (supportsLS) ctx.letterSpacing = "0px";
+}
+
 export async function renderSlideToCanvas(slide) {
   const canvas = document.createElement("canvas");
   canvas.width = ARTBOARD_W;
@@ -243,6 +351,8 @@ export async function renderSlideToCanvas(slide) {
     } else if (el.type === "text") {
       if (el.highlight && el.highlightColor) drawHighlightText(ctx, el);
       else drawText(ctx, el);
+    } else if (el.type === "sticker") {
+      drawSticker(ctx, el);
     }
     ctx.restore();
   }

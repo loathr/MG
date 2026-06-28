@@ -29,6 +29,16 @@ test("makeElement merges type defaults with overrides", () => {
   assert.equal(makeElement("rect", {}).fill, ELEMENT_DEFAULTS.rect.fill);
 });
 
+test("makeElement('sticker') carries the sticker defaults", () => {
+  const s = makeElement("sticker", { variant: "pill", text: "SAVE" });
+  assert.equal(s.type, "sticker");
+  assert.equal(s.variant, "pill");
+  assert.equal(s.text, "SAVE");
+  assert.equal(s.fill, ELEMENT_DEFAULTS.sticker.fill);     // default accent kept
+  assert.equal(s.tailSide, "left");                         // default tail kept
+  assert.equal(makeElement("sticker", {}).variant, "speech"); // default variant
+});
+
 test("blankSlide is a solid background with no elements", () => {
   const s = blankSlide();
   assert.equal(s.background.type, "color");

@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 import RichText from "./RichText";
+import Sticker from "./Sticker";
 
 // One element. Wrapped in React.memo so it re-renders only when its own object
 // (or its editing flag) changes — the key to Canva-like drag performance.
@@ -127,6 +128,8 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
     );
   } else if (el.type === "line") {
     inner = <div style={{ width: "100%", height: "100%", background: el.fill }} />;
+  } else if (el.type === "sticker") {
+    inner = <Sticker el={el} />;
   }
 
   return (

@@ -2,6 +2,7 @@
 import React from "react";
 import { ARTBOARD_W, ARTBOARD_H } from "./model";
 import RichText from "./RichText";
+import Sticker from "./Sticker";
 
 // A non-interactive, CSS-scaled miniature of a slide. Used by the slide strip
 // (SlideThumb) and the Create-screen style previews (StylePreview), so both are
@@ -57,6 +58,10 @@ function StaticElement({ el }) {
   }
   if (el.type === "line") {
     return <div style={{ ...frame, background: el.fill }} />;
+  }
+  if (el.type === "sticker") {
+    // overflow:visible so the speech tail / note dog-ear / cloud glow aren't clipped.
+    return <div style={{ ...frame, overflow: "visible" }}><Sticker el={el} /></div>;
   }
   return null;
 }

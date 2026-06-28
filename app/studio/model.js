@@ -41,6 +41,22 @@ export const ELEMENT_DEFAULTS = {
   image: { src: "", thumb: "", fit: "cover", opacity: 1, radius: 0 },
   rect: { fill: "#e23744", stroke: "none", strokeWidth: 0, radius: 0, opacity: 1 },
   line: { fill: "#ffffff", opacity: 1 },
+  // A bubble/sticker callout (see stickers.js). `variant` picks the shape;
+  // `fill` is the shape/accent color and `color` the text — one meaning across
+  // all eight variants. `tailSide` only matters for the speech bubble.
+  sticker: {
+    variant: "speech",
+    text: "Text",
+    fill: "#e23744",
+    color: "#ffffff",
+    tailSide: "left",
+    fontFamily: "Helvetica, Arial, sans-serif",
+    fontSize: 32,
+    fontWeight: 700,
+    italic: false,
+    letterSpacing: 0,
+    opacity: 1,
+  },
 };
 
 export function makeElement(type, props) {

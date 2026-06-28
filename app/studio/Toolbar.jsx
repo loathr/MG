@@ -69,6 +69,36 @@ export default function Toolbar({ el, dispatch }) {
         </>
       )}
 
+      {el.type === "sticker" && (
+        <>
+          <input
+            value={el.text || ""}
+            onChange={(e) => up({ text: e.target.value })}
+            placeholder="Label"
+            style={{ width: 116, height: 26, background: "#1d1d21", color: "#e8e8e8", border: "1px solid #3a3a40", borderRadius: 5, fontSize: 12, padding: "0 7px" }}
+          />
+          <input type="number" value={Math.round(el.fontSize || 30)} min={8} max={200} title="Text size"
+            onChange={(e) => up({ fontSize: Math.max(8, +e.target.value || 8) })}
+            style={{ width: 46, height: 26, background: "#1d1d21", color: "#e8e8e8", border: "1px solid #3a3a40", borderRadius: 5, fontSize: 12, textAlign: "center" }} />
+          <label style={{ ...btn(false), padding: 0, position: "relative", overflow: "hidden" }} title="Shape / accent color">
+            <span style={{ width: 16, height: 16, borderRadius: 3, background: el.fill, border: "1px solid #555" }} />
+            <input type="color" value={hexish(el.fill)} onChange={(e) => up({ fill: e.target.value })}
+              style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+          </label>
+          <label style={{ ...btn(false), padding: 0, position: "relative", overflow: "hidden" }} title="Text color">
+            <span style={{ width: 16, height: 16, borderRadius: 3, background: el.color, border: "1px solid #555", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#000" }}>A</span>
+            <input type="color" value={hexish(el.color)} onChange={(e) => up({ color: e.target.value })}
+              style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+          </label>
+          {el.variant === "speech" && (
+            <button style={btn(false)} title="Tail side"
+              onClick={() => up({ tailSide: el.tailSide === "left" ? "center" : el.tailSide === "center" ? "right" : "left" })}>
+              {el.tailSide === "right" ? "Tail ▸" : el.tailSide === "center" ? "Tail ▾" : "Tail ◂"}
+            </button>
+          )}
+        </>
+      )}
+
       {el.type === "image" && (
         <>
           <select value={el.fit || "cover"} onChange={(e) => up({ fit: e.target.value })}

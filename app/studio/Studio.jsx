@@ -6,6 +6,8 @@ import { generateCarousel, regenerateCaption } from "./generate";
 import { photosDemoDoc } from "./demo";
 import Artboard from "./Artboard";
 import SlideThumb from "./SlideThumb";
+import Sticker from "./Sticker";
+import { STICKER_VARIANTS, stickerVariant, STICKER_PAPER, STICKER_PAPER_INK } from "./stickers";
 import PhotosPanel from "./PhotosPanel";
 import BrandPanel from "./BrandPanel";
 import CaptionPanel from "./CaptionPanel";
@@ -154,6 +156,22 @@ export default function Studio() {
     x: Math.round((ARTBOARD_W - 360) / 2), y: Math.round(ARTBOARD_H / 2), w: 360, h: 6, fill: "#ffffff",
   }) });
 
+  // Drop a bubble/sticker. Seeds size/font/text/tilt from the variant and colors
+  // it from the deck's current accent (note variant uses the paper palette).
+  const addSticker = (variantId) => {
+    const v = stickerVariant(variantId);
+    const accent = (state.doc.brand && state.doc.brand.accent) || "#e23744";
+    dispatch({ type: "add", element: makeElement("sticker", {
+      x: Math.round((ARTBOARD_W - v.w) / 2), y: Math.round((ARTBOARD_H - v.h) / 2),
+      w: v.w, h: v.h, rotation: v.rotation || 0,
+      variant: v.id, text: v.text,
+      fill: v.paper ? STICKER_PAPER : accent,
+      color: v.paper ? STICKER_PAPER_INK : (v.knockout ? "#0c0c0c" : "#ffffff"),
+      fontFamily: v.font, fontSize: v.size, fontWeight: 700, letterSpacing: v.spacing || 0,
+      tailSide: "left",
+    }) });
+  };
+
   // Photos panel actions. "Pick, never paste" — no URL entry anywhere.
   const setPhotoBackground = (img) => dispatch({ type: "setBg", patch: imageBackground(img, 0.4) });
   const addPhotoElement = (img) => dispatch({ type: "add", element: makeElement("image", {
@@ -286,6 +304,12 @@ export default function Studio() {
           <SidePanel title="Elements" onClose={() => setActivePanel(null)}>
             <PanelButton onClick={addRect}>Rectangle</PanelButton>
             <PanelButton onClick={addLine}>Line / divider</PanelButton>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: "#7c7c84", textTransform: "uppercase", margin: "14px 0 9px", borderTop: "1px solid #2a2a2f", paddingTop: 12 }}>Bubbles &amp; stickers</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {STICKER_VARIANTS.map((v) => (
+                <StickerTile key={v.id} v={v} accent={(state.doc.brand && state.doc.brand.accent) || "#e23744"} onAdd={addSticker} />
+              ))}
+            </div>
           </SidePanel>
         )}
         {activePanel === "templates" && (
@@ -390,6 +414,31 @@ function PanelButton({ onClick, children }) {
     <button onClick={onClick}
       style={{ height: 36, padding: "0 12px", textAlign: "left", background: "#26262b", color: "#e8e8e8", border: "1px solid #36363c", borderRadius: 6, cursor: "pointer", fontSize: 13 }}>
       {children}
+    </button>
+  );
+}
+
+// A grid swatch for a sticker variant — a real (scaled-down) live Sticker so the
+// panel previews exactly what drops onto the canvas. Tap to add.
+function StickerTile({ v, accent, onAdd }) {
+  const tileH = 58;
+  const s = Math.min(96 / v.w, (tileH - 16) / v.h);
+  const el = {
+    type: "sticker", variant: v.id, text: v.text, w: v.w, h: v.h, rotation: v.rotation || 0,
+    fill: v.paper ? STICKER_PAPER : accent,
+    color: v.paper ? STICKER_PAPER_INK : (v.knockout ? "#0c0c0c" : "#ffffff"),
+    fontFamily: v.font, fontSize: v.size, fontWeight: 700, letterSpacing: v.spacing || 0,
+    tailSide: "left", opacity: 1,
+  };
+  return (
+    <button onClick={() => onAdd(v.id)} title={"Add " + v.label}
+      style={{ position: "relative", height: tileH, background: "#202024", border: "1px solid #2f2f37", borderRadius: 8, cursor: "pointer", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "relative", width: v.w * s, height: v.h * s }}>
+        <div style={{ position: "absolute", top: 0, left: 0, width: v.w, height: v.h, transform: "scale(" + s + ")", transformOrigin: "top left" }}>
+          <Sticker el={el} />
+        </div>
+      </div>
+      <span style={{ position: "absolute", bottom: 2, left: 0, right: 0, fontSize: 9, color: "#8a8a92", textAlign: "center" }}>{v.label}</span>
     </button>
   );
 }
