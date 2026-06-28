@@ -483,24 +483,46 @@ function L_featureSplit(c, st, pal) {
 
 const LAYOUT_FNS = { classic: L_classic, cover: L_cover, masthead: L_masthead, dossier: L_dossier, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote, stat: L_stat, versus: L_versus, feature: L_feature, featureBottom: L_featureBottom, featureSplit: L_featureSplit };
 
+// Each layout belongs to a FAMILY (category) so the Templates panel can group
+// them and new variants slot into a home instead of a flat list:
+//   text     — text-led compositions (photo optional as background)
+//   feature  — photo-forward (the image is an element, incl. split)
+//   data     — evidence designs (stat / versus), driven by data fields
+//   bookend  — the deck's open + close (per-desk covers + closer)
 export const LAYOUT_LIST = [
-  { key: "cover", label: "Cover" },
-  { key: "masthead", label: "Masthead" },
-  { key: "dossier", label: "Dossier" },
-  { key: "classic", label: "Classic" },
-  { key: "centered", label: "Centered" },
-  { key: "statement", label: "Statement" },
-  { key: "bottom", label: "Bottom" },
-  { key: "split", label: "Split" },
-  { key: "numbered", label: "Numbered" },
-  { key: "quote", label: "Quote" },
-  { key: "stat", label: "Stat" },
-  { key: "versus", label: "Versus" },
-  { key: "feature", label: "Feature" },
-  { key: "featureBottom", label: "Feature ↓" },
-  { key: "featureSplit", label: "Feature ⇆" },
-  { key: "closer", label: "Closer" },
+  { key: "cover", label: "Cover", category: "bookend" },
+  { key: "masthead", label: "Masthead", category: "bookend" },
+  { key: "dossier", label: "Dossier", category: "bookend" },
+  { key: "classic", label: "Classic", category: "text" },
+  { key: "centered", label: "Centered", category: "text" },
+  { key: "statement", label: "Statement", category: "text" },
+  { key: "bottom", label: "Bottom", category: "text" },
+  { key: "split", label: "Split", category: "feature" },
+  { key: "numbered", label: "Numbered", category: "text" },
+  { key: "quote", label: "Quote", category: "text" },
+  { key: "stat", label: "Stat", category: "data" },
+  { key: "versus", label: "Versus", category: "data" },
+  { key: "feature", label: "Feature", category: "feature" },
+  { key: "featureBottom", label: "Feature ↓", category: "feature" },
+  { key: "featureSplit", label: "Feature ⇆", category: "feature" },
+  { key: "closer", label: "Closer", category: "bookend" },
 ];
+
+// Display order + labels for the grouped Templates panel.
+export const LAYOUT_CATEGORIES = [
+  { key: "text", label: "Text" },
+  { key: "feature", label: "Feature · photo" },
+  { key: "data", label: "Data" },
+  { key: "bookend", label: "Bookends" },
+];
+
+// Layouts the generator may explicitly pick for a CONTENT slide (text + feature
+// families). Data layouts are driven by the stat/versus fields, not picked here;
+// bookends are never content. Used to validate a model-supplied `layout`.
+export const CONTENT_LAYOUTS = LAYOUT_LIST
+  .filter((l) => l.category === "text" || l.category === "feature")
+  .map((l) => l.key);
+const CONTENT_SET = CONTENT_LAYOUTS.reduce((a, k) => ((a[k] = 1), a), {});
 
 // Body-band emphasis: a generated `highlight` phrase becomes a knockout marker
 // on the body/standfirst text that contains it — not headings (too loud) nor
@@ -625,12 +647,19 @@ export function slidesToDoc(slides, style, imgMap, opts) {
       slide = closerTemplate(s, style, image, caution);
       layout = "closer";
     } else {
-      // Content slides adopt a data-driven layout when the model supplied the
-      // structured fields (a stat, or a two-sided comparison); otherwise the
-      // family default. Covers always use the family cover layout.
+      // Content layout, by fit (never a forced pattern): data fields win (stat /
+      // versus), else an explicit model-picked layout from the text/feature
+      // families, else the family default (classic). A feature needs a real photo
+      // — otherwise it falls back to clean text. Covers always use the family cover.
       const dataLayout = s.stat != null ? "stat" : ((s.versus || (s.left && s.right)) ? "versus" : null);
-      layout = isCover ? lmap.cover : (dataLayout || lmap.content);
-      slide = slideShell(st, image, renderLayout(layout, content, style, !!(image && image.url)));
+      let wanted = isCover ? null : (CONTENT_SET[s.layout] ? s.layout : null);
+      if (wanted && isFeature(wanted) && !(image && image.url)) wanted = null;
+      layout = isCover ? lmap.cover : (dataLayout || wanted || lmap.content);
+      // §3: a feature content layout carries the photo as an ELEMENT on a solid
+      // panel (no background image); every other layout keeps the one photo as the
+      // background. Same background↔element rule reflowSlide uses.
+      const asFeature = !isCover && isFeature(layout);
+      slide = slideShell(st, asFeature ? null : image, renderLayout(layout, content, style, asFeature ? false : !!(image && image.url)));
       if (isCover) {
         // Per-desk cover wordmark — a brand element, not generated content.
         slide.elements = slide.elements.concat(coverWordmark(style));

@@ -29,6 +29,9 @@ test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabl
   // two-page spill: a dense point may run across two consecutive slides
   assert.match(p, /spill across two consecutive slides/);
   assert.match(p, /CONT'D/);
+  // content-driven layout: the model may pick a fit layout, not a forced pattern
+  assert.match(p, /MAY set "layout"/);
+  assert.match(p, /never to force variety/);
   // default (no web search): a "from knowledge" grounding line, not a search instruction
   assert.match(p, /Ground every claim/);
   assert.doesNotMatch(p, /use web search/);

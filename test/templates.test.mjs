@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import {
   coverTemplate, closerTemplate, cautionElement, LAYOUT_LIST,
   renderLayout, reflowSlide, slidesToDoc, deriveContent, previewCover,
-  coverWordmark, footerElements, frameElements,
+  coverWordmark, footerElements, frameElements, CONTENT_LAYOUTS,
 } from "../app/studio/templates.js";
 import { makeElement } from "../app/studio/model.js";
 import { BRAND_FONT, STYLES, brandFromStyle } from "../app/studio/styles.js";
@@ -305,4 +305,41 @@ test("frameElements: News Desk frames in ink (near-black), not its loud accent (
   const nw = frameElements("newsdesk", { frame: "inset" });
   assert.ok(nw.length === 4 && nw.every((e) => e.fill === STYLES.newsdesk.ink));
   assert.notEqual(STYLES.newsdesk.ink, STYLES.newsdesk.accent);
+});
+
+test("every layout is categorized; CONTENT_LAYOUTS = text+feature only (no bookends/data)", () => {
+  const cats = new Set(["text", "feature", "data", "bookend"]);
+  assert.ok(LAYOUT_LIST.every((l) => cats.has(l.category)));
+  assert.ok(CONTENT_LAYOUTS.includes("classic") && CONTENT_LAYOUTS.includes("feature"));
+  for (const k of ["cover", "closer", "masthead", "dossier", "stat", "versus"]) {
+    assert.ok(!CONTENT_LAYOUTS.includes(k), k + " is not a pickable content layout");
+  }
+});
+
+test("slidesToDoc honors a model-picked content layout; rejects invalid/bookend ones", () => {
+  const doc = slidesToDoc([
+    { role: "COVER", heading: "C" },
+    { heading: "H1", body: "b", layout: "statement" },
+    { heading: "H2", body: "b", layout: "cover" },   // bookend → not allowed for content
+    { role: "CLOSER", heading: "Z" },
+  ], "editorial");
+  assert.equal(doc.slides[1].layout, "statement");
+  assert.equal(doc.slides[2].layout, "classic");      // falls back to the family default
+});
+
+test("slidesToDoc: a feature layout needs a photo and routes it to an element (§3)", () => {
+  const withImg = slidesToDoc(
+    [{ role: "COVER", heading: "C" }, { heading: "H", body: "b", layout: "feature" }, { role: "CLOSER", heading: "Z" }],
+    "editorial", { 1: { url: "u.jpg", thumb: "t.jpg" } },
+  );
+  const f = withImg.slides[1];
+  assert.equal(f.layout, "feature");
+  assert.equal(f.background.type, "color");                                  // solid bg, photo not in the background
+  assert.equal(f.elements.filter((e) => e.type === "image").length, 1);     // exactly one decoded image — as an element
+  // no photo available → never an empty feature; falls back to clean text
+  const noImg = slidesToDoc(
+    [{ role: "COVER", heading: "C" }, { heading: "H", body: "b", layout: "feature" }, { role: "CLOSER", heading: "Z" }],
+    "editorial",
+  );
+  assert.equal(noImg.slides[1].layout, "classic");
 });
