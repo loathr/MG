@@ -459,6 +459,7 @@ export const LAYOUT_LIST = [
   { key: "feature", label: "Feature" },
   { key: "featureBottom", label: "Feature ↓" },
   { key: "featureSplit", label: "Feature ⇆" },
+  { key: "closer", label: "Closer" },
 ];
 
 // Body-band emphasis: a generated `highlight` phrase becomes a knockout marker
@@ -484,6 +485,13 @@ function applyHighlight(els, highlight, color, knockout) {
 export function renderLayout(layoutKey, content, style, hasImage, brand) {
   const st = effectiveStyle(style, brand);
   const c = norm(content);
+  // The closer is brand-anchored (sign-off wordmark + CTA + caution), built by
+  // closerTemplate. Register it as a real layout so reflow / reset / the Templates
+  // panel handle it like any other instead of falling back to classic.
+  if (layoutKey === "closer") {
+    const img = c.image && c.image.url ? c.image : null;
+    return closerTemplate(content || {}, style, img, (brand && brand.caution) || "", brand).elements;
+  }
   // Feature layouts carry the photo as an element on a solid panel, so their text
   // uses the normal palette. Every other layout sets text over the photo bg and
   // flips to the readable onPhoto palette whenever a photo is present (taken from

@@ -255,3 +255,23 @@ test("rethemeDoc: changing a shared font moves only its tier (News head=body ser
   assert.equal(content.elements.find((e) => e.tier === "heading").fontFamily, "Impact");      // heading moved
   assert.equal(content.elements.find((e) => e.tier === "body" && /body copy/.test(e.content)).fontFamily, prev.bodyFont); // body NOT welded
 });
+
+test("resetSlideToBrand keeps the cover wordmark, content footer + page number", () => {
+  let s = initStudio();
+  const doc = slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }, { role: "CLOSER", heading: "Z" }], "editorial");
+  s = reducer(s, { type: "loadDoc", doc });
+  s = reducer(s, { type: "resetSlideToBrand", all: true });
+  const [cover, content, closer] = s.doc.slides;
+  assert.ok(cover.elements.some((e) => e.role === "wordmark"), "cover wordmark survives reset");
+  assert.ok(content.elements.some((e) => e.role === "footer"), "footer survives reset");
+  assert.ok(content.elements.some((e) => e.role === "pageno"), "page number survives reset");
+  assert.ok(closer.elements.some((e) => e.content === "LOATHR"), "closer sign-off rebuilt");
+});
+
+test("setLayout preserves brand chrome (cover wordmark survives a layout change)", () => {
+  let s = initStudio();
+  const doc = slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }, { role: "CLOSER", heading: "Z" }], "editorial");
+  s = reducer(s, { type: "loadDoc", doc });
+  s = reducer(s, { type: "setLayout", layout: "classic", index: 0 });
+  assert.ok(s.doc.slides[0].elements.some((e) => e.role === "wordmark"), "wordmark survives a layout change");
+});

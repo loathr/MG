@@ -9,6 +9,16 @@ export const revalidate = 1800;
 
 const UA = "LoathrStudio/1.0 (Instagram carousel maker; trending suggestions)";
 
+// Fisher-Yates — used only on a refresh, to surface a different window of picks.
+function shuffle(a) {
+  const arr = a.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+  return arr;
+}
+
 // `fresh` (the refresh button) bypasses the 30-min data cache for a genuine
 // re-pull; normal loads use the cache so taps don't hammer the feeds.
 const cacheOpt = (fresh) => (fresh ? { cache: "no-store" } : { next: { revalidate: 1800 } });
@@ -55,10 +65,15 @@ export async function GET(request) {
       rssItems = texts.flatMap((t) => parseRss(t, 12));
     }
 
-    let items = rankItems(rssItems, wiki, 6);
+    // Refresh (fresh=1) ranks a larger pool and returns a shuffled window, so a
+    // re-pull surfaces different picks. The feeds are stable minute-to-minute, so
+    // without this the same top 6 come back and Refresh looks dead.
+    const pool = fresh ? 30 : 6;
+    let ranked = rankItems(rssItems, wiki, pool);
     // Never empty: if a thin beat's keyword filter starved the list, fall back to
     // the unfiltered most-read (today's general top articles).
-    if (items.length < 3) items = rankItems(rssItems, wikiAll, 6);
+    if (ranked.length < 3) ranked = rankItems(rssItems, wikiAll, pool);
+    const items = (fresh ? shuffle(ranked) : ranked).slice(0, 6);
 
     return NextResponse.json({ beat: beat.key, voice: beat.voice, items });
   } catch (e) {

@@ -31,10 +31,10 @@ const xBtn = {
   color: "#999", border: "none", cursor: "pointer", fontSize: 18, borderRadius: 5,
 };
 const grid = {
-  display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8,
-  padding: "0 12px 12px", overflowY: "auto", alignContent: "start", minHeight: 0,
+  columnCount: 2, columnGap: 8,
+  padding: "0 12px 12px", overflowY: "auto", minHeight: 0,
 };
-const hint = { gridColumn: "1 / -1", color: "#7a7a7a", fontSize: 12, lineHeight: 1.5, padding: "16px 4px", textAlign: "center" };
+const hint = { columnSpan: "all", color: "#7a7a7a", fontSize: 12, lineHeight: 1.5, padding: "16px 4px", textAlign: "center" };
 
 function PhotoCard({ img, onSetBackground, onAddImage }) {
   const [hover, setHover] = useState(false);
@@ -42,14 +42,14 @@ function PhotoCard({ img, onSetBackground, onAddImage }) {
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ position: "relative", aspectRatio: "4 / 5", borderRadius: 6, overflow: "hidden", background: "#26262b" }}
+      style={{ position: "relative", borderRadius: 6, overflow: "hidden", background: "#26262b", breakInside: "avoid", marginBottom: 8 }}
     >
       <img
         src={img.thumb}
         alt={img.alt || ""}
         loading="lazy"
         draggable={false}
-        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        style={{ width: "100%", height: "auto", display: "block" }}
         onError={(e) => { e.currentTarget.style.opacity = "0.15"; }}
       />
       {hover && (
@@ -108,7 +108,7 @@ export default function PhotosPanel({ onSetBackground, onAddImage, onClose }) {
   return (
     <div style={wrap}>
       <div style={head}>
-        <strong style={{ fontSize: 12, letterSpacing: 0.5 }}>Photos</strong>
+        <strong style={{ fontSize: 12, letterSpacing: 0.5 }}>Photos{results.length ? " · " + results.length : ""}</strong>
         <button style={xBtn} onClick={onClose} title="Close panel">×</button>
       </div>
 

@@ -10,10 +10,20 @@
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W } from "./model";
-import { reflowSlide, cautionElement, closerTemplate, deriveContent } from "./templates";
+import { reflowSlide, cautionElement } from "./templates";
 import { brandFromStyle } from "./styles";
 
 const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
+
+// Brand-chrome roles that are added per-slide-role by slidesToDoc (not by
+// renderLayout), so they must be carried over when a slide is re-rendered by a
+// layout change or a brand reset — otherwise the cover wordmark, the content
+// footer + page number, and the logo vanish.
+const CHROME_ROLES = { logo: 1, wordmark: 1, footer: 1, footrule: 1, pageno: 1 };
+function carryChrome(slide, patch) {
+  const chrome = (slide.elements || []).filter((e) => CHROME_ROLES[e.role]);
+  return Object.assign({}, slide, patch, { elements: (patch.elements || []).concat(chrome) });
+}
 
 export function initStudio() {
   return {
@@ -238,7 +248,7 @@ function docReducer(state, a) {
       // never automatic — so manual edits persist until the user picks a layout.
       // reflowSlide moves the photo between background<->feature element as needed
       // and preserves manual backgrounds for non-feature re-flows (see templates.js).
-      const relayout = (s) => Object.assign({}, s, reflowSlide(s, a.layout, state.doc.brand));
+      const relayout = (s) => carryChrome(s, reflowSlide(s, a.layout, state.doc.brand));
       const slides = a.all
         ? state.doc.slides.map(relayout)
         : state.doc.slides.map((s, idx) => (idx === (a.index == null ? state.slideIndex : a.index) ? relayout(s) : s));
@@ -250,21 +260,10 @@ function docReducer(state, a) {
       // slide that drifted off-brand. Manual element tweaks on that slide are
       // discarded (that's the point), but the brand logo is carried through.
       const brand = state.doc.brand;
-      const reset = (s) => {
-        const logos = (s.elements || []).filter((e) => e.role === "logo");
-        let r;
-        if ((s.layout || "") === "closer") {
-          const content = s.content || deriveContent(s);
-          const image = s.background && s.background.type === "image"
-            ? { url: s.background.src, thumb: s.background.thumb, credit: s.background.credit, source: s.background.source }
-            : null;
-          const rebuilt = closerTemplate(content, s.style || "editorial", image, (brand && brand.caution) || "", brand);
-          r = { elements: rebuilt.elements, background: rebuilt.background };
-        } else {
-          r = reflowSlide(s, s.layout || "classic", brand);
-        }
-        return Object.assign({}, s, r, { elements: r.elements.concat(logos) });
-      };
+      // Re-flow each slide through its own layout in the current brand (renderLayout
+      // now handles "closer" too), carrying the brand chrome (logo / wordmark /
+      // footer) over so it survives the reset.
+      const reset = (s) => carryChrome(s, reflowSlide(s, s.layout || "classic", brand));
       const slides = a.all
         ? state.doc.slides.map(reset)
         : state.doc.slides.map((s, idx) => (idx === (a.index == null ? state.slideIndex : a.index) ? reset(s) : s));

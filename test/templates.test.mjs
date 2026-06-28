@@ -282,3 +282,10 @@ test("generated text carries font tiers; brand marks stay untiered (Courier-lock
   assert.equal(content.elements.find((e) => e.role === "pageno").tier, undefined);
   assert.equal(doc.slides[0].elements.find((e) => e.role === "wordmark").tier, undefined);
 });
+
+test("closer is a registered layout; renderLayout('closer') builds the sign-off", () => {
+  assert.ok(LAYOUT_LIST.some((l) => l.key === "closer"));
+  const els = renderLayout("closer", { heading: "Thanks", cta: "Follow" }, "editorial", false, brandFromStyle("editorial"));
+  assert.ok(els.some((e) => e.content === "LOATHR" && /Courier/.test(e.fontFamily)));
+  assert.ok(els.some((e) => e.content === "Thanks"));
+});
