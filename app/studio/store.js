@@ -9,7 +9,7 @@
 // — those coalesce into ONE undo step via `lastTag` + a `commit` boundary the
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
-import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W } from "./model";
+import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H } from "./model";
 import { reflowSlide, cautionElement, frameElements } from "./templates";
 import { brandFromStyle } from "./styles";
 
@@ -268,6 +268,49 @@ function docReducer(state, a) {
       const brand = Object.assign({}, state.doc.brand, { frame: mode });
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides, brand }) });
     }
+    case "detachPhoto": {
+      // F1: convert the current slide's image BACKGROUND into a movable/resizable
+      // image ELEMENT (full-bleed, behind the existing elements), preserving the
+      // scrim as its own editable rect and dropping the background to solid. Keeps
+      // §3 — still exactly one decoded raster, now an element instead of the bg,
+      // and the element carries a thumb so the off-screen strip stays light. The
+      // new photo is selected so its handles + toolbar are immediately usable.
+      // No-op when the slide has no image background (e.g. a feature layout, where
+      // the photo is already an element).
+      const i = a.index == null ? state.slideIndex : a.index;
+      const slide = state.doc.slides[i];
+      const bgi = slide && slide.background;
+      if (!bgi || bgi.type !== "image" || !bgi.src) return state;
+      const photo = makeElement("image", {
+        id: uid("photo"), role: "photo", x: 0, y: 0, w: ARTBOARD_W, h: ARTBOARD_H,
+        src: bgi.src, thumb: bgi.thumb || bgi.src, fit: "cover", radius: 0,
+      });
+      const pre = [photo];
+      if (bgi.scrim) pre.push(makeElement("rect", {
+        id: uid("scrim"), role: "scrim", x: 0, y: 0, w: ARTBOARD_W, h: ARTBOARD_H, fill: "#000000", opacity: bgi.scrim,
+      }));
+      const slides = state.doc.slides.map((s, idx) => idx === i ? Object.assign({}, s, {
+        background: { type: "color", color: bgi.color || "#0c0c0c" },
+        elements: pre.concat(s.elements || []),
+      }) : s);
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides }), selectedId: photo.id, editingId: null });
+    }
+    case "imageToBackground": {
+      // Reverse of detachPhoto (works on any image element): make the selected
+      // image the slide's full-bleed background again, re-absorbing a sibling
+      // scrim layer's opacity into the background scrim, and removing the element
+      // (and that scrim rect). One raster, now a background.
+      const i = state.slideIndex;
+      const slide = state.doc.slides[i];
+      const el = slide && (slide.elements || []).find((e) => e.id === a.id);
+      if (!el || el.type !== "image" || !el.src) return state;
+      const scrimEl = (slide.elements || []).find((e) => e.role === "scrim");
+      const scrim = scrimEl ? (scrimEl.opacity == null ? 0.4 : scrimEl.opacity) : 0.4;
+      const elements = (slide.elements || []).filter((e) => e.id !== el.id && e.role !== "scrim");
+      const background = { type: "image", src: el.src, thumb: el.thumb || el.src, scrim, color: (slide.background && slide.background.color) || "#0c0c0c" };
+      const slides = state.doc.slides.map((s, idx) => idx === i ? Object.assign({}, s, { background, elements }) : s);
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides }), selectedId: null, editingId: null });
+    }
     case "setLayout": {
       // Re-flow a slide's stored/derived content through a new layout. Explicit,
       // never automatic — so manual edits persist until the user picks a layout.
@@ -303,7 +346,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setFrame: 1, setLayout: 1, resetSlideToBrand: 1 };
+const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, resetSlideToBrand: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
 
 function snap(state) {

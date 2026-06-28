@@ -150,6 +150,23 @@ export default function Artboard({ slide, selectedId, editingId, dispatch }) {
           )}
         </div>
 
+        {/* F1: detach the background photo into an editable layer. Shown only when
+            the slide's background is a photo and nothing is selected — feature
+            layouts (photo already an element) never show it. */}
+        {bg.type === "image" && bg.src && !selected && !editingId && (
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => dispatch({ type: "detachPhoto" })}
+            title="Detach the photo to a movable, resizable layer"
+            style={{
+              position: "absolute", left: 10, top: 10, zIndex: 20,
+              display: "flex", alignItems: "center", gap: 6, height: 30, padding: "0 12px",
+              background: "rgba(20,20,24,0.82)", color: "#fff", border: "1px solid #ffffff33",
+              borderRadius: 16, cursor: "pointer", fontSize: 12.5, fontFamily: "Helvetica, Arial, sans-serif",
+            }}
+          >✎ Edit photo</button>
+        )}
+
         {/* selection overlay in SCREEN space so handles are a constant size */}
         {selected && !editingId && (
           <SelectionOverlay el={selected} scale={scale} onHandleDown={beginDrag} />

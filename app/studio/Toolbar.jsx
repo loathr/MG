@@ -70,11 +70,15 @@ export default function Toolbar({ el, dispatch }) {
       )}
 
       {el.type === "image" && (
-        <select value={el.fit || "cover"} onChange={(e) => up({ fit: e.target.value })}
-          style={{ height: 26, background: "#1d1d21", color: "#e8e8e8", border: "1px solid #3a3a40", borderRadius: 5, fontSize: 11 }}>
-          <option value="cover">Fill</option>
-          <option value="contain">Fit</option>
-        </select>
+        <>
+          <select value={el.fit || "cover"} onChange={(e) => up({ fit: e.target.value })}
+            style={{ height: 26, background: "#1d1d21", color: "#e8e8e8", border: "1px solid #3a3a40", borderRadius: 5, fontSize: 11 }}>
+            <option value="cover">Fill</option>
+            <option value="contain">Fit</option>
+          </select>
+          <button style={btn(false)} title="Make this photo the slide background (full-bleed)"
+            onClick={() => dispatch({ type: "imageToBackground", id: el.id })}>⤓ Background</button>
+        </>
       )}
 
       <div style={sep} />

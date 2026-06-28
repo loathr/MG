@@ -317,3 +317,40 @@ test("rethemeDoc recolors the deck frame to the new look — accent, but News De
   let out2 = rethemeDoc(s2.doc, s2.doc.brand, Object.assign({}, s2.doc.brand, { ink: "#222233", accent: "#ff0000" }));
   assert.equal(out2.slides[1].elements.find((e) => e.role === "frame").fill, "#222233");
 });
+
+test("detachPhoto turns the bg photo into an editable element + scrim, bg→solid (F1)", () => {
+  let s = initStudio();                          // sample slide 0 has an image background + scrim
+  const before = cur(s).background;
+  assert.equal(before.type, "image");
+  s = reducer(s, { type: "detachPhoto" });
+  const sl = cur(s);
+  assert.equal(sl.background.type, "color");     // background dropped to solid
+  const photo = sl.elements.find((e) => e.role === "photo");
+  assert.ok(photo && photo.type === "image" && photo.src === before.src);
+  assert.ok(photo.thumb, "photo carries a thumb so the off-screen strip stays light");
+  assert.equal(photo.w, 1080); assert.equal(photo.h, 1350);     // full-bleed
+  assert.ok(sl.elements.find((e) => e.role === "scrim"), "scrim preserved as its own layer");
+  assert.equal(s.selectedId, photo.id, "new photo is selected for immediate editing");
+  // §3: still exactly ONE decoded raster (one image element, solid background)
+  const rasters = (sl.background.type === "image" ? 1 : 0) + sl.elements.filter((e) => e.type === "image").length;
+  assert.equal(rasters, 1);
+});
+
+test("detachPhoto is a no-op on a solid-background slide (F1)", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "setBg", patch: { type: "color", color: "#101010", src: "", scrim: 0 } });
+  assert.equal(reducer(s, { type: "detachPhoto" }), s); // unchanged → no history frame
+});
+
+test("imageToBackground flattens a photo element back to the bg, re-absorbing the scrim (F1)", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "detachPhoto" });
+  const photo = cur(s).elements.find((e) => e.role === "photo");
+  const scrim = cur(s).elements.find((e) => e.role === "scrim").opacity;
+  s = reducer(s, { type: "imageToBackground", id: photo.id });
+  const sl = cur(s);
+  assert.equal(sl.background.type, "image");
+  assert.equal(sl.background.src, photo.src);
+  assert.equal(sl.background.scrim, scrim);                       // scrim recovered from the layer
+  assert.ok(!sl.elements.some((e) => e.role === "photo" || e.role === "scrim")); // both gone
+});
