@@ -64,7 +64,8 @@ export function rethemeDoc(doc, prev, next) {
       for (const k of COLORS) {
         if (b[k] && p[k] && e.color === p[k]) { n = Object.assign({}, n, { color: b[k] }); break; }
       }
-      if (b.headFont && p.headFont && n.fontFamily === p.headFont) n = Object.assign({}, n, { fontFamily: b.headFont });
+      if (b.labelFont && p.labelFont && n.fontFamily === p.labelFont) n = Object.assign({}, n, { fontFamily: b.labelFont });
+      else if (b.headFont && p.headFont && n.fontFamily === p.headFont) n = Object.assign({}, n, { fontFamily: b.headFont });
       else if (b.bodyFont && p.bodyFont && n.fontFamily === p.bodyFont) n = Object.assign({}, n, { fontFamily: b.bodyFont });
       if (b.wordmark && p.wordmark && n.content === p.wordmark) n = Object.assign({}, n, { content: b.wordmark });
       // The inline highlight marker is a DERIVED color pair — its background is the
@@ -73,6 +74,8 @@ export function rethemeDoc(doc, prev, next) {
       // marker keeps the old accent/bg (the most visible "didn't update" case).
       if (n.highlightColor && b.accent) n = Object.assign({}, n, { highlightColor: b.accent });
       if (n.highlightText && b.bg) n = Object.assign({}, n, { highlightText: b.bg });
+      // The cover wordmark's red strike is a derived accent — carry it on a swap.
+      if (n.strikeColor && b.accent) n = Object.assign({}, n, { strikeColor: b.accent });
     }
     return n;
   };
@@ -93,7 +96,8 @@ export function stampLogo(doc, logo) {
   const n = doc.slides.length;
   const onBookend = (i) => i === 0 || i === n - 1;
   const slides = doc.slides.map((s, i) => {
-    const els = (s.elements || []).filter((e) => e.role !== "logo");
+    // Logo wins the cover corner: when a logo is stamped, the cover wordmark steps aside.
+    const els = (s.elements || []).filter((e) => e.role !== "logo" && !(lg && i === 0 && e.role === "wordmark"));
     if (lg && onBookend(i)) {
       els.push(makeElement("image", {
         id: uid("logo"), role: "logo", src: lg.src, thumb: lg.src,
@@ -117,7 +121,7 @@ export function carryBrandKit(newDoc, prevDoc) {
   if (!prevBrand) return newDoc;
   const prevStyle = (prevDoc.slides && prevDoc.slides[0] && prevDoc.slides[0].style) || "editorial";
   const defaults = brandFromStyle(prevStyle);
-  const FIELDS = ["accent", "bg", "ink", "sub", "muted", "headFont", "bodyFont", "wordmark"];
+  const FIELDS = ["accent", "bg", "ink", "sub", "muted", "labelFont", "headFont", "bodyFont", "wordmark"];
   const custom = {};
   for (const k of FIELDS) {
     if (prevBrand[k] != null && prevBrand[k] !== defaults[k]) custom[k] = prevBrand[k];

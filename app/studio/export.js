@@ -78,18 +78,30 @@ function wrapLines(ctx, text, maxWidth) {
 function drawText(ctx, el) {
   const weight = el.fontWeight || 400;
   const style = el.italic ? "italic " : "";
-  ctx.font = style + weight + " " + (el.fontSize || 16) + "px " + (el.fontFamily || "Georgia, serif");
+  const fs = el.fontSize || 16;
+  ctx.font = style + weight + " " + fs + "px " + (el.fontFamily || "Georgia, serif");
   ctx.fillStyle = el.color || "#ffffff";
   ctx.textBaseline = "top";
   const align = el.align || "left";
   ctx.textAlign = align;
   const supportsLS = "letterSpacing" in ctx;
   if (supportsLS) ctx.letterSpacing = (el.letterSpacing || 0) + "px";
-  const lh = (el.lineHeight || 1.1) * (el.fontSize || 16);
+  const lh = (el.lineHeight || 1.1) * fs;
   const x = align === "center" ? el.w / 2 : align === "right" ? el.w : 0;
   let y = 0;
   for (const line of wrapLines(ctx, el.content, el.w)) {
     ctx.fillText(line, x, y);
+    // Strikethrough (e.g. the editorial cover wordmark): a manual rule through the
+    // line's measured width, mirroring CSS line-through in the DOM renderers.
+    if (el.strike) {
+      const tw = ctx.measureText(line).width;
+      const sx = align === "center" ? (el.w - tw) / 2 : align === "right" ? el.w - tw : 0;
+      const th = Math.max(2, fs * 0.09);
+      const prev = ctx.fillStyle;
+      ctx.fillStyle = el.strikeColor || el.color || "#ffffff";
+      ctx.fillRect(sx, y + fs * 0.38 - th / 2, tw, th);
+      ctx.fillStyle = prev;
+    }
     y += lh;
   }
   if (supportsLS) ctx.letterSpacing = "0px";
@@ -176,6 +188,11 @@ export async function renderSlideToCanvas(slide) {
   canvas.width = ARTBOARD_W;
   canvas.height = ARTBOARD_H;
   const ctx = canvas.getContext("2d");
+  // Ensure web fonts (Courier Prime + the display faces) are loaded before we
+  // rasterize, otherwise canvas silently falls back to a system font in the PNG.
+  if (typeof document !== "undefined" && document.fonts && document.fonts.ready) {
+    try { await document.fonts.ready; } catch (e) { /* ignore */ }
+  }
   const bg = (slide && slide.background) || {};
 
   // Background: solid base, then (if any) one photo + one scrim — FLAT-LAYERS §3.

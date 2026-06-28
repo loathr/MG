@@ -169,6 +169,22 @@
   font-display: swap;
 }
 
+/* Courier Prime — the brand wordmark / Courier text face (self-hosted, OFL). */
+@font-face {
+  font-family: 'Courier Prime';
+  src: url('/Fonts/CourierPrime/CourierPrime-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Courier Prime';
+  src: url('/Fonts/CourierPrime/CourierPrime-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* Text */
   --color-text-primary: #1a1a1a;

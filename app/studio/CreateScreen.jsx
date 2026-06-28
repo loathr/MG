@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { STYLE_LIST, DEFAULT_STYLE } from "./styles";
+import { STYLE_LIST, DEFAULT_STYLE, BRAND_FONT } from "./styles";
 import { CATEGORY_LIST, getCategory } from "./categories";
 import StylePreview from "./StylePreview";
 import TrendingPanel from "./TrendingPanel";
@@ -58,7 +58,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   return (
     <div style={screen}>
       <div style={col}>
-        <div style={brand}>LOATHR STUDIO</div>
+        <div style={brand}>loathrdotcom</div>
 
         <div style={label}>Pick a desk</div>
         <div style={gallery}>
@@ -136,7 +136,7 @@ const screen = {
   fontFamily: "Helvetica, Arial, sans-serif",
 };
 const col = { width: "100%", maxWidth: 660, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" };
-const brand = { fontSize: 13, letterSpacing: 4, color: "#cfcfcf", fontWeight: 700, marginBottom: 36 };
+const brand = { fontSize: 13, letterSpacing: 4, color: "#cfcfcf", fontWeight: 700, marginBottom: 36, fontFamily: BRAND_FONT };
 const label = { fontSize: 13, letterSpacing: 1, color: "#8f8f97", marginBottom: 14, textTransform: "uppercase" };
 const gallery = { display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" };
 const chips = { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" };

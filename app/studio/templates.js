@@ -12,7 +12,7 @@
 // cream) stays legible.
 // ============================================================================
 import { ARTBOARD_W, ARTBOARD_H, uid, makeElement } from "./model";
-import { getStyle, brandFromStyle, effectiveStyle } from "./styles";
+import { getStyle, brandFromStyle, effectiveStyle, BRAND_FONT } from "./styles";
 
 const M = 80; // side margin
 
@@ -58,6 +58,7 @@ function sourcesEl(st, pal, sources) {
   const s = Array.isArray(sources) ? sources.filter(Boolean).join(" · ") : (sources || "");
   if (!s) return null;
   return makeText(st.bodyFont, {
+    role: "sources",
     x: M, y: 1262, w: ARTBOARD_W - 2 * M, h: 40,
     content: "Sources: " + s, fontSize: 19, fontWeight: 400, color: pal.muted, lineHeight: 1.2, letterSpacing: 0.5,
   });
@@ -79,7 +80,7 @@ export function coverTemplate(s, style, image) {
     pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 232, w: 64, h: 7, fill: pal.accent }) : null,
     kickerEl(st, pal, s.kicker || "EDITORIAL", 262, 25),
     makeText(st.headFont, { x: M, y: 320, w: ARTBOARD_W - 2 * M, h: 560, content: s.heading || "Untitled", fontSize: 94, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.03 }),
-    s.subhead ? makeText(st.headFont, { x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 180, content: s.subhead, fontSize: 33, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
+    s.subhead ? makeText(st.bodyFont, { x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 180, content: s.subhead, fontSize: 33, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
     sourcesEl(st, pal, s.sources),
   ]);
 }
@@ -91,7 +92,7 @@ export function contentTemplate(s, index, style, image) {
     pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 232, w: 48, h: 6, fill: pal.accent }) : null,
     kickerEl(st, pal, s.role || "", 258, 22),
     makeText(st.headFont, { x: M, y: 312, w: ARTBOARD_W - 2 * M, h: 360, content: s.heading || "", fontSize: 60, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
-    s.body ? makeText(st.headFont, { x: M, y: 712, w: ARTBOARD_W - 2 * M, h: 470, content: s.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.46 }) : null,
+    s.body ? makeText(st.bodyFont, { x: M, y: 712, w: ARTBOARD_W - 2 * M, h: 470, content: s.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.46 }) : null,
     sourcesEl(st, pal, s.sources),
   ]);
 }
@@ -101,7 +102,7 @@ export function closerTemplate(s, style, image, caution, brand) {
   const pal = palette(st, !!(image && image.url));
   const cy = 470;
   return slideShell(st, image, [
-    makeText(st.bodyFont, { x: M, y: cy, w: ARTBOARD_W - 2 * M, h: 60, content: (brand && brand.wordmark) || "LOATHR", fontSize: 30, fontWeight: 700, color: pal.ink, align: "center", letterSpacing: 8, lineHeight: 1 }),
+    makeText(BRAND_FONT, { x: M, y: cy, w: ARTBOARD_W - 2 * M, h: 60, content: (brand && brand.wordmark) || "LOATHR", fontSize: 30, fontWeight: 700, color: pal.ink, align: "center", letterSpacing: 8, lineHeight: 1 }),
     makeElement("rect", { id: uid("r"), x: ARTBOARD_W / 2 - 30, y: cy + 86, w: 60, h: 4, fill: pal.accent }),
     makeText(st.headFont, { x: M, y: cy + 130, w: ARTBOARD_W - 2 * M, h: 320, content: s.heading || s.body || "Thanks for reading.", fontSize: 52, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.15 }),
     s.cta ? makeText(st.bodyFont, { x: M, y: cy + 470, w: ARTBOARD_W - 2 * M, h: 60, content: s.cta, fontSize: 26, fontWeight: 400, color: pal.accent, align: "center", lineHeight: 1.3 }) : null,
@@ -121,6 +122,55 @@ export function cautionElement(style, text, hasImage, brand) {
     content: text, fontSize: 18, fontWeight: 400, color: pal.muted,
     align: "center", lineHeight: 1.35, letterSpacing: 0.2,
   });
+}
+
+// --- Brand chrome: per-desk cover wordmark + the content-slide footer ---------
+// Pure, role-tagged element factories (like cautionElement) — so they're editable/
+// draggable and the Brand·Elements panel (R2) can find them. Text + one hairline
+// vector rule only; zero image layers (crash-safe).
+
+const FOOTER_RULE_Y = 1240, FOOTER_Y = 1262;
+// On content slides the sources line lifts to just above the footer rule.
+export const FOOTER_SOURCES_Y = 1186;
+
+// The per-desk cover lockup. Editorial: a struck-out wordmark, top-right.
+// Enterprise: "Enterprise" over "by Loathr", top-left. News Desk: none (it signs
+// off on the closer). The editorial mark uses `wordmark` (default "LOATHR") so a
+// Brand-panel wordmark change re-themes it; its red strike follows the accent.
+export function coverWordmark(style, brand) {
+  const st = effectiveStyle(style, brand);
+  if (style === "newsdesk") return [];
+  if (style === "enterprise") {
+    return [
+      makeText(st.headFont, { id: uid("wm"), role: "wordmark", x: M, y: 92, w: 700, h: 50, content: "Enterprise", fontSize: 34, fontWeight: st.headWeight, color: st.ink, lineHeight: 1 }),
+      makeText(BRAND_FONT, { id: uid("wm"), role: "wordmark", x: M, y: 138, w: 700, h: 36, content: "by Loathr", fontSize: 19, fontWeight: 400, color: st.muted, lineHeight: 1, letterSpacing: 1 }),
+    ];
+  }
+  const wm = (brand && brand.wordmark) || "LOATHR";
+  return [
+    makeText(BRAND_FONT, {
+      id: uid("wm"), role: "wordmark",
+      x: ARTBOARD_W - M - 520, y: 120, w: 520, h: 56,
+      content: wm, fontSize: 38, fontWeight: 700, color: st.ink,
+      align: "right", letterSpacing: 3, lineHeight: 1,
+      strike: true, strikeColor: st.accent,
+    }),
+  ];
+}
+
+// The content-slide footer: a hairline rule, the LOATHR running mark (Courier,
+// omitted on News Desk), and the 1-based content-slide page number (Courier).
+export function footerElements(style, pageNum, brand) {
+  const st = effectiveStyle(style, brand);
+  const showLoathr = style !== "newsdesk";
+  const els = [
+    makeElement("rect", { id: uid("r"), role: "footrule", x: M, y: FOOTER_RULE_Y, w: ARTBOARD_W - 2 * M, h: 1, fill: st.muted, opacity: 0.32 }),
+    makeText(BRAND_FONT, { id: uid("pageno"), role: "pageno", x: ARTBOARD_W - M - 220, y: FOOTER_Y, w: 220, h: 30, content: String(pageNum), fontSize: 20, fontWeight: 400, color: st.muted, align: "right", letterSpacing: 2, lineHeight: 1 }),
+  ];
+  if (showLoathr) {
+    els.unshift(makeText(BRAND_FONT, { id: uid("foot"), role: "footer", x: M, y: FOOTER_Y, w: 320, h: 30, content: "LOATHR", fontSize: 20, fontWeight: 400, color: st.muted, letterSpacing: 2, lineHeight: 1 }));
+  }
+  return els;
 }
 
 // --- Layout registry -------------------------------------------------------
@@ -160,7 +210,7 @@ function L_classic(c, st, pal) {
     pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 232, w: 48, h: 6, fill: pal.accent }) : null,
     c.kicker ? kickerEl(st, pal, c.kicker, 258, 22) : null,
     makeText(st.headFont, { x: M, y: 312, w: ARTBOARD_W - 2 * M, h: 360, content: c.heading, fontSize: 60, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
-    c.body ? makeText(st.headFont, { x: M, y: 712, w: ARTBOARD_W - 2 * M, h: 470, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.46 }) : null,
+    c.body ? makeText(st.bodyFont, { x: M, y: 712, w: ARTBOARD_W - 2 * M, h: 470, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.46 }) : null,
     sourcesEl(st, pal, c.sources),
   ];
 }
@@ -170,7 +220,7 @@ function L_cover(c, st, pal) {
     pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 232, w: 64, h: 7, fill: pal.accent }) : null,
     kickerEl(st, pal, c.kicker || "EDITORIAL", 262, 25),
     makeText(st.headFont, { x: M, y: 320, w: ARTBOARD_W - 2 * M, h: 560, content: c.heading, fontSize: 94, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.03 }),
-    c.body ? makeText(st.headFont, { x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 180, content: c.body, fontSize: 33, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
+    c.body ? makeText(st.bodyFont, { x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 180, content: c.body, fontSize: 33, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
     sourcesEl(st, pal, c.sources),
   ];
 }
@@ -179,7 +229,7 @@ function L_centered(c, st, pal) {
   return [
     centeredKicker(st, pal, c.kicker, 430),
     makeText(st.headFont, { x: M, y: 490, w: ARTBOARD_W - 2 * M, h: 360, content: c.heading, fontSize: 78, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.05 }),
-    c.body ? makeText(st.headFont, { x: M, y: 880, w: ARTBOARD_W - 2 * M, h: 260, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.45 }) : null,
+    c.body ? makeText(st.bodyFont, { x: M, y: 880, w: ARTBOARD_W - 2 * M, h: 260, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.45 }) : null,
   ];
 }
 
@@ -195,7 +245,7 @@ function L_bottom(c, st, pal) {
     c.kicker ? kickerEl(st, pal, c.kicker, 742, 22) : null,
     pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 720, w: 48, h: 6, fill: pal.accent }) : null,
     makeText(st.headFont, { x: M, y: 800, w: ARTBOARD_W - 2 * M, h: 300, content: c.heading, fontSize: 66, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.06 }),
-    c.body ? makeText(st.headFont, { x: M, y: 1120, w: ARTBOARD_W - 2 * M, h: 150, content: c.body, fontSize: 28, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
+    c.body ? makeText(st.bodyFont, { x: M, y: 1120, w: ARTBOARD_W - 2 * M, h: 150, content: c.body, fontSize: 28, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
   ];
 }
 
@@ -221,7 +271,7 @@ function L_numbered(c, st, pal) {
     makeText(st.headFont, { x: M, y: 244, w: ARTBOARD_W - 2 * M, h: 230, content: n, fontSize: 184, fontWeight: st.headWeight, color: pal.accent, lineHeight: 1, letterSpacing: -2 }),
     c.kicker ? kickerEl(st, pal, c.kicker, 486, 22) : null,
     makeText(st.headFont, { x: M, y: 536, w: ARTBOARD_W - 2 * M, h: 320, content: c.heading, fontSize: 58, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
-    c.body ? makeText(st.headFont, { x: M, y: 884, w: ARTBOARD_W - 2 * M, h: 340, content: c.body, fontSize: 30, fontWeight: 400, color: pal.sub, lineHeight: 1.5 }) : null,
+    c.body ? makeText(st.bodyFont, { x: M, y: 884, w: ARTBOARD_W - 2 * M, h: 340, content: c.body, fontSize: 30, fontWeight: 400, color: pal.sub, lineHeight: 1.5 }) : null,
     sourcesEl(st, pal, c.sources),
   ];
 }
@@ -233,7 +283,7 @@ function L_split(c, st, pal) {
     c.kicker ? kickerEl(st, pal, c.kicker, 258, 22) : null,
     makeText(st.headFont, { x: M, y: 312, w: ARTBOARD_W - 2 * M, h: 320, content: c.heading, fontSize: 62, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.06 }),
     makeElement("rect", { id: uid("r"), x: M, y: 700, w: ARTBOARD_W - 2 * M, h: 2, fill: pal.accentBar ? pal.accent : pal.muted }),
-    c.body ? makeText(st.headFont, { x: M, y: 748, w: ARTBOARD_W - 2 * M, h: 470, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.5 }) : null,
+    c.body ? makeText(st.bodyFont, { x: M, y: 748, w: ARTBOARD_W - 2 * M, h: 470, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.5 }) : null,
     sourcesEl(st, pal, c.sources),
   ];
 }
@@ -303,7 +353,7 @@ function L_masthead(c, st, pal) {
     makeText(st.kickerFont, { x: M, y: 214, w: ARTBOARD_W - 2 * M, h: 64, content: name, fontSize: 40, fontWeight: st.kickerWeight, color: pal.ink, align: "center", letterSpacing: 6, lineHeight: 1 }),
     makeElement("rect", { id: uid("r"), x: M, y: 292, w: ARTBOARD_W - 2 * M, h: 1, fill: pal.ink }),
     makeText(st.headFont, { x: M, y: 360, w: ARTBOARD_W - 2 * M, h: 540, content: c.heading, fontSize: 86, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.05 }),
-    c.body ? makeText(st.headFont, { x: M, y: 1020, w: ARTBOARD_W - 2 * M, h: 170, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.4 }) : null,
+    c.body ? makeText(st.bodyFont, { x: M, y: 1020, w: ARTBOARD_W - 2 * M, h: 170, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.4 }) : null,
     sourcesEl(st, pal, c.sources),
   ];
 }
@@ -360,7 +410,7 @@ function featureText(c, st, pal, r) {
     pal.accentBar ? makeElement("rect", { id: uid("r"), x: r.x, y: r.topY - 18, w: 48, h: 6, fill: pal.accent }) : null,
     c.kicker ? makeText(st.kickerFont, { x: r.x, y: r.topY, w: r.w, h: 40, content: c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
     makeText(st.headFont, { x: r.x, y: r.topY + 52, w: r.w, h: 230, content: c.heading, fontSize: headSize, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
-    c.body ? makeText(st.headFont, { x: r.x, y: bodyY, w: r.w, h: bodyH, content: c.body, fontSize: bodySize, fontWeight: 400, color: pal.sub, lineHeight: 1.42 }) : null,
+    c.body ? makeText(st.bodyFont, { x: r.x, y: bodyY, w: r.w, h: bodyH, content: c.body, fontSize: bodySize, fontWeight: 400, color: pal.sub, lineHeight: 1.42 }) : null,
     src ? makeText(st.bodyFont, { x: r.x, y: r.panelBottom - 40, w: r.w, h: 40, content: "Sources: " + src, fontSize: 19, fontWeight: 400, color: pal.muted, lineHeight: 1.2, letterSpacing: 0.5 }) : null,
   ];
 }
@@ -477,7 +527,8 @@ export function reflowSlide(slide, layoutKey, brand) {
 export function previewCover(content, style) {
   const st = getStyle(style);
   const layout = (st.layouts && st.layouts.cover) || "cover";
-  return slideShell(st, null, renderLayout(layout, content, style, false));
+  const els = renderLayout(layout, content, style, false).concat(coverWordmark(style));
+  return slideShell(st, null, els);
 }
 
 // Best-effort content for a slide that wasn't generated from a template (sample,
@@ -508,6 +559,7 @@ export function slidesToDoc(slides, style, imgMap, opts) {
   // Per-family layout map (styles.js); fall back to the editorial arrangement.
   const lmap = st.layouts || { cover: "cover", content: "classic" };
   const arr = Array.isArray(slides) ? slides.filter(Boolean) : [];
+  let pageNum = 0; // 1-based index over CONTENT slides (footer page number)
   const out = arr.map((s, i) => {
     const image = imgs[i] || null;
     const role = String(s.role || "").toUpperCase();
@@ -531,6 +583,17 @@ export function slidesToDoc(slides, style, imgMap, opts) {
       const dataLayout = s.stat != null ? "stat" : ((s.versus || (s.left && s.right)) ? "versus" : null);
       layout = isCover ? lmap.cover : (dataLayout || lmap.content);
       slide = slideShell(st, image, renderLayout(layout, content, style, !!(image && image.url)));
+      if (isCover) {
+        // Per-desk cover wordmark — a brand element, not generated content.
+        slide.elements = slide.elements.concat(coverWordmark(style));
+      } else {
+        // Content slide: a running footer (LOATHR + page number); the sources
+        // line lifts just above the footer rule so they don't collide.
+        pageNum += 1;
+        slide.elements = slide.elements
+          .map((e) => (e.role === "sources" ? Object.assign({}, e, { y: FOOTER_SOURCES_Y }) : e))
+          .concat(footerElements(style, pageNum));
+      }
     }
     // Keep the source content + style + layout so the Templates panel can re-flow
     // this slide into another layout without losing its text.

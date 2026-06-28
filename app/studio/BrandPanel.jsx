@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { brandFromStyle, EDITORIAL_PALETTES, paletteBrand } from "./styles";
+import { brandFromStyle, EDITORIAL_PALETTES, paletteBrand, BRAND_FONT } from "./styles";
 import { cautionFor } from "./categories";
 
 // Brand panel (spec §7). Deck-wide accent color, heading/body fonts, and the
@@ -14,7 +14,7 @@ const FONTS = [
   { label: "Helvetica (sans)", value: "Helvetica, Arial, sans-serif" },
   { label: "Arial Black", value: "'Arial Black', Impact, sans-serif" },
   { label: "Trebuchet (sans)", value: "'Trebuchet MS', sans-serif" },
-  { label: "Courier (mono)", value: "'Courier New', monospace" },
+  { label: "Courier Prime (mono)", value: BRAND_FONT },
 ];
 
 const wrap = {
@@ -118,6 +118,11 @@ export default function BrandPanel({ brand, category, onApply, onLogo, onCaution
           title="Re-render every slide from its text in this look — pulls any slide that drifted off-brand (e.g. after a layout change) back in line. Discards manual per-element tweaks. Undoable."
           style={{ ...miniBtn, width: "100%", height: 34 }}
         >↺ Re-apply this look to all slides</button>
+        <Field label="Label font">
+          <select value={cur.labelFont} onChange={(e) => set({ labelFont: e.target.value })} style={sel}>
+            {FONTS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+          </select>
+        </Field>
         <Field label="Heading font">
           <select value={cur.headFont} onChange={(e) => set({ headFont: e.target.value })} style={sel}>
             {FONTS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}

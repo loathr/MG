@@ -6,8 +6,10 @@ import assert from "node:assert/strict";
 import {
   coverTemplate, closerTemplate, cautionElement, LAYOUT_LIST,
   renderLayout, reflowSlide, slidesToDoc, deriveContent, previewCover,
+  coverWordmark, footerElements,
 } from "../app/studio/templates.js";
 import { makeElement } from "../app/studio/model.js";
+import { BRAND_FONT, STYLES, brandFromStyle } from "../app/studio/styles.js";
 
 // Decoded full-bleed images on a slide: the background image (if any) plus any
 // image ELEMENTS that aren't the small contain-fit logo. FLAT-LAYERS §3 caps this
@@ -199,4 +201,67 @@ test("cautionElement is a centered, role-tagged caution text", () => {
   assert.equal(el.role, "caution");
   assert.equal(el.content, "Be careful");
   assert.equal(el.align, "center");
+});
+
+test("coverWordmark: editorial is a struck-out LOATHR in Courier, right-aligned", () => {
+  const els = coverWordmark("editorial");
+  assert.equal(els.length, 1);
+  const wm = els[0];
+  assert.equal(wm.role, "wordmark");
+  assert.equal(wm.content, "LOATHR");
+  assert.equal(wm.align, "right");
+  assert.equal(wm.fontFamily, BRAND_FONT);
+  assert.equal(wm.strike, true);
+  assert.equal(wm.strikeColor, STYLES.editorial.accent); // red strike follows the accent
+});
+
+test("coverWordmark: enterprise is an 'Enterprise' / 'by Loathr' lockup; news has none", () => {
+  const ent = coverWordmark("enterprise");
+  assert.equal(ent.length, 2);
+  assert.ok(ent.every((e) => e.role === "wordmark"));
+  assert.equal(ent[0].content, "Enterprise");
+  assert.equal(ent[1].content, "by Loathr");
+  assert.equal(ent[1].fontFamily, BRAND_FONT);          // the Loathr token is Courier
+  assert.deepEqual(coverWordmark("newsdesk"), []);      // no Loathr on the News Desk cover
+});
+
+test("coverWordmark editorial follows a brand wordmark + accent", () => {
+  const els = coverWordmark("editorial", Object.assign({}, brandFromStyle("editorial"), { wordmark: "ACME", accent: "#00ff00" }));
+  assert.equal(els[0].content, "ACME");
+  assert.equal(els[0].strikeColor, "#00ff00");
+});
+
+test("footerElements: LOATHR + page number in Courier; News Desk drops the LOATHR", () => {
+  const ed = footerElements("editorial", 3);
+  const foot = ed.find((e) => e.role === "footer");
+  const page = ed.find((e) => e.role === "pageno");
+  const rule = ed.find((e) => e.role === "footrule");
+  assert.ok(foot && foot.content === "LOATHR" && foot.fontFamily === BRAND_FONT);
+  assert.ok(page && page.content === "3" && page.align === "right" && page.fontFamily === BRAND_FONT);
+  assert.ok(rule && rule.type === "rect");
+  const nw = footerElements("newsdesk", 2);
+  assert.equal(nw.find((e) => e.role === "footer"), undefined); // page only on News Desk
+  assert.ok(nw.find((e) => e.role === "pageno"));
+});
+
+test("slidesToDoc: wordmark on the cover, footer + page number on content slides only", () => {
+  const slides = [
+    { role: "COVER", heading: "C" },
+    { heading: "One", body: "the body" },
+    { heading: "Two", body: "b" },
+    { role: "CLOSER", heading: "E" },
+  ];
+  const doc = slidesToDoc(slides, "editorial");
+  const cover = doc.slides[0], c1 = doc.slides[1], c2 = doc.slides[2], closer = doc.slides[3];
+  assert.ok(cover.elements.some((e) => e.role === "wordmark"));        // cover wordmark present
+  assert.ok(!c1.elements.some((e) => e.role === "wordmark"));          // not on content slides
+  assert.equal(c1.elements.find((e) => e.role === "pageno").content, "1"); // content numbered from 1
+  assert.equal(c2.elements.find((e) => e.role === "pageno").content, "2");
+  assert.ok(!closer.elements.some((e) => e.role === "pageno"));        // no footer on the closer
+  // body uses the Body font (Helvetica), not the Georgia headline font
+  const body = c1.elements.find((e) => e.type === "text" && e.content === "the body");
+  assert.equal(body.fontFamily, STYLES.editorial.bodyFont);
+  // closer wordmark is Courier
+  const wm = closer.elements.find((e) => e.content === "LOATHR");
+  assert.equal(wm.fontFamily, BRAND_FONT);
 });

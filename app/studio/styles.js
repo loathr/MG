@@ -10,6 +10,11 @@
 // B&W intelligence brief, News Desk a newspaper nameplate. Single look-truth.
 // ============================================================================
 
+// The brand wordmark / Courier text face (self-hosted Courier Prime; see
+// globals.css). "loathr" brand text is always Courier, and Courier Prime is also
+// the default Label-tier (kicker) font across every desk.
+export const BRAND_FONT = "'Courier Prime', 'Courier New', monospace";
+
 export const STYLES = {
   editorial: {
     key: "editorial",
@@ -23,7 +28,7 @@ export const STYLES = {
     muted: "#9a9a9a",
     headFont: "Georgia, serif",
     bodyFont: "Helvetica, Arial, sans-serif",
-    kickerFont: "Helvetica, Arial, sans-serif",
+    kickerFont: BRAND_FONT,                       // Label tier — Courier (mono)
     headWeight: 700,
     kickerWeight: 700,
     kickerSpacing: 4,
@@ -46,7 +51,7 @@ export const STYLES = {
     muted: "#888888",
     headFont: "Helvetica, Arial, sans-serif",   // clean corporate sans headlines
     bodyFont: "Georgia, serif",                  // serif body (the original brief)
-    kickerFont: "Helvetica, Arial, sans-serif",
+    kickerFont: BRAND_FONT,                      // Label tier — Courier (mono)
     headWeight: 700,
     kickerWeight: 700,
     kickerSpacing: 3,
@@ -67,7 +72,7 @@ export const STYLES = {
     muted: "#6a6a6a",
     headFont: "Georgia, serif",
     bodyFont: "Georgia, serif",                       // serif body, like newsprint
-    kickerFont: "'Courier New', Courier, monospace",  // wire-copy dateline/sources
+    kickerFont: BRAND_FONT,                           // Label tier — Courier (mono), wire-copy dateline
     headWeight: 700,
     kickerWeight: 700,
     kickerSpacing: 2,
@@ -90,7 +95,7 @@ export function brandFromStyle(key) {
   const st = getStyle(key);
   return {
     accent: st.accent, bg: st.bg, ink: st.ink, sub: st.sub, muted: st.muted,
-    headFont: st.headFont, bodyFont: st.bodyFont, wordmark: "LOATHR",
+    labelFont: st.kickerFont, headFont: st.headFont, bodyFont: st.bodyFont, wordmark: "LOATHR",
   };
 }
 
@@ -111,6 +116,7 @@ export function effectiveStyle(key, brand) {
   if (brand.ink != null) out.ink = brand.ink;
   if (brand.sub != null) out.sub = brand.sub;
   if (brand.muted != null) out.muted = brand.muted;
+  if (brand.labelFont != null) out.kickerFont = brand.labelFont;
   if (brand.headFont != null) out.headFont = brand.headFont;
   if (brand.bodyFont != null) out.bodyFont = brand.bodyFont;
   if (st.onPhoto && brand.accent != null && brand.accent !== st.accent) {

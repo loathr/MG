@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   STYLES, STYLE_LIST, DEFAULT_STYLE, getStyle, brandFromStyle,
-  EDITORIAL_PALETTES, paletteBrand, effectiveStyle,
+  EDITORIAL_PALETTES, paletteBrand, effectiveStyle, BRAND_FONT,
 } from "../app/studio/styles.js";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -83,4 +83,16 @@ test("effectiveStyle applies brand overrides, accent reaching the over-photo pal
   assert.equal(eff.onPhoto.accent, "#00ff00");          // accent follows the brand on photo slides
   assert.equal(eff.headFont, "Impact");
   assert.equal(eff.onPhoto.ink, getStyle("editorial").onPhoto.ink); // light ink kept for legibility
+});
+
+test("BRAND_FONT is the Courier face and the default Label-tier font on every desk", () => {
+  assert.match(BRAND_FONT, /Courier Prime/);
+  for (const st of STYLE_LIST) assert.equal(st.kickerFont, BRAND_FONT);
+});
+
+test("brandFromStyle carries the label-tier font; effectiveStyle remaps it onto the kicker", () => {
+  const b = brandFromStyle("editorial");
+  assert.equal(b.labelFont, getStyle("editorial").kickerFont);
+  const eff = effectiveStyle("editorial", Object.assign({}, b, { labelFont: "Impact" }));
+  assert.equal(eff.kickerFont, "Impact");
 });

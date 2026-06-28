@@ -36,6 +36,9 @@ function StaticElement({ el }) {
         textAlign: el.align,
         lineHeight: el.lineHeight,
         letterSpacing: (el.letterSpacing || 0) + "px",
+        textDecorationLine: el.strike ? "line-through" : "none",
+        textDecorationColor: el.strikeColor || el.color,
+        textDecorationThickness: el.strike ? "0.11em" : undefined,
         whiteSpace: "pre-wrap",
         wordBreak: "break-word",
       }}><RichText el={el} /></div>
