@@ -26,6 +26,9 @@ test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabl
   assert.match(p, /Instagram CAPTION/);
   assert.match(p, /"caption":/);
   assert.match(p, /hashtags/);
+  // two-page spill: a dense point may run across two consecutive slides
+  assert.match(p, /spill across two consecutive slides/);
+  assert.match(p, /CONT'D/);
   // default (no web search): a "from knowledge" grounding line, not a search instruction
   assert.match(p, /Ground every claim/);
   assert.doesNotMatch(p, /use web search/);
