@@ -105,7 +105,7 @@ export default function Studio() {
   // fonts / wordmark + logo) carries onto the freshly generated deck (§5).
   // The call is cancellable (AbortController) and reports coarse progress
   // (searching → writing); a "quick draft" skips the web search for speed.
-  const handleGenerate = async ({ style, category, topic, quickDraft }) => {
+  const handleGenerate = async ({ style, category, topic, quickDraft, ground }) => {
     if (generating) return;
     const prevDoc = state.doc;
     const ac = new AbortController();
@@ -113,7 +113,7 @@ export default function Studio() {
     setGenerating(true); setGenError(""); setGenPhase(quickDraft ? "writing" : "searching");
     try {
       const doc = await generateCarousel(topic, {
-        style, category, webSearch: !quickDraft, signal: ac.signal, onPhase: setGenPhase,
+        style, category, webSearch: !quickDraft, ground, signal: ac.signal, onPhase: setGenPhase,
       });
       dispatch({ type: "loadDoc", doc: carryBrandKit(doc, prevDoc) });
       setProjectName(topic);

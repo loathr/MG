@@ -57,6 +57,13 @@ export function cleanTitle(s) {
   return decodeEntities(s).replace(/\s*[|–-]\s*(The Guardian|BBC|Variety|IndieWire|Pitchfork|Reuters)\s*$/i, "").trim();
 }
 
+// Condense a feed item's description/summary into a short factual seed (R5
+// grounding): strip tags/entities and clamp to ~300 chars on a word boundary.
+function trimExtract(s) {
+  const t = decodeEntities(s).replace(/\s+/g, " ").trim();
+  return t.length > 300 ? t.slice(0, 300).replace(/\s+\S*$/, "") + "…" : t;
+}
+
 // Pick the best image URL out of one feed item. Feeds (Guardian especially)
 // carry SEVERAL <media:content width=.. url=..> at different sizes — take the
 // largest, and DECODE the URL (&amp; -> &): the raw XML url has entity-escaped
@@ -90,7 +97,8 @@ export function parseRss(xml, max) {
     const title = tm ? cleanTitle(tm[1]) : "";
     if (!title) continue;
     const dm = b.match(/<(?:pubDate|published|updated)[^>]*>([\s\S]*?)<\//i);
-    out.push({ title, thumb: pickThumb(b), when: dm ? dm[1].trim() : "", source: "feed" });
+    const xm = b.match(/<(?:description|summary|content)[^>]*>([\s\S]*?)<\/(?:description|summary|content)>/i);
+    out.push({ title, thumb: pickThumb(b), when: dm ? dm[1].trim() : "", extract: xm ? trimExtract(xm[1]) : "", source: "feed" });
     if (max && out.length >= max) break;
   }
   return out;
@@ -137,5 +145,5 @@ export function rankItems(rssItems, wikiItems, max) {
   (wikiItems || []).filter((it) => it.thumb).forEach(push); // then most-read with photos
   (rssItems || []).forEach(push);                            // then remaining feed items
   (wikiItems || []).forEach(push);                           // then remaining most-read
-  return pick.slice(0, max || 6).map((it) => ({ title: it.title, thumb: it.thumb || null, source: it.source || "feed" }));
+  return pick.slice(0, max || 6).map((it) => ({ title: it.title, thumb: it.thumb || null, extract: it.extract || "", source: it.source || "feed" }));
 }

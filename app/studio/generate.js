@@ -73,6 +73,10 @@ export function buildPrompt(topic, categoryKey, opts) {
   const research = o.webSearch
     ? "Research first: use web search to verify the key facts, figures, names, and recent developments before you write — ground every claim in what you find and cite the 1-2 strongest real, current outlets per slide. Never cite a source you did not find."
     : "Ground every claim in well-established, real facts, and name 1-2 credible outlets per slide in sources. Do not fabricate statistics or cite events you are unsure occurred; if a topic needs live data you don't have, pick a more evergreen angle.";
+  // R5 grounding: when the topic came from a picked Trending card, its summary +
+  // source seed the deck so it's built on the actual story, not just the headline.
+  const ground = o.ground && o.ground.extract ? String(o.ground.extract) : "";
+  const groundSrc = o.ground && o.ground.source ? String(o.ground.source) : "";
   return [
     "You are " + cat.persona + " writing a premium Instagram carousel.",
     'Topic: "' + topic + '".',
@@ -81,6 +85,7 @@ export function buildPrompt(topic, categoryKey, opts) {
     "Approach this through " + angle + ". Voice: " + voice + ".",
     "",
     research,
+    ground ? "Grounded source — build the deck on these specific facts, verifying and expanding them with search (correct anything outdated): \"" + ground + "\"" + (groundSrc ? " [" + groundSrc + "]" : "") : null,
     "",
     "Craft standards (this is the quality bar — hold to all of them):",
     '- The cover hooks with a specific promise or tension, never a generic label ("The Future of X", "Everything You Need to Know", "A Deep Dive Into...").',
@@ -305,7 +310,7 @@ export async function generateCarousel(topic, opts) {
   // (o.signal) and reports progress (o.onPhase). Pass webSearch:false for a fast
   // "Quick draft" from the model's knowledge (still anchored to today's date).
   const webSearch = o.webSearch !== false;
-  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch });
+  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch, ground: o.ground });
   const text = await runPrompt(prompt, { model: o.model, webSearch, stream: o.stream, signal: o.signal, onPhase: o.onPhase });
   const slides = parseSlides(text);
   const wantPhotos = o.photos !== false;

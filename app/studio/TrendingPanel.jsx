@@ -42,7 +42,9 @@ export default function TrendingPanel({ onPick, desk }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, beat]);
 
-  const pick = (it) => { onPick(it.title, beatVoice(beat)); setOpen(false); };
+  // Carry the card's summary + source as a grounding seed (R5) so generation is
+  // built on the actual story, not just its title.
+  const pick = (it) => { onPick(it.title, beatVoice(beat), { extract: it.extract || "", source: it.source || "" }); setOpen(false); };
 
   const mono = desk === "enterprise";
   const serif = desk === "newsdesk";

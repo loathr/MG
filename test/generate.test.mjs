@@ -96,3 +96,12 @@ test("parseCaption pulls the caption out of the deck JSON; slides still parse al
   assert.equal(parseCaption('{"slides":[]}'), null);   // no caption → null
   assert.equal(parseCaption("not json"), null);        // unparseable → null, never throws
 });
+
+test("buildPrompt threads a grounded source seed only when one is provided (R5)", () => {
+  const g = buildPrompt("x", "news", { seed: 1, ground: { extract: "27 members voted 320-115", source: "The Guardian" } });
+  assert.match(g, /build the deck on these specific facts/i);
+  assert.match(g, /27 members voted 320-115/);
+  assert.match(g, /The Guardian/);
+  // no seed → no grounding line (typed topics behave exactly as before)
+  assert.doesNotMatch(buildPrompt("x", "news", { seed: 1 }), /build the deck on these specific facts/i);
+});

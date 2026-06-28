@@ -54,6 +54,15 @@ test("parseRss picks the LARGEST media:content and decodes the URL (&amp; -> &)"
   assert.equal(parseRss("", 5).length, 0);
 });
 
+test("parseRss captures the description as the item extract (R5 grounding)", () => {
+  const xml = `<rss><channel>
+    <item><title>Landmark Vote</title><description><![CDATA[Lawmakers approved the bill <b>320-115</b>, with sweeping new rules.]]></description></item>
+  </channel></rss>`;
+  const items = parseRss(xml, 5);
+  assert.equal(items[0].title, "Landmark Vote");
+  assert.match(items[0].extract, /approved the bill 320-115/); // tags stripped, kept as a seed
+});
+
 const FEATURED = {
   mostread: { articles: [
     { titles: { normalized: "Main Page" }, views: 9000000 },
@@ -87,4 +96,6 @@ test("rankItems dedupes by title and floats thumbnail-bearing items first", () =
   assert.equal(ranked.filter((r) => /Dune/.test(r.title)).length, 1);
   assert.ok(ranked[0].thumb, "first item carries a photo");
   assert.ok(ranked.length <= 6);
+  // R5: the extract carries through so generation can ground on it
+  assert.match(ranked.find((r) => /Dune/.test(r.title)).extract, /Villeneuve/);
 });

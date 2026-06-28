@@ -30,6 +30,9 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   const [topic, setTopic] = useState("");
   const [quickDraft, setQuickDraft] = useState(false);
   const [advanced, setAdvanced] = useState(false);
+  // Grounding seed (R5) from a picked Trending card: { extract, source }. Cleared
+  // when the topic is edited by hand, so a typed-over topic isn't grounded stale.
+  const [seed, setSeed] = useState(null);
 
   const pickDesk = (key) => {
     setDesk(key);
@@ -37,15 +40,16 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   };
   const pickVoice = (key) => { setVoice(key); setVoiceTouched(true); };
   // Tap a Trending card → fill the topic and set the matching voice (tie-back).
-  const pickTrending = (t, voiceKey) => {
+  const pickTrending = (t, voiceKey, ground) => {
     setTopic(t);
+    setSeed(ground && ground.extract ? ground : null);
     if (voiceKey) { setVoice(voiceKey); setVoiceTouched(true); }
   };
 
   const submit = () => {
     const t = topic.trim();
     if (!t || generating) return;
-    onGenerate({ style: desk, category: voice, topic: t, quickDraft });
+    onGenerate({ style: desk, category: voice, topic: t, quickDraft, ground: seed });
   };
 
   // Coarse progress label while generating (the call streams searching -> writing).
@@ -80,7 +84,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
         <div style={{ ...label, marginTop: 26 }}>What&apos;s it about?</div>
         <input
           value={topic}
-          onChange={(e) => setTopic(e.target.value)}
+          onChange={(e) => { setTopic(e.target.value); setSeed(null); }}
           onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
           placeholder="Type a topic — or open Trending below"
           autoFocus
