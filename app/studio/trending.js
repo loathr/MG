@@ -7,8 +7,9 @@ import { upsizeWikiThumb } from "./entity";
 
 // Each beat = a content category (label) + the writing VOICE it maps to (tie-back
 // when a card is picked) + free RSS feeds (recency) + keyword TERMS used to bucket
-// Wikipedia most-read into the beat. The first nine have solid feeds; the last
-// four are "thin" (no reliable free RSS) and lean entirely on most-read.
+// Wikipedia most-read into the beat. The first ten have feeds (The Tea pulls
+// celebrity gossip, TMZ-style); the last three are "thin" (no reliable free RSS)
+// and lean entirely on most-read.
 export const BEATS = [
   { key: "film",      label: "Film & TV",     voice: "editorial", rss: ["https://www.theguardian.com/film/rss"],       terms: ["film", "movie", "cinema", "director", "actor", "series", "Netflix", "HBO", "Oscar"] },
   { key: "music",     label: "Music",         voice: "editorial", rss: ["https://www.theguardian.com/music/rss"],      terms: ["album", "singer", "band", "rapper", "song", "musician", "tour", "Grammy"] },
@@ -19,11 +20,13 @@ export const BEATS = [
   { key: "business",  label: "Business",      voice: "business",  rss: ["https://www.theguardian.com/business/rss"],   terms: ["company", "market", "CEO", "stock", "economy", "earnings", "bank"] },
   { key: "news",      label: "World News",    voice: "news",      rss: ["https://www.theguardian.com/world/rss"],      terms: ["election", "war", "government", "president", "minister", "summit"] },
   { key: "science",   label: "Science",       voice: "news",      rss: ["https://www.theguardian.com/science/rss"],    terms: ["study", "research", "space", "NASA", "discovery", "climate", "physics"] },
-  // Thin beats — Wikipedia most-read only.
+  // The Tea — celebrity gossip, TMZ-style: real gossip feeds (recency) drive it,
+  // with the most-read fallback skewed to celebrity drama by the terms.
+  { key: "tea",       label: "The Tea",       voice: "story",     rss: ["https://www.tmz.com/rss.xml", "https://pagesix.com/feed/", "https://www.justjared.com/feed/"], terms: ["celebrity", "actor", "actress", "singer", "rapper", "star", "model", "dating", "split", "divorce", "breakup", "engaged", "wedding", "baby", "feud", "scandal", "red carpet", "Kardashian", "romance", "drama"] },
+  // Thin beats — no reliable free RSS, so Wikipedia most-read only.
   { key: "photo",     label: "Photography",   voice: "editorial", rss: [], terms: ["photographer", "photograph", "camera", "photo"] },
   { key: "nightlife", label: "Nightlife",     voice: "editorial", rss: [], terms: ["nightclub", "DJ", "festival", "rave", "bar"] },
   { key: "trivia",    label: "Did You Know?", voice: "editorial", rss: [], terms: [] }, // empty terms → today's general curiosities
-  { key: "tea",       label: "The Tea",       voice: "story",     rss: [], terms: ["actor", "singer", "celebrity", "star", "model"] },
 ];
 
 export function getBeat(key) {

@@ -15,6 +15,9 @@ test("BEATS includes the thin segments backed by most-read (no rss)", () => {
   assert.deepEqual(getBeat("nightlife").rss, []);
   assert.deepEqual(getBeat("trivia").terms, []); // general curiosities
   assert.equal(getBeat("film").rss.length >= 1, true);
+  // The Tea is celebrity gossip, TMZ-style — it now has real gossip feeds.
+  assert.ok(getBeat("tea").rss.length >= 1, "The Tea pulls gossip feeds");
+  assert.match(getBeat("tea").rss.join(" "), /tmz/i);
 });
 
 test("beatVoice maps a beat to its writing voice (tie-back)", () => {
