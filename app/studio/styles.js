@@ -162,3 +162,51 @@ export function paletteBrand(p) {
     sub: mix(p.ink, p.bg, 0.14), muted: mix(p.ink, p.bg, 0.46),
   };
 }
+
+// ----------------------------------------------------------------------------
+// Type tier controls (Brand panel). FONT_OPTIONS feeds the FontSelect dropdowns
+// — Standard faces plus the unique loathr library (each stack mirrors the old
+// monolith's fallbacks). FONT_PRESETS set all three tiers at once and mimic the
+// monolith's per-desk typography; Label is always Courier.
+// ----------------------------------------------------------------------------
+
+export const FONT_OPTIONS = [
+  { group: "Standard", fonts: [
+    { label: "Georgia", value: "Georgia, serif" },
+    { label: "Times", value: "'Times New Roman', serif" },
+    { label: "Helvetica", value: "Helvetica, Arial, sans-serif" },
+    { label: "Arial Black", value: "'Arial Black', Impact, sans-serif" },
+    { label: "Trebuchet", value: "'Trebuchet MS', sans-serif" },
+    { label: "Courier Prime", value: BRAND_FONT },
+  ] },
+  { group: "Unique · loathr library", fonts: [
+    { label: "Otilito", value: "'Otilito', 'Foun', sans-serif" },
+    { label: "Qogee", value: "'Qogee', 'Maheni', serif" },
+    { label: "Foun", value: "'Foun', Georgia, serif" },
+    { label: "Maheni", value: "'Maheni', Georgia, serif" },
+    { label: "Matina", value: "'Matina', 'Maheni', serif" },
+    { label: "Wenssep", value: "'Wenssep', Georgia, serif" },
+    { label: "Medhorn", value: "'Medhorn', 'Foun', serif" },
+    { label: "CrownHeritage", value: "'CrownHeritage', 'Cheelaved', serif" },
+    { label: "VintageTypist", value: "'VintageTypist', 'CarbonText', serif" },
+    { label: "CarbonText", value: "'CarbonText', 'Maheni', sans-serif" },
+    { label: "Eroded", value: "'Eroded', 'Medhorn', serif" },
+    { label: "GrandHalva", value: "'GrandHalva', 'Foun', serif" },
+    { label: "Bramos", value: "'Bramos', 'QuickZip', sans-serif" },
+    { label: "Cheelaved", value: "'Cheelaved', 'GrandHalva', serif" },
+  ] },
+];
+
+export const FONT_PRESETS = [
+  { id: "standard",   label: "Standard",   labelFont: BRAND_FONT, headFont: "Georgia, serif",                       bodyFont: "Helvetica, Arial, sans-serif" },
+  { id: "editorial",  label: "Editorial",  labelFont: BRAND_FONT, headFont: "'Foun', Georgia, serif",               bodyFont: "'Maheni', Georgia, serif" },
+  { id: "enterprise", label: "Enterprise", labelFont: BRAND_FONT, headFont: "'Otilito', 'Foun', sans-serif",        bodyFont: "'Qogee', 'Maheni', serif" },
+  { id: "newsdesk",   label: "News Desk",  labelFont: BRAND_FONT, headFont: "'CrownHeritage', 'Cheelaved', serif",  bodyFont: "'VintageTypist', 'CarbonText', serif" },
+];
+
+// Which preset (if any) the brand's three tiers currently match — else null ("Custom").
+export function activePresetId(brand) {
+  const b = brand || {};
+  const m = FONT_PRESETS.find((p) => p.labelFont === b.labelFont && p.headFont === b.headFont && p.bodyFont === b.bodyFont);
+  return m ? m.id : null;
+}

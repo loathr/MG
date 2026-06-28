@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import {
   STYLES, STYLE_LIST, DEFAULT_STYLE, getStyle, brandFromStyle,
   EDITORIAL_PALETTES, paletteBrand, effectiveStyle, BRAND_FONT,
+  FONT_PRESETS, FONT_OPTIONS, activePresetId,
 } from "../app/studio/styles.js";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -95,4 +96,29 @@ test("brandFromStyle carries the label-tier font; effectiveStyle remaps it onto 
   assert.equal(b.labelFont, getStyle("editorial").kickerFont);
   const eff = effectiveStyle("editorial", Object.assign({}, b, { labelFont: "Impact" }));
   assert.equal(eff.kickerFont, "Impact");
+});
+
+test("FONT_PRESETS: four presets, Label always Courier, monolith heads", () => {
+  assert.equal(FONT_PRESETS.length, 4);
+  for (const p of FONT_PRESETS) {
+    assert.equal(p.labelFont, BRAND_FONT);
+    assert.ok(p.id && p.label && p.headFont && p.bodyFont);
+  }
+  const ent = FONT_PRESETS.find((p) => p.id === "enterprise");
+  assert.match(ent.headFont, /Otilito/);
+  assert.match(ent.bodyFont, /Qogee/);
+  assert.match(FONT_PRESETS.find((p) => p.id === "newsdesk").headFont, /CrownHeritage/);
+});
+
+test("FONT_OPTIONS groups Standard + the unique loathr library", () => {
+  const labels = FONT_OPTIONS.flatMap((g) => g.fonts.map((f) => f.label));
+  for (const u of ["Courier Prime", "Otilito", "Qogee", "Foun", "CrownHeritage", "VintageTypist"]) {
+    assert.ok(labels.includes(u), `missing ${u}`);
+  }
+});
+
+test("activePresetId matches a preset's exact tiers, else null (Custom)", () => {
+  const p = FONT_PRESETS.find((x) => x.id === "editorial");
+  assert.equal(activePresetId({ labelFont: p.labelFont, headFont: p.headFont, bodyFont: p.bodyFont }), "editorial");
+  assert.equal(activePresetId({ labelFont: BRAND_FONT, headFont: "Impact", bodyFont: "Arial" }), null);
 });

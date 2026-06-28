@@ -222,3 +222,36 @@ test("rethemeDoc carries the inline highlight marker to the new accent + bg", ()
   assert.equal(after.highlightColor, "#00ff00"); // marker background follows the new accent
   assert.equal(after.highlightText, "#111111");  // knockout text follows the new deck bg
 });
+
+test("rethemeDoc swaps fonts by TIER; other tiers + LOATHR marks stay put", () => {
+  const doc = slidesToDoc(
+    [{ role: "COVER", heading: "C" },
+     { kicker: "K", heading: "Head", body: "body copy", sources: ["S"] },
+     { role: "CLOSER", heading: "Bye" }],
+    "editorial",
+  );
+  const prev = brandFromStyle("editorial");                      // label Courier, head Georgia, body Helvetica
+  const next = Object.assign({}, prev, { headFont: "Impact" });  // change ONLY the heading tier
+  const out = rethemeDoc(doc, prev, next);
+  const content = out.slides[1];
+  assert.equal(content.elements.find((e) => e.tier === "heading").fontFamily, "Impact");
+  assert.equal(content.elements.find((e) => e.tier === "body" && /body copy/.test(e.content)).fontFamily, prev.bodyFont);
+  assert.equal(content.elements.find((e) => e.role === "footer").fontFamily, prev.labelFont); // LOATHR mark untouched
+  assert.match(out.slides[0].elements.find((e) => e.role === "wordmark").fontFamily, /Courier Prime/);
+});
+
+test("rethemeDoc: changing a shared font moves only its tier (News head=body serif)", () => {
+  // News Desk defaults head + body to the same serif — the old string-match welded them.
+  const doc = slidesToDoc(
+    [{ role: "COVER", heading: "C" },
+     { kicker: "K", heading: "Head", body: "body copy" },
+     { role: "CLOSER", heading: "E" }],
+    "newsdesk",
+  );
+  const prev = brandFromStyle("newsdesk");
+  const next = Object.assign({}, prev, { headFont: "Impact" });
+  const out = rethemeDoc(doc, prev, next);
+  const content = out.slides[1];
+  assert.equal(content.elements.find((e) => e.tier === "heading").fontFamily, "Impact");      // heading moved
+  assert.equal(content.elements.find((e) => e.tier === "body" && /body copy/.test(e.content)).fontFamily, prev.bodyFont); // body NOT welded
+});

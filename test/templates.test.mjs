@@ -265,3 +265,20 @@ test("slidesToDoc: wordmark on the cover, footer + page number on content slides
   const wm = closer.elements.find((e) => e.content === "LOATHR");
   assert.equal(wm.fontFamily, BRAND_FONT);
 });
+
+test("generated text carries font tiers; brand marks stay untiered (Courier-locked)", () => {
+  const doc = slidesToDoc([
+    { role: "COVER", kicker: "K", heading: "C" },
+    { kicker: "THE TURN", heading: "H", body: "the body", sources: ["Opta"] },
+    { role: "CLOSER", heading: "Bye" },
+  ], "editorial");
+  const content = doc.slides[1];
+  assert.equal(content.elements.find((e) => e.content === "THE TURN").tier, "label");
+  assert.equal(content.elements.find((e) => e.content === "H").tier, "heading");
+  assert.equal(content.elements.find((e) => e.content === "the body").tier, "body");
+  assert.equal(content.elements.find((e) => e.role === "sources").tier, "body");
+  // brand marks: no tier → font stays Courier
+  assert.equal(content.elements.find((e) => e.role === "footer").tier, undefined);
+  assert.equal(content.elements.find((e) => e.role === "pageno").tier, undefined);
+  assert.equal(doc.slides[0].elements.find((e) => e.role === "wordmark").tier, undefined);
+});

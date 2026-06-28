@@ -47,7 +47,7 @@ function backgroundFor(st, image) {
 }
 
 function kickerEl(st, pal, content, y, size) {
-  return makeText(st.kickerFont, {
+  return makeText(st.kickerFont, { tier: "label",
     x: M, y, w: ARTBOARD_W - 2 * M, h: 40,
     content: (content || "").toUpperCase(), fontSize: size, fontWeight: st.kickerWeight,
     color: pal.accent, letterSpacing: st.kickerSpacing, lineHeight: 1.2,
@@ -58,7 +58,7 @@ function sourcesEl(st, pal, sources) {
   const s = Array.isArray(sources) ? sources.filter(Boolean).join(" · ") : (sources || "");
   if (!s) return null;
   return makeText(st.bodyFont, {
-    role: "sources",
+    tier: "body", role: "sources",
     x: M, y: 1262, w: ARTBOARD_W - 2 * M, h: 40,
     content: "Sources: " + s, fontSize: 19, fontWeight: 400, color: pal.muted, lineHeight: 1.2, letterSpacing: 0.5,
   });
@@ -79,8 +79,8 @@ export function coverTemplate(s, style, image) {
   return slideShell(st, image, [
     pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 232, w: 64, h: 7, fill: pal.accent }) : null,
     kickerEl(st, pal, s.kicker || "EDITORIAL", 262, 25),
-    makeText(st.headFont, { x: M, y: 320, w: ARTBOARD_W - 2 * M, h: 560, content: s.heading || "Untitled", fontSize: 94, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.03 }),
-    s.subhead ? makeText(st.bodyFont, { x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 180, content: s.subhead, fontSize: 33, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
+    makeText(st.headFont, { tier: "heading", x: M, y: 320, w: ARTBOARD_W - 2 * M, h: 560, content: s.heading || "Untitled", fontSize: 94, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.03 }),
+    s.subhead ? makeText(st.bodyFont, { tier: "body", x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 180, content: s.subhead, fontSize: 33, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
     sourcesEl(st, pal, s.sources),
   ]);
 }
@@ -91,8 +91,8 @@ export function contentTemplate(s, index, style, image) {
   return slideShell(st, image, [
     pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 232, w: 48, h: 6, fill: pal.accent }) : null,
     kickerEl(st, pal, s.role || "", 258, 22),
-    makeText(st.headFont, { x: M, y: 312, w: ARTBOARD_W - 2 * M, h: 360, content: s.heading || "", fontSize: 60, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
-    s.body ? makeText(st.bodyFont, { x: M, y: 712, w: ARTBOARD_W - 2 * M, h: 470, content: s.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.46 }) : null,
+    makeText(st.headFont, { tier: "heading", x: M, y: 312, w: ARTBOARD_W - 2 * M, h: 360, content: s.heading || "", fontSize: 60, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
+    s.body ? makeText(st.bodyFont, { tier: "body", x: M, y: 712, w: ARTBOARD_W - 2 * M, h: 470, content: s.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.46 }) : null,
     sourcesEl(st, pal, s.sources),
   ]);
 }
@@ -104,8 +104,8 @@ export function closerTemplate(s, style, image, caution, brand) {
   return slideShell(st, image, [
     makeText(BRAND_FONT, { x: M, y: cy, w: ARTBOARD_W - 2 * M, h: 60, content: (brand && brand.wordmark) || "LOATHR", fontSize: 30, fontWeight: 700, color: pal.ink, align: "center", letterSpacing: 8, lineHeight: 1 }),
     makeElement("rect", { id: uid("r"), x: ARTBOARD_W / 2 - 30, y: cy + 86, w: 60, h: 4, fill: pal.accent }),
-    makeText(st.headFont, { x: M, y: cy + 130, w: ARTBOARD_W - 2 * M, h: 320, content: s.heading || s.body || "Thanks for reading.", fontSize: 52, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.15 }),
-    s.cta ? makeText(st.bodyFont, { x: M, y: cy + 470, w: ARTBOARD_W - 2 * M, h: 60, content: s.cta, fontSize: 26, fontWeight: 400, color: pal.accent, align: "center", lineHeight: 1.3 }) : null,
+    makeText(st.headFont, { tier: "heading", x: M, y: cy + 130, w: ARTBOARD_W - 2 * M, h: 320, content: s.heading || s.body || "Thanks for reading.", fontSize: 52, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.15 }),
+    s.cta ? makeText(st.bodyFont, { tier: "body", x: M, y: cy + 470, w: ARTBOARD_W - 2 * M, h: 60, content: s.cta, fontSize: 26, fontWeight: 400, color: pal.accent, align: "center", lineHeight: 1.3 }) : null,
     caution ? cautionElement(style, caution, !!(image && image.url), brand) : null,
   ]);
 }
@@ -117,7 +117,7 @@ export function cautionElement(style, text, hasImage, brand) {
   const st = effectiveStyle(style, brand);
   const pal = palette(st, !!hasImage);
   return makeText(st.bodyFont, {
-    id: uid("caution"), role: "caution",
+    tier: "body", id: uid("caution"), role: "caution",
     x: M, y: 1196, w: ARTBOARD_W - 2 * M, h: 96,
     content: text, fontSize: 18, fontWeight: 400, color: pal.muted,
     align: "center", lineHeight: 1.35, letterSpacing: 0.2,
@@ -202,15 +202,15 @@ function norm(content) {
 }
 
 function centeredKicker(st, pal, content, y) {
-  return content ? makeText(st.kickerFont, { x: M, y, w: ARTBOARD_W - 2 * M, h: 40, content: content.toUpperCase(), fontSize: 24, fontWeight: st.kickerWeight, color: pal.accent, letterSpacing: st.kickerSpacing, align: "center", lineHeight: 1.2 }) : null;
+  return content ? makeText(st.kickerFont, { tier: "label", x: M, y, w: ARTBOARD_W - 2 * M, h: 40, content: content.toUpperCase(), fontSize: 24, fontWeight: st.kickerWeight, color: pal.accent, letterSpacing: st.kickerSpacing, align: "center", lineHeight: 1.2 }) : null;
 }
 
 function L_classic(c, st, pal) {
   return [
     pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 232, w: 48, h: 6, fill: pal.accent }) : null,
     c.kicker ? kickerEl(st, pal, c.kicker, 258, 22) : null,
-    makeText(st.headFont, { x: M, y: 312, w: ARTBOARD_W - 2 * M, h: 360, content: c.heading, fontSize: 60, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
-    c.body ? makeText(st.bodyFont, { x: M, y: 712, w: ARTBOARD_W - 2 * M, h: 470, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.46 }) : null,
+    makeText(st.headFont, { tier: "heading", x: M, y: 312, w: ARTBOARD_W - 2 * M, h: 360, content: c.heading, fontSize: 60, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
+    c.body ? makeText(st.bodyFont, { tier: "body", x: M, y: 712, w: ARTBOARD_W - 2 * M, h: 470, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.46 }) : null,
     sourcesEl(st, pal, c.sources),
   ];
 }
@@ -219,8 +219,8 @@ function L_cover(c, st, pal) {
   return [
     pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 232, w: 64, h: 7, fill: pal.accent }) : null,
     kickerEl(st, pal, c.kicker || "EDITORIAL", 262, 25),
-    makeText(st.headFont, { x: M, y: 320, w: ARTBOARD_W - 2 * M, h: 560, content: c.heading, fontSize: 94, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.03 }),
-    c.body ? makeText(st.bodyFont, { x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 180, content: c.body, fontSize: 33, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
+    makeText(st.headFont, { tier: "heading", x: M, y: 320, w: ARTBOARD_W - 2 * M, h: 560, content: c.heading, fontSize: 94, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.03 }),
+    c.body ? makeText(st.bodyFont, { tier: "body", x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 180, content: c.body, fontSize: 33, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
     sourcesEl(st, pal, c.sources),
   ];
 }
@@ -228,15 +228,15 @@ function L_cover(c, st, pal) {
 function L_centered(c, st, pal) {
   return [
     centeredKicker(st, pal, c.kicker, 430),
-    makeText(st.headFont, { x: M, y: 490, w: ARTBOARD_W - 2 * M, h: 360, content: c.heading, fontSize: 78, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.05 }),
-    c.body ? makeText(st.bodyFont, { x: M, y: 880, w: ARTBOARD_W - 2 * M, h: 260, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.45 }) : null,
+    makeText(st.headFont, { tier: "heading", x: M, y: 490, w: ARTBOARD_W - 2 * M, h: 360, content: c.heading, fontSize: 78, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.05 }),
+    c.body ? makeText(st.bodyFont, { tier: "body", x: M, y: 880, w: ARTBOARD_W - 2 * M, h: 260, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.45 }) : null,
   ];
 }
 
 function L_statement(c, st, pal) {
   return [
     centeredKicker(st, pal, c.kicker, 300),
-    makeText(st.headFont, { x: M, y: 380, w: ARTBOARD_W - 2 * M, h: 600, content: c.heading, fontSize: 118, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.0 }),
+    makeText(st.headFont, { tier: "heading", x: M, y: 380, w: ARTBOARD_W - 2 * M, h: 600, content: c.heading, fontSize: 118, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.0 }),
   ];
 }
 
@@ -244,8 +244,8 @@ function L_bottom(c, st, pal) {
   return [
     c.kicker ? kickerEl(st, pal, c.kicker, 742, 22) : null,
     pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 720, w: 48, h: 6, fill: pal.accent }) : null,
-    makeText(st.headFont, { x: M, y: 800, w: ARTBOARD_W - 2 * M, h: 300, content: c.heading, fontSize: 66, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.06 }),
-    c.body ? makeText(st.bodyFont, { x: M, y: 1120, w: ARTBOARD_W - 2 * M, h: 150, content: c.body, fontSize: 28, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
+    makeText(st.headFont, { tier: "heading", x: M, y: 800, w: ARTBOARD_W - 2 * M, h: 300, content: c.heading, fontSize: 66, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.06 }),
+    c.body ? makeText(st.bodyFont, { tier: "body", x: M, y: 1120, w: ARTBOARD_W - 2 * M, h: 150, content: c.body, fontSize: 28, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
   ];
 }
 
@@ -257,9 +257,9 @@ function L_bottom(c, st, pal) {
 // quote, the kicker as attribution. (Re-flowing turns any headline into a quote.)
 function L_quote(c, st, pal) {
   return [
-    makeText(st.headFont, { x: M, y: 330, w: ARTBOARD_W - 2 * M, h: 160, content: "“", fontSize: 200, fontWeight: st.headWeight, color: pal.accent, align: "center", lineHeight: 1 }),
-    makeText(st.headFont, { x: M, y: 556, w: ARTBOARD_W - 2 * M, h: 470, content: c.heading, fontSize: 50, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.26, italic: true }),
-    c.kicker ? makeText(st.kickerFont, { x: M, y: 1086, w: ARTBOARD_W - 2 * M, h: 40, content: "— " + c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, align: "center", letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
+    makeText(st.headFont, { tier: "heading", x: M, y: 330, w: ARTBOARD_W - 2 * M, h: 160, content: "“", fontSize: 200, fontWeight: st.headWeight, color: pal.accent, align: "center", lineHeight: 1 }),
+    makeText(st.headFont, { tier: "heading", x: M, y: 556, w: ARTBOARD_W - 2 * M, h: 470, content: c.heading, fontSize: 50, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.26, italic: true }),
+    c.kicker ? makeText(st.kickerFont, { tier: "label", x: M, y: 1086, w: ARTBOARD_W - 2 * M, h: 40, content: "— " + c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, align: "center", letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
   ];
 }
 
@@ -268,10 +268,10 @@ function L_quote(c, st, pal) {
 function L_numbered(c, st, pal) {
   const n = c.number != null ? String(c.number).padStart(2, "0") : "01";
   return [
-    makeText(st.headFont, { x: M, y: 244, w: ARTBOARD_W - 2 * M, h: 230, content: n, fontSize: 184, fontWeight: st.headWeight, color: pal.accent, lineHeight: 1, letterSpacing: -2 }),
+    makeText(st.headFont, { tier: "heading", x: M, y: 244, w: ARTBOARD_W - 2 * M, h: 230, content: n, fontSize: 184, fontWeight: st.headWeight, color: pal.accent, lineHeight: 1, letterSpacing: -2 }),
     c.kicker ? kickerEl(st, pal, c.kicker, 486, 22) : null,
-    makeText(st.headFont, { x: M, y: 536, w: ARTBOARD_W - 2 * M, h: 320, content: c.heading, fontSize: 58, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
-    c.body ? makeText(st.bodyFont, { x: M, y: 884, w: ARTBOARD_W - 2 * M, h: 340, content: c.body, fontSize: 30, fontWeight: 400, color: pal.sub, lineHeight: 1.5 }) : null,
+    makeText(st.headFont, { tier: "heading", x: M, y: 536, w: ARTBOARD_W - 2 * M, h: 320, content: c.heading, fontSize: 58, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
+    c.body ? makeText(st.bodyFont, { tier: "body", x: M, y: 884, w: ARTBOARD_W - 2 * M, h: 340, content: c.body, fontSize: 30, fontWeight: 400, color: pal.sub, lineHeight: 1.5 }) : null,
     sourcesEl(st, pal, c.sources),
   ];
 }
@@ -281,9 +281,9 @@ function L_numbered(c, st, pal) {
 function L_split(c, st, pal) {
   return [
     c.kicker ? kickerEl(st, pal, c.kicker, 258, 22) : null,
-    makeText(st.headFont, { x: M, y: 312, w: ARTBOARD_W - 2 * M, h: 320, content: c.heading, fontSize: 62, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.06 }),
+    makeText(st.headFont, { tier: "heading", x: M, y: 312, w: ARTBOARD_W - 2 * M, h: 320, content: c.heading, fontSize: 62, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.06 }),
     makeElement("rect", { id: uid("r"), x: M, y: 700, w: ARTBOARD_W - 2 * M, h: 2, fill: pal.accentBar ? pal.accent : pal.muted }),
-    c.body ? makeText(st.bodyFont, { x: M, y: 748, w: ARTBOARD_W - 2 * M, h: 470, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.5 }) : null,
+    c.body ? makeText(st.bodyFont, { tier: "body", x: M, y: 748, w: ARTBOARD_W - 2 * M, h: 470, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, lineHeight: 1.5 }) : null,
     sourcesEl(st, pal, c.sources),
   ];
 }
@@ -301,9 +301,9 @@ function L_stat(c, st, pal) {
   const label = c.statLabel || (hasStat ? c.heading : c.body) || "";
   return [
     centeredKicker(st, pal, c.kicker, 300),
-    makeText(st.headFont, { x: M, y: 372, w: ARTBOARD_W - 2 * M, h: 320, content: big, fontSize: hasStat ? 268 : 150, fontWeight: st.headWeight, color: pal.accent, align: "center", lineHeight: 0.96, letterSpacing: -2 }),
-    label ? makeText(st.headFont, { x: M, y: hasStat ? 720 : 760, w: ARTBOARD_W - 2 * M, h: 240, content: label, fontSize: 40, fontWeight: 400, color: pal.ink, align: "center", lineHeight: 1.3 }) : null,
-    (hasStat && c.body) ? makeText(st.bodyFont, { x: M, y: 1000, w: ARTBOARD_W - 2 * M, h: 180, content: c.body, fontSize: 27, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.45 }) : null,
+    makeText(st.headFont, { tier: "heading", x: M, y: 372, w: ARTBOARD_W - 2 * M, h: 320, content: big, fontSize: hasStat ? 268 : 150, fontWeight: st.headWeight, color: pal.accent, align: "center", lineHeight: 0.96, letterSpacing: -2 }),
+    label ? makeText(st.headFont, { tier: "heading", x: M, y: hasStat ? 720 : 760, w: ARTBOARD_W - 2 * M, h: 240, content: label, fontSize: 40, fontWeight: 400, color: pal.ink, align: "center", lineHeight: 1.3 }) : null,
+    (hasStat && c.body) ? makeText(st.bodyFont, { tier: "body", x: M, y: 1000, w: ARTBOARD_W - 2 * M, h: 180, content: c.body, fontSize: 27, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.45 }) : null,
     sourcesEl(st, pal, c.sources),
   ];
 }
@@ -329,16 +329,16 @@ function L_versus(c, st, pal) {
   const colW = (ARTBOARD_W - 2 * M - gap) / 2;
   const rx = M + colW + gap;
   const mid = ARTBOARD_W / 2;
-  const colLabel = (txt, x) => txt ? makeText(st.kickerFont, { x, y: 452, w: colW, h: 40, content: txt.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, align: "center", letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null;
-  const colValue = (txt, x) => makeText(st.headFont, { x, y: 520, w: colW, h: 320, content: txt, fontSize: 52, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.12 });
+  const colLabel = (txt, x) => txt ? makeText(st.kickerFont, { tier: "label", x, y: 452, w: colW, h: 40, content: txt.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, align: "center", letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null;
+  const colValue = (txt, x) => makeText(st.headFont, { tier: "heading", x, y: 520, w: colW, h: 320, content: txt, fontSize: 52, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.12 });
   return [
     c.kicker ? centeredKicker(st, pal, c.kicker, 250) : null,
     colLabel(v.l.label, M),
     colValue(v.l.value, M),
-    makeText(st.headFont, { x: mid - 70, y: 600, w: 140, h: 90, content: "vs", fontSize: 46, fontWeight: st.headWeight, color: pal.accent, align: "center", italic: true, lineHeight: 1 }),
+    makeText(st.headFont, { tier: "heading", x: mid - 70, y: 600, w: 140, h: 90, content: "vs", fontSize: 46, fontWeight: st.headWeight, color: pal.accent, align: "center", italic: true, lineHeight: 1 }),
     colLabel(v.r.label, rx),
     colValue(v.r.value, rx),
-    c.body ? makeText(st.bodyFont, { x: M, y: 920, w: ARTBOARD_W - 2 * M, h: 200, content: c.body, fontSize: 28, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.45 }) : null,
+    c.body ? makeText(st.bodyFont, { tier: "body", x: M, y: 920, w: ARTBOARD_W - 2 * M, h: 200, content: c.body, fontSize: 28, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.45 }) : null,
     sourcesEl(st, pal, c.sources),
   ];
 }
@@ -350,10 +350,10 @@ function L_masthead(c, st, pal) {
   const name = String(c.kicker || "NEWS DESK").toUpperCase();
   return [
     makeElement("rect", { id: uid("r"), x: M, y: 190, w: ARTBOARD_W - 2 * M, h: 6, fill: pal.accent }),
-    makeText(st.kickerFont, { x: M, y: 214, w: ARTBOARD_W - 2 * M, h: 64, content: name, fontSize: 40, fontWeight: st.kickerWeight, color: pal.ink, align: "center", letterSpacing: 6, lineHeight: 1 }),
+    makeText(st.kickerFont, { tier: "label", x: M, y: 214, w: ARTBOARD_W - 2 * M, h: 64, content: name, fontSize: 40, fontWeight: st.kickerWeight, color: pal.ink, align: "center", letterSpacing: 6, lineHeight: 1 }),
     makeElement("rect", { id: uid("r"), x: M, y: 292, w: ARTBOARD_W - 2 * M, h: 1, fill: pal.ink }),
-    makeText(st.headFont, { x: M, y: 360, w: ARTBOARD_W - 2 * M, h: 540, content: c.heading, fontSize: 86, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.05 }),
-    c.body ? makeText(st.bodyFont, { x: M, y: 1020, w: ARTBOARD_W - 2 * M, h: 170, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.4 }) : null,
+    makeText(st.headFont, { tier: "heading", x: M, y: 360, w: ARTBOARD_W - 2 * M, h: 540, content: c.heading, fontSize: 86, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.05 }),
+    c.body ? makeText(st.bodyFont, { tier: "body", x: M, y: 1020, w: ARTBOARD_W - 2 * M, h: 170, content: c.body, fontSize: 32, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.4 }) : null,
     sourcesEl(st, pal, c.sources),
   ];
 }
@@ -364,9 +364,9 @@ function L_masthead(c, st, pal) {
 function L_dossier(c, st, pal) {
   return [
     makeElement("rect", { id: uid("r"), x: M, y: 196, w: ARTBOARD_W - 2 * M, h: 2, fill: pal.accent }),
-    makeText(st.kickerFont, { x: M, y: 212, w: ARTBOARD_W - 2 * M, h: 36, content: String(c.kicker || "INTELLIGENCE BRIEF").toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, letterSpacing: 4, lineHeight: 1.2 }),
-    makeText(st.headFont, { x: M, y: 300, w: ARTBOARD_W - 2 * M, h: 600, content: c.heading, fontSize: 92, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.02 }),
-    c.body ? makeText(st.bodyFont, { x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 150, content: c.body, fontSize: 31, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
+    makeText(st.kickerFont, { tier: "label", x: M, y: 212, w: ARTBOARD_W - 2 * M, h: 36, content: String(c.kicker || "INTELLIGENCE BRIEF").toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, letterSpacing: 4, lineHeight: 1.2 }),
+    makeText(st.headFont, { tier: "heading", x: M, y: 300, w: ARTBOARD_W - 2 * M, h: 600, content: c.heading, fontSize: 92, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.02 }),
+    c.body ? makeText(st.bodyFont, { tier: "body", x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 150, content: c.body, fontSize: 31, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
     makeElement("rect", { id: uid("r"), x: M, y: 1186, w: ARTBOARD_W - 2 * M, h: 1, fill: pal.muted }),
     sourcesEl(st, pal, c.sources),
   ];
@@ -408,10 +408,10 @@ function featureText(c, st, pal, r) {
   const bodyH = Math.max(70, r.panelBottom - 56 - bodyY);
   return [
     pal.accentBar ? makeElement("rect", { id: uid("r"), x: r.x, y: r.topY - 18, w: 48, h: 6, fill: pal.accent }) : null,
-    c.kicker ? makeText(st.kickerFont, { x: r.x, y: r.topY, w: r.w, h: 40, content: c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
-    makeText(st.headFont, { x: r.x, y: r.topY + 52, w: r.w, h: 230, content: c.heading, fontSize: headSize, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
-    c.body ? makeText(st.bodyFont, { x: r.x, y: bodyY, w: r.w, h: bodyH, content: c.body, fontSize: bodySize, fontWeight: 400, color: pal.sub, lineHeight: 1.42 }) : null,
-    src ? makeText(st.bodyFont, { x: r.x, y: r.panelBottom - 40, w: r.w, h: 40, content: "Sources: " + src, fontSize: 19, fontWeight: 400, color: pal.muted, lineHeight: 1.2, letterSpacing: 0.5 }) : null,
+    c.kicker ? makeText(st.kickerFont, { tier: "label", x: r.x, y: r.topY, w: r.w, h: 40, content: c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
+    makeText(st.headFont, { tier: "heading", x: r.x, y: r.topY + 52, w: r.w, h: 230, content: c.heading, fontSize: headSize, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
+    c.body ? makeText(st.bodyFont, { tier: "body", x: r.x, y: bodyY, w: r.w, h: bodyH, content: c.body, fontSize: bodySize, fontWeight: 400, color: pal.sub, lineHeight: 1.42 }) : null,
+    src ? makeText(st.bodyFont, { tier: "body", x: r.x, y: r.panelBottom - 40, w: r.w, h: 40, content: "Sources: " + src, fontSize: 19, fontWeight: 400, color: pal.muted, lineHeight: 1.2, letterSpacing: 0.5 }) : null,
   ];
 }
 

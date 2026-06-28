@@ -64,9 +64,12 @@ export function rethemeDoc(doc, prev, next) {
       for (const k of COLORS) {
         if (b[k] && p[k] && e.color === p[k]) { n = Object.assign({}, n, { color: b[k] }); break; }
       }
-      if (b.labelFont && p.labelFont && n.fontFamily === p.labelFont) n = Object.assign({}, n, { fontFamily: b.labelFont });
-      else if (b.headFont && p.headFont && n.fontFamily === p.headFont) n = Object.assign({}, n, { fontFamily: b.headFont });
-      else if (b.bodyFont && p.bodyFont && n.fontFamily === p.bodyFont) n = Object.assign({}, n, { fontFamily: b.bodyFont });
+      // Fonts remap by TIER, not by matching the font string — so each tier moves
+      // independently even when two share a face, and untagged brand marks (the
+      // LOATHR wordmark / footer / sign-off) keep their Courier font.
+      if (e.tier === "label" && b.labelFont) n = Object.assign({}, n, { fontFamily: b.labelFont });
+      else if (e.tier === "heading" && b.headFont) n = Object.assign({}, n, { fontFamily: b.headFont });
+      else if (e.tier === "body" && b.bodyFont) n = Object.assign({}, n, { fontFamily: b.bodyFont });
       if (b.wordmark && p.wordmark && n.content === p.wordmark) n = Object.assign({}, n, { content: b.wordmark });
       // The inline highlight marker is a DERIVED color pair — its background is the
       // accent and its knockout text is the deck bg — set only by the renderer, with
