@@ -2,7 +2,8 @@
 import React from "react";
 import { ARTBOARD_W, ARTBOARD_H } from "./model";
 import RichText from "./RichText";
-import Sticker from "./Sticker";
+import ShapeBacking from "./ShapeBacking";
+import { shapePad } from "./shapes";
 
 // A non-interactive, CSS-scaled miniature of a slide. Used by the slide strip
 // (SlideThumb) and the Create-screen style previews (StylePreview), so both are
@@ -26,24 +27,39 @@ function StaticElement({ el }) {
     overflow: "hidden",
   };
   if (el.type === "text") {
-    return (
-      <div style={{
-        ...frame,
-        fontFamily: el.fontFamily,
-        fontSize: el.fontSize,
-        fontWeight: el.fontWeight,
-        fontStyle: el.italic ? "italic" : "normal",
-        color: el.color,
-        textAlign: el.align,
-        lineHeight: el.lineHeight,
-        letterSpacing: (el.letterSpacing || 0) + "px",
-        textDecorationLine: el.strike ? "line-through" : "none",
-        textDecorationColor: el.strikeColor || el.color,
-        textDecorationThickness: el.strike ? "0.11em" : undefined,
-        whiteSpace: "pre-wrap",
-        wordBreak: "break-word",
-      }}><RichText el={el} /></div>
-    );
+    const typography = {
+      fontFamily: el.fontFamily,
+      fontSize: el.fontSize,
+      fontWeight: el.fontWeight,
+      fontStyle: el.italic ? "italic" : "normal",
+      color: el.color,
+      textAlign: el.align,
+      lineHeight: el.lineHeight,
+      letterSpacing: (el.letterSpacing || 0) + "px",
+      textDecorationLine: el.strike ? "line-through" : "none",
+      textDecorationColor: el.strikeColor || el.color,
+      textDecorationThickness: el.strike ? "0.11em" : undefined,
+      whiteSpace: "pre-wrap",
+      wordBreak: "break-word",
+    };
+    // Shaped text: backing behind, copy padded + centered on top (overflow:visible
+    // so the tail / dog-ear / glow aren't clipped). Mirrors Element.jsx.
+    if (el.shape) {
+      const pad = shapePad(el);
+      return (
+        <div style={{ ...frame, overflow: "visible" }}>
+          <ShapeBacking el={el} />
+          <div style={{
+            position: "absolute", inset: 0, display: "flex", alignItems: "center", boxSizing: "border-box",
+            justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start",
+            paddingTop: pad.top, paddingRight: pad.right, paddingBottom: pad.bottom, paddingLeft: pad.left,
+          }}>
+            <div style={{ width: "100%", ...typography }}><RichText el={el} /></div>
+          </div>
+        </div>
+      );
+    }
+    return <div style={{ ...frame, ...typography }}><RichText el={el} /></div>;
   }
   if (el.type === "image") {
     return el.thumb ? (
@@ -58,10 +74,6 @@ function StaticElement({ el }) {
   }
   if (el.type === "line") {
     return <div style={{ ...frame, background: el.fill }} />;
-  }
-  if (el.type === "sticker") {
-    // overflow:visible so the speech tail / note dog-ear / cloud glow aren't clipped.
-    return <div style={{ ...frame, overflow: "visible" }}><Sticker el={el} /></div>;
   }
   return null;
 }

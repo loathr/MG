@@ -6,8 +6,8 @@ import { generateCarousel, regenerateCaption } from "./generate";
 import { photosDemoDoc } from "./demo";
 import Artboard from "./Artboard";
 import SlideThumb from "./SlideThumb";
-import Sticker from "./Sticker";
-import { STICKER_VARIANTS, stickerVariant, STICKER_PAPER, STICKER_PAPER_INK } from "./stickers";
+import ShapeBacking from "./ShapeBacking";
+import { SHAPE_VARIANTS, shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
 import PhotosPanel from "./PhotosPanel";
 import BrandPanel from "./BrandPanel";
 import CaptionPanel from "./CaptionPanel";
@@ -60,6 +60,8 @@ export default function Studio() {
   const fcAbort = useRef(null);  // AbortController for the in-flight fact-check
   const dragFrom = useRef(null); // slide index being drag-reordered in the strip
   const slide = state.doc.slides[state.slideIndex];
+  const selectedEl = slide && (slide.elements || []).find((e) => e.id === state.selectedId);
+  const selectedIsText = !!(selectedEl && selectedEl.type === "text");
 
   // Optional demo deck for the FLAT-LAYERS image-path proof: ?demo=photos9 jumps
   // straight into the editor. Client-only (avoids SSR mismatch) and runs once.
@@ -156,19 +158,21 @@ export default function Studio() {
     x: Math.round((ARTBOARD_W - 360) / 2), y: Math.round(ARTBOARD_H / 2), w: 360, h: 6, fill: "#ffffff",
   }) });
 
-  // Drop a bubble/sticker. Seeds size/font/text/tilt from the variant and colors
-  // it from the deck's current accent (note variant uses the paper palette).
-  const addSticker = (variantId) => {
-    const v = stickerVariant(variantId);
+  // Tap a shape in the Elements panel: WRAP the selected text element in it, or —
+  // when no text is selected — drop a fresh editable text box already wearing it.
+  // Either way you get a real, fully-editable text element with a shape backing.
+  const wrapOrAddShape = (variantId) => {
+    const sel = slide && (slide.elements || []).find((e) => e.id === state.selectedId);
+    if (sel && sel.type === "text") { dispatch({ type: "setShape", id: sel.id, shape: variantId }); return; }
+    const v = shapeVariant(variantId);
     const accent = (state.doc.brand && state.doc.brand.accent) || "#e23744";
-    dispatch({ type: "add", element: makeElement("sticker", {
+    dispatch({ type: "add", element: makeElement("text", {
       x: Math.round((ARTBOARD_W - v.w) / 2), y: Math.round((ARTBOARD_H - v.h) / 2),
       w: v.w, h: v.h, rotation: v.rotation || 0,
-      variant: v.id, text: v.text,
-      fill: v.paper ? STICKER_PAPER : accent,
-      color: v.paper ? STICKER_PAPER_INK : (v.knockout ? "#0c0c0c" : "#ffffff"),
+      content: v.text, align: "center", lineHeight: 1.12,
+      color: v.paper ? SHAPE_PAPER_INK : (v.knockout ? "#0c0c0c" : "#ffffff"),
       fontFamily: v.font, fontSize: v.size, fontWeight: 700, letterSpacing: v.spacing || 0,
-      tailSide: "left",
+      shape: v.id, shapeFill: v.paper ? SHAPE_PAPER : accent, tailSide: "left",
     }) });
   };
 
@@ -304,10 +308,13 @@ export default function Studio() {
           <SidePanel title="Elements" onClose={() => setActivePanel(null)}>
             <PanelButton onClick={addRect}>Rectangle</PanelButton>
             <PanelButton onClick={addLine}>Line / divider</PanelButton>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: "#7c7c84", textTransform: "uppercase", margin: "14px 0 9px", borderTop: "1px solid #2a2a2f", paddingTop: 12 }}>Bubbles &amp; stickers</div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: "#7c7c84", textTransform: "uppercase", margin: "14px 0 4px", borderTop: "1px solid #2a2a2f", paddingTop: 12 }}>Bubbles &amp; shapes</div>
+            <div style={{ fontSize: 10.5, color: "#7c7c84", lineHeight: 1.4, marginBottom: 9 }}>
+              {selectedIsText ? "Wraps the selected text." : "Tap to drop editable text — or select text first to wrap it."}
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {STICKER_VARIANTS.map((v) => (
-                <StickerTile key={v.id} v={v} accent={(state.doc.brand && state.doc.brand.accent) || "#e23744"} onAdd={addSticker} />
+              {SHAPE_VARIANTS.map((v) => (
+                <ShapeTile key={v.id} v={v} accent={(state.doc.brand && state.doc.brand.accent) || "#e23744"} wrap={selectedIsText} onPick={wrapOrAddShape} />
               ))}
             </div>
           </SidePanel>
@@ -418,24 +425,28 @@ function PanelButton({ onClick, children }) {
   );
 }
 
-// A grid swatch for a sticker variant — a real (scaled-down) live Sticker so the
-// panel previews exactly what drops onto the canvas. Tap to add.
-function StickerTile({ v, accent, onAdd }) {
+// A grid swatch for a shape — a real (scaled-down) ShapeBacking with the sample
+// label centered on top, so the panel previews exactly what you'll get. Tap to
+// wrap the selected text or drop a fresh shaped text box.
+function ShapeTile({ v, accent, wrap, onPick }) {
   const tileH = 58;
-  const s = Math.min(96 / v.w, (tileH - 16) / v.h);
+  const s = Math.min(98 / v.w, (tileH - 16) / v.h);
   const el = {
-    type: "sticker", variant: v.id, text: v.text, w: v.w, h: v.h, rotation: v.rotation || 0,
-    fill: v.paper ? STICKER_PAPER : accent,
-    color: v.paper ? STICKER_PAPER_INK : (v.knockout ? "#0c0c0c" : "#ffffff"),
-    fontFamily: v.font, fontSize: v.size, fontWeight: 700, letterSpacing: v.spacing || 0,
+    type: "text", shape: v.id, content: v.text, w: v.w, h: v.h, rotation: v.rotation || 0,
+    shapeFill: v.paper ? SHAPE_PAPER : accent,
+    color: v.paper ? SHAPE_PAPER_INK : (v.knockout ? "#0c0c0c" : "#ffffff"),
+    fontFamily: v.font, fontSize: v.size, fontWeight: 700, letterSpacing: v.spacing || 0, align: "center",
     tailSide: "left", opacity: 1,
   };
   return (
-    <button onClick={() => onAdd(v.id)} title={"Add " + v.label}
+    <button onClick={() => onPick(v.id)} title={(wrap ? "Wrap selection in " : "Add ") + v.label}
       style={{ position: "relative", height: tileH, background: "#202024", border: "1px solid #2f2f37", borderRadius: 8, cursor: "pointer", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ position: "relative", width: v.w * s, height: v.h * s }}>
         <div style={{ position: "absolute", top: 0, left: 0, width: v.w, height: v.h, transform: "scale(" + s + ")", transformOrigin: "top left" }}>
-          <Sticker el={el} />
+          <ShapeBacking el={el} />
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+            <span style={{ fontFamily: v.font, fontSize: v.size, fontWeight: 700, letterSpacing: (v.spacing || 0) + "px", color: el.color, lineHeight: 1.1, padding: "0 8%" }}>{v.text}</span>
+          </div>
         </div>
       </div>
       <span style={{ position: "absolute", bottom: 2, left: 0, right: 0, fontSize: 9, color: "#8a8a92", textAlign: "center" }}>{v.label}</span>

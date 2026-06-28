@@ -12,6 +12,7 @@
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H } from "./model";
 import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements } from "./templates";
 import { brandFromStyle } from "./styles";
+import { shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
 
 const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
 
@@ -74,6 +75,10 @@ export function rethemeDoc(doc, prev, next) {
       for (const k of COLORS) {
         if (b[k] && p[k] && e.color === p[k]) { n = Object.assign({}, n, { color: b[k] }); break; }
       }
+      // A text-shape backing whose accent still matches the deck follows a palette
+      // swap (paper/knockout shapes carry their own fixed colors, so they don't
+      // match prev.accent and are left alone — same idea as the rect fills above).
+      if (e.shapeFill && b.accent && p.accent && e.shapeFill === p.accent) n = Object.assign({}, n, { shapeFill: b.accent });
       // Fonts remap by TIER, not by matching the font string — so each tier moves
       // independently even when two share a face, and untagged brand marks (the
       // LOATHR wordmark / footer / sign-off) keep their Courier font.
@@ -199,6 +204,40 @@ function docReducer(state, a) {
       return withSlide(state, (s) => Object.assign({}, s, {
         background: Object.assign({}, s.background, a.patch),
       }));
+    case "setShape": {
+      // Apply / change / remove a shape backing on a TEXT element (shapes.js).
+      // a.shape = variant id to apply, or null to remove. Switching variants
+      // resets the shape color to the variant's default (brand accent, or paper
+      // for the note). Knockout/paper variants need a contrasting text color, so
+      // we stash the prior `color` in `priorColor` and restore it on removal /
+      // when switching back to an outline variant.
+      const id = a.id || state.selectedId;
+      const shape = a.shape || null;
+      const accent = (state.doc.brand && state.doc.brand.accent) || "#e23744";
+      return withSlide(state, (s) => ({
+        ...s,
+        elements: s.elements.map((e) => {
+          if (e.id !== id || e.type !== "text") return e;
+          const n = Object.assign({}, e);
+          if (!shape) {
+            if (n.priorColor != null) n.color = n.priorColor;
+            delete n.shape; delete n.shapeFill; delete n.tailSide; delete n.priorColor;
+            return n;
+          }
+          const v = shapeVariant(shape);
+          n.shape = shape;
+          n.tailSide = e.tailSide || "left";
+          n.shapeFill = v.paper ? SHAPE_PAPER : accent;
+          if (v.paper || v.knockout) {
+            if (n.priorColor == null) n.priorColor = e.color;
+            n.color = v.paper ? SHAPE_PAPER_INK : "#0c0c0c";
+          } else if (n.priorColor != null) {
+            n.color = n.priorColor; delete n.priorColor;
+          }
+          return n;
+        }),
+      }));
+    }
     case "addSlide": {
       const slides = state.doc.slides.concat([a.slide || blankSlide()]);
       return withDoc(state, slides, slides.length - 1);
@@ -384,7 +423,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, resetSlideToBrand: 1 };
+const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, resetSlideToBrand: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
 
 function snap(state) {

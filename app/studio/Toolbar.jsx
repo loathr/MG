@@ -1,5 +1,7 @@
 "use client";
 import React from "react";
+import { SHAPE_VARIANTS } from "./shapes";
+import { fitShapeBox } from "./textfit";
 
 const FONTS = [
   "Georgia, serif",
@@ -51,6 +53,32 @@ export default function Toolbar({ el, dispatch }) {
             <input type="color" value={hexish(el.color)} onChange={(e) => up({ color: e.target.value })}
               style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
           </label>
+          <div style={sep} />
+          <select value={el.shape || ""} title="Shape backing"
+            onChange={(e) => dispatch({ type: "setShape", id: el.id, shape: e.target.value || null })}
+            style={{ height: 26, background: "#1d1d21", color: "#e8e8e8", border: "1px solid #3a3a40", borderRadius: 5, fontSize: 11, maxWidth: 104 }}>
+            <option value="">No shape</option>
+            {SHAPE_VARIANTS.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
+          </select>
+          {el.shape && (
+            <>
+              <label style={{ ...btn(false), padding: 0, position: "relative", overflow: "hidden" }} title="Shape color">
+                <span style={{ width: 16, height: 16, borderRadius: 3, background: el.shapeFill || "#e23744", border: "1px solid #555" }} />
+                <input type="color" value={hexish(el.shapeFill)} onChange={(e) => up({ shapeFill: e.target.value })}
+                  style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+              </label>
+              {el.shape === "speech" && (
+                <button style={btn(false)} title="Tail side"
+                  onClick={() => up({ tailSide: el.tailSide === "left" ? "center" : el.tailSide === "center" ? "right" : "left" })}>
+                  {el.tailSide === "right" ? "Tail ▸" : el.tailSide === "center" ? "Tail ▾" : "Tail ◂"}
+                </button>
+              )}
+              <button style={btn(false)} title="Fit shape to text"
+                onClick={() => dispatch({ type: "update", id: el.id, patch: fitShapeBox(el, el.w) })}>Fit</button>
+              <button style={{ ...btn(false), color: "#ff8a8a" }} title="Remove shape"
+                onClick={() => dispatch({ type: "setShape", id: el.id, shape: null })}>{"✕"} Shape</button>
+            </>
+          )}
         </>
       )}
 
@@ -65,36 +93,6 @@ export default function Toolbar({ el, dispatch }) {
             <input type="number" value={el.radius || 0} min={0} max={400} title="Corner radius"
               onChange={(e) => up({ radius: Math.max(0, +e.target.value || 0) })}
               style={{ width: 48, height: 26, background: "#1d1d21", color: "#e8e8e8", border: "1px solid #3a3a40", borderRadius: 5, fontSize: 12, textAlign: "center" }} />
-          )}
-        </>
-      )}
-
-      {el.type === "sticker" && (
-        <>
-          <input
-            value={el.text || ""}
-            onChange={(e) => up({ text: e.target.value })}
-            placeholder="Label"
-            style={{ width: 116, height: 26, background: "#1d1d21", color: "#e8e8e8", border: "1px solid #3a3a40", borderRadius: 5, fontSize: 12, padding: "0 7px" }}
-          />
-          <input type="number" value={Math.round(el.fontSize || 30)} min={8} max={200} title="Text size"
-            onChange={(e) => up({ fontSize: Math.max(8, +e.target.value || 8) })}
-            style={{ width: 46, height: 26, background: "#1d1d21", color: "#e8e8e8", border: "1px solid #3a3a40", borderRadius: 5, fontSize: 12, textAlign: "center" }} />
-          <label style={{ ...btn(false), padding: 0, position: "relative", overflow: "hidden" }} title="Shape / accent color">
-            <span style={{ width: 16, height: 16, borderRadius: 3, background: el.fill, border: "1px solid #555" }} />
-            <input type="color" value={hexish(el.fill)} onChange={(e) => up({ fill: e.target.value })}
-              style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-          </label>
-          <label style={{ ...btn(false), padding: 0, position: "relative", overflow: "hidden" }} title="Text color">
-            <span style={{ width: 16, height: 16, borderRadius: 3, background: el.color, border: "1px solid #555", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#000" }}>A</span>
-            <input type="color" value={hexish(el.color)} onChange={(e) => up({ color: e.target.value })}
-              style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-          </label>
-          {el.variant === "speech" && (
-            <button style={btn(false)} title="Tail side"
-              onClick={() => up({ tailSide: el.tailSide === "left" ? "center" : el.tailSide === "center" ? "right" : "left" })}>
-              {el.tailSide === "right" ? "Tail ▸" : el.tailSide === "center" ? "Tail ▾" : "Tail ◂"}
-            </button>
           )}
         </>
       )}

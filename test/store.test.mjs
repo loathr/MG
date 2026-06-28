@@ -100,6 +100,70 @@ test("rethemeDoc remaps on-brand elements and leaves off-brand ones", () => {
   assert.equal(out.slides[0].background.color, "#111111");
 });
 
+test("setShape wears a shape on a text element (accent fill, undoable)", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "T", content: "Hot take", color: "#ffffff" }) });
+  const frames = s.past.length;
+  s = reducer(s, { type: "setShape", id: "T", shape: "speech" });
+  const el = cur(s).elements.find((e) => e.id === "T");
+  assert.equal(el.shape, "speech");
+  assert.ok(el.shapeFill);                 // gets the deck accent
+  assert.equal(el.tailSide, "left");
+  assert.equal(el.color, "#ffffff");       // outline shape keeps the text color
+  assert.equal(s.past.length, frames + 1); // undoable
+});
+
+test("setShape on a fill shape knocks out the text, stashing + restoring the prior color", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "P", content: "SAVE", color: "#ffffff" }) });
+  s = reducer(s, { type: "setShape", id: "P", shape: "pill" });
+  let el = cur(s).elements.find((e) => e.id === "P");
+  assert.equal(el.color, "#0c0c0c");       // dark knockout on the accent fill
+  assert.equal(el.priorColor, "#ffffff");  // prior text color stashed
+  s = reducer(s, { type: "setShape", id: "P", shape: null });   // remove
+  el = cur(s).elements.find((e) => e.id === "P");
+  assert.equal(el.shape, undefined);
+  assert.equal(el.shapeFill, undefined);
+  assert.equal(el.color, "#ffffff");       // restored
+  assert.equal(el.priorColor, undefined);
+});
+
+test("switching from a knockout shape to an outline shape restores the text color", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "X", content: "Hi", color: "#ffffff" }) });
+  s = reducer(s, { type: "setShape", id: "X", shape: "burst" });   // knockout
+  s = reducer(s, { type: "setShape", id: "X", shape: "speech" });  // outline
+  const el = cur(s).elements.find((e) => e.id === "X");
+  assert.equal(el.shape, "speech");
+  assert.equal(el.color, "#ffffff");
+  assert.equal(el.priorColor, undefined);
+});
+
+test("setShape ignores non-text elements", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("rect", { id: "R" }) });
+  s = reducer(s, { type: "setShape", id: "R", shape: "pill" });
+  assert.equal(cur(s).elements.find((e) => e.id === "R").shape, undefined);
+});
+
+test("rethemeDoc carries a shaped text's accent, leaving paper notes alone", () => {
+  const prev = brandFromStyle("editorial");
+  const next = Object.assign({}, prev, { accent: "#00ff00" });
+  const doc = {
+    brand: prev,
+    slides: [{
+      background: { type: "color", color: prev.bg },
+      elements: [
+        makeElement("text", { content: "A", shape: "speech", shapeFill: prev.accent, color: "#ffffff" }),
+        makeElement("text", { content: "B", shape: "note", shapeFill: "#f3efe2", color: "#1a1a1a" }),
+      ],
+    }],
+  };
+  const out = rethemeDoc(doc, prev, next);
+  assert.equal(out.slides[0].elements[0].shapeFill, "#00ff00");  // accent shape follows the swap
+  assert.equal(out.slides[0].elements[1].shapeFill, "#f3efe2");  // paper note untouched
+});
+
 test("stampLogo lands on the bookend slides only, and clears cleanly", () => {
   const doc = slidesToDoc(
     [{ role: "COVER", heading: "C" }, { heading: "M" }, { role: "CLOSER", heading: "E" }],

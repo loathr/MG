@@ -10,9 +10,9 @@
 import { ARTBOARD_W, ARTBOARD_H, highlightRuns } from "./model";
 import { makeZip } from "./zip";
 import {
-  stickerPaint, stickerRadius, stickerBorderW, tagNotch, speechTail,
-  noteEar, hexA, BURST_POINTS, BANNER_RULE, STICKER_PAPER_EAR,
-} from "./stickers";
+  shapePaint, shapeRadius, shapeBorderW, shapePad, tagNotch, speechTail,
+  noteEar, hexA, BURST_POINTS, BANNER_RULE, SHAPE_PAPER_EAR,
+} from "./shapes";
 
 function loadImage(src) {
   return new Promise((resolve) => {
@@ -59,7 +59,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function wrapLines(ctx, text, maxWidth) {
+export function wrapLines(ctx, text, maxWidth) {
   const lines = [];
   const paragraphs = String(text == null ? "" : text).split("\n");
   for (const para of paragraphs) {
@@ -207,14 +207,15 @@ function tagPath(ctx, w, h, notch) {
   ctx.closePath();
 }
 
-// Draw a sticker element (local origin already at its top-left). Mirrors the CSS
-// in Sticker.jsx off the same geometry helpers so the PNG matches the canvas.
-function drawSticker(ctx, el) {
-  const p = stickerPaint(el);
-  const variant = el.variant || "speech";
+// Draw a text element's SHAPE backing (local origin already at its top-left).
+// Shape only — the text is drawn on top by drawShapedText. Mirrors the CSS in
+// ShapeBacking.jsx off the same geometry helpers so the PNG matches the canvas.
+function drawShapeBacking(ctx, el) {
+  const p = shapePaint(el);
+  const variant = el.shape || "speech";
   const w = el.w, h = el.h;
-  const radius = stickerRadius(el);
-  const bw = stickerBorderW(el);
+  const radius = shapeRadius(el);
+  const bw = shapeBorderW(el);
 
   if (variant === "burst") {
     burstPath(ctx, w, h);
@@ -233,7 +234,7 @@ function drawSticker(ctx, el) {
   } else {
     if (variant === "cloud") { // soft accent glow ring behind
       roundRectPath(ctx, -4, -4, w + 8, h + 8, radius + 4);
-      ctx.fillStyle = hexA(el.fill || "#e23744", 0.1);
+      ctx.fillStyle = hexA(el.shapeFill || "#e23744", 0.1);
       ctx.fill();
     }
     roundRectPath(ctx, 0, 0, w, h, radius);
@@ -249,7 +250,7 @@ function drawSticker(ctx, el) {
       if (ctx.setLineDash) ctx.setLineDash([]);
     }
     if (variant === "banner") {
-      ctx.fillStyle = p.rule || el.fill || "#e23744";
+      ctx.fillStyle = p.rule || el.shapeFill || "#e23744";
       ctx.fillRect(0, 0, w, BANNER_RULE);
       ctx.fillRect(0, h - BANNER_RULE, w, BANNER_RULE);
     }
@@ -262,7 +263,7 @@ function drawSticker(ctx, el) {
     ctx.lineTo(t.x + t.w, t.y);
     ctx.lineTo(t.x + t.w / 2, t.y + t.h);
     ctx.closePath();
-    ctx.fillStyle = el.fill || "#e23744";
+    ctx.fillStyle = el.shapeFill || "#e23744";
     ctx.fill();
   } else if (variant === "note") {
     const e = noteEar(el);
@@ -271,23 +272,34 @@ function drawSticker(ctx, el) {
     ctx.lineTo(w, h);
     ctx.lineTo(w, h - e);
     ctx.closePath();
-    ctx.fillStyle = STICKER_PAPER_EAR;
+    ctx.fillStyle = SHAPE_PAPER_EAR;
     ctx.fill();
   }
+}
 
-  // Centered single-line label (stickers are short callouts).
-  const fs = el.fontSize || 30;
-  const weight = el.fontWeight || 700;
+// Draw a shaped text element's copy: wrapped within the shape padding and
+// vertically centered in the box (mirrors the flex-centered layer in the DOM
+// renderers). Used only when el.shape is set.
+function drawShapedText(ctx, el) {
+  const pad = shapePad(el);
+  const innerW = Math.max(1, el.w - pad.left - pad.right);
+  const fs = el.fontSize || 16;
+  const weight = el.fontWeight || 400;
   const fstyle = el.italic ? "italic " : "";
-  ctx.font = fstyle + weight + " " + fs + "px " + (el.fontFamily || "Helvetica, Arial, sans-serif");
-  ctx.fillStyle = p.text;
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "center";
+  ctx.font = fstyle + weight + " " + fs + "px " + (el.fontFamily || "Georgia, serif");
+  ctx.fillStyle = el.color || "#ffffff";
+  ctx.textBaseline = "top";
+  const align = el.align || "left";
+  ctx.textAlign = align;
   const supportsLS = "letterSpacing" in ctx;
   if (supportsLS) ctx.letterSpacing = (el.letterSpacing || 0) + "px";
-  let cx = w / 2;
-  if (variant === "tag") cx = (tagNotch(el) + w) / 2;
-  ctx.fillText(String(el.text == null ? "" : el.text), cx, h / 2 + 1);
+  const lh = (el.lineHeight || 1.12) * fs;
+  const lines = wrapLines(ctx, el.content, innerW);
+  const totalH = lines.length * lh;
+  const innerH = el.h - pad.top - pad.bottom;
+  let y = pad.top + Math.max(0, (innerH - totalH) / 2);
+  const x = align === "center" ? pad.left + innerW / 2 : align === "right" ? pad.left + innerW : pad.left;
+  for (const line of lines) { ctx.fillText(line, x, y); y += lh; }
   if (supportsLS) ctx.letterSpacing = "0px";
 }
 
@@ -349,10 +361,9 @@ export async function renderSlideToCanvas(slide) {
         ctx.restore();
       }
     } else if (el.type === "text") {
-      if (el.highlight && el.highlightColor) drawHighlightText(ctx, el);
+      if (el.shape) { drawShapeBacking(ctx, el); drawShapedText(ctx, el); }
+      else if (el.highlight && el.highlightColor) drawHighlightText(ctx, el);
       else drawText(ctx, el);
-    } else if (el.type === "sticker") {
-      drawSticker(ctx, el);
     }
     ctx.restore();
   }

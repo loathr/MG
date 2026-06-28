@@ -1,7 +1,8 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 import RichText from "./RichText";
-import Sticker from "./Sticker";
+import ShapeBacking from "./ShapeBacking";
+import { shapePad } from "./shapes";
 
 // One element. Wrapped in React.memo so it re-renders only when its own object
 // (or its editing flag) changes — the key to Canva-like drag performance.
@@ -57,9 +58,13 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
 
   let inner = null;
   if (el.type === "text") {
+    // A text element may wear a SHAPE backing (shapes.js): the shape renders
+    // behind the copy and the text sits in a padded, centered layer on top —
+    // staying a fully-editable text box. Plain text keeps the top-aligned fill.
+    const shaped = !!el.shape;
     const textStyle = {
       width: "100%",
-      height: "100%",
+      height: shaped ? "auto" : "100%",
       fontFamily: el.fontFamily,
       fontSize: el.fontSize,
       fontWeight: el.fontWeight,
@@ -74,36 +79,51 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
       outline: "none",
-      overflow: "hidden",
+      overflow: shaped ? "visible" : "hidden",
     };
-    if (isEditing) {
+    const textNode = isEditing ? (
+      <div
+        ref={editRef}
+        contentEditable
+        suppressContentEditableWarning
+        style={textStyle}
+        onInput={(e) => { pendingRef.current = e.currentTarget.innerText; }}
+        onBlur={() => onEndEdit()}
+        onKeyDown={(e) => {
+          // Enter commits; Shift+Enter inserts a line break; Escape cancels.
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            e.currentTarget.blur();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            cancelledRef.current = true;
+            e.currentTarget.blur();
+          }
+          e.stopPropagation();
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        {el.content}
+      </div>
+    ) : (
+      <div style={textStyle}><RichText el={el} /></div>
+    );
+    if (shaped) {
+      const pad = shapePad(el);
       inner = (
-        <div
-          ref={editRef}
-          contentEditable
-          suppressContentEditableWarning
-          style={textStyle}
-          onInput={(e) => { pendingRef.current = e.currentTarget.innerText; }}
-          onBlur={() => onEndEdit()}
-          onKeyDown={(e) => {
-            // Enter commits; Shift+Enter inserts a line break; Escape cancels.
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              e.currentTarget.blur();
-            } else if (e.key === "Escape") {
-              e.preventDefault();
-              cancelledRef.current = true;
-              e.currentTarget.blur();
-            }
-            e.stopPropagation();
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          {el.content}
-        </div>
+        <>
+          <ShapeBacking el={el} />
+          <div style={{
+            position: "absolute", inset: 0, display: "flex", alignItems: "center", boxSizing: "border-box",
+            justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start",
+            paddingTop: pad.top, paddingRight: pad.right, paddingBottom: pad.bottom, paddingLeft: pad.left,
+          }}>
+            {textNode}
+          </div>
+        </>
       );
     } else {
-      inner = <div style={textStyle}><RichText el={el} /></div>;
+      inner = textNode;
     }
   } else if (el.type === "image") {
     inner = el.src ? (
@@ -128,8 +148,6 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
     );
   } else if (el.type === "line") {
     inner = <div style={{ width: "100%", height: "100%", background: el.fill }} />;
-  } else if (el.type === "sticker") {
-    inner = <Sticker el={el} />;
   }
 
   return (

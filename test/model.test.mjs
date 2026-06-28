@@ -29,14 +29,13 @@ test("makeElement merges type defaults with overrides", () => {
   assert.equal(makeElement("rect", {}).fill, ELEMENT_DEFAULTS.rect.fill);
 });
 
-test("makeElement('sticker') carries the sticker defaults", () => {
-  const s = makeElement("sticker", { variant: "pill", text: "SAVE" });
-  assert.equal(s.type, "sticker");
-  assert.equal(s.variant, "pill");
-  assert.equal(s.text, "SAVE");
-  assert.equal(s.fill, ELEMENT_DEFAULTS.sticker.fill);     // default accent kept
-  assert.equal(s.tailSide, "left");                         // default tail kept
-  assert.equal(makeElement("sticker", {}).variant, "speech"); // default variant
+test("a text element can carry shape fields (the text-shape backing)", () => {
+  // Shapes aren't their own type — they ride on a text element.
+  const t = makeElement("text", { content: "Hot take", shape: "speech", shapeFill: "#e23744", tailSide: "left" });
+  assert.equal(t.type, "text");
+  assert.equal(t.shape, "speech");
+  assert.equal(t.shapeFill, "#e23744");
+  assert.equal(makeElement("text", {}).shape, undefined); // plain text has no shape
 });
 
 test("blankSlide is a solid background with no elements", () => {
