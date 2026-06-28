@@ -202,7 +202,7 @@ export const FONT_PRESETS = [
   { id: "standard",   label: "Standard",   labelFont: BRAND_FONT, headFont: "Georgia, serif",                       bodyFont: "Helvetica, Arial, sans-serif" },
   { id: "editorial",  label: "Editorial",  labelFont: BRAND_FONT, headFont: "'Foun', Georgia, serif",               bodyFont: "'Maheni', Georgia, serif" },
   { id: "enterprise", label: "Enterprise", labelFont: BRAND_FONT, headFont: "'Otilito', 'Foun', sans-serif",        bodyFont: "'Qogee', 'Maheni', serif" },
-  { id: "newsdesk",   label: "News Desk",  labelFont: BRAND_FONT, headFont: "'CrownHeritage', 'Cheelaved', serif",  bodyFont: "'VintageTypist', 'CarbonText', serif" },
+  { id: "newsdesk",   label: "News Desk",  labelFont: BRAND_FONT, headFont: "'CrownHeritage', 'Cheelaved', serif",  bodyFont: "'CarbonText', 'Maheni', sans-serif" },
 ];
 
 // Which preset (if any) the brand's three tiers currently match — else null ("Custom").
