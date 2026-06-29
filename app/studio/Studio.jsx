@@ -178,11 +178,21 @@ export default function Studio() {
   // keeps focus + the selection); the optimistic textSel.style update keeps the
   // bar/Inspector toggles in sync before the store round-trips.
   const styleSpan = (patch) => {
-    if (editApiRef.current) editApiRef.current.applyStyle(patch);
+    const api = editApiRef.current;
+    if (api) {
+      // Target the stored selection offsets so styling survives the editor
+      // losing focus to a format-bar control (B2 hex field / system picker).
+      if (textSel && textSel.end > textSel.start && api.applyStyleAt) api.applyStyleAt(textSel.start, textSel.end, patch);
+      else api.applyStyle(patch);
+    }
     setTextSel((ts) => (ts ? { ...ts, style: applyPatchToStyle(ts.style, patch) } : ts));
   };
   const clearSpanStyle = () => {
-    if (editApiRef.current) editApiRef.current.clearStyle();
+    const api = editApiRef.current;
+    if (api) {
+      if (textSel && textSel.end > textSel.start && api.clearStyleAt) api.clearStyleAt(textSel.start, textSel.end);
+      else api.clearStyle();
+    }
     setTextSel((ts) => (ts ? { ...ts, style: null } : ts));
   };
   // The bar's A−/A+ nudges size. With a live span selection it targets JUST that

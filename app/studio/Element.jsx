@@ -48,10 +48,13 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
   // text + selection (the format controls keep focus via onMouseDown→preventDefault)
   // and dispatches ONE atomic content+runs update, so there is no commit/apply
   // race and the run lands on exactly the selected characters.
-  const applyRun = useCallback((patch, clear) => {
+  // `range` lets a caller target stored offsets instead of the live DOM
+  // selection — needed when a control (e.g. the format bar's hex field) takes
+  // focus and collapses the contentEditable selection (B2).
+  const applyRun = useCallback((patch, clear, range) => {
     const node = editRef.current;
     if (!node) return;
-    const off = selectionOffsets(node);
+    const off = range && range.end > range.start ? range : selectionOffsets(node);
     if (!off || off.end <= off.start) return;
     const text = node.innerText;
     const cur = elRef.current;
@@ -77,7 +80,12 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
     sel.removeAllRanges();
     sel.addRange(range);
     // Expose the style API + listen for selection changes while editing.
-    if (onEditApi) onEditApi({ applyStyle: (p) => applyRun(p, false), clearStyle: () => applyRun(null, true) });
+    if (onEditApi) onEditApi({
+      applyStyle: (p) => applyRun(p, false),
+      clearStyle: () => applyRun(null, true),
+      applyStyleAt: (start, end, p) => applyRun(p, false, { start, end }),
+      clearStyleAt: (start, end) => applyRun(null, true, { start, end }),
+    });
     document.addEventListener("selectionchange", reportSel);
     // Commit when editing ends by ANY path — blur, clicking the canvas
     // (deselect), selecting another element, a slide change, or unmount. The old
@@ -146,7 +154,14 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
         suppressContentEditableWarning
         style={textStyle}
         onInput={(e) => { pendingRef.current = e.currentTarget.innerText; if (onTextSelect) onTextSelect(null); }}
-        onBlur={() => onEndEdit()}
+        onBlur={(e) => {
+          // Keep editing alive when focus moves into the floating format bar
+          // (e.g. typing a custom hex) — styling targets stored offsets, so the
+          // collapsed selection is fine and the popover must not commit/unmount.
+          const to = e.relatedTarget;
+          if (to && to.closest && to.closest("[data-formatbar]")) return;
+          onEndEdit();
+        }}
         onKeyDown={(e) => {
           // Enter commits; Shift+Enter inserts a line break; Escape cancels.
           if (e.key === "Enter" && !e.shiftKey) {
