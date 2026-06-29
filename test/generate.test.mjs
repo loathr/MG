@@ -114,3 +114,14 @@ test("buildPrompt threads a grounded source seed only when one is provided (R5)"
   // no seed → no grounding line (typed topics behave exactly as before)
   assert.doesNotMatch(buildPrompt("x", "news", { seed: 1 }), /build the deck on these specific facts/i);
 });
+
+test("buildPrompt honours the deck length and an optional tone (Create screen)", () => {
+  const brief = buildPrompt("x", "editorial", { seed: 1, slides: 5 });
+  assert.match(brief, /EXACTLY 5 slides/);
+  assert.match(brief, /3 content slides/);          // 5 - cover - closer
+  assert.match(buildPrompt("x", "editorial", { seed: 1, slides: 10 }), /EXACTLY 10 slides/);
+  assert.match(buildPrompt("x", "editorial", { seed: 1 }), /EXACTLY 8 slides/); // default
+  // tone only appears when chosen, and is otherwise absent
+  assert.match(buildPrompt("x", "editorial", { seed: 1, tone: "punchy" }), /Tone: write it punchy/);
+  assert.doesNotMatch(buildPrompt("x", "editorial", { seed: 1 }), /Tone: write it/);
+});

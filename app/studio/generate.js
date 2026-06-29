@@ -45,6 +45,15 @@ const VOICES = [
   "warm and human, anchoring big ideas in lived detail",
 ];
 
+// Optional tone overlay from the create screen's Voice & tone control. Empty when
+// none is chosen, so the default deck is unchanged.
+const TONE_DESC = {
+  punchy: "punchy and high-energy — short, declarative, quotable lines",
+  analytical: "analytical and measured — precise, reasoned, evidence-first",
+  playful: "playful and conversational — light, witty, and human",
+  authoritative: "authoritative and definitive — confident, expert, no hedging",
+};
+
 // Tiny stable string hash → non-negative int. Seeds the angle/voice pick so the
 // same (topic, category) is reproducible while different topics diverge.
 export function hashStr(s) {
@@ -77,12 +86,17 @@ export function buildPrompt(topic, categoryKey, opts) {
   // source seed the deck so it's built on the actual story, not just the headline.
   const ground = o.ground && o.ground.extract ? String(o.ground.extract) : "";
   const groundSrc = o.ground && o.ground.source ? String(o.ground.source) : "";
+  // Deck length (cover + content + closer) from the create screen's Length control.
+  const total = Math.max(4, Math.min(12, o.slides || 8));
+  const content = total - 2;
+  const tone = o.tone && TONE_DESC[o.tone] ? TONE_DESC[o.tone] : "";
   return [
     "You are " + cat.persona + " writing a premium Instagram carousel.",
     'Topic: "' + topic + '".',
     o.today ? "Today's date is " + o.today + ". Treat the topic as of now — prefer the most recent, verifiable facts and avoid stale or dated framing." : null,
     cat.brief,
     "Approach this through " + angle + ". Voice: " + voice + ".",
+    tone ? "Tone: write it " + tone + " — let this colour the whole deck." : null,
     "",
     research,
     ground ? "Grounded source — build the deck on these specific facts, verifying and expanding them with search (correct anything outdated): \"" + ground + "\"" + (groundSrc ? " [" + groundSrc + "]" : "") : null,
@@ -119,8 +133,8 @@ export function buildPrompt(topic, categoryKey, opts) {
     '}',
     "",
     "Rules:",
-    "- 7 to 10 slides total: cover + 5-8 content + closer.",
-    "- Build the content slides from these roles, ordered so each builds on the previous into a rising arc; use each at most once and pick the ones that tell the strongest story: " + roles.join(", ") + ". (A topic that only needs 5 makes a tight 7-slide deck — that's good.)",
+    "- Make EXACTLY " + total + " slides: a cover, " + content + " content slide" + (content === 1 ? "" : "s") + ", and a closer. Hit this count — fill it with substance, never filler.",
+    "- Build the content into a rising arc, leading with these role beats as a guide and reusing or extending them only as needed to reach " + content + " content slides: " + roles.join(", ") + ".",
     "- A topic-heavy point MAY spill across two consecutive slides when one slide can't do it justice: set the second slide's role to the same label plus \" · CONT'D\" and continue into a fresh beat (never repeat the first). Only for genuine richness, at most once per deck — never to pad length.",
     "- On a content slide you MAY set \"layout\" to fit its content and the flow — one of: classic (clean text, the default), statement, quote, centered, bottom, numbered, or an image-led feature / featureBottom / featureSplit / split. Use an image-led layout ONLY for a slide with a clear visual subject (an entity/scene); otherwise clean text. Choose by fit, never to force variety or repeat a composition; most slides are classic. (Stat / Versus come from the data fields below, not this.)",
     "- Headlines in Title Case; bodies in full sentences. No hashtags or emoji anywhere.",
@@ -314,7 +328,7 @@ export async function generateCarousel(topic, opts) {
   // (o.signal) and reports progress (o.onPhase). Pass webSearch:false for a fast
   // "Quick draft" from the model's knowledge (still anchored to today's date).
   const webSearch = o.webSearch !== false;
-  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch, ground: o.ground });
+  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch, ground: o.ground, slides: o.slides, tone: o.tone });
   const text = await runPrompt(prompt, { model: o.model, webSearch, stream: o.stream, signal: o.signal, onPhase: o.onPhase });
   const slides = parseSlides(text);
   const wantPhotos = o.photos !== false;

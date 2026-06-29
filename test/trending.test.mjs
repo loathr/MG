@@ -4,13 +4,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  BEATS, getBeat, beatVoice, mostReadUrl, cleanTitle, parseRss, parseMostRead,
+  BEATS, getBeat, beatVoice, beatsForDesk, defaultBeat, mostReadUrl, cleanTitle, parseRss, parseMostRead,
   filterByTerms, rankItems,
 } from "../app/studio/trending.js";
 
 test("BEATS includes the thin segments backed by most-read (no rss)", () => {
   const keys = BEATS.map((b) => b.key);
-  for (const k of ["film", "business", "news", "photo", "nightlife", "trivia", "tea"]) assert.ok(keys.includes(k), "has beat " + k);
+  for (const k of ["film", "news_world", "news_business", "ent_tech", "photo", "nightlife", "trivia", "tea"]) assert.ok(keys.includes(k), "has beat " + k);
   // thin beats have no rss feeds → they resolve via Wikipedia most-read
   assert.deepEqual(getBeat("nightlife").rss, []);
   assert.deepEqual(getBeat("trivia").terms, []); // general curiosities
@@ -22,10 +22,21 @@ test("BEATS includes the thin segments backed by most-read (no rss)", () => {
 
 test("beatVoice maps a beat to its writing voice (tie-back)", () => {
   assert.equal(beatVoice("film"), "editorial");
-  assert.equal(beatVoice("tech"), "business");
-  assert.equal(beatVoice("news"), "news");
+  assert.equal(beatVoice("ent_tech"), "business");
+  assert.equal(beatVoice("news_world"), "news");
   assert.equal(beatVoice("tea"), "story");
   assert.equal(beatVoice("nope"), "editorial"); // unknown → first beat
+});
+
+test("beats route per desk: Editorial 9, Enterprise 13, News Desk 10", () => {
+  assert.equal(beatsForDesk("editorial").length, 9);
+  assert.equal(beatsForDesk("enterprise").length, 13);
+  assert.equal(beatsForDesk("newsdesk").length, 10);
+  // every beat is tagged with exactly one of the three desks
+  for (const b of BEATS) assert.ok(["editorial", "enterprise", "newsdesk"].includes(b.desk), b.key + " has a desk");
+  // defaultBeat is the desk's first beat and resolves back to that desk
+  assert.equal(defaultBeat("enterprise"), beatsForDesk("enterprise")[0].key);
+  assert.equal(getBeat(defaultBeat("newsdesk")).desk, "newsdesk");
 });
 
 test("mostReadUrl zero-pads the date into the featured-feed path", () => {

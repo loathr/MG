@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { UI } from "./theme";
-import { BEATS, beatVoice } from "./trending";
+import { beatsForDesk, defaultBeat, beatVoice } from "./trending";
 
 // The cued, hidden "Trending" panel on the create screen. Closed by default —
 // just the pill. Opening it fetches live topics for the selected beat from the
@@ -11,7 +11,7 @@ import { BEATS, beatVoice } from "./trending";
 // News Desk. Zero Claude credits.
 export default function TrendingPanel({ onPick, desk }) {
   const [open, setOpen] = useState(false);
-  const [beat, setBeat] = useState("film");
+  const [beat, setBeat] = useState(() => defaultBeat(desk));
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -43,6 +43,10 @@ export default function TrendingPanel({ onPick, desk }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, beat]);
 
+  // When the desk changes, snap the dropdown back to that desk's first beat.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setBeat(defaultBeat(desk)); }, [desk]);
+
   // Carry the card's summary + source as a grounding seed (R5) so generation is
   // built on the actual story, not just its title.
   const pick = (it) => { onPick(it.title, beatVoice(beat), { extract: it.extract || "", source: it.source || "" }); setOpen(false); };
@@ -62,10 +66,11 @@ export default function TrendingPanel({ onPick, desk }) {
             <span style={ptitle}><span style={{ color: "#5aa6ff" }}>✦</span> Trending now</span>
             <button type="button" onClick={() => load(true)} style={refreshBtn} disabled={loading} title="Pull the latest">↻ Refresh</button>
           </div>
-          <div style={beatsRow}>
-            {BEATS.map((b) => (
-              <button key={b.key} type="button" onClick={() => setBeat(b.key)} style={chip(beat === b.key)}>{b.label}</button>
-            ))}
+          <div style={ddRow}>
+            <span style={ddLabel}>Trending in</span>
+            <select value={beat} onChange={(e) => setBeat(e.target.value)} style={ddSelect} title="Pick a beat">
+              {beatsForDesk(desk).map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
+            </select>
           </div>
 
           {loading ? (
@@ -106,14 +111,9 @@ const panel = {
 const phead = { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 };
 const ptitle = { fontSize: 11.5, letterSpacing: 1, textTransform: "uppercase", color: "#b9bdc6", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 7 };
 const refreshBtn = { fontSize: 11.5, color: "#9aa0ab", background: "transparent", border: "1px solid #2f2f37", borderRadius: 999, padding: "4px 10px", cursor: "pointer" };
-const beatsRow = { display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 14, justifyContent: "center" };
-function chip(on) {
-  return {
-    height: 30, padding: "0 13px", borderRadius: 999, fontSize: 12, cursor: "pointer",
-    background: on ? UI.brand : "transparent", color: on ? "#fff" : "#b6b6be",
-    border: "1px solid " + (on ? UI.brand : "#34343c"), fontWeight: on ? 600 : 400,
-  };
-}
+const ddRow = { display: "flex", alignItems: "center", gap: 10, marginBottom: 14 };
+const ddLabel = { fontSize: 12, color: UI.muted, flexShrink: 0 };
+const ddSelect = { flex: 1, height: 38, borderRadius: 8, background: UI.surface2, color: "#fff", border: "1px solid " + UI.border, fontSize: 13, padding: "0 11px", cursor: "pointer" };
 const cards = { display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" };
 const card = { width: 96, cursor: "pointer", background: "transparent", border: "none", padding: 0, textAlign: "left", display: "block" };
 const thumb = {

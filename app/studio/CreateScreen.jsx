@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { UI } from "./theme";
 import { STYLE_LIST, DEFAULT_STYLE, BRAND_FONT } from "./styles";
-import { CATEGORY_LIST, getCategory } from "./categories";
+import { getCategory } from "./categories";
 import StylePreview from "./StylePreview";
 import TrendingPanel from "./TrendingPanel";
 
@@ -14,8 +14,30 @@ import TrendingPanel from "./TrendingPanel";
 // without adding any concept to the default one-click path.
 
 // Each desk's implied writing voice (a content category from categories.js).
-// How-to and Story are voice-only — offered under Advanced, never a top-level desk.
+// How-to and Story are voice-only — offered under Voice & tone, never a top-level desk.
 const DESK_VOICE = { editorial: "editorial", enterprise: "business", newsdesk: "news" };
+
+// Deck length → slide count, fed to generation (cover + content + closer).
+const LENGTHS = [
+  { id: "brief", label: "Brief", slides: 5 },
+  { id: "standard", label: "Standard", slides: 8 },
+  { id: "deep", label: "Deep", slides: 10 },
+];
+// Optional tone overlay (second axis beyond voice); none = let voice/desk decide.
+const TONES = [
+  { id: "punchy", label: "Punchy" },
+  { id: "analytical", label: "Analytical" },
+  { id: "playful", label: "Playful" },
+  { id: "authoritative", label: "Authoritative" },
+];
+function toneLabel(id) { const t = TONES.find((x) => x.id === id); return t ? t.label : ""; }
+// Voice options grouped by family for the Voice & tone dropdown.
+const VOICE_GROUPS = [
+  { label: "Culture", keys: ["editorial"] },
+  { label: "Business", keys: ["business"] },
+  { label: "News", keys: ["news"] },
+  { label: "Narrative", keys: ["howto", "story"] },
+];
 
 function deskLabel(key) {
   const s = STYLE_LIST.find((x) => x.key === key);
@@ -31,6 +53,8 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   const [topic, setTopic] = useState("");
   const [quickDraft, setQuickDraft] = useState(false);
   const [advanced, setAdvanced] = useState(false);
+  const [length, setLength] = useState("standard"); // deck length (default Standard)
+  const [tone, setTone] = useState(null);           // optional tone overlay
   // Grounding seed (R5) from a picked Trending card: { extract, source }. Cleared
   // when the topic is edited by hand, so a typed-over topic isn't grounded stale.
   const [seed, setSeed] = useState(null);
@@ -50,7 +74,8 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   const submit = () => {
     const t = topic.trim();
     if (!t || generating) return;
-    onGenerate({ style: desk, category: voice, topic: t, quickDraft, ground: seed });
+    const slides = (LENGTHS.find((l) => l.id === length) || LENGTHS[1]).slides;
+    onGenerate({ style: desk, category: voice, topic: t, quickDraft, ground: seed, slides, tone });
   };
 
   // Coarse progress label while generating (the call streams searching -> writing).
@@ -93,25 +118,51 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
         />
         <TrendingPanel onPick={pickTrending} desk={desk} />
 
-        {/* Advanced · Writing voice — opt-in override; the default path never sees it. */}
+        {/* Voice & tone — opt-in; the default path never opens it. Voice overrides
+            the desk's writing category; Tone is an optional second axis. */}
         <button type="button" onClick={() => setAdvanced((v) => !v)} style={advToggle}>
-          {advanced ? "▾" : "▸"} Advanced · Writing voice{voiceOverridden ? " · " + getCategory(voice).label : ""}
+          {advanced ? "▾" : "▸"} Voice &amp; tone{(voiceOverridden || tone) ? " · " + getCategory(voice).label + (tone ? " · " + toneLabel(tone) : "") : ""}
         </button>
         {advanced && (
-          <div style={advBox}>
-            <div style={advHint}>Keeps the {deskLabel(desk)} look — only the writing voice changes.</div>
-            <div style={chips}>
-              {CATEGORY_LIST.map((c) => {
-                const on = voice === c.key;
-                return (
-                  <button key={c.key} type="button" onClick={() => pickVoice(c.key)} style={chip(on)} title={c.blurb}>
-                    {c.label}
-                  </button>
-                );
-              })}
+          <div style={vtBox}>
+            <div style={vRow}>
+              <span style={vKey}>Voice</span>
+              <select value={voice} onChange={(e) => pickVoice(e.target.value)} style={vSelect} title="Writing voice">
+                {VOICE_GROUPS.map((g) => (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.keys.map((k) => <option key={k} value={k}>{getCategory(k).label}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+              <span style={vFrom}>{voiceOverridden ? "your choice" : (<>from <b style={{ color: "#9ecbff" }}>desk</b></>)}</span>
             </div>
+            <div style={vRow}>
+              <span style={vKey}>Tone</span>
+              <div style={tones}>
+                {TONES.map((tn) => (
+                  <button key={tn.id} type="button" onClick={() => setTone(tone === tn.id ? null : tn.id)} style={toneChip(tone === tn.id)}>{tn.label}</button>
+                ))}
+              </div>
+            </div>
+            <div style={vHint}>Keeps the {deskLabel(desk)} look — only how it&apos;s written changes.</div>
           </div>
         )}
+
+        <div style={lenWrap}>
+          <span style={lenBadge}>NEW</span>
+          <div style={lenLab}>Length</div>
+          <div style={lenRow}>
+            {LENGTHS.map((l) => {
+              const on = length === l.id;
+              return (
+                <button key={l.id} type="button" onClick={() => setLength(l.id)} style={lenBtn(on)}>
+                  <b style={{ fontSize: 13 }}>{l.label}</b>
+                  <span style={{ fontSize: 10.5, color: on ? "#ffecec" : "#cfd0d6" }}>{l.slides} slides</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <label style={quickRow} title="Skip the live web search — faster, but it won't pull in the very latest facts.">
           <input type="checkbox" checked={quickDraft} disabled={generating} onChange={(e) => setQuickDraft(e.target.checked)} style={{ accentColor: UI.brand, width: 15, height: 15 }} />
@@ -144,16 +195,33 @@ const col = { width: "100%", maxWidth: 660, display: "flex", flexDirection: "col
 const brand = { fontSize: 13, letterSpacing: 4, color: "#cfcfcf", fontWeight: 700, marginBottom: 36, fontFamily: BRAND_FONT };
 const label = { fontSize: 13, letterSpacing: 1, color: "#8f8f97", marginBottom: 14, textTransform: "uppercase" };
 const gallery = { display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" };
-const chips = { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" };
-function chip(on) {
+// Length control (default-visible, dashed "NEW" box).
+const lenWrap = { width: "100%", maxWidth: 520, border: "1px dashed #3a3a42", borderRadius: 12, padding: 13, marginTop: 22, position: "relative" };
+const lenBadge = { position: "absolute", top: -9, left: 14, background: UI.brand, color: "#fff", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, padding: "1px 7px", borderRadius: 5 };
+const lenLab = { fontSize: 10, letterSpacing: 1.2, color: "#8f8f97", textTransform: "uppercase", marginBottom: 10, textAlign: "center" };
+const lenRow = { display: "flex", gap: 9 };
+function lenBtn(on) {
   return {
-    height: 34, padding: "0 16px", borderRadius: 999, cursor: "pointer", fontSize: 13,
-    background: on ? UI.brand : "transparent",
-    color: on ? "#fff" : "#bdbdbd",
-    border: "1.5px solid " + (on ? UI.brand : "#3a3a42"),
-    fontWeight: on ? 600 : 400,
+    flex: 1, height: 50, borderRadius: 8, cursor: "pointer",
+    border: "1px solid " + (on ? UI.brand : UI.border), background: on ? UI.brand : UI.surface2,
+    color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
   };
 }
+// Voice & tone box.
+const vtBox = { width: "100%", maxWidth: 520, border: "1px solid " + UI.border, background: "#17171b", borderRadius: 12, padding: "14px 16px", marginTop: 10, textAlign: "left", display: "flex", flexDirection: "column", gap: 12 };
+const vRow = { display: "flex", alignItems: "center", gap: 12 };
+const vKey = { width: 46, fontSize: 11, color: UI.muted, textTransform: "uppercase", letterSpacing: 0.5, flexShrink: 0 };
+const vSelect = { height: 34, minWidth: 160, borderRadius: 7, background: UI.surface2, border: "1px solid " + UI.border, color: "#fff", fontSize: 13, padding: "0 10px", cursor: "pointer" };
+const vFrom = { fontSize: 11, color: UI.muted };
+const tones = { display: "flex", gap: 7, flexWrap: "wrap" };
+function toneChip(on) {
+  return {
+    height: 30, padding: "0 13px", borderRadius: 999, fontSize: 12, cursor: "pointer",
+    background: on ? UI.brand : "transparent", color: on ? "#fff" : "#b6b6be",
+    border: "1px solid " + (on ? UI.brand : "#34343c"), fontWeight: on ? 600 : 400,
+  };
+}
+const vHint = { fontSize: 11, color: "#7f7f87" };
 
 function card(on) {
   return {
@@ -169,7 +237,7 @@ function cardLabel(on) {
 }
 const cardBlurb = { fontSize: 11, color: "#7f7f87", lineHeight: 1.3 };
 function voiceLine(on) {
-  return { fontSize: 10, letterSpacing: 0.4, fontWeight: 600, color: on ? "#9ecbff" : "#6f6f78", marginTop: 3, textTransform: "uppercase" };
+  return { fontSize: 10, letterSpacing: 0.4, fontWeight: 600, color: on ? UI.brandhi : "#6f6f78", marginTop: 3, textTransform: "uppercase" };
 }
 
 const topicInput = {
@@ -181,8 +249,6 @@ const advToggle = {
   marginTop: 22, background: "transparent", border: "none", color: "#8f8f97",
   fontSize: 12.5, cursor: "pointer", letterSpacing: 0.3,
 };
-const advBox = { marginTop: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 };
-const advHint = { fontSize: 11.5, color: "#7f7f87", marginBottom: 10, maxWidth: 460, lineHeight: 1.4 };
 
 const errBox = { marginTop: 14, padding: "8px 12px", background: "#3a1f22", color: "#ff9a9a", fontSize: 13, borderRadius: 8 };
 function primary(disabled) {
@@ -191,7 +257,7 @@ function primary(disabled) {
     fontSize: 16, fontWeight: 700, letterSpacing: 0.3,
     background: disabled ? (UI.brand + "55") : UI.brand, color: "#fff",
     border: "none", borderRadius: 12, cursor: disabled ? "default" : "pointer",
-    boxShadow: disabled ? "none" : "0 8px 24px rgba(45,140,255,0.35)",
+    boxShadow: disabled ? "none" : "0 8px 24px rgba(226,55,68,0.32)",
   };
 }
 const blankLink = {

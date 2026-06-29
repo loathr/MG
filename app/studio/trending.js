@@ -5,28 +5,55 @@
 // app/api/trending/route.js; this module is unit-tested with mock payloads.
 import { upsizeWikiThumb } from "./entity";
 
-// Each beat = a content category (label) + the writing VOICE it maps to (tie-back
+// Each beat = a label + the DESK it belongs to (the create screen shows only the
+// selected desk's beats, in a dropdown) + the writing VOICE it maps to (tie-back
 // when a card is picked) + free RSS feeds (recency) + keyword TERMS used to bucket
-// Wikipedia most-read into the beat. The first ten have feeds (The Tea pulls
-// celebrity gossip, TMZ-style); the last three are "thin" (no reliable free RSS)
-// and lean entirely on most-read.
+// Wikipedia most-read into the beat. Feeds are Guardian section RSS (and HN for
+// dev-heavy sectors) where one exists; beats with rss:[] are "thin" and lean on
+// most-read + terms. Any feed that 404s is skipped — the route never returns empty.
+//
+// Routes: Editorial = 9 culture beats · Enterprise = 13 sectors · News Desk = 10
+// desks. A beat appears under exactly one desk (keys are unique).
+const G = (p) => "https://www.theguardian.com/" + p + "/rss";
 export const BEATS = [
-  { key: "film",      label: "Film & TV",     voice: "editorial", rss: ["https://www.theguardian.com/film/rss"],       terms: ["film", "movie", "cinema", "director", "actor", "series", "Netflix", "HBO", "Oscar"] },
-  { key: "music",     label: "Music",         voice: "editorial", rss: ["https://www.theguardian.com/music/rss"],      terms: ["album", "singer", "band", "rapper", "song", "musician", "tour", "Grammy"] },
-  { key: "sports",    label: "Sports",        voice: "editorial", rss: ["https://www.theguardian.com/sport/rss"],      terms: ["football", "basketball", "soccer", "tennis", "Olympic", "cricket", "cup", "league"] },
-  { key: "fashion",   label: "Fashion",       voice: "editorial", rss: ["https://www.theguardian.com/fashion/rss"],    terms: ["fashion", "designer", "runway", "brand", "style", "couture", "model"] },
-  { key: "food",      label: "Food",          voice: "editorial", rss: ["https://www.theguardian.com/food/rss"],       terms: ["restaurant", "chef", "food", "cuisine", "cocktail", "recipe", "dining"] },
-  { key: "tech",      label: "Tech",          voice: "business",  rss: ["https://www.theguardian.com/technology/rss", "https://hnrss.org/frontpage"], terms: ["tech", "software", "AI", "startup", "app", "chip", "Apple", "Google"] },
-  { key: "business",  label: "Business",      voice: "business",  rss: ["https://www.theguardian.com/business/rss"],   terms: ["company", "market", "CEO", "stock", "economy", "earnings", "bank"] },
-  { key: "news",      label: "World News",    voice: "news",      rss: ["https://www.theguardian.com/world/rss"],      terms: ["election", "war", "government", "president", "minister", "summit"] },
-  { key: "science",   label: "Science",       voice: "news",      rss: ["https://www.theguardian.com/science/rss"],    terms: ["study", "research", "space", "NASA", "discovery", "climate", "physics"] },
-  // The Tea — celebrity gossip, TMZ-style: real gossip feeds (recency) drive it,
-  // with the most-read fallback skewed to celebrity drama by the terms.
-  { key: "tea",       label: "The Tea",       voice: "story",     rss: ["https://www.tmz.com/rss.xml", "https://pagesix.com/feed/", "https://www.justjared.com/feed/"], terms: ["celebrity", "actor", "actress", "singer", "rapper", "star", "model", "dating", "split", "divorce", "breakup", "engaged", "wedding", "baby", "feud", "scandal", "red carpet", "Kardashian", "romance", "drama"] },
-  // Thin beats — no reliable free RSS, so Wikipedia most-read only.
-  { key: "photo",     label: "Photography",   voice: "editorial", rss: [], terms: ["photographer", "photograph", "camera", "photo"] },
-  { key: "nightlife", label: "Nightlife",     voice: "editorial", rss: [], terms: ["nightclub", "DJ", "festival", "rave", "bar"] },
-  { key: "trivia",    label: "Did You Know?", voice: "editorial", rss: [], terms: [] }, // empty terms → today's general curiosities
+  // ---- Editorial · 9 culture beats ----------------------------------------
+  { key: "film",      desk: "editorial", label: "Film & TV",     voice: "editorial", rss: [G("film")],    terms: ["film", "movie", "cinema", "director", "actor", "series", "Netflix", "HBO", "Oscar"] },
+  { key: "music",     desk: "editorial", label: "Music",         voice: "editorial", rss: [G("music")],   terms: ["album", "singer", "band", "rapper", "song", "musician", "tour", "Grammy"] },
+  { key: "fashion",   desk: "editorial", label: "Fashion",       voice: "editorial", rss: [G("fashion")], terms: ["fashion", "designer", "runway", "brand", "style", "couture", "model"] },
+  { key: "sports",    desk: "editorial", label: "Sports",        voice: "editorial", rss: [G("sport")],   terms: ["football", "basketball", "soccer", "tennis", "Olympic", "cricket", "cup", "league"] },
+  { key: "food",      desk: "editorial", label: "Food",          voice: "editorial", rss: [G("food")],    terms: ["restaurant", "chef", "food", "cuisine", "cocktail", "recipe", "dining"] },
+  // The Tea — celebrity gossip, TMZ-style: real gossip feeds drive it.
+  { key: "tea",       desk: "editorial", label: "The Tea",       voice: "story",     rss: ["https://www.tmz.com/rss.xml", "https://pagesix.com/feed/", "https://www.justjared.com/feed/"], terms: ["celebrity", "actor", "actress", "singer", "rapper", "star", "model", "dating", "split", "divorce", "breakup", "engaged", "wedding", "baby", "feud", "scandal", "red carpet", "Kardashian", "romance", "drama"] },
+  { key: "photo",     desk: "editorial", label: "Photography",   voice: "editorial", rss: [], terms: ["photographer", "photograph", "camera", "photo"] },
+  { key: "nightlife", desk: "editorial", label: "Nightlife",     voice: "editorial", rss: [], terms: ["nightclub", "DJ", "festival", "rave", "bar"] },
+  { key: "trivia",    desk: "editorial", label: "Did You Know?", voice: "editorial", rss: [], terms: [] }, // empty terms → today's general curiosities
+
+  // ---- Enterprise · 13 sectors (business voice) ---------------------------
+  { key: "ent_tech",       desk: "enterprise", label: "Tech",        voice: "business", rss: [G("technology"), "https://hnrss.org/frontpage"], terms: ["tech", "software", "app", "chip", "cloud", "Apple", "Google", "Microsoft", "Meta"] },
+  { key: "ent_ai",         desk: "enterprise", label: "AI",          voice: "business", rss: [G("technology/artificialintelligenceai"), "https://hnrss.org/newest?q=AI"], terms: ["AI", "artificial intelligence", "model", "OpenAI", "LLM", "machine learning", "chatbot", "Nvidia", "Anthropic"] },
+  { key: "ent_startups",   desk: "enterprise", label: "Startups",    voice: "business", rss: ["https://hnrss.org/frontpage"], terms: ["startup", "founder", "venture", "funding", "seed", "Series A", "raise", "valuation", "YC"] },
+  { key: "ent_markets",    desk: "enterprise", label: "Markets",     voice: "business", rss: [G("business/stock-markets")], terms: ["market", "stocks", "index", "S&P", "Nasdaq", "Dow", "bond", "shares", "rally"] },
+  { key: "ent_finance",    desk: "enterprise", label: "Finance",     voice: "business", rss: [G("business/banking")], terms: ["bank", "finance", "fund", "lending", "rates", "investment", "credit"] },
+  { key: "ent_crypto",     desk: "enterprise", label: "Crypto",      voice: "business", rss: [G("technology/cryptocurrencies")], terms: ["crypto", "bitcoin", "ethereum", "token", "blockchain", "stablecoin", "exchange"] },
+  { key: "ent_economy",    desk: "enterprise", label: "Economy",     voice: "business", rss: [G("business/economics")], terms: ["economy", "GDP", "inflation", "jobs", "rates", "recession", "Fed", "growth"] },
+  { key: "ent_marketing",  desk: "enterprise", label: "Marketing",   voice: "business", rss: [G("media/advertising")], terms: ["marketing", "advertising", "brand", "campaign", "ad", "agency"] },
+  { key: "ent_media",      desk: "enterprise", label: "Media",       voice: "business", rss: [G("media")], terms: ["media", "streaming", "publisher", "platform", "press", "subscription"] },
+  { key: "ent_retail",     desk: "enterprise", label: "Retail",      voice: "business", rss: [G("business/retail")], terms: ["retail", "store", "sales", "consumer", "shopping", "ecommerce"] },
+  { key: "ent_energy",     desk: "enterprise", label: "Energy",      voice: "business", rss: [G("business/energy-industry")], terms: ["energy", "oil", "gas", "renewable", "grid", "power", "solar"] },
+  { key: "ent_health",     desk: "enterprise", label: "Healthcare",  voice: "business", rss: [G("society/health")], terms: ["health", "hospital", "pharma", "biotech", "drug", "vaccine", "trial"] },
+  { key: "ent_realestate", desk: "enterprise", label: "Real Estate", voice: "business", rss: [G("money/property")], terms: ["property", "housing", "real estate", "mortgage", "rent", "homes"] },
+
+  // ---- News Desk · 10 desks (news voice) ----------------------------------
+  { key: "news_world",     desk: "newsdesk", label: "World",        voice: "news", rss: [G("world")],   terms: [] }, // broad — general world top stories
+  { key: "news_politics",  desk: "newsdesk", label: "Politics",     voice: "news", rss: [G("politics")], terms: ["election", "government", "minister", "parliament", "policy", "president", "vote"] },
+  { key: "news_business",  desk: "newsdesk", label: "Business",     voice: "news", rss: [G("business")], terms: ["company", "market", "CEO", "economy", "earnings", "deal"] },
+  { key: "news_science",   desk: "newsdesk", label: "Science",      voice: "news", rss: [G("science")],  terms: ["study", "research", "space", "NASA", "discovery", "physics"] },
+  { key: "news_climate",   desk: "newsdesk", label: "Climate",      voice: "news", rss: [G("environment/climate-crisis")], terms: ["climate", "emissions", "warming", "carbon", "COP", "heat", "flood"] },
+  { key: "news_health",    desk: "newsdesk", label: "Health",       voice: "news", rss: [G("society/health")], terms: ["health", "disease", "NHS", "outbreak", "hospital", "virus"] },
+  { key: "news_tech",      desk: "newsdesk", label: "Technology",   voice: "news", rss: [G("technology")], terms: ["tech", "AI", "cyber", "data", "privacy", "hack", "outage"] },
+  { key: "news_law",       desk: "newsdesk", label: "Law & Justice",voice: "news", rss: [G("law")], terms: ["court", "ruling", "lawsuit", "trial", "justice", "judge", "appeal"] },
+  { key: "news_education", desk: "newsdesk", label: "Education",    voice: "news", rss: [G("education")], terms: ["school", "university", "student", "teacher", "exam", "campus"] },
+  { key: "news_media",     desk: "newsdesk", label: "Media",        voice: "news", rss: [G("media")], terms: ["media", "press", "journalism", "broadcast", "newspaper"] },
 ];
 
 export function getBeat(key) {
@@ -34,6 +61,16 @@ export function getBeat(key) {
 }
 export function beatVoice(key) {
   return getBeat(key).voice;
+}
+// The beats for a desk (Editorial / Enterprise / News Desk), in order. Falls back
+// to all beats if the desk is unknown.
+export function beatsForDesk(desk) {
+  const list = BEATS.filter((b) => b.desk === desk);
+  return list.length ? list : BEATS.slice();
+}
+// The default (first) beat key for a desk — what the dropdown opens on.
+export function defaultBeat(desk) {
+  return beatsForDesk(desk)[0].key;
 }
 
 // Wikipedia "featured" feed for a day carries the most-read articles. Keyless.
