@@ -262,7 +262,7 @@ export default function Studio() {
         </button>
         <div style={{ position: "relative" }}>
           <button
-            style={{ ...hbtn, background: UI.brand, color: "#fff", border: "none", fontWeight: 700, boxShadow: "0 2px 10px " + UI.brand + "40" }}
+            style={{ ...hbtn, background: UI.brand, color: UI.onBrand, border: "none", fontWeight: 700, boxShadow: "0 2px 10px " + UI.brand + "30" }}
             disabled={exporting}
             onClick={() => setDlOpen((o) => !o)}
             title="Download as PNG"

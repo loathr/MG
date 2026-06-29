@@ -146,7 +146,7 @@ export default function BrandPanel({ brand, category, slideFrame, onApply, onLog
                 return (
                   <button key={k} onClick={() => setFrameAll(k === "all")}
                     style={{ flex: 1, height: 26, fontSize: 11, cursor: "pointer", border: "none",
-                      background: on ? UI.brand : "#26262b", color: on ? "#fff" : "#bbb", fontWeight: on ? 600 : 400 }}>
+                      background: on ? UI.brand : "#26262b", color: on ? UI.onBrand : "#bbb", fontWeight: on ? 600 : 400 }}>
                     {label}
                   </button>
                 );
@@ -158,7 +158,7 @@ export default function BrandPanel({ brand, category, slideFrame, onApply, onLog
                 return (
                   <button key={m.id} onClick={() => onFrame(m.id, frameAll)}
                     style={{ flex: 1, height: 30, borderRadius: 6, cursor: "pointer", fontSize: 11,
-                      background: on ? UI.brand : "#26262b", color: on ? "#fff" : "#cfcfcf",
+                      background: on ? UI.brand : "#26262b", color: on ? UI.onBrand : "#cfcfcf",
                       border: "1px solid " + (on ? UI.brand : "#36363c"), fontWeight: on ? 600 : 400 }}>
                     {m.label}
                   </button>
@@ -196,7 +196,7 @@ export default function BrandPanel({ brand, category, slideFrame, onApply, onLog
               <span style={{ fontSize: 12.5, color: "#dcdcdc" }}>{row.label}<small style={{ display: "block", fontSize: 10, color: "#7c7c84" }}>{row.sub}</small></span>
               <button onClick={() => onChrome(row.k, !on)} title={(on ? "Hide" : "Show") + " " + row.label.toLowerCase() + " on every slide"}
                 style={{ width: 36, height: 20, borderRadius: 11, border: "none", cursor: "pointer", position: "relative", background: on ? UI.brand : "#3a3a42", flexShrink: 0 }}>
-                <span style={{ position: "absolute", top: 2, left: on ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff" }} />
+                <span style={{ position: "absolute", top: 2, left: on ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: on ? UI.onBrand : "#fff" }} />
               </button>
             </div>
           );

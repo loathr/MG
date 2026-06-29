@@ -157,7 +157,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
               return (
                 <button key={l.id} type="button" onClick={() => setLength(l.id)} style={lenBtn(on)}>
                   <b style={{ fontSize: 13 }}>{l.label}</b>
-                  <span style={{ fontSize: 10.5, color: on ? "#ffecec" : "#cfd0d6" }}>{l.slides} slides</span>
+                  <span style={{ fontSize: 10.5, color: on ? "#444" : "#cfd0d6" }}>{l.slides} slides</span>
                 </button>
               );
             })}
@@ -188,7 +188,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
 const screen = {
   position: "absolute", inset: 0, display: "grid", placeItems: "center",
   overflow: "auto", padding: 24,
-  background: "radial-gradient(1100px 600px at 50% -10%, #232329 0%, #161618 55%, #121214 100%)",
+  background: "radial-gradient(1100px 600px at 50% -10%, #0f0f0f 0%, #070707 55%, #000 100%)",
   fontFamily: "Helvetica, Arial, sans-serif",
 };
 const col = { width: "100%", maxWidth: 660, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" };
@@ -197,14 +197,14 @@ const label = { fontSize: 13, letterSpacing: 1, color: "#8f8f97", marginBottom: 
 const gallery = { display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" };
 // Length control (default-visible, dashed "NEW" box).
 const lenWrap = { width: "100%", maxWidth: 520, border: "1px dashed #3a3a42", borderRadius: 12, padding: 13, marginTop: 22, position: "relative" };
-const lenBadge = { position: "absolute", top: -9, left: 14, background: UI.brand, color: "#fff", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, padding: "1px 7px", borderRadius: 5 };
+const lenBadge = { position: "absolute", top: -9, left: 14, background: UI.brand, color: UI.onBrand, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, padding: "1px 7px", borderRadius: 5 };
 const lenLab = { fontSize: 10, letterSpacing: 1.2, color: "#8f8f97", textTransform: "uppercase", marginBottom: 10, textAlign: "center" };
 const lenRow = { display: "flex", gap: 9 };
 function lenBtn(on) {
   return {
     flex: 1, height: 50, borderRadius: 8, cursor: "pointer",
     border: "1px solid " + (on ? UI.brand : UI.border), background: on ? UI.brand : UI.surface2,
-    color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
+    color: on ? UI.onBrand : "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
   };
 }
 // Voice & tone box.
@@ -217,7 +217,7 @@ const tones = { display: "flex", gap: 7, flexWrap: "wrap" };
 function toneChip(on) {
   return {
     height: 30, padding: "0 13px", borderRadius: 999, fontSize: 12, cursor: "pointer",
-    background: on ? UI.brand : "transparent", color: on ? "#fff" : "#b6b6be",
+    background: on ? UI.brand : "transparent", color: on ? UI.onBrand : "#b6b6be",
     border: "1px solid " + (on ? UI.brand : "#34343c"), fontWeight: on ? 600 : 400,
   };
 }
@@ -237,7 +237,7 @@ function cardLabel(on) {
 }
 const cardBlurb = { fontSize: 11, color: "#7f7f87", lineHeight: 1.3 };
 function voiceLine(on) {
-  return { fontSize: 10, letterSpacing: 0.4, fontWeight: 600, color: on ? UI.brandhi : "#6f6f78", marginTop: 3, textTransform: "uppercase" };
+  return { fontSize: 10, letterSpacing: 0.4, fontWeight: 600, color: on ? UI.brandHi : "#6f6f78", marginTop: 3, textTransform: "uppercase" };
 }
 
 const topicInput = {
@@ -255,9 +255,9 @@ function primary(disabled) {
   return {
     marginTop: 22, height: 52, padding: "0 28px", minWidth: 260,
     fontSize: 16, fontWeight: 700, letterSpacing: 0.3,
-    background: disabled ? (UI.brand + "55") : UI.brand, color: "#fff",
+    background: disabled ? (UI.brand + "55") : UI.brand, color: UI.onBrand,
     border: "none", borderRadius: 12, cursor: disabled ? "default" : "pointer",
-    boxShadow: disabled ? "none" : "0 8px 24px rgba(226,55,68,0.32)",
+    boxShadow: disabled ? "none" : "0 8px 24px rgba(255,255,255,0.12)",
   };
 }
 const blankLink = {

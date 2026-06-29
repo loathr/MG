@@ -216,7 +216,7 @@ function Seg({ children }) { return <div style={{ display: "flex", gap: 4, flex:
 function SegBtn({ on, onClick, children }) {
   return <button onClick={onClick} style={{ flex: 1, height: 30, borderRadius: 6, fontSize: 13,
     background: on ? UI.brand : UI.surface2, border: "1px solid " + (on ? UI.brand : UI.border),
-    color: on ? "#fff" : UI.text, cursor: "pointer" }}>{children}</button>;
+    color: on ? UI.onBrand : UI.text, cursor: "pointer" }}>{children}</button>;
 }
 
 function Btn({ onClick, children, danger, style, title }) {
