@@ -33,12 +33,12 @@ state on top of it.
 > You are continuing the LOATHR Studio rebuild on branch
 > `claude/charming-fermat-2niyvq` (PR #9). Read this handover end-to-end first.
 >
-> The active thread is the **text / shapes editor** the user has been refining
-> turn by turn. Work the **BUILD QUEUE** below in order (B4 → B3 → B2 → B1 → B6).
-> Each item's design is described; B4/B5 designs were already shown + approved in
-> chat mockups, B3/B2/B1 too — confirm anything ambiguous with a quick visual,
-> then build, gate (test + build), and **verify live in-sandbox** (recipe below),
-> commit, and push. Stage it — one item per commit so the user can react.
+> The recent threads: the **text / shapes editor** (BUILD QUEUE), the **Topic
+> Routes** feature (shipped — see `docs/TOPIC_ROUTES.md`), and the **Look & Frame**
+> editor gaps (mocked + approved, not yet built — top of the queue now). Work the
+> **BUILD QUEUE** in order; each item's design is described; confirm anything
+> ambiguous with a quick visual, then build, gate (test + build), and **verify
+> live in-sandbox** (recipe below), commit, and push. One item per commit.
 >
 > Two open loops to also close: re-confirm trending on the deploy (the user
 > pastes `?debug=1`), and the small debug-carryovers (D3–D5) when convenient.
@@ -49,11 +49,32 @@ state on top of it.
 
 ## 🏗 BUILD QUEUE (the active work, in order)
 
-The user's running complaint list about the text editor, mapped to items. B1, B2
-approved; B5 shipped; B4 design shown in the anchor mock; B3 is a small extension.
+The user's running complaint list, mapped to items. **B4 + B5 shipped; Topic
+Routes shipped.** Next up is **BL (Look & Frame)** — mocked + approved. Then the
+remaining text-editor items B3 → B2 → B1 → B6.
 
-### B4 · Editable shape Body / Border / Text colours  ← DO FIRST
-**Why:** the user says bubbles are "limited to fixed accent colours." **Root
+### BL · Look & Frame  ← DO FIRST (mocked + approved, not yet built)
+Two editor gaps the user flagged, both in **Brand → Look** (`BrandPanel.jsx`):
+1. **Frame colour control (scope 1a).** Frame bars are `locked` chrome
+   (`Element.jsx:112` — non-interactive so a full-bleed edge frame can't intercept
+   clicks) and the colour auto-follows the accent. Add a `brand.frameColor` field
+   + a colour picker under the Frame modes; thread it through `frameElements`
+   (`templates.js`) and the `frame`-fill remap in `rethemeDoc`/`setFrame`
+   (`store.js`). Frame STAYS locked chrome — no canvas move. Colour falls back to
+   the accent when unset (so existing decks are unchanged).
+2. **Layout-family switch (scope 2b).** Brand → Look only offers the 9 colour
+   palettes (`EDITORIAL_PALETTES`); the layout *family* (Editorial `cover` /
+   Enterprise `dossier` / News Desk `masthead`, in `styles.js` `layouts`) is baked
+   in at creation and not switchable. Add a `setFamily` reducer action that
+   re-flows every slide into the new family's cover/content `layouts` + applies its
+   fonts, **leaving the colour palette intact** (layout-only, so a custom colour
+   look isn't stomped). Reuse `reflowSlide` / `rethemeDoc`. Mock shown this session
+   (the revised Brand → Look panel: Layout family row + Frame colour picker).
+
+### B4 · Editable shape Body / Border / Text colours  ✅ SHIPPED (`02ea429`)
+Done this session — Fill=body / Border / tail-follows-body, 3-renderer parity,
+`setShape` clears overrides, `rethemeDoc` carries them. Live-verified.
+**Why (kept for context):** the user says bubbles are "limited to fixed accent colours." **Root
 cause (diagnosed):** in `shapes.js` `shapePaint(el)`, the **speech / tag / banner
 / stamp / default** variants render a *fixed dark plate* (`SHAPE_BACKING =
 rgba(12,12,14,.9)`) with the accent only on the **border + tail**; **pill / cloud
@@ -164,7 +185,7 @@ Inspector. Mock shown: `b5-anchor`. Lowest priority.
   `node --import ./test/register.mjs <script>` (extensionless ESM, resolved by
   `test/register.mjs`). `--no-save` keeps `package.json` clean — never commit
   these.
-- **Tests / build gate:** `npm test` (**173 passing**) and `npm run build`
+- **Tests / build gate:** `npm test` (**185 passing**) and `npm run build`
   (Next 16 / Turbopack).
 - **Mockups:** headless Chromium screenshot of a `file://` HTML
   (`--headless=new --no-sandbox --force-device-scale-factor=2 --screenshot=out.png
@@ -218,6 +239,14 @@ export.js (canvas PNG) must stay in sync** for any text/shape change.
 
 ## ✅ Shipped recently (newest first, all on PR #9, gated)
 
+- `558919b`→`1273e96` **Topic Routes (Tiers 1–3)** — the monolith's per-desk
+  routing, folded in as optional framing over the live feed ($0, no preset
+  topics). Desk-adaptive route dropdown (Beat/Sector/Section) carried into
+  generation; News Region + Urgency; Enterprise Depth; advanced Angle/Emphasis/
+  Mode. Spec + decisions in **`docs/TOPIC_ROUTES.md`**. Route plumbing in
+  `buildPrompt` is additive (empty route = byte-identical). Live-verified in-app.
+- `02ea429` **Editable shape Body / Border colours (B4)** — Fill=body, Border,
+  tail-follows-body; 3-renderer parity; `setShape`/`rethemeDoc` carry. Live-verified.
 - `03cd8cc` **Shape text vertical-align** (top/middle/bottom) — the user's
   "anchor" ask. `shapeVAlign` + Inspector toggle + 3 renderers. Live-verified.
 - `4e4f16c` **Trending — the four debug-driven fixes**: Tea film-leak (rich feed
@@ -252,6 +281,13 @@ export.js (canvas PNG) must stay in sync** for any text/shape change.
 ---
 
 ## ⏭ Immediate next step (new session)
-Start **B4** (editable shape Body/Border/Text — root cause + approach above; design
-already shown). Gate + live-verify (recolour a speech bubble's body, screenshot),
-commit, push. Then B3 → B2 → B1 → B6, and fold D3's remap in alongside B4.
+Build **BL · Look & Frame** (mocked + approved this session, not yet built):
+(1) Frame colour control, (2) Layout-family switch — both in `BrandPanel.jsx` →
+Look, approach above. Gate + live-verify in-sandbox (recolour a frame; switch a
+deck's family + screenshot), commit one per increment, push. **Then** the
+remaining text-editor queue B3 → B2 → B1 → B6, and the debug carryovers D3/D4/D5
+(+ D1 trending `?debug=1` confirm) when convenient.
+
+Two standing caveats (sandbox limits, not gaps): no real end-to-end **generation**
+(needs Anthropic credit) and no live **external-feed** pull — both covered by unit
+tests + the user's `?debug=1` check on the deploy.
