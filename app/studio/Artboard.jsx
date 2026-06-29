@@ -11,7 +11,7 @@ const HANDLES = [
   { sx: -1, sy: 1 }, { sx: 0, sy: 1 }, { sx: 1, sy: 1 },
 ];
 
-export default function Artboard({ slide, selectedId, editingId, dispatch }) {
+export default function Artboard({ slide, selectedId, editingId, dispatch, onTextSelect, onEditApi }) {
   const containerRef = useRef(null);
   const artRef = useRef(null);
   const [scale, setScale] = useState(0.4);
@@ -98,6 +98,11 @@ export default function Artboard({ slide, selectedId, editingId, dispatch }) {
     dispatch({ type: "update", id, patch: { content: text } });
     dispatch({ type: "endEdit" });
   }, [dispatch]);
+  // A per-span style apply: an atomic content+runs update that does NOT end the
+  // edit, so styling can be stacked on the selection (see Element.applyRun).
+  const onStyleApply = useCallback((id, content, runs) => {
+    dispatch({ type: "update", id, patch: { content, runs } });
+  }, [dispatch]);
   // End editing without a content change (blur with no edit) — the actual text
   // commit happens in Element's effect cleanup so it survives an unmount race.
   const onEndEdit = useCallback(() => dispatch({ type: "endEdit" }), [dispatch]);
@@ -137,6 +142,9 @@ export default function Artboard({ slide, selectedId, editingId, dispatch }) {
               onStartEdit={onStartEdit}
               onCommitText={onCommitText}
               onEndEdit={onEndEdit}
+              onTextSelect={onTextSelect}
+              onEditApi={onEditApi}
+              onStyleApply={onStyleApply}
             />
           ))}
 

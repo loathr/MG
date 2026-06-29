@@ -43,6 +43,32 @@ test("a continuous drag (update same id) coalesces into one undo frame", () => {
   assert.equal(s.past.length, afterFirstUpdate + 1);
 });
 
+test("styleText applies per-run styling to a text element's range (undoable)", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "T", content: "One two three", color: "#fff", fontWeight: 400 }) });
+  s = reducer(s, { type: "styleText", id: "T", start: 4, end: 7, patch: { color: "#e23744", bold: true } });
+  const el = cur(s).elements.find((e) => e.id === "T");
+  assert.deepEqual(el.runs, [{ start: 4, end: 7, color: "#e23744", bold: true }]);
+  assert.equal(el.content, "One two three"); // content untouched
+  // a clear removes styling in the range
+  s = reducer(s, { type: "styleText", id: "T", start: 4, end: 7, clear: true });
+  assert.deepEqual(cur(s).elements.find((e) => e.id === "T").runs, []);
+  // it's undoable
+  s = reducer(s, { type: "undo" });
+  assert.deepEqual(cur(s).elements.find((e) => e.id === "T").runs, [{ start: 4, end: 7, color: "#e23744", bold: true }]);
+});
+
+test("editing a styled element's content re-maps its runs (styling sticks to letters)", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "T", content: "One two", runs: [{ start: 4, end: 7, bold: true }] }) });
+  // append text → the bold "two" run is preserved (tail unchanged)
+  s = reducer(s, { type: "update", id: "T", patch: { content: "One two three" } });
+  assert.deepEqual(cur(s).elements.find((e) => e.id === "T").runs, [{ start: 4, end: 7, bold: true }]);
+  // explicit runs in a patch are used verbatim (the per-span apply path)
+  s = reducer(s, { type: "update", id: "T", patch: { content: "One two three", runs: [{ start: 0, end: 3, italic: true }] } });
+  assert.deepEqual(cur(s).elements.find((e) => e.id === "T").runs, [{ start: 0, end: 3, italic: true }]);
+});
+
 test("undo/redo restore the document around an edit", () => {
   let s = initStudio();
   const base = cur(s).elements.length;

@@ -315,6 +315,38 @@ export function styledRuns(el) {
   return spans;
 }
 
+// The content split into contiguous segments carrying their OVERRIDE style only
+// (the run's own keys, not merged with the base) — what the contentEditable
+// serializes to spans so reading the DOM back recovers the runs exactly. A
+// segment with an empty style is plain (a bare text node). Pure.
+export function runSegments(content, runs) {
+  const text = content == null ? "" : String(content);
+  const n = text.length;
+  const ov = new Array(n).fill(null);
+  for (const r of (runs || [])) {
+    const s = Math.max(0, Math.min(n, r.start | 0));
+    const e = Math.max(0, Math.min(n, r.end | 0));
+    for (let i = s; i < e; i++) ov[i] = mergeStyle(ov[i], r);
+  }
+  const segs = [];
+  const key = (o) => (o ? RUN_STYLE_KEYS.map((k) => (o[k] == null ? "" : o[k])).join("|") : "");
+  let i = 0;
+  while (i < n) {
+    const k = key(ov[i]);
+    let j = i + 1;
+    while (j < n && key(ov[j]) === k) j++;
+    const style = {};
+    if (ov[i]) for (const kk of RUN_STYLE_KEYS) if (ov[i][kk] != null) style[kk] = ov[i][kk];
+    segs.push({ text: text.slice(i, j), style });
+    i = j;
+  }
+  return segs;
+}
+
+// Group a per-character overlay array (override objects or null) into normalised
+// {start,end,...style} runs — exposed so the DOM reader can rebuild clean runs.
+export function overlayToRunsPublic(ov) { return overlayToRuns(ov); }
+
 // True when the element renders as one uniform span carrying no inline-only
 // decoration (background / outline) — i.e. the container's own CSS fully covers
 // it, so the renderer can fast-path to the raw string (current behaviour).

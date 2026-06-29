@@ -6,6 +6,7 @@ import { generateCarousel, regenerateCaption } from "./generate";
 import { photosDemoDoc } from "./demo";
 import Artboard from "./Artboard";
 import Inspector from "./Inspector";
+import FormatBar from "./FormatBar";
 import SlideThumb from "./SlideThumb";
 import ShapeBacking from "./ShapeBacking";
 import { UI } from "./theme";
@@ -57,6 +58,8 @@ export default function Studio() {
   const [exporting, setExporting] = useState(false);
   const [fc, setFc] = useState(null); // fact check: null | { loading, error, result, phase }
   const [genPhase, setGenPhase] = useState(null); // generation progress: null | "searching" | "writing"
+  const [textSel, setTextSel] = useState(null); // active text-span selection for per-run styling
+  const editApiRef = useRef(null); // imperative style API from the element being edited
   const booted = useRef(false);
   const genAbort = useRef(null); // AbortController for the in-flight generation
   const fcAbort = useRef(null);  // AbortController for the in-flight fact-check
@@ -105,6 +108,28 @@ export default function Studio() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [screen, state.editingId, state.selectedId]);
+
+  // The text-span selection is scoped to one element on one slide — drop it when
+  // either changes (clicking away, selecting another element, switching slides).
+  useEffect(() => { setTextSel(null); }, [state.selectedId, state.slideIndex]);
+
+  // Per-span styling routes through the editing element's imperative API (which
+  // keeps focus + the selection); the optimistic textSel.style update keeps the
+  // bar/Inspector toggles in sync before the store round-trips.
+  const styleSpan = (patch) => {
+    if (editApiRef.current) editApiRef.current.applyStyle(patch);
+    setTextSel((ts) => (ts ? { ...ts, style: applyPatchToStyle(ts.style, patch) } : ts));
+  };
+  const clearSpanStyle = () => {
+    if (editApiRef.current) editApiRef.current.clearStyle();
+    setTextSel((ts) => (ts ? { ...ts, style: null } : ts));
+  };
+  // The bar's A−/A+ nudges the WHOLE text element's size (size stays element-wide).
+  const sizeSpan = (delta) => {
+    if (!textSel) return;
+    const elx = slide && (slide.elements || []).find((e) => e.id === textSel.id);
+    if (elx) dispatch({ type: "update", id: textSel.id, patch: { fontSize: Math.max(6, (elx.fontSize || 0) + delta) } });
+  };
 
   // Create screen → generate in the chosen style → land in the editor. Capture
   // the current deck before the await so the user's brand kit (custom palette /
@@ -363,7 +388,14 @@ export default function Studio() {
           />
         )}
 
-        <Artboard slide={slide} selectedId={state.selectedId} editingId={state.editingId} dispatch={dispatch} />
+        <Artboard
+          slide={slide}
+          selectedId={state.selectedId}
+          editingId={state.editingId}
+          dispatch={dispatch}
+          onTextSelect={setTextSel}
+          onEditApi={(api) => { editApiRef.current = api; }}
+        />
 
         {fc && (
           <FactCheckPanel
@@ -378,9 +410,30 @@ export default function Studio() {
           />
         )}
 
-        {/* Right Inspector (R3 · A) — properties of the selected element. */}
-        <Inspector el={selectedEl} dispatch={dispatch} />
+        {/* Right Inspector (R3 · A) — properties of the selected element. In
+            SELECTION mode (a text span is selected) its Style + Colour & effects
+            controls target that span. */}
+        <Inspector
+          el={selectedEl}
+          dispatch={dispatch}
+          textSel={textSel}
+          spanStyle={textSel ? textSel.style : null}
+          onStyleSpan={styleSpan}
+          onClearSpan={clearSpanStyle}
+        />
       </div>
+
+      {/* Floating format bar above a live text selection (per-span styling). */}
+      {textSel && textSel.rect && textSel.end > textSel.start && (
+        <FormatBar
+          style={textSel.style}
+          accent={(state.doc.brand && state.doc.brand.accent) || UI.brand}
+          rect={textSel.rect}
+          onStyle={styleSpan}
+          onClear={clearSpanStyle}
+          onSize={sizeSpan}
+        />
+      )}
 
       {/* Slide strip — lightweight thumbnails (FLAT-LAYERS §3) */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: UI.surface, borderTop: "1px solid " + UI.border, overflowX: "auto", flexShrink: 0 }}>
@@ -408,6 +461,19 @@ export default function Studio() {
       </div>
     </div>
   );
+}
+
+// Fold a style patch into the selection's resolved style, so the bar/Inspector
+// reflect a toggle/colour immediately (bold → fontWeight; null clears a key).
+function applyPatchToStyle(style, patch) {
+  const s = Object.assign({}, style || {});
+  for (const k of Object.keys(patch || {})) {
+    const v = patch[k];
+    if (k === "bold") s.fontWeight = v ? 700 : 400;
+    else if (v == null) delete s[k];
+    else s[k] = v;
+  }
+  return s;
 }
 
 const panelNote = { color: UI.muted, fontSize: 12, lineHeight: 1.5, margin: 0 };

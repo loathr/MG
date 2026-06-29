@@ -66,8 +66,9 @@ export default function Inspector({ el, dispatch, textSel, spanStyle, onStyleSpa
 // active (sel) — otherwise the whole element. `span` is the selected span's
 // resolved style (so the toggles reflect the selection); `setStyle(patch)` routes
 // to the span (styleText) or the element (update) accordingly.
+const hold = (e) => e.preventDefault(); // keep the contentEditable's selection on click
+
 function TypeSection({ el, up, sel, span, setStyle, clearSel }) {
-  const cur = sel ? span : el;
   const bold = (sel ? (span && span.fontWeight) : el.fontWeight) >= 700;
   const italic = sel ? !!(span && span.italic) : !!el.italic;
   const strike = sel ? !!(span && span.strike) : !!el.strike;
@@ -95,31 +96,40 @@ function TypeSection({ el, up, sel, span, setStyle, clearSel }) {
         <Grp>Style{sel ? " · selection" : ""}</Grp>
         <Row>
           <Seg>
-            <SegBtn sel={sel} on={bold} onClick={() => setStyle(sel ? { bold: !bold } : { fontWeight: bold ? 400 : 700 })}><b>B</b></SegBtn>
-            <SegBtn sel={sel} on={italic} onClick={() => setStyle({ italic: !italic })}><i>I</i></SegBtn>
-            <SegBtn sel={sel} on={strike} onClick={() => setStyle({ strike: !strike })}><s>S</s></SegBtn>
+            {/* In SELECTION mode the toggles keep the editor's focus (mousedown→
+                preventDefault) so the run lands on the live selection. */}
+            <SegBtn sel={sel} on={bold} onMouseDown={sel ? hold : undefined} onClick={() => setStyle(sel ? { bold: !bold } : { fontWeight: bold ? 400 : 700 })}><b>B</b></SegBtn>
+            <SegBtn sel={sel} on={italic} onMouseDown={sel ? hold : undefined} onClick={() => setStyle({ italic: !italic })}><i>I</i></SegBtn>
+            <SegBtn sel={sel} on={strike} onMouseDown={sel ? hold : undefined} onClick={() => setStyle({ strike: !strike })}><s>S</s></SegBtn>
             <SegBtn on={el.align === "left" || !el.align} onClick={() => up({ align: "left" })}>≣</SegBtn>
             <SegBtn on={el.align === "center"} onClick={() => up({ align: "center" })}>≡</SegBtn>
             <SegBtn on={el.align === "right"} onClick={() => up({ align: "right" })}>≖</SegBtn>
           </Seg>
         </Row>
         <Grp>Colour &amp; effects{sel ? " · selection" : ""}</Grp>
-        <Row>
-          <Chip label="Text" value={textCol} onChange={(v) => setStyle(sel ? { color: v } : { color: v })} />
-          <EffectChip label="Background" value={bgCol} fallback="#ffd34e" onChange={(v) => setStyle(sel ? { bg: v } : { textBg: v })} />
-        </Row>
-        <Row>
-          <EffectChip label="Outline" value={strokeCol} fallback="#ffffff"
-            onChange={(v) => setStyle(sel ? { stroke: v, strokeWidth: strokeW || 4 } : { textStroke: v, textStrokeWidth: strokeW || 4 })} />
-          <Num label="Width" value={strokeW} min={0} max={40}
-            onChange={(n) => setStyle(sel ? { strokeWidth: Math.max(0, n) } : { textStrokeWidth: Math.max(0, n) })} />
-        </Row>
         {sel ? (
-          <Row><Btn onClick={clearSel}>✕ Clear styling on selection</Btn></Row>
+          // Span colours come from the floating bar's swatches (a native colour
+          // picker would steal focus and drop the selection); the toggles above
+          // cover bold/italic/strike for the span.
+          <div style={selHint}>Colour, background &amp; outline for “{sel.text}”: use the swatches on the bar above your selection. Font, size, line &amp; align stay element-wide.</div>
+        ) : (
+          <>
+            <Row>
+              <Chip label="Text" value={textCol} onChange={(v) => up({ color: v })} />
+              <EffectChip label="Background" value={bgCol} fallback="#ffd34e" onChange={(v) => up({ textBg: v })} />
+            </Row>
+            <Row>
+              <EffectChip label="Outline" value={strokeCol} fallback="#ffffff"
+                onChange={(v) => up({ textStroke: v, textStrokeWidth: strokeW || 4 })} />
+              <Num label="Width" value={strokeW} min={0} max={40} onChange={(n) => up({ textStrokeWidth: Math.max(0, n) })} />
+            </Row>
+          </>
+        )}
+        {sel ? (
+          <Row><Btn onMouseDown={hold} onClick={clearSel}>✕ Clear styling on selection</Btn></Row>
         ) : hasEffects ? (
           <Row><Btn onClick={clearEffects}>✕ Clear text effects</Btn></Row>
         ) : null}
-        {sel ? <div style={selHint}>Styling “{sel.text}”. Font, size, line &amp; align stay element-wide.</div> : null}
       </div>
     </>
   );
@@ -257,11 +267,11 @@ function Chip({ label, value, onChange }) {
 }
 
 function Seg({ children }) { return <div style={{ display: "flex", gap: 4, flex: 1 }}>{children}</div>; }
-function SegBtn({ on, sel, onClick, children }) {
+function SegBtn({ on, sel, onClick, onMouseDown, children }) {
   // Active toggles read brand (white) element-wide, blue when targeting a span.
   const activeBg = sel ? UI.select : UI.brand;
   const activeFg = sel ? "#ffffff" : UI.onBrand;
-  return <button onClick={onClick} style={{ flex: 1, height: 30, borderRadius: 6, fontSize: 13,
+  return <button onClick={onClick} onMouseDown={onMouseDown} style={{ flex: 1, height: 30, borderRadius: 6, fontSize: 13,
     background: on ? activeBg : UI.surface2, border: "1px solid " + (on ? activeBg : UI.border),
     color: on ? activeFg : UI.text, cursor: "pointer" }}>{children}</button>;
 }
@@ -281,8 +291,8 @@ function EffectChip({ label, value, fallback, onChange }) {
   );
 }
 
-function Btn({ onClick, children, danger, style, title }) {
-  return <button onClick={onClick} title={title} style={{ flex: 1, height: 30, borderRadius: 6, fontSize: 11.5,
+function Btn({ onClick, onMouseDown, children, danger, style, title }) {
+  return <button onClick={onClick} onMouseDown={onMouseDown} title={title} style={{ flex: 1, height: 30, borderRadius: 6, fontSize: 11.5,
     background: UI.surface2, border: "1px solid " + UI.border, color: danger ? "#ff8a8a" : UI.text,
     cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, ...style }}>{children}</button>;
 }

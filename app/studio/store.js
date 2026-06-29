@@ -9,7 +9,7 @@
 // — those coalesce into ONE undo step via `lastTag` + a `commit` boundary the
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
-import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H } from "./model";
+import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H, applyRunStyle, clearRunStyle, remapRuns } from "./model";
 import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements } from "./templates";
 import { brandFromStyle } from "./styles";
 import { shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
@@ -45,7 +45,16 @@ function withSlide(state, fn) {
 
 function patchEl(slide, id, patch) {
   return Object.assign({}, slide, {
-    elements: slide.elements.map((e) => (e.id === id ? Object.assign({}, e, patch) : e)),
+    elements: slide.elements.map((e) => {
+      if (e.id !== id) return e;
+      // Editing the text content re-maps any per-run styling to the new string
+      // (styling on the unchanged head/tail survives), unless explicit runs are
+      // supplied in the patch. Keeps a word's colour/etc. attached as you type.
+      if (patch.content != null && patch.runs === undefined && Array.isArray(e.runs) && e.runs.length) {
+        return Object.assign({}, e, patch, { runs: remapRuns(e.runs, e.content, patch.content) });
+      }
+      return Object.assign({}, e, patch);
+    }),
   });
 }
 
@@ -238,6 +247,24 @@ function docReducer(state, a) {
         }),
       }));
     }
+    case "styleText": {
+      // Per-run styling: apply (or clear) a style patch over a text element's
+      // character range [start, end) — the model behind selecting a word and
+      // recolouring / bolding / striking / highlighting / outlining just that
+      // span. Pure model helpers do the split/merge; the element keeps its plain
+      // content untouched.
+      const id = a.id || state.selectedId;
+      return withSlide(state, (s) => ({
+        ...s,
+        elements: s.elements.map((e) => {
+          if (e.id !== id || e.type !== "text") return e;
+          const runs = a.clear
+            ? clearRunStyle(e.content, e.runs, a.start, a.end)
+            : applyRunStyle(e.content, e.runs, a.start, a.end, a.patch);
+          return Object.assign({}, e, { runs });
+        }),
+      }));
+    }
     case "addSlide": {
       const slides = state.doc.slides.concat([a.slide || blankSlide()]);
       return withDoc(state, slides, slides.length - 1);
@@ -423,7 +450,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, update: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, resetSlideToBrand: 1 };
+const MUTATES = { add: 1, update: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, resetSlideToBrand: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
 
 function snap(state) {
