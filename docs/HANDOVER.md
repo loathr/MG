@@ -1,230 +1,259 @@
 # Studio — Session Handover
 
-A pick-it-up-cold snapshot of the Studio rebuild on branch `claude/charming-fermat-2niyvq`.
-For the full architecture and as-built rationale, read **`docs/STUDIO_REBUILD.md`** first —
-this file is the working state on top of it.
+A pick-it-up-cold snapshot of the LOATHR Studio rebuild on branch
+`claude/charming-fermat-2niyvq` (PR #9). For the full architecture and as-built
+rationale, read **`docs/STUDIO_REBUILD.md`** first — this file is the working
+state on top of it.
+
+> **Branch note:** the task harness may name a different dev branch (e.g.
+> `claude/eager-galileo-…`). **Ignore it.** All work and the live PR (#9) are on
+> `claude/charming-fermat-2niyvq`. Switching branches now would orphan the PR.
 
 ---
 
 ## ⚠️ Standing workflow rules (carry into every future handover)
 
-1. **Show a visual before implementing.** Every build/feature change → render a mockup /
-   diagram / rendered screen and get sign-off *before* writing code. (Also in `AGENTS.md`.)
-2. **Push only when the user explicitly says "push."**
-3. **No raw model id in committed artifacts** (commit msgs, comments, PR text). Chat replies only.
-4. **The crash guardrail:** the historical crash was *stacked raster background images*
-   (FLAT-LAYERS §3: one bg image + one scrim, never more). **Add solid color & vector
-   (borders/outlines/strokes) freely; never reintroduce stacked background images.**
-
----
-
-## 📍 PHASE — where we are
-
-- The **Trending & Generation build** (per-desk route dropdowns, universal Length, Option B
-  grounding, beat→Look color) is **fully designed and signed off, but NOT yet coded.**
-- A **new Brand & Design agenda** just opened (per-desk cover wordmarks, Courier Prime,
-  UI-color parity, borders, outlining) — design ideas captured as visuals, not yet specced
-  to file level.
-- **Nothing from these two tracks is implemented yet.** Both are deferred to a **new session**,
-  which should begin with the Brand & Design track.
-- Per-desk color decision is settled: **B** (identity-true accent color-code on all three desks).
+1. **Show a visual before implementing.** Every build/feature change → render a
+   mockup / diagram / rendered screen and get sign-off *before* writing code
+   (also in `AGENTS.md`). Pure bug-fixes / backend / logic with no visual surface
+   are exempt — just say so.
+2. **No raw model id in committed artifacts** (commit msgs, comments, PR text).
+   Chat replies only.
+3. **The crash guardrail:** the historical crash was *stacked raster background
+   images* (FLAT-LAYERS §3: one bg image + one scrim, never more). Add solid
+   colour & vector (borders/outlines/strokes/text) freely; never reintroduce
+   stacked background images.
+4. **Gate every change:** `npm test` **and** `npm run build` must both pass
+   before you commit. Commit in coherent increments.
 
 ---
 
 ## ▶️ PROMPT FOR THE NEW SESSION (start here)
 
-> You are continuing the LOATHR Studio rebuild on branch `claude/charming-fermat-2niyvq`.
-> Read this handover end-to-end first. Then, **before writing any code** (standing rule):
-> 1. **Confirm the phase** — restate what's designed-but-unbuilt vs. open, so we're aligned.
-> 2. **Break down the remaining work to file level and rank it** (use the Ranked Backlog below
->    as a start; refine it and confirm the order with the user — the user wants to *begin with
->    the Brand & Design track*).
-> 3. **Provide visual samples** for each item you're about to build, and get sign-off.
-> Honor: show-visual-before-implementing, push-only-on-"push", and the one-bg-image crash rule.
+> You are continuing the LOATHR Studio rebuild on branch
+> `claude/charming-fermat-2niyvq` (PR #9). Read this handover end-to-end first.
+>
+> **Phase 1 — DEBUG FIRST.** Work the "Debug-first backlog" below in order.
+> Reproduce, fix, gate (test + build), and verify each (see "Verification
+> recipes" — you can run the app locally and drive a real browser in-sandbox; you
+> **cannot** reach the Vercel deploy or external feeds from here). Re-confirm
+> trending on the deploy with the user via `?debug=1`.
+>
+> **Phase 2 — CONTINUE THE BUILD.** Then pick up the "Unfinished / follow-up
+> build backlog," confirming order and showing a visual for each before coding.
+>
+> Honor the standing rules (show-visual-before-implementing; gate every change;
+> the one-bg-image crash rule).
 
 ---
 
-## 🗂 RANKED BACKLOG (recommended; new session to confirm with user)
+## 🐞 PART 1 — DEBUG-FIRST BACKLOG (do these first, in order)
 
-The user's stated starting point is **Track A (Brand & Design)**. Track B (Trending) is the
-most shovel-ready (fully specced) and slots in whenever the user wants.
+Everything the user explicitly asked for is **shipped + gated + pushed**
+(per-word text editor, the missing text effects, trending fixes, segment-header
+kickers). These are the **known gaps / risks** a debugging pass should close.
 
-### Track A — Brand & Design (begin here)
+### D1 · Trending — re-verify on the live deploy (HIGH; user-reported twice)
+Fixes shipped but **not re-verified post-fix** (sandbox can't reach the deploy or
+feeds — proxy returns 403/000). Root causes found & fixed:
+- `"tour"` prefix-matched `"tournament"` → pulled the FIFA World Cup into Music.
+  Now whole-word matching: `\b(term)(?:s|es)?\b` in `filterByTerms`.
+- A section beat whose feed **failed** fell back to unfiltered general most-read
+  (the leak). Now `selectTrending(…, hasFeeds)` keeps a feed-down section beat
+  on-topic or empty, never general.
+- Guardian entity-encoded HTML (`&lt;p&gt;`) leaked literal `<p>` into the R5
+  grounding seed → fixed in `decodeEntities` (strip again after entity-decode).
+- Added **`/api/trending?beat=X&debug=1`** → per-source `{url, ok, status, bytes}`
+  + parsed counts. Use it.
 
-**R1 · Per-desk cover wordmarks** *(a brand element, not a generation output)*
-- **Editorial:** struck-out `LOATHR` wordmark on the cover (red strikethrough), top-left.
-- **Enterprise:** `Enterprise` with `by Loathr` underneath, **both left-aligned**.
-- **News Desk:** **masthead only** — its own nameplate, **no Loathr on the cover**; Loathr
-  appears on the **closing page** (and signs off every deck).
-- **All "loathr" brand text → Courier Prime** (add the Google font to the stack).
-- Crash-safety: text/vector — safe.
+**To verify** (ask the user to open these on the deploy, or reason from `debug`):
+`/api/trending?beat=music&debug=1`, then `ent_ai`, `ent_tech`, `news_science`,
+`tea`, `nightlife`, `trivia`. Confirm `sources` are `ok:200` with bytes, items
+**on-topic and non-empty**. **Watch for:** TMZ/PageSix/JustJared (The Tea) and
+`hnrss.org` (tech/ai/startups) may 403/fail from Vercel — swap dead feeds;
+feed-less beats (photo/nightlife) lean on term-filtered general most-read and can
+be thin; the whole-word match must not over-filter (section feeds broaden, but a
+feed-less *term* beat can legitimately return empty). The confirmed-good signal:
+the user's last `music&debug=1` showed Guardian `ok:200, 12 items` — feeds work;
+it was purely the term match.
 
-**R2 · Brand · Elements edit subsection** *(architecture — the user's idea)*
-- A dedicated Brand-panel subsection to **edit the per-desk wordmark/lockup directly**,
-  decoupled from generation. Houses R1's controls; a clean home to share/iterate brand ideas.
-  Likely a new component + brand-state fields (extend `store.js` brand helpers).
+### D2 · Shaped-text + per-run styling — EXPORT parity gap (real WYSIWYG bug)
+DOM renderers (`Element`/`StaticSlide` via `RichText`) draw per-run styling inside
+a shape-backed text element, but `export.js` `drawShapedText` draws shaped text in
+the **element base style only** — so a shape-backed text with a coloured/bold word
+exports without it. **Fix:** generalize `drawShapedText` to draw runs (reuse the
+`drawRichText` token loop inside the padded, vertically-centred box). Rare combo,
+but a correctness gap. (Non-shaped text is already fully run-aware in export.)
+Self-contained; screenshot-verifiable in-sandbox.
 
-**R3 · UI color parity with the original build**
-- Port the monolith's per-desk **UI theming** (page/panel/button/input colors, optional subtle
-  CSS textures) from `ENTERPRISE_THEME` / `NEWSDESK_THEME` / `NEWSDESK_UI_TEXTURE` into the
-  Studio chrome.
-- Crash-safety: UI theming is **solid color / gradient**, not image compositing — safe under
-  the one-bg-image rule.
+### D3 · Brand re-theme doesn't carry the new effects
+`rethemeDoc` remaps `color` / `highlightColor` / `strikeColor` / `shapeFill` on a
+palette swap, but **not** the new element-wide `textBg` / `textStroke`, nor
+per-run `runs[].{color,bg,stroke}`. So a brand swap leaves styled spans/effects on
+the old accent. Decide intended behaviour; if spans should follow the accent,
+remap `runs[]` colours matching `prev.accent → next.accent` (+ `textBg`/`textStroke`).
 
-**R4 · Borders & outlining design elements**
-- Frames, corner brackets, outlined headlines (`-webkit-text-stroke`), outlined numerals,
-  stroked shapes/lines/badges, hairline rules — as slide design options. (Borders were the
-  old "bubbles/borders" item.)
-- Crash-safety: all **vector** (CSS `border`/`outline`/`text-stroke`, SVG `stroke`) — safe.
-- Note: `export.js` draws text to canvas manually — any new text stroke/outline must be
-  mirrored there (as `highlight` is), or it won't appear in the PNG export.
+### D4 · Per-word editor — edge cases to harden
+- **Multi-line text** (Shift+Enter "\n"): verify a selection spanning lines styles
+  the right range. Our model uses real `\n` chars (white-space: pre-wrap); some
+  browsers may still inject `<div>`/`<br>` — `richedit.pointToIndex` tolerates
+  `<br>`, but confirm on the deploy browser.
+- **Undo granularity:** `applyStyle` dispatches `update{content,runs}` (tag
+  `update:id`), which **coalesces** with adjacent updates; a burst of style clicks
+  + typing may collapse into one undo step. If it feels wrong, give styling its own
+  undo boundary.
+- **FormatBar position** near the viewport top / on scroll (clamped to 8px — confirm
+  it never clips).
+- **Emoji / surrogate pairs:** offsets are JS code units; splitting a pair could
+  mis-slice. Low priority.
 
-### Track B — Trending & Generation (fully specced, shovel-ready)
-
-| Part | What | Files |
-|---|---|---|
-| 5a | **Per-desk route dropdowns** — `BEATS` → `DESK_BEATS` (Editorial 9 / Enterprise 13 sectors / News 10 desks); beat selector becomes a styled **dropdown**; old Enterprise `ENTERPRISE_TOPICS` + News `NEWSDESK_DESKS` descs → filter `terms`. | `trending.js`, `api/trending/route.js`, `TrendingPanel.jsx` |
-| 5b | **Universal Length** — `Brief·5 / Standard·8 / Deep·10` by the Make button; replaces the hardcoded "7 to 9 slides total" line in `buildPrompt`. Default Standard. | `CreateScreen.jsx`, `generate.js`, `Studio.jsx` |
-| 5c | **Option B grounding** — carry the trending item's `extract`+`source` (dropped today in `rankItems`) into the prompt as a "Context — trending now" anchor ("verify & update via search; don't paraphrase"). Editing the topic clears the grounding. | `trending.js`, `route.js`, `TrendingPanel.jsx`, `CreateScreen.jsx`, `generate.js` |
-| 5d | **Beat → Look color** — Editorial: full-palette Look via `paletteBrand` (9 beats↔9 Looks). **B per-desk color:** Enterprise per-sector **accent only** (stays B&W); News per-desk **section-flag color** (stays newsprint). Non-destructive (Brand panel can still swap). | `trending.js`, `TrendingPanel.jsx`, `CreateScreen.jsx`, `Studio.jsx` |
-| 5e | **Tests** — `getBeat(desk,key)` signature + `DESK_BEATS` + beat→Look map. | `test/trending.test.mjs` |
-
-- **Depth → counts:** brief = 5 (cover+3+closer); standard = 7–9 (unchanged); deep = 10–11
-  (allow 1–2 extra analytical beats — the 6-role sets run short otherwise).
-- **Beat→Look (Editorial):** film→film · music→art · sports→sports · fashion→fashion ·
-  food→food · tea→gossip · photo→photo · nightlife→nightlife · trivia→trivia
-  (`EDITORIAL_PALETTES` in `styles.js`).
-
----
-
-## ✅ Decisions log (this arc)
-
-- Trending = **live-only, cued, hidden, desk-specific**; FREE keyless feeds (Wikipedia
-  most-read + per-beat RSS) → **zero Claude credits**.
-- Theme control = **lean dropdown** (not a chip wall).
-- **Desk = design**; content = topic × desk-voice × seeded angle/tone × research × length;
-  Trending only supplies the topic (+ B grounding). The **only** place Trending touches the
-  look = the new beat→color tie-in.
-- **Depth is universal** (not Enterprise-only) — doubles as the cost + Vercel-timeout lever.
-- Per-desk color = **B** (Editorial full palette; Enterprise per-sector accent; News per-desk flag).
-- Brand wordmarks = **brand element**, edited in a Brand·Elements subsection — not generated.
-
----
-
-## Snapshot / how to work here
-
-- **Branch:** `claude/charming-fermat-2niyvq` (develop + push here only).
-- **Preview:** `https://mg-git-claude-charming-fermat-2niyvq-loathrs-projects.vercel.app/studio`
-  (append `?v=<sha>` to pin a build).
-- **Build (the real gate):** `npm run build` before every commit — catches JSX/import errors
-  across the whole module graph.
-- **Unit tests:** `npm test` (committed) — `node:test` over `test/*.test.mjs` with an
-  extensionless-import resolver (`test/register.mjs` → `test/resolver.mjs`). ~89 checks. Add a
-  `test/<module>.test.mjs` per new pure module.
-- **Commits:** conventional, imperative subject; end with the `Co-Authored-By` / `Claude-Session`
-  trailers (see `git log`). Commits are SSH-signed (a local "Unverified" from the stop-hook is a
-  false-positive — no `allowedSignersFile`; GitHub verifies fine).
+### D5 · Regression sweep after the text-model change
+Confirm: (a) a generated deck's `highlight` marker still renders on canvas +
+thumbnail + **export** (it now folds into runs via `styledRuns`); (b) a normal
+no-runs deck still exports identically (uniform fast-path → raw string / `drawText`);
+(c) text-shape backings still render + "fit to text"; (d) old saved decks load
+(no `runs` = fine).
 
 ---
 
-## Shipped recently (newest first)
+## 🏗 PART 2 — UNFINISHED / FOLLOW-UP BUILD BACKLOG (after debugging)
 
-- `e34d8c7` `AGENTS.md`: show-a-visual-before-implementing workflow rule.
-- `53d044d` Trending — fix missing photos + clean card layout.
-- `7d16212` **live Trending panel** — cued, category-tied, free feeds (no credits).
-- `e9efbce` **entity photos (#6)** — Wikipedia/Wikidata before stock search.
-- `fd9d1e1` text editing: **Enter commits, Esc cancels, Shift+Enter newline**.
-- `dc0834e` **landing redesign (Option C)** + "Looks" relabel.
-- `f09eefc` fix text edits reverting on click-away.
-- `6b4a352` fix "Empty model response" — **basic web search**, not the code-exec variant.
-- `57bad8c` web search **ON by default**, cancellable, progress + Quick draft.
-- `25923f7` draft fast, source via fact-check.
-- `fabf939` **fact-check** verify pass (rank 2).
-- `20cc20d` web-search sourcing, voice variety, date anchor.
-- (earlier: `a5d4d60` feature split layout · `d90bb04` feature image+text family · `bff9b08`
-  stat/versus role-tie · `3c4cedb` per-category caution · `4f7235d` highlight emphasis ·
-  `d565cea` Enterprise family · `2d190da` News Desk family — see prior handover history.)
+Enhancements the user was told about (not half-built code in the tree). Confirm
+scope + show a visual before each.
 
----
-
-## Key files
-
-- `styles.js` — the 3 style families (Editorial / Enterprise / News Desk): palette + fonts +
-  per-family `layouts`. `brandFromStyle`, the 9 `EDITORIAL_PALETTES`, `paletteBrand`.
-- `templates.js` — pure layout registry, `renderLayout` (+ `highlight` post-process),
-  `reflowSlide`, `slidesToDoc` (generation → doc; routing incl. stat/versus + caution).
-- `store.js` — reducer + history; brand helpers `rethemeDoc`, `stampLogo`, `carryBrandKit`;
-  actions `applyBrand`, `setLogo`, `setCaution`, `setLayout`. **(R2 brand-elements extends here.)**
-- `categories.js` — content kinds (voice + roles + `defaultStyle` + `caution`). `cautionFor`.
-- `generate.js` — `buildPrompt` (+ `ANGLES`/`VOICES` seeded by topic hash) + `generateCarousel`
-  (calls `/api/generate`, `/api/images`, then `slidesToDoc`). `MODEL`, `WEB_SEARCH_TOOL` (basic).
-- `trending.js` + `api/trending/route.js` — pure feed parsing + keyless route. **(5a–5d edit here.)**
-- `entity.js` + `api/images/route.js` — Wikipedia/Wikidata entity-photo resolution.
-- `verify.js` + `FactCheckPanel.jsx` — fact-check verify pass.
-- Renderers: `Element.jsx` (live), `StaticSlide.jsx` (thumb/preview), `export.js` (canvas → PNG),
-  `RichText.jsx` (highlight). Panels: `CreateScreen.jsx`, `BrandPanel.jsx`, `TrendingPanel.jsx`,
-  `TemplatesPanel.jsx`, `PhotosPanel.jsx`.
+- **B1 · Live glyph preview while typing.** Today span styling renders on *commit*
+  (click a control / click away), not glyph-by-glyph mid-type. Upgrade = a rich
+  `contentEditable` (imperative `innerHTML` from runs + read-back). That approach
+  was prototyped & jsdom-round-trip-verified, then trimmed for the robust v1 — see
+  git history of `richedit.js` for `runsToHtml` / `domToContentRuns` /
+  `setSelection`. Keep editing uncontrolled to avoid caret clobber.
+- **B2 · Custom hex colour for spans.** The bar uses a brand-aware swatch strip (a
+  native OS picker steals focus and drops the selection). Add an in-app
+  swatch+hex popover that uses `mousedown→preventDefault`, or capture offsets then
+  apply.
+- **B3 · Trending resilience.** Per-beat fallback feeds; surface dead-feed state in
+  the panel; a sturdier source for feed-less beats.
+- **B4 · Parked.** Fate of the `/` monolith (redirect→`/studio`, `/legacy`, or
+  retire); cloud history (DB + accounts); de-templating the Enterprise role
+  fallbacks (model now writes `kicker`, but the categorical `role` fallback in
+  `templates.js` `norm()` remains as a safety net).
 
 ---
 
-## 🔧 Critical technical constraints
+## 🧪 Verification recipes (how to actually check things here)
 
-- **Web search:** basic `web_search_20250305` (max_uses 4). NOT `web_search_20260209`
-  (code-exec dynamic-filtering spirals past Vercel's cap → "Empty model response").
-- **Streaming does NOT exempt Vercel `maxDuration`** (60s Hobby / 300s Pro).
-- **Modified Next.js** 16.2.7 (Turbopack): read `node_modules/next/dist/docs/` before touching
-  Next APIs (`AGENTS.md`).
-- **Pure ESM, extensionless imports.** Pure modules importable headless for tests.
-- **Model:** Claude Opus 4.8 (`MODEL` in `generate.js`); adaptive thinking; `effort: "medium"`.
-- **Proxy blocks** Wikipedia/Wikidata/Guardian/RSS/vercel.app in-sandbox — do not retry/route
-  around. Live feeds + entity photos verify only on deployed preview; pure logic unit-tested
-  with mocks.
-- **Anthropic credit balance empty** → live generation/fact-check can't run in-sandbox until
-  topped up.
-
----
-
-## Gotchas
-
-- **Export draws text to canvas manually** (`export.js`), not via DOM rasterization — any new
-  text styling (e.g. R4 outlines) must be added there too (cf. `highlight`'s
-  `drawHighlightText`/`wrapRuns`).
-- **History resets on `loadDoc`** (generation/blank) — a fresh deck is a fresh undo stack;
-  brand carries via `carryBrandKit`, not via undo.
-- **`carryBrandKit` carries only deliberate overrides** (fields differing from the previous
-  style's defaults) + the logo. `caution` is category-seeded, not carried.
-- **Monochrome families** (Enterprise: accent === ink): `applyBrand` remap is ink-first;
-  `highlight` uses a knockout marker — both so emphasis stays visible. (R5d Enterprise accent
-  tint must respect this.)
+- **Env constraint:** the agent proxy returns **403 for the Vercel deploy host**
+  and **000 for external news feeds** (Guardian/HN/Wikipedia/TMZ…). You **cannot**
+  reach the live deploy or any feed from the sandbox. Don't retry policy denials —
+  report them. Trending must be verified by the **user** (open `?debug=1`) or
+  reasoned from code + the pure `test/trending.test.mjs`.
+- **Live UI verification IN-SANDBOX (works):** `npm run build` → `npx next start -p
+  3210` (background) → drive a real browser with `npm i --no-save puppeteer-core`
+  using the prebuilt Chromium at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
+  Enter the editor via **`/studio?demo=photos9`** (the Create screen is the
+  default). External images 404 (proxy), but the UI + text editing work. This is
+  how the per-word editor was verified (double-click heading → select word →
+  FormatBar + apply colour).
+- **DOM unit checks:** `npm i --no-save jsdom`; run a script with
+  `node --import ./test/register.mjs <script>` (the project uses **extensionless
+  ESM**, resolved by `test/register.mjs` + `test/resolver.mjs`; raw `node` can't
+  resolve `./model`). `--no-save` keeps `package.json` clean — don't commit these.
+- **Tests / build gate:** `npm test` → `node --import ./test/register.mjs --test
+  test/*.test.mjs` (**167 passing**). `npm run build` (Next 16 / Turbopack).
+- **Mockups:** headless Chromium screenshot of a `file://` HTML, e.g.
+  `…/chrome --headless=new --no-sandbox --force-device-scale-factor=2
+  --screenshot=out.png --window-size=W,H file://…`.
 
 ---
 
-## Deferred items (from STUDIO_REBUILD.md + prior handover)
+## 🗺 Architecture map — rich-text RUNS (the newest subsystem)
 
-- **Feature-layout auto-routing** — generation still emits full-bleed photo backgrounds;
-  `feature` is opt-in. Lift: small (a `slidesToDoc` route rule).
-- **Caution carry-through-regen** — an *edited* caution is re-seeded, not carried. Lift: small.
-- **"Assets" beyond the logo** — no reusable upload shelf/icon set. Lift: medium. (R2 may touch this.)
-- **Custom display fonts dropped** (Otilito/Qogee/Foun/Maheni…) → Georgia/Helvetica/Courier stacks.
-  Note R1 reintroduces **Courier Prime** specifically for brand wordmarks.
-- **Orphaned panel layouts** (`statement`/`centered`/`bottom`) remain manual; no family default.
-- **Recent-projects shelf** + **grid snapping** — not built (low priority).
-- **Voice/taste pass** — subjective dial-turning against real generated decks (needs credits).
+A text element keeps its plain `content` **string** (every existing reader, the AI
+output, captions, search untouched) **plus** optional `el.runs` =
+`[{start,end,…style}]` character-range overrides. Element-wide effects live on the
+element: `textBg`, `textStroke`+`textStrokeWidth`, plus existing `color`,
+`fontWeight`, `italic`, `strike`+`strikeColor`. The **per-run + element-wide** style
+keys: `color, bold, italic, strike, strikeColor, bg, stroke, strokeWidth`.
+(Font / size / line / tracking / align stay **element-wide** — can't vary
+mid-paragraph.)
+
+- **`model.js`** — `styledRuns(el)` → resolved contiguous spans (the renderers);
+  `runSegments(content,runs)` → override-only segments (the editor); pure
+  `applyRunStyle` / `clearRunStyle` / `remapRuns` (per-char overlay; remap keeps
+  styling on the unchanged head/tail through edits); `isUniformText` (fast path);
+  `elementBaseStyle`; the back-compat `highlight` marker folds in as a `bg` run.
+  Unit-tested in `test/model.test.mjs`.
+- **`RichText.jsx`** — renders `styledRuns` spans (live canvas + thumbnails);
+  uniform text → raw string (byte-identical common case).
+- **`export.js`** — `drawRichText` (per-token canvas: colour/weight/italic/strike/
+  bg/outline) for non-uniform; `drawText` for uniform; `wrapRuns(ctx,runs,w,fontOf)`
+  measures per-token font. **`drawShapedText` is NOT yet run-aware → D2.**
+- **`richedit.js`** — `selectionOffsets(root)`: DOM selection → `{start,end}` char
+  offsets (round-trip jsdom-verified). Plain-text editing only; styling goes
+  through the store.
+- **`store.js`** — `styleText {id,start,end,patch|clear}` (offset-based, pure
+  helpers); `patchEl` **remaps runs** when `content` changes (unless explicit runs
+  in the patch). `styleText` + `update` are in `MUTATES` (undoable).
+- **`Element.jsx`** — plain-text contentEditable (uncontrolled, text never at
+  risk); reports the live selection via `onTextSelect` (offsets + screen rect +
+  effective style); exposes `applyStyle/clearStyle` via `onEditApi`; `onStyleApply`
+  dispatches an **atomic** `update{content,runs}` (no commit/apply race).
+- **`FormatBar.jsx`** — floating bar above the selection (brand swatches · B I S ·
+  highlight · outline · A−/A+ · clear). Every control uses
+  `onMouseDown→preventDefault` so the selection survives the click.
+- **`Inspector.jsx`** — Type panel: grouped Character / Style / Colour & effects;
+  element-wide strike/background/outline; blue **SELECTION** mode (toggles target
+  the span; span colours deferred to the bar's swatches).
+- **`Studio.jsx`** — `textSel` state + `editApiRef` bridge; renders `FormatBar`;
+  passes `textSel` + handlers to `Inspector`; clears `textSel` on
+  selection/slide change.
+
+Three-renderer invariant (unchanged rule): **Element.jsx (live CSS),
+StaticSlide.jsx (thumbnail), export.js (canvas PNG) must stay in sync** for any
+text styling.
 
 ---
 
-## Visual samples (shared in session chat; not committed)
+## ✅ Shipped recently (newest first, all on PR #9, gated)
 
-`build.png` (route dropdown + Length) · `optionb.png` (B grounding flow) · `design.png`
-(Desk = design matrix) · `content.png` (text = topic × voice × angle × research × length) ·
-`beatlook.png` (Editorial beat→Look) · `perdesk.png` (per-desk color A/B → B) ·
-`branding.png` (R1 cover wordmarks + Courier Prime) · `borders.png` (R4 borders/outlining +
-crash-safety). The textual specs above are sufficient to rebuild these.
+- **Per-word text editor (B):** select a word/letters while editing → FormatBar +
+  Inspector SELECTION → style just that span (colour/bold/italic/strike/background/
+  outline). Live-verified with Puppeteer. (`8cb5969`)
+- **Rich-text run model + 3 renderers + element-wide effects (A):** the run model;
+  strikethrough / background / outline added to the Inspector element-wide.
+  (`5997555`)
+- **Trending whole-word term match** — killed `tour→tournament` (FIFA-under-Music).
+  (`500d36f`)
+- **Segment-header kicker** — the prompt now writes a slide-specific `kicker`
+  (renderer already prefers it over the recycled role tag); trending `hasFeeds`
+  hardening + `?debug=1`. (`da2b59c`)
+- Earlier this arc: Create-screen redesign (Length / per-desk Trending / Voice &
+  tone), matte-black + white-accent theme, R3 right-Inspector, text-shapes,
+  generation quality rules (quotes attributed, specific headlines,
+  stakes/human/evidence). The old "Track A/B backlog" in prior handovers is **done
+  or superseded** — disregard it.
+
+---
+
+## 🔧 Key constraints recap
+- Next 16.2.7 (Turbopack), pure ESM, **extensionless imports** (resolver hook in
+  `test/register.mjs`). Tests: `node:test`.
+- **Web search:** basic `web_search_20250305` (max_uses 4), NOT the code-exec
+  dynamic-filtering variant (spirals past Vercel's cap → "Empty model response").
+  Streaming does **not** exempt Vercel's `maxDuration`.
+- Generation = `buildPrompt` → `/api/generate` (Opus 4.8, adaptive thinking,
+  effort medium, streamed). Trending = keyless Guardian RSS + Wikipedia most-read,
+  **zero Claude credits**. Live generation needs Anthropic credit (may be empty
+  in-sandbox).
+- Artboard 1080×1350; slide = background + flat element list (FLAT-LAYERS §3).
+- Theme tokens in `app/studio/theme.js` (`UI`): matte black + white accent;
+  `UI.select` (#2d8cff) is the blue selection colour (handles + SELECTION mode).
+- Deploy preview: `https://mg-git-claude-charming-fermat-2niyvq-loathrs-projects.vercel.app/studio`.
 
 ---
 
 ## ⏭ Immediate next step (new session)
-
-Start **Track A**: present file-level plan + visual samples for **R1 (cover wordmarks +
-Courier Prime)**, get sign-off, build, `npm run build` + `npm test`, report. Then R2→R4, then
-Track B (R5). **No push until told.**
+Start at **D1** (trending re-verify — ask the user for the deploy `?debug=1`
+output for a few beats) and **D2** (shaped-text export run parity — self-contained,
+screenshot-verifiable in-sandbox). Gate each; then proceed through D3–D5, then
+Part 2.
