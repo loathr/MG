@@ -4,13 +4,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  BEATS, getBeat, beatVoice, beatsForDesk, defaultBeat, mostReadUrl, cleanTitle, parseRss, parseMostRead,
+  BEATS, getBeat, beatVoice, beatsForDesk, defaultBeat, groupsForDesk, routeFraming, mostReadUrl, cleanTitle, parseRss, parseMostRead,
   filterByTerms, rankItems, selectTrending,
 } from "../app/studio/trending.js";
 
 test("BEATS feed config: dedicated vs shared/sub-topic vs the lone feed-less beat", () => {
   const keys = BEATS.map((b) => b.key);
-  for (const k of ["film", "news_world", "news_business", "ent_tech", "photo", "nightlife", "trivia", "tea"]) assert.ok(keys.includes(k), "has beat " + k);
+  for (const k of ["film", "news_politics", "news_business", "ent_finance", "photo", "nightlife", "trivia", "tea"]) assert.ok(keys.includes(k), "has beat " + k);
   // trivia is the ONLY truly feed-less beat (general curiosities via most-read).
   assert.deepEqual(getBeat("trivia").rss, []);
   assert.deepEqual(getBeat("trivia").terms, []);
@@ -22,7 +22,7 @@ test("BEATS feed config: dedicated vs shared/sub-topic vs the lone feed-less bea
   // their shared feed.
   assert.equal(getBeat("film").rss.length >= 1, true);
   assert.ok(!getBeat("film").filterFeed, "a dedicated section feed isn't term-filtered");
-  assert.ok(getBeat("ent_ai").filterFeed && getBeat("ent_tech").filterFeed, "enterprise sectors filter their shared feed");
+  assert.ok(getBeat("ent_finance").filterFeed && getBeat("ent_energy").filterFeed, "enterprise sectors filter their shared feed");
   // The Tea is celebrity gossip, TMZ-style — real gossip feeds, used whole.
   assert.ok(getBeat("tea").rss.length >= 1, "The Tea pulls gossip feeds");
   assert.match(getBeat("tea").rss.join(" "), /tmz/i);
@@ -31,8 +31,8 @@ test("BEATS feed config: dedicated vs shared/sub-topic vs the lone feed-less bea
 
 test("beatVoice maps a beat to its writing voice (tie-back)", () => {
   assert.equal(beatVoice("film"), "editorial");
-  assert.equal(beatVoice("ent_tech"), "business");
-  assert.equal(beatVoice("news_world"), "news");
+  assert.equal(beatVoice("ent_finance"), "business");
+  assert.equal(beatVoice("news_politics"), "news");
   assert.equal(beatVoice("tea"), "story");
   assert.equal(beatVoice("nope"), "editorial"); // unknown → first beat
 });
@@ -144,9 +144,27 @@ test("filterByTerms matches whole words, not prefixes — no tour→tournament (
   assert.ok(music.some((i) => /albums of 2026/.test(i.title)), "plural 'albums' still matches 'album'");
   assert.ok(music.some((i) => /world tour/.test(i.title)), "the literal word 'tour' still matches");
   assert.ok(!music.some((i) => /World Cup/.test(i.title)), "'tour' must NOT prefix-match 'tournament'");
-  // the AI beat: "AI" must not prefix-match "air"/"aid"
-  assert.equal(filterByTerms([{ title: "Air quality alert hits the city", extract: "" }], getBeat("ent_ai").terms).length, 0, "'AI' must not match 'air'");
-  assert.equal(filterByTerms([{ title: "OpenAI ships a new model", extract: "" }], getBeat("ent_ai").terms).length, 1, "real AI terms still match");
+  // a short term like "AI" must not prefix-match "air"/"aid" (whole-word guard)
+  const aiTerms = ["AI", "artificial intelligence", "OpenAI"];
+  assert.equal(filterByTerms([{ title: "Air quality alert hits the city", extract: "" }], aiTerms).length, 0, "'AI' must not match 'air'");
+  assert.equal(filterByTerms([{ title: "OpenAI ships a new model", extract: "" }], aiTerms).length, 1, "real AI terms still match");
+});
+
+test("taxonomy: every beat carries a group; Enterprise sectors carry seeds; helpers resolve", () => {
+  for (const b of BEATS) assert.ok(b.group, b.key + " has a dropdown group");
+  for (const b of beatsForDesk("enterprise")) assert.ok(b.seeds && b.seeds.length >= 3, b.key + " carries seed hints");
+  // groupsForDesk clusters in first-seen order and preserves every beat exactly once
+  const groups = groupsForDesk("enterprise");
+  assert.ok(groups.length >= 2 && groups.length < beatsForDesk("enterprise").length);
+  assert.equal(groups.reduce((n, g) => n + g.beats.length, 0), beatsForDesk("enterprise").length);
+  // routeFraming gives generate.js a desk-adaptive kind + label + term anchors
+  assert.deepEqual(
+    { kind: routeFraming("ent_finance").kind, label: routeFraming("ent_finance").label },
+    { kind: "Sector", label: "Finance & Banking" },
+  );
+  assert.equal(routeFraming("news_politics").kind, "Section");
+  assert.equal(routeFraming("film").kind, "Beat");
+  assert.ok(routeFraming("ent_finance").terms.includes("bank"));
 });
 
 test("selectTrending keeps section feeds on-topic; general most-read only for trivia", () => {

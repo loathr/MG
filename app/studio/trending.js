@@ -13,61 +13,68 @@ import { upsizeWikiThumb } from "./entity";
 // most-read + terms. Any feed that 404s is skipped — the route never returns empty.
 //
 // Routes: Editorial = 9 culture beats · Enterprise = 13 sectors · News Desk = 10
-// desks. A beat appears under exactly one desk (keys are unique).
+// desks. A beat appears under exactly one desk (keys are unique). Each also
+// carries a `group` (the cluster it shows under in the create-screen dropdown)
+// and, for the Enterprise sectors, `seeds` — the old monolith curated TOPICS,
+// reused as ghost-text hints + framing anchors (NEVER inserted as a slide topic;
+// TOPIC_ROUTES.md). The Enterprise/News taxonomy is the monolith's
+// ENTERPRISE_SECTORS / NEWSDESK_DESKS (app/components/segments/*.config.js),
+// re-backed here with a Guardian parent feed + terms via the filterFeed path.
 const G = (p) => "https://www.theguardian.com/" + p + "/rss";
 export const BEATS = [
   // ---- Editorial · 9 culture beats ----------------------------------------
-  { key: "film",      desk: "editorial", label: "Film & TV",     voice: "editorial", rss: [G("film")],    terms: ["film", "movie", "cinema", "director", "actor", "series", "Netflix", "HBO", "Oscar"] },
-  { key: "music",     desk: "editorial", label: "Music",         voice: "editorial", rss: [G("music")],   terms: ["album", "singer", "band", "rapper", "song", "musician", "tour", "Grammy"] },
-  { key: "fashion",   desk: "editorial", label: "Fashion",       voice: "editorial", rss: [G("fashion")], terms: ["fashion", "designer", "runway", "brand", "style", "couture", "model"] },
-  { key: "sports",    desk: "editorial", label: "Sports",        voice: "editorial", rss: [G("sport")],   terms: ["football", "basketball", "soccer", "tennis", "Olympic", "cricket", "cup", "league"] },
-  { key: "food",      desk: "editorial", label: "Food",          voice: "editorial", rss: [G("food")],    terms: ["restaurant", "chef", "food", "cuisine", "cocktail", "recipe", "dining"] },
-  // The Tea — celebrity gossip, TMZ-style: real gossip feeds drive it.
-  { key: "tea",       desk: "editorial", label: "The Tea",       voice: "story",     rss: ["https://www.tmz.com/rss.xml", "https://pagesix.com/feed/", "https://www.justjared.com/feed/"], terms: ["celebrity", "actor", "actress", "singer", "rapper", "star", "model", "dating", "split", "divorce", "breakup", "engaged", "wedding", "baby", "feud", "scandal", "red carpet", "Kardashian", "romance", "drama"] },
+  { key: "film",      desk: "editorial", group: "Screen & Sound", label: "Film & TV",     voice: "editorial", rss: [G("film")],    terms: ["film", "movie", "cinema", "director", "actor", "series", "Netflix", "HBO", "Oscar"] },
+  { key: "music",     desk: "editorial", group: "Screen & Sound", label: "Music",         voice: "editorial", rss: [G("music")],   terms: ["album", "singer", "band", "rapper", "song", "musician", "tour", "Grammy"] },
+  { key: "fashion",   desk: "editorial", group: "Style & Scene",  label: "Fashion",       voice: "editorial", rss: [G("fashion")], terms: ["fashion", "designer", "runway", "brand", "style", "couture", "model"] },
   // Sub-topic culture beats borrow a parent section feed and FILTER it to their
   // terms (so they're not empty like a feed-less narrow beat is): Photography
   // rides Art & Design, Nightlife rides Music.
-  { key: "photo",     desk: "editorial", label: "Photography",   voice: "editorial", rss: [G("artanddesign")], filterFeed: true, terms: ["photographer", "photograph", "photography", "camera", "photo", "exhibition", "portrait"] },
-  { key: "nightlife", desk: "editorial", label: "Nightlife",     voice: "editorial", rss: [G("music")], filterFeed: true, terms: ["nightclub", "club", "DJ", "festival", "rave", "dancefloor", "techno", "house", "electronic"] },
-  { key: "trivia",    desk: "editorial", label: "Did You Know?", voice: "editorial", rss: [], terms: [] }, // empty terms → today's general curiosities
+  { key: "photo",     desk: "editorial", group: "Style & Scene",  label: "Photography",   voice: "editorial", rss: [G("artanddesign")], filterFeed: true, terms: ["photographer", "photograph", "photography", "camera", "photo", "exhibition", "portrait"] },
+  { key: "nightlife", desk: "editorial", group: "Style & Scene",  label: "Nightlife",     voice: "editorial", rss: [G("music")], filterFeed: true, terms: ["nightclub", "club", "DJ", "festival", "rave", "dancefloor", "techno", "house", "electronic"] },
+  { key: "food",      desk: "editorial", group: "Life & Sport",   label: "Food",          voice: "editorial", rss: [G("food")],    terms: ["restaurant", "chef", "food", "cuisine", "cocktail", "recipe", "dining"] },
+  { key: "sports",    desk: "editorial", group: "Life & Sport",   label: "Sports",        voice: "editorial", rss: [G("sport")],   terms: ["football", "basketball", "soccer", "tennis", "Olympic", "cricket", "cup", "league"] },
+  // The Tea — celebrity gossip, TMZ-style: real gossip feeds drive it.
+  { key: "tea",       desk: "editorial", group: "Buzz",           label: "The Tea",       voice: "story",     rss: ["https://www.tmz.com/rss.xml", "https://pagesix.com/feed/", "https://www.justjared.com/feed/"], terms: ["celebrity", "actor", "actress", "singer", "rapper", "star", "model", "dating", "split", "divorce", "breakup", "engaged", "wedding", "baby", "feud", "scandal", "red carpet", "Kardashian", "romance", "drama"] },
+  { key: "trivia",    desk: "editorial", group: "Buzz",           label: "Did You Know?", voice: "editorial", rss: [], terms: [] }, // empty terms → today's general curiosities
 
   // ---- Enterprise · 13 sectors (business voice) ---------------------------
-  // Enterprise sectors share a few HIGH-VOLUME Guardian sections (technology /
-  // business / media / society / money / environment) and are focused by their
-  // TERMS in the route (selectTrending) — niche subsection feeds were too thin.
-  { key: "ent_tech",       desk: "enterprise", label: "Tech",        voice: "business", rss: [G("technology"), "https://hnrss.org/frontpage"], terms: ["tech", "software", "app", "chip", "cloud", "Apple", "Google", "Microsoft", "Meta"] },
-  // HN: points>=50 keeps it to VETTED AI posts, not raw newest (1-point noise).
-  { key: "ent_ai",         desk: "enterprise", label: "AI",          voice: "business", rss: [G("technology"), "https://hnrss.org/newest?q=AI&points=50"], terms: ["AI", "artificial intelligence", "model", "OpenAI", "LLM", "machine learning", "chatbot", "Nvidia", "Anthropic"] },
-  { key: "ent_startups",   desk: "enterprise", label: "Startups",    voice: "business", rss: [G("technology"), "https://hnrss.org/frontpage"], terms: ["startup", "founder", "venture", "funding", "seed", "raise", "valuation", "IPO"] },
-  { key: "ent_markets",    desk: "enterprise", label: "Markets",     voice: "business", rss: [G("business")], terms: ["market", "stocks", "index", "S&P", "Nasdaq", "Dow", "bond", "shares", "rally"] },
-  { key: "ent_finance",    desk: "enterprise", label: "Finance",     voice: "business", rss: [G("business")], terms: ["bank", "finance", "fund", "lending", "rate", "investment", "credit"] },
-  { key: "ent_crypto",     desk: "enterprise", label: "Crypto",      voice: "business", rss: [G("technology"), G("business")], terms: ["crypto", "bitcoin", "ethereum", "token", "blockchain", "stablecoin", "exchange"] },
-  { key: "ent_economy",    desk: "enterprise", label: "Economy",     voice: "business", rss: [G("business")], terms: ["economy", "GDP", "inflation", "jobs", "rate", "recession", "Fed", "growth"] },
-  { key: "ent_marketing",  desk: "enterprise", label: "Marketing",   voice: "business", rss: [G("media")], terms: ["marketing", "advertising", "brand", "campaign", "agency"] },
-  { key: "ent_media",      desk: "enterprise", label: "Media",       voice: "business", rss: [G("media")], terms: ["media", "streaming", "publisher", "platform", "press", "subscription"] },
-  { key: "ent_retail",     desk: "enterprise", label: "Retail",      voice: "business", rss: [G("business")], terms: ["retail", "store", "sales", "consumer", "shopping", "ecommerce"] },
-  { key: "ent_energy",     desk: "enterprise", label: "Energy",      voice: "business", rss: [G("environment"), G("business")], terms: ["energy", "oil", "gas", "renewable", "grid", "power", "solar"] },
-  { key: "ent_health",     desk: "enterprise", label: "Healthcare",  voice: "business", rss: [G("society")], terms: ["health", "hospital", "pharma", "biotech", "drug", "vaccine", "trial"] },
-  { key: "ent_realestate", desk: "enterprise", label: "Real Estate", voice: "business", rss: [G("money"), G("business")], terms: ["property", "housing", "real estate", "mortgage", "rent", "homes"] },
+  // The monolith's ENTERPRISE_SECTORS. They SHARE high-volume Guardian sections
+  // (society / business / environment / media / money / technology / education)
+  // and are focused by their TERMS (selectTrending) — niche subsection feeds were
+  // too thin. `seeds` = the matching monolith ENTERPRISE_TOPICS.
+  { key: "ent_healthcare",  desk: "enterprise", group: "Health & Science", label: "Healthcare & Pharma",  voice: "business", rss: [G("society")], terms: ["health", "hospital", "pharma", "biotech", "drug", "vaccine", "clinical", "NHS", "FDA"], seeds: ["Telehealth adoption", "AI drug discovery", "Hospital staffing crisis", "GLP-1 drug market", "Medical device regulation", "Mental health tech"] },
+  { key: "ent_agriculture", desk: "enterprise", group: "Health & Science", label: "Agriculture & Food",   voice: "business", rss: [G("environment"), G("business")], terms: ["agriculture", "farming", "food", "crop", "harvest", "livestock", "fishery", "soil"], seeds: ["Precision agriculture ROI", "Vertical farming viability", "Food waste tech", "Plant-based protein economics", "Water scarcity technology"] },
+  { key: "ent_space",       desk: "enterprise", group: "Health & Science", label: "Space & Aerospace",    voice: "business", rss: [G("science"), G("technology")], terms: ["space", "satellite", "rocket", "NASA", "SpaceX", "orbit", "aerospace", "launch"], seeds: ["Satellite internet competition", "Space tourism economics", "Orbital manufacturing", "Space debris management", "Launch cost economics"] },
+  { key: "ent_energy",      desk: "enterprise", group: "Energy & Industry", label: "Energy & Climate",     voice: "business", rss: [G("environment"), G("business")], terms: ["energy", "oil", "gas", "renewable", "grid", "power", "solar", "nuclear", "emissions"], seeds: ["Grid modernization", "EV charging race", "Carbon credit market", "Nuclear energy comeback", "Green hydrogen economics"] },
+  { key: "ent_supplychain", desk: "enterprise", group: "Energy & Industry", label: "Supply Chain",         voice: "business", rss: [G("business")], terms: ["supply chain", "logistics", "shipping", "port", "freight", "manufacturing", "trade", "warehouse"], seeds: ["Nearshoring acceleration", "Port automation", "Last-mile delivery economics", "Cold chain logistics", "Trade route disruptions"] },
+  { key: "ent_defense",     desk: "enterprise", group: "Energy & Industry", label: "Defense & Security",   voice: "business", rss: [G("world"), G("technology")], terms: ["defense", "military", "cybersecurity", "security", "drone", "weapons", "intelligence", "surveillance"], seeds: ["Cybersecurity spending surge", "Drone warfare economics", "Defense AI procurement", "Critical infrastructure protection"] },
+  { key: "ent_finance",     desk: "enterprise", group: "Markets & Money",   label: "Finance & Banking",    voice: "business", rss: [G("business")], terms: ["bank", "finance", "fund", "lending", "rate", "investment", "credit", "mortgage", "IPO"], seeds: ["Open banking disruption", "BNPL regulation wave", "Central bank digital currencies", "Private credit boom", "Neo-bank profitability"] },
+  { key: "ent_realestate",  desk: "enterprise", group: "Markets & Money",   label: "Real Estate",          voice: "business", rss: [G("money"), G("business")], terms: ["property", "housing", "real estate", "mortgage", "rent", "homes", "commercial", "landlord"], seeds: ["Commercial real estate downturn", "PropTech valuation reset", "Housing affordability crisis", "Data center real estate boom", "Climate risk in property"] },
+  { key: "ent_crypto",      desk: "enterprise", group: "Markets & Money",   label: "Crypto & Web3",        voice: "business", rss: [G("technology"), G("business")], terms: ["crypto", "bitcoin", "ethereum", "token", "blockchain", "stablecoin", "web3", "exchange"], seeds: ["Bitcoin ETF market impact", "Stablecoin regulation", "DeFi institutional adoption", "NFT market evolution"] },
+  { key: "ent_media",       desk: "enterprise", group: "Society & Media",   label: "Media & Entertainment", voice: "business", rss: [G("media")], terms: ["media", "streaming", "studio", "publisher", "platform", "subscription", "podcast", "creator"], seeds: ["Streaming profitability crisis", "AI-generated content", "Local news collapse", "Podcast monetization", "Creator economy maturation"] },
+  { key: "ent_education",   desk: "enterprise", group: "Society & Media",   label: "Education",            voice: "business", rss: [G("education")], terms: ["education", "school", "university", "student", "edtech", "tuition", "learning", "enrollment"], seeds: ["EdTech post-pandemic reality", "AI tutoring disruption", "Student debt solutions", "Corporate upskilling", "Micro-credential adoption"] },
+  { key: "ent_labor",       desk: "enterprise", group: "Society & Media",   label: "Labor & Workforce",    voice: "business", rss: [G("business"), G("society")], terms: ["labor", "jobs", "workforce", "union", "hiring", "layoff", "wages", "remote work"], seeds: ["Remote work policy shifts", "Gig economy regulation", "AI job displacement", "Union resurgence", "Four-day work week"] },
+  { key: "ent_lifestyle",   desk: "enterprise", group: "Society & Media",   label: "Lifestyle & Consumer", voice: "business", rss: [G("business"), G("lifeandstyle")], terms: ["consumer", "retail", "brand", "luxury", "wellness", "travel", "subscription", "shopping"], seeds: ["Wellness industry consolidation", "Luxury resale growth", "Travel industry recovery", "Subscription fatigue", "Longevity economy"] },
 
   // ---- News Desk · 10 desks (news voice) ----------------------------------
-  // Each is its own high-volume Guardian section, so most are broad (no terms);
-  // climate/health ride a parent section and are focused by terms.
-  { key: "news_world",     desk: "newsdesk", label: "World",        voice: "news", rss: [G("world")],      terms: [] },
-  { key: "news_politics",  desk: "newsdesk", label: "Politics",     voice: "news", rss: [G("politics")],   terms: [] },
-  { key: "news_business",  desk: "newsdesk", label: "Business",     voice: "news", rss: [G("business")],   terms: [] },
-  { key: "news_science",   desk: "newsdesk", label: "Science",      voice: "news", rss: [G("science")],    terms: [] },
-  { key: "news_climate",   desk: "newsdesk", label: "Climate",      voice: "news", rss: [G("environment")], terms: ["climate", "emissions", "warming", "carbon", "COP", "heat", "flood", "wildfire"] },
-  { key: "news_health",    desk: "newsdesk", label: "Health",       voice: "news", rss: [G("society")],    terms: ["health", "disease", "NHS", "outbreak", "hospital", "virus", "care"] },
-  { key: "news_tech",      desk: "newsdesk", label: "Technology",   voice: "news", rss: [G("technology")], terms: [] },
-  { key: "news_law",       desk: "newsdesk", label: "Law & Justice",voice: "news", rss: [G("law")],        terms: [] },
-  { key: "news_education", desk: "newsdesk", label: "Education",    voice: "news", rss: [G("education")],  terms: [] },
-  { key: "news_media",     desk: "newsdesk", label: "Media",        voice: "news", rss: [G("media")],      terms: [] },
+  // The monolith's NEWSDESK_DESKS. Most are their own high-volume Guardian
+  // section (broad, no terms); crime/health/conflict ride a parent section and
+  // are focused by terms (filterFeed).
+  { key: "news_politics",    desk: "newsdesk", group: "World & Politics", label: "Politics",          voice: "news", rss: [G("politics")],   terms: [] },
+  { key: "news_conflict",    desk: "newsdesk", group: "World & Politics", label: "Conflict & Defense", voice: "news", rss: [G("world")], filterFeed: true, terms: ["war", "military", "conflict", "troops", "refugee", "ceasefire", "missile", "invasion", "strike"] },
+  { key: "news_crime",       desk: "newsdesk", group: "Law & Society",    label: "Crime & Justice",   voice: "news", rss: [G("law")], filterFeed: true, terms: ["crime", "police", "court", "trial", "prison", "justice", "investigation", "charges"] },
+  { key: "news_education",   desk: "newsdesk", group: "Law & Society",    label: "Education",         voice: "news", rss: [G("education")],  terms: [] },
+  { key: "news_business",    desk: "newsdesk", group: "Business & Tech",  label: "Business",          voice: "news", rss: [G("business")],   terms: [] },
+  { key: "news_tech",        desk: "newsdesk", group: "Business & Tech",  label: "Technology",        voice: "news", rss: [G("technology")], terms: [] },
+  { key: "news_health",      desk: "newsdesk", group: "Science & Planet", label: "Health & Science",  voice: "news", rss: [G("society"), G("science")], filterFeed: true, terms: ["health", "disease", "NHS", "research", "study", "hospital", "scientist", "outbreak"] },
+  { key: "news_environment", desk: "newsdesk", group: "Science & Planet", label: "Environment",       voice: "news", rss: [G("environment")], terms: [] },
+  { key: "news_culture",     desk: "newsdesk", group: "Culture & Sport",  label: "Arts & Culture",    voice: "news", rss: [G("culture")],    terms: [] },
+  { key: "news_sports",      desk: "newsdesk", group: "Culture & Sport",  label: "Sports",            voice: "news", rss: [G("sport")],      terms: [] },
 ];
 
-// Enterprise sectors SHARE high-volume feeds (technology / business / media / …),
-// so their feed is term-FILTERED down to the sector. Dedicated single-section
-// feeds (Editorial culture, News desks) use the whole feed — every item is
+// Enterprise sectors SHARE high-volume feeds (society / business / …), so their
+// feed is term-FILTERED down to the sector. Dedicated single-section feeds
+// (Editorial culture, the broad News desks) use the whole feed — every item is
 // already on-topic, so filtering only drops good cards.
 for (const b of BEATS) if (b.desk === "enterprise") b.filterFeed = true;
 
@@ -86,6 +93,28 @@ export function beatsForDesk(desk) {
 // The default (first) beat key for a desk — what the dropdown opens on.
 export function defaultBeat(desk) {
   return beatsForDesk(desk)[0].key;
+}
+// The desk's beats clustered into ordered groups for the create-screen dropdown:
+// [{ group, beats: [...] }], groups in first-seen order, beats in their list
+// order. Drives the grouped dropdown (TOPIC_ROUTES.md, mock "B").
+export function groupsForDesk(desk) {
+  const out = [];
+  for (const b of beatsForDesk(desk)) {
+    const name = b.group || "More";
+    let g = out.find((x) => x.group === name);
+    if (!g) { g = { group: name, beats: [] }; out.push(g); }
+    g.beats.push(b);
+  }
+  return out;
+}
+// The framing a picked beat contributes to generation (TOPIC_ROUTES.md): the
+// desk-adaptive KIND label + the beat's own label + its terms (anchors). Pure —
+// generate.js stays decoupled from this module; the create screen passes the
+// resolved object straight into buildPrompt's `route`.
+const DESK_KIND = { editorial: "Beat", enterprise: "Sector", newsdesk: "Section" };
+export function routeFraming(key) {
+  const b = getBeat(key);
+  return { kind: DESK_KIND[b.desk] || "Beat", label: b.label, terms: (b.terms || []).slice() };
 }
 
 // Wikipedia "featured" feed for a day carries the most-read articles. Keyless.
