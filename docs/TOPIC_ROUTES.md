@@ -1,9 +1,10 @@
 # Studio — Template-specific Topic Routes (design spec)
 
-> Status: **approved design.** Mockups signed off in session; this is the build
-> contract. Honors the standing rules (show-a-visual done; gate on `npm test` +
-> `npm run build`; one-bg-image crash rule untouched — this is content/voice
-> only, §12).
+> Status: **BUILT** (Tiers 1–3 shipped on PR #9; gated + live-verified). Mockups
+> signed off in session. Honors the standing rules (show-a-visual done; gate on
+> `npm test` + `npm run build`; one-bg-image crash rule untouched — this is
+> content/voice only, §12). The live region/recency feed pull (Tier 2b) is the
+> user's `?debug=1` check — external feeds aren't reachable from the sandbox.
 
 ## Intent
 
