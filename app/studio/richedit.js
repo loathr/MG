@@ -1,9 +1,10 @@
-// richedit.js — the one browser bit per-run styling needs: mapping a text
-// selection inside a contentEditable to {start, end} CHARACTER offsets within the
-// element's plain content. The pure run logic lives in model.js; styling is
-// applied through the store (offset-based), so editing itself stays plain-text
-// and the user's words are never at risk. Newlines are real "\n" characters
-// (the editor uses white-space: pre-wrap); <br> is tolerated as one char.
+// richedit.js — the browser bits per-run styling needs: mapping a text selection
+// inside a contentEditable to {start, end} CHARACTER offsets, and (for B1's live
+// preview) serializing runs → styled HTML and reading the edited DOM back into
+// {text, runs}. The pure run logic lives in model.js. Newlines are real "\n"
+// characters (the editor uses white-space: pre-wrap); <br> is one char.
+
+import { runSegments, overlayToRunsPublic } from "./model";
 
 // (container, offset) from a DOM Range endpoint → flat character index in root.
 function pointToIndex(root, container, offset) {
@@ -44,4 +45,125 @@ export function selectionOffsets(root) {
   let b = pointToIndex(root, r.endContainer, r.endOffset);
   if (a > b) { const t = a; a = b; b = t; }
   return { start: a, end: b };
+}
+
+// ---------------------------------------------------------------------------
+// B1 · live styling preview — serialize runs ↔ contentEditable HTML
+// ---------------------------------------------------------------------------
+
+function escHtml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escAttr(s) {
+  return escHtml(s).replace(/"/g, "&quot;");
+}
+
+// One run-override → inline CSS declarations. The editable already carries the
+// element's base style (colour/size/etc), so a span only paints its OVERRIDES —
+// this MUST mirror RichText.spanStyle so the preview equals the rendered slide.
+export function cssForOverride(s) {
+  const d = [];
+  if (!s) return "";
+  if (s.color != null) d.push("color:" + s.color);
+  if (s.bold != null) d.push("font-weight:" + (s.bold ? 700 : 400));
+  if (s.italic != null) d.push("font-style:" + (s.italic ? "italic" : "normal"));
+  if (s.size != null) d.push("font-size:" + s.size + "px");
+  if (s.strike) {
+    d.push("text-decoration-line:line-through");
+    d.push("text-decoration-color:" + (s.strikeColor || s.color || "currentColor"));
+    d.push("text-decoration-thickness:0.09em");
+  }
+  if (s.bg != null) {
+    d.push("background:" + s.bg);
+    d.push("padding:0 0.1em");
+    d.push("border-radius:3px");
+    d.push("-webkit-box-decoration-break:clone");
+    d.push("box-decoration-break:clone");
+  }
+  if (s.stroke != null && s.strokeWidth) {
+    d.push("-webkit-text-stroke-width:" + s.strokeWidth + "px");
+    d.push("-webkit-text-stroke-color:" + s.stroke);
+    d.push("paint-order:stroke fill");
+  }
+  return d.join(";");
+}
+
+// content + runs → HTML for the contentEditable. Plain segments are bare text
+// (newlines preserved for pre-wrap); styled segments are <span data-run='{json}'>
+// so reading the DOM back recovers the exact override. Pure (no DOM).
+export function runsToHtml(content, runs) {
+  const segs = runSegments(content, runs);
+  let html = "";
+  for (const seg of segs) {
+    const t = escHtml(seg.text);
+    if (!seg.style || !Object.keys(seg.style).length) { html += t; continue; }
+    const css = cssForOverride(seg.style);
+    html += "<span data-run=\"" + escAttr(JSON.stringify(seg.style)) + "\""
+      + (css ? " style=\"" + escAttr(css) + "\"" : "") + ">" + t + "</span>";
+  }
+  return html;
+}
+
+// Read an edited contentEditable back into {text, runs}. Walks the DOM counting
+// UTF-16 code units (matching selectionOffsets), pulling each styled span's
+// override from its data-run attr; <br> and block boundaries become "\n". New
+// text typed inside a styled span inherits that span's override. Defensive: the
+// caller wraps this and falls back to plain innerText if anything is unexpected.
+export function domToContentRuns(root) {
+  let text = "";
+  const ov = [];
+  const push = (str, style) => {
+    for (let i = 0; i < str.length; i++) { text += str[i]; ov.push(style ? Object.assign({}, style) : null); }
+  };
+  const visit = (node, inherited) => {
+    for (let k = 0; k < node.childNodes.length; k++) {
+      const child = node.childNodes[k];
+      if (child.nodeType === 3) { push(child.nodeValue || "", inherited); continue; }
+      if (child.nodeType !== 1) continue;
+      const tag = child.tagName;
+      if (tag === "BR") { text += "\n"; ov.push(inherited ? Object.assign({}, inherited) : null); continue; }
+      let style = inherited;
+      const raw = child.getAttribute && child.getAttribute("data-run");
+      if (raw) { try { style = Object.assign({}, inherited, JSON.parse(raw)); } catch (e) { /* keep inherited */ } }
+      // A browser-inserted block (DIV/P) starts a new visual line.
+      if ((tag === "DIV" || tag === "P") && text.length && text[text.length - 1] !== "\n") { text += "\n"; ov.push(null); }
+      visit(child, style);
+    }
+  };
+  visit(root, null);
+  return { text, runs: overlayToRunsPublic(ov) };
+}
+
+// char index → {node, offset} inside root (clamped to the end).
+function locate(root, target) {
+  let idx = 0, result = null;
+  const visit = (node) => {
+    for (let k = 0; k < node.childNodes.length && !result; k++) {
+      const child = node.childNodes[k];
+      if (child.nodeType === 3) {
+        const len = (child.nodeValue || "").length;
+        if (target <= idx + len) { result = { node: child, offset: target - idx }; return; }
+        idx += len;
+      } else if (child.nodeType === 1) {
+        if (child.tagName === "BR") {
+          if (target <= idx) { result = { node, offset: k }; return; }
+          idx += 1;
+        } else visit(child);
+      }
+    }
+  };
+  visit(root);
+  return result || { node: root, offset: root.childNodes.length };
+}
+
+// Restore a selection by character offsets (collapsed when end == null/start).
+export function setCaret(root, start, end) {
+  if (typeof window === "undefined" || !root) return;
+  const a = locate(root, start);
+  const b = (end == null || end === start) ? a : locate(root, end);
+  const r = document.createRange();
+  try { r.setStart(a.node, a.offset); r.setEnd(b.node, b.offset); } catch (e) { return; }
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(r);
 }

@@ -1,108 +1,15 @@
 "use client";
-import React, { useCallback, useEffect, useRef } from "react";
+import React from "react";
 import RichText from "./RichText";
+import RichEditable from "./RichEditable";
 import ShapeBacking from "./ShapeBacking";
 import { shapePad, shapeVAlign } from "./shapes";
-import { styledRuns, applyRunStyle, clearRunStyle, remapRuns } from "./model";
-import { selectionOffsets } from "./richedit";
-
-// The resolved style span covering character `idx` (for the format bar / Inspector
-// active states), or null.
-function spanStyleAt(el, idx) {
-  const spans = styledRuns(el);
-  let acc = 0;
-  for (const sp of spans) { if (idx < acc + sp.text.length) return sp; acc += sp.text.length; }
-  return spans.length ? spans[spans.length - 1] : null;
-}
 
 // One element. Wrapped in React.memo so it re-renders only when its own object
 // (or its editing flag) changes — the key to Canva-like drag performance.
 function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, onCommitText, onEndEdit, onTextSelect, onEditApi, onStyleApply }) {
-  const editRef = useRef(null);
-  const pendingRef = useRef(null); // latest typed text, tracked without re-rendering
-  const cancelledRef = useRef(false); // Escape reverts the edit instead of committing
-  const elRef = useRef(el);
-  elRef.current = el; // always read the latest element from the imperative handlers
-
-  // Report the current text selection (offsets + screen rect + effective style)
-  // up to the Studio so the format bar / Inspector can style just that span.
-  // Collapsed selections (a plain caret) are ignored; typing clears via onInput.
-  const reportSel = useCallback(() => {
-    const node = editRef.current;
-    if (!node || !onTextSelect) return;
-    const off = selectionOffsets(node);
-    if (!off || off.end <= off.start) return;
-    let rect = null;
-    try { rect = window.getSelection().getRangeAt(0).getBoundingClientRect(); } catch (e) { /* ignore */ }
-    const cur = elRef.current;
-    const content = pendingRef.current != null ? pendingRef.current : cur.content;
-    onTextSelect({
-      id: cur.id, start: off.start, end: off.end,
-      text: String(content).slice(off.start, off.end),
-      rect: rect && rect.width ? { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom } : null,
-      style: spanStyleAt(cur, off.start),
-    });
-  }, [onTextSelect]);
-
-  // Apply (or clear) a style patch over the current selection. Reads the live DOM
-  // text + selection (the format controls keep focus via onMouseDown→preventDefault)
-  // and dispatches ONE atomic content+runs update, so there is no commit/apply
-  // race and the run lands on exactly the selected characters.
-  // `range` lets a caller target stored offsets instead of the live DOM
-  // selection — needed when a control (e.g. the format bar's hex field) takes
-  // focus and collapses the contentEditable selection (B2).
-  const applyRun = useCallback((patch, clear, range) => {
-    const node = editRef.current;
-    if (!node) return;
-    const off = range && range.end > range.start ? range : selectionOffsets(node);
-    if (!off || off.end <= off.start) return;
-    const text = node.innerText;
-    const cur = elRef.current;
-    const base = remapRuns(cur.runs || [], cur.content, text);
-    const runs = clear
-      ? clearRunStyle(text, base, off.start, off.end)
-      : applyRunStyle(text, base, off.start, off.end, patch);
-    pendingRef.current = text;
-    if (onStyleApply) onStyleApply(cur.id, text, runs);
-  }, [onStyleApply]);
-
-  useEffect(() => {
-    if (!isEditing || !editRef.current) return;
-    const node = editRef.current;
-    pendingRef.current = el.content; // baseline at edit start
-    cancelledRef.current = false;
-    node.focus();
-    // place caret at the end
-    const sel = window.getSelection();
-    const range = document.createRange();
-    range.selectNodeContents(node);
-    range.collapse(false);
-    sel.removeAllRanges();
-    sel.addRange(range);
-    // Expose the style API + listen for selection changes while editing.
-    if (onEditApi) onEditApi({
-      applyStyle: (p) => applyRun(p, false),
-      clearStyle: () => applyRun(null, true),
-      applyStyleAt: (start, end, p) => applyRun(p, false, { start, end }),
-      clearStyleAt: (start, end) => applyRun(null, true, { start, end }),
-    });
-    document.addEventListener("selectionchange", reportSel);
-    // Commit when editing ends by ANY path — blur, clicking the canvas
-    // (deselect), selecting another element, a slide change, or unmount. The old
-    // code committed only in the contentEditable's onBlur, but clicking outside
-    // unmounts this node before its blur fires, so the typed text was dropped and
-    // the element snapped back to its original — the "edit reverts" bug. The
-    // effect cleanup always runs on isEditing -> false, so we commit here instead.
-    return () => {
-      document.removeEventListener("selectionchange", reportSel);
-      if (onEditApi) onEditApi(null);
-      if (onTextSelect) onTextSelect(null);
-      if (cancelledRef.current) return; // Escape — discard, keep the original
-      const text = pendingRef.current;
-      if (text != null && text !== el.content) onCommitText(el.id, text);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditing]);
+  // Editing is delegated to RichEditable (B1) — a contentEditable seeded from the
+  // element's runs so styling previews live. It commits content+runs on exit.
 
   const frame = {
     position: "absolute",
@@ -148,36 +55,15 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
       overflow: shaped ? "visible" : "hidden",
     };
     const textNode = isEditing ? (
-      <div
-        ref={editRef}
-        contentEditable
-        suppressContentEditableWarning
-        style={textStyle}
-        onInput={(e) => { pendingRef.current = e.currentTarget.innerText; if (onTextSelect) onTextSelect(null); }}
-        onBlur={(e) => {
-          // Keep editing alive when focus moves into the floating format bar
-          // (e.g. typing a custom hex) — styling targets stored offsets, so the
-          // collapsed selection is fine and the popover must not commit/unmount.
-          const to = e.relatedTarget;
-          if (to && to.closest && to.closest("[data-formatbar]")) return;
-          onEndEdit();
-        }}
-        onKeyDown={(e) => {
-          // Enter commits; Shift+Enter inserts a line break; Escape cancels.
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            e.currentTarget.blur();
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            cancelledRef.current = true;
-            e.currentTarget.blur();
-          }
-          e.stopPropagation();
-        }}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        {el.content}
-      </div>
+      <RichEditable
+        el={el}
+        textStyle={textStyle}
+        onCommitText={onCommitText}
+        onEndEdit={onEndEdit}
+        onTextSelect={onTextSelect}
+        onEditApi={onEditApi}
+        onStyleApply={onStyleApply}
+      />
     ) : (
       <div style={textStyle}><RichText el={el} /></div>
     );

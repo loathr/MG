@@ -94,8 +94,11 @@ export default function Artboard({ slide, selectedId, editingId, dispatch, onTex
   }, [dispatch, beginDrag]);
 
   const onStartEdit = useCallback((id) => dispatch({ type: "edit", id }), [dispatch]);
-  const onCommitText = useCallback((id, text) => {
-    dispatch({ type: "update", id, patch: { content: text } });
+  const onCommitText = useCallback((id, text, runs) => {
+    // B1 commits content AND the live runs read back from the editable; older
+    // callers pass text only (runs stay whatever the store already holds).
+    const patch = runs !== undefined ? { content: text, runs } : { content: text };
+    dispatch({ type: "update", id, patch });
     dispatch({ type: "endEdit" });
   }, [dispatch]);
   // A per-span style apply: an atomic content+runs update that does NOT end the

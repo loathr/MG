@@ -296,11 +296,18 @@ export.js (canvas PNG) must stay in sync** for any text/shape change.
    The adapter (`firebaseStore.js`), auth gate, and `CLOUD_SETUP.md` are done;
    this is the last cloud piece. Deploy-verified only (no Firestore/auth in
    sandbox) — verify the disabled path is unchanged here.
-3. **B3 · Per-span SIZE** — next text-editor item (approach in BUILD QUEUE).
+3. ~~**B3 · Per-span SIZE**~~ ✅ SHIPPED (`987c378`).
 4. **D3 · rethemeDoc remap** of `textBg`/`textStroke`/per-run colours (small).
-5. **B2 · Custom-hex colour popover.**
+5. ~~**B2 · Custom-hex colour popover**~~ ✅ SHIPPED (`ebf8cde`) — FormatBar `+`
+   swatch → hex field + recents + system picker; styling now targets stored
+   selection offsets so it survives focus loss.
 6. **Cloud 11c · uploads → Cloud Storage** (Firestore 1 MB doc limit; deploy-only).
-7. **B1 · Live styling preview** (the heavy one).
+7. ~~**B1 · Live styling preview**~~ ✅ SHIPPED — `RichEditable.jsx` (a
+   never-re-rendering rich contentEditable) seeds its DOM from runs at edit start
+   so styling previews live; repaints only on style-apply (caret restored by
+   offset), plain typing stays native. `richedit.js` gained
+   `runsToHtml`/`domToContentRuns`/`setCaret`/`cssForOverride`. Gated by
+   `test/richedit.test.mjs` (serialize↔DOM round-trip) + a Puppeteer live pass.
 8. **B6 · Element-tether anchor** (bonus).
 9. **D4 / D5** · editor edge cases + regression sweep.
 10. **D1** · trending `?debug=1` confirm — the user's check on the deploy.
