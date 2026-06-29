@@ -65,6 +65,24 @@ test("buildPrompt: an optional route scopes the deck; an absent route is byte-id
   assert.equal(buildPrompt("GLP-1 drugs reshape pharma", "business", Object.assign({}, base, { route: { terms: ["x"] } })), plain); // no label → no-op
 });
 
+test("buildPrompt: a News route adds region scope + urgency framing", () => {
+  const base = { seed: 2, today: "2026-06-26" };
+  const breaking = buildPrompt("EU AI Act enforcement", "news", Object.assign({}, base, {
+    route: { kind: "Section", label: "Politics", terms: [], region: "Europe", urgency: "breaking" },
+  }));
+  assert.match(breaking, /Stay within the Section .Politics./);
+  assert.match(breaking, /Focus on Europe/);                 // region scope
+  assert.match(breaking, /BREAKING: lead with the single most recent/); // urgency framing
+  // "developing" frames differently; "Global" region adds no scope line
+  const developing = buildPrompt("x", "news", Object.assign({}, base, { route: { region: "Global", urgency: "developing" } }));
+  assert.match(developing, /DEVELOPING story/);
+  assert.doesNotMatch(developing, /Focus on Global/);
+  // a region/urgency-only route (no beat label) still renders — and a fully empty
+  // route is still byte-identical to the plain prompt
+  assert.match(buildPrompt("x", "news", Object.assign({}, base, { route: { region: "Asia" } })), /Focus on Asia/);
+  assert.equal(buildPrompt("x", "news", Object.assign({}, base, { route: {} })), buildPrompt("x", "news", base));
+});
+
 test("buildPrompt is deterministic for a fixed seed and varies the angle by seed", () => {
   assert.equal(
     buildPrompt("topic", "news", { seed: 5, today: "2026-06-26" }),

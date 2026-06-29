@@ -121,6 +121,29 @@ export function routeFraming(key) {
   return { kind: deskKind(b.desk), label: b.label, terms: (b.terms || []).slice() };
 }
 
+// ---- News Desk secondary route (Tier 2): Region + Urgency -------------------
+// The monolith's NEWSDESK_REGIONS / NEWSDESK_URGENCY. Region scopes the live
+// pull (its `countries` filter the feed, Tier 2b) and frames generation; urgency
+// sets the recency window + a smart slide-count default + a framing hint.
+export const REGIONS = [
+  { id: "global",     label: "Global",      countries: [] },
+  { id: "americas",   label: "Americas",    countries: ["United States", "Canada", "Mexico", "Brazil", "Argentina", "Colombia", "Chile", "Peru", "Cuba", "Jamaica", "Trinidad"] },
+  { id: "europe",     label: "Europe",      countries: ["United Kingdom", "France", "Germany", "Spain", "Italy", "Netherlands", "Sweden", "Poland", "Ukraine", "Ireland", "Switzerland", "Belgium", "Portugal", "Greece", "Turkey"] },
+  { id: "africa",     label: "Africa",      countries: ["Nigeria", "South Africa", "Kenya", "Ghana", "Ethiopia", "Egypt", "Tanzania", "Rwanda", "Senegal", "Morocco", "Algeria", "Uganda", "Cameroon", "Ivory Coast", "DR Congo"] },
+  { id: "asia",       label: "Asia",        countries: ["China", "Japan", "India", "South Korea", "Indonesia", "Philippines", "Vietnam", "Thailand", "Singapore", "Malaysia", "Pakistan", "Bangladesh", "Taiwan", "Hong Kong"] },
+  { id: "middleeast", label: "Middle East", countries: ["Saudi Arabia", "UAE", "Israel", "Iran", "Iraq", "Qatar", "Kuwait", "Jordan", "Lebanon", "Bahrain", "Oman"] },
+  { id: "oceania",    label: "Oceania",     countries: ["Australia", "New Zealand", "Fiji", "Papua New Guinea"] },
+];
+// Urgency: id + label + the slide-count it preselects + the recency window (days)
+// the live pull leans toward. `slides` is a smart default the user can override.
+export const URGENCY = [
+  { id: "breaking",   label: "Breaking",   slides: 5,  days: 2 },
+  { id: "developing", label: "Developing", slides: 8,  days: 7 },
+  { id: "trending",   label: "Trending",   slides: 10, days: 30 },
+];
+export function regionById(id) { return REGIONS.find((r) => r.id === id) || REGIONS[0]; }
+export function urgencyById(id) { return URGENCY.find((u) => u.id === id) || null; }
+
 // Wikipedia "featured" feed for a day carries the most-read articles. Keyless.
 export function mostReadUrl(y, m, d) {
   const p2 = (n) => String(n).padStart(2, "0");

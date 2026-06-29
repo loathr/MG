@@ -91,13 +91,23 @@ export function buildPrompt(topic, categoryKey, opts) {
   // route is set (the default one-tap path), the prompt is byte-identical to the
   // un-routed deck. The route carries already-resolved framing (kind + label +
   // terms + sourcing), so this builder stays pure and never imports trending.js.
-  const route = o.route && o.route.label ? o.route : null;
-  const routeLine = route
-    ? "Stay within the " + (route.kind || "beat") + " “" + route.label + "” — keep the angle, examples, and sourcing inside it"
-      + (route.terms && route.terms.length ? "; anchor on " + route.terms.slice(0, 8).join(", ") : "")
-      + "."
-      + (route.sourcing ? " Prefer " + route.sourcing + " as sources." : "")
-    : null;
+  const route = o.route || null;
+  const hasRoute = !!(route && (route.label || route.region || route.urgency));
+  let routeLine = null;
+  if (hasRoute) {
+    const parts = [];
+    if (route.label) {
+      parts.push("Stay within the " + (route.kind || "beat") + " “" + route.label + "” — keep the angle, examples, and sourcing inside it"
+        + (route.terms && route.terms.length ? "; anchor on " + route.terms.slice(0, 8).join(", ") : "")
+        + ".");
+    }
+    if (route.sourcing) parts.push("Prefer " + route.sourcing + " as sources.");
+    // News-desk secondary route (Tier 2): region scope + urgency framing.
+    if (route.region && route.region !== "Global") parts.push("Focus on " + route.region + " — prioritise stories, sources, and examples from that region.");
+    if (route.urgency === "breaking") parts.push("BREAKING: lead with the single most recent development; open the cover with the news itself, datelined today, and keep it tight and fast.");
+    else if (route.urgency === "developing") parts.push("This is a DEVELOPING story — frame it as unfolding now; flag what's confirmed versus still emerging.");
+    routeLine = parts.join(" ");
+  }
   // Deck length (cover + content + closer) from the create screen's Length control.
   const total = Math.max(4, Math.min(12, o.slides || 8));
   const content = total - 2;

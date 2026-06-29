@@ -6,7 +6,7 @@ import { getCategory } from "./categories";
 import StylePreview from "./StylePreview";
 import TrendingPanel from "./TrendingPanel";
 import RouteSelect from "./RouteSelect";
-import { routeFraming, getBeat } from "./trending";
+import { routeFraming, getBeat, REGIONS, URGENCY } from "./trending";
 
 // Screen 1 — Create (spec §4, Option C: "segment-first + voice override"). Pick a
 // DESK first — the look (Editorial / Enterprise / News Desk). Each desk implies a
@@ -64,11 +64,25 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   // (sector-free — generation is unchanged). Beats are desk-specific, so it
   // resets when the desk changes.
   const [beat, setBeat] = useState(null);
+  // News-desk secondary route (Tier 2): region scope + urgency. Both null by
+  // default (Global / none) and reset on desk change — they're News-only.
+  const [region, setRegion] = useState(null);
+  const [urgency, setUrgency] = useState(null);
 
   const pickDesk = (key) => {
     setDesk(key);
     setBeat(null);
+    setRegion(null);
+    setUrgency(null);
     if (!voiceTouched) setVoice(DESK_VOICE[key]);
+  };
+  // Urgency preselects the deck length (Breaking → fast/Brief, Trending → Deep);
+  // the user can still pick any length afterwards.
+  const pickUrgency = (id) => {
+    const next = urgency === id ? null : id;
+    setUrgency(next);
+    const u = next ? URGENCY.find((x) => x.id === next) : null;
+    if (u) { const l = LENGTHS.find((x) => x.slides === u.slides); if (l) setLength(l.id); }
   };
   const pickVoice = (key) => { setVoice(key); setVoiceTouched(true); };
   // Tap a Trending card → fill the topic, set the matching voice (tie-back), and
@@ -80,11 +94,20 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     if (beatKey) setBeat(beatKey);
   };
 
+  // Build the resolved route (TOPIC_ROUTES.md) from the beat + News region/urgency.
+  // Null when nothing is set, so generation is byte-identical to the plain path.
+  const buildRoute = () => {
+    const base = beat ? routeFraming(beat) : {};
+    const regionLabel = region && region !== "global" ? (REGIONS.find((r) => r.id === region) || {}).label : null;
+    const r = Object.assign({}, base, { region: regionLabel || null, urgency: urgency || null });
+    return (r.label || r.region || r.urgency) ? r : null;
+  };
+
   const submit = () => {
     const t = topic.trim();
     if (!t || generating) return;
     const slides = (LENGTHS.find((l) => l.id === length) || LENGTHS[1]).slides;
-    onGenerate({ style: desk, category: voice, topic: t, quickDraft, ground: seed, slides, tone, route: beat ? routeFraming(beat) : null });
+    onGenerate({ style: desk, category: voice, topic: t, quickDraft, ground: seed, slides, tone, route: buildRoute() });
   };
 
   // Coarse progress label while generating (the call streams searching -> writing).
@@ -135,6 +158,22 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
               ))}
             </div>
           )}
+          {/* News-desk secondary route (Tier 2): region scope + urgency. */}
+          {desk === "newsdesk" && (
+            <div style={secBox}>
+              <div style={secLab}>Region &amp; urgency <span style={opt}>— optional</span></div>
+              <select value={region || "global"} onChange={(e) => setRegion(e.target.value === "global" ? null : e.target.value)} style={regionSelect} title="Region">
+                {REGIONS.map((r) => <option key={r.id} value={r.id}>{r.id === "global" ? "🌍 Global" : r.label}</option>)}
+              </select>
+              <div style={urgRow}>
+                {URGENCY.map((u) => (
+                  <button key={u.id} type="button" onClick={() => pickUrgency(u.id)} style={urgChip(urgency === u.id, u.id)}>
+                    <span style={urgDot(u.id)} />{u.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <TrendingPanel onPick={pickTrending} desk={desk} beat={beat} onBeat={setBeat} />
 
@@ -170,7 +209,12 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
 
         <div style={lenWrap}>
           <span style={lenBadge}>NEW</span>
-          <div style={lenLab}>Length</div>
+          {/* One slide-count control, desk-framed: "Depth" on Enterprise, else
+              "Length". On News, an active urgency preselected it (still editable). */}
+          <div style={lenLab}>
+            {desk === "enterprise" ? "Depth" : "Length"}
+            {urgency ? <span style={lenAuto}>set by {(URGENCY.find((u) => u.id === urgency) || {}).label}</span> : null}
+          </div>
           <div style={lenRow}>
             {LENGTHS.map((l) => {
               const on = length === l.id;
@@ -274,6 +318,32 @@ const seedCue = { fontSize: 11, color: "#6f6f78" };
 const seedChip = {
   fontSize: 12, color: "#c8c8ce", padding: "6px 11px", borderRadius: 7,
   background: "#131316", border: "1px solid #232329", cursor: "pointer",
+};
+// News-desk secondary route (Region + Urgency).
+const secBox = { marginTop: 14, borderTop: "1px solid #1c1c22", paddingTop: 14, textAlign: "left" };
+const secLab = { fontSize: 10, letterSpacing: 1.2, color: "#6f6f78", textTransform: "uppercase", marginBottom: 10 };
+const opt = { color: "#5c5c64", letterSpacing: 0.3, textTransform: "none" };
+const regionSelect = {
+  width: "100%", height: 42, borderRadius: 9, background: "#161619", color: "#f0f0f2",
+  border: "1px solid #2a2a31", fontSize: 13.5, padding: "0 12px", cursor: "pointer", marginBottom: 11,
+};
+const urgRow = { display: "flex", gap: 8 };
+function urgChip(on, id) {
+  const c = id === "breaking" ? "#e2433f" : id === "developing" ? "#e67e22" : "#888";
+  return {
+    flex: 1, height: 34, borderRadius: 999, fontSize: 12, cursor: "pointer",
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+    background: "transparent", color: on ? "#fff" : "#b6b6be",
+    border: "1px solid " + (on ? c : "#2c2c33"),
+  };
+}
+function urgDot(id) {
+  const c = id === "breaking" ? "#e2433f" : id === "developing" ? "#e67e22" : "#888";
+  return { width: 7, height: 7, borderRadius: "50%", background: c };
+}
+const lenAuto = {
+  marginLeft: 8, fontSize: 9, letterSpacing: 0.3, textTransform: "none", color: UI.onBrand,
+  background: UI.brand, borderRadius: 4, padding: "1px 6px", fontWeight: 700,
 };
 const advToggle = {
   marginTop: 22, background: "transparent", border: "none", color: "#8f8f97",
