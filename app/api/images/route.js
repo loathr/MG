@@ -10,10 +10,14 @@ import { summaryUrl, wikidataSearchUrl, wikidataClaimsUrl, imageFromSummary, wik
 // 60s is plenty here — even on a bad day the pipeline finishes in <10s.
 export const maxDuration = 60;
 
-// --- API keys (server-side ONLY). Falls back to NEXT_PUBLIC_* during migration. ---
-const UNSPLASH_KEY = process.env.UNSPLASH_KEY || process.env.NEXT_PUBLIC_UNSPLASH_KEY || "";
-const PEXELS_KEY = process.env.PEXELS_KEY || process.env.NEXT_PUBLIC_PEXELS_KEY || "";
-const PIXABAY_KEY = process.env.PIXABAY_KEY || process.env.NEXT_PUBLIC_PIXABAY_KEY || "";
+// --- API keys (server-side ONLY) ---
+// Non-public env names only: NEXT_PUBLIC_* vars are inlined into the client
+// bundle by Next, which would leak these provider keys to the browser. This route
+// runs only on the server, so the keys never need to be public. (Deploy must set
+// UNSPLASH_KEY / PEXELS_KEY / PIXABAY_KEY — see the deploy guide.)
+const UNSPLASH_KEY = process.env.UNSPLASH_KEY || "";
+const PEXELS_KEY = process.env.PEXELS_KEY || "";
+const PIXABAY_KEY = process.env.PIXABAY_KEY || "";
 
 // --- fetch helper with AbortController-backed timeout ---
 const fetchWithTimeout = (url, opts, ms) => {
