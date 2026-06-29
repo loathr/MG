@@ -195,21 +195,37 @@ export function rankItems(rssItems, wikiItems, max) {
 // dry (the fix for sector beats that over-filtered into 1-2 generic cards).
 // Terms now filter the FEED too (not just most-read), so several sectors can
 // share one high-volume section feed and still come back focused.
-export function selectTrending(rssItems, wikiItems, terms, max) {
+//
+// `hasFeeds` = whether the beat is CONFIGURED with RSS feeds (not whether any
+// came back). It's the key to the off-topic bug: when a section beat's feed
+// FAILS on the server (empty fetch), we must still know it's a section beat so
+// we DON'T fall back to unfiltered general most-read — that's what put the World
+// Cup under Music/Science. Without it, a feed-down section beat is
+// indistinguishable from a genuinely feed-less curiosity beat.
+export function selectTrending(rssItems, wikiItems, terms, max, hasFeeds) {
   const rss = rssItems || [], wiki = wikiItems || [];
   const hasTerms = !!(terms && terms.length);
   if (rss.length) {
-    // Section-feed beat: the FEED is the on-topic source. Wikipedia most-read is
-    // added ONLY when it matches the beat's terms; general most-read is NEVER
-    // mixed in — that's what leaked viral off-topic items into a beat (the World
-    // Cup under Music). Broaden to the full feed (still on-topic), not the wiki.
+    // Section-feed beat with a live feed: the FEED is the on-topic source.
+    // Wikipedia most-read is added ONLY when it matches the beat's terms;
+    // general most-read is NEVER mixed in — that's what leaked viral off-topic
+    // items into a beat. Broaden to the full feed (still on-topic), not the wiki.
     const rssF = hasTerms ? filterByTerms(rss, terms) : rss;
     const wikiF = hasTerms ? filterByTerms(wiki, terms) : [];
     let ranked = rankItems(rssF, wikiF, max);
     if (ranked.length < 4) ranked = rankItems(rss, wikiF, max);
     return ranked;
   }
-  // Feed-less beat (Photography / Nightlife / Did You Know?): most-read is the
-  // only source — term-matched for the focused ones, general for trivia.
+  // No feed items came back.
+  if (hasFeeds) {
+    // A SECTION beat whose feed failed or returned empty: stay on-topic via
+    // term-matched most-read ONLY; NEVER leak unfiltered viral most-read. A
+    // no-terms section beat returns empty (honest) rather than wrong — the panel
+    // shows "type your own topic", and debug=1 surfaces the dead feed to fix.
+    return hasTerms ? rankItems([], filterByTerms(wiki, terms), max) : [];
+  }
+  // A genuinely feed-less beat (Photography / Nightlife / Did You Know?):
+  // most-read is the intended source — term-matched for the focused ones,
+  // general curiosities for trivia (empty terms).
   return rankItems([], hasTerms ? filterByTerms(wiki, terms) : wiki, max);
 }

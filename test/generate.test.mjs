@@ -38,6 +38,10 @@ test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabl
   assert.match(p, /Headlines must be SPECIFIC/);
   assert.match(p, /STAKES/);
   assert.match(p, /HUMAN STORY/);
+  // segment label (kicker) is model-written, slide-specific, never a recycled role word
+  assert.match(p, /"kicker":/);                            // kicker in the JSON shape
+  assert.match(p, /section label, specific to THIS slide/); // content-slide kicker instruction
+  assert.match(p, /SEGMENT LABEL shown above the headline/); // the rule that bans generic kickers
   // default (no web search): a "from knowledge" grounding line, not a search instruction
   assert.match(p, /Ground every claim/);
   assert.doesNotMatch(p, /use web search/);

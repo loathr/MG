@@ -119,6 +119,16 @@ test("selectTrending keeps section feeds on-topic; general most-read only for tr
   assert.ok(selectTrending([], wiki, [], 6).some(isGeneral), "trivia uses general most-read");
   // a feed-less beat WITH terms stays on-topic (or empty) — never general
   assert.ok(selectTrending([], wiki, ["zzznope"], 6).every((i) => !isGeneral(i)));
+
+  // hasFeeds: a SECTION beat whose feed FAILED on the server (empty rss) must
+  // NEVER leak unfiltered general most-read — the real "FIFA under Music" cause.
+  // A no-terms section beat with a dead feed returns empty (honest), not the
+  // viral most-read list.
+  assert.deepEqual(selectTrending([], wiki, [], 6, true), [], "feed-down no-terms section beat → empty, never general");
+  // a feed-down section beat WITH terms stays on-topic via term-matched most-read only
+  assert.ok(selectTrending([], wiki, ["crypto", "bitcoin"], 6, true).every((i) => !isGeneral(i)), "feed-down beat stays on-topic, no general leak");
+  // contrast: a genuinely feed-less curiosity beat (hasFeeds=false) still uses general most-read
+  assert.ok(selectTrending([], wiki, [], 6, false).some(isGeneral), "true feed-less trivia still uses general most-read");
 });
 
 test("rankItems dedupes by title and floats thumbnail-bearing items first", () => {
