@@ -1,33 +1,46 @@
 "use client";
 import React from "react";
-import { highlightRuns } from "./model";
+import { styledRuns, isUniformText } from "./model";
 
-// Render a text element's content, wrapping an optional `highlight` phrase in a
-// knockout "marker" span (accent background, bg-colored text). Used by the live
-// canvas (Element) and the static/preview renderer (StaticSlide) so emphasis is
-// identical in both — and matches the PNG export's manual draw. `boxDecoration-
-// Break: clone` keeps the marker tidy when the phrase wraps across lines.
+// Render a text element's content as styled RUNS — each contiguous span carries
+// its own colour / weight / italic / strike / background / outline (see
+// model.styledRuns, which also folds in the back-compat `highlight` marker).
+// Shared by the live canvas (Element) and the static/preview renderer
+// (StaticSlide) so styling is identical in both, and mirrored by the PNG export's
+// drawRichText. When the element is uniform (no runs, no marker, no element-wide
+// background/outline) we return the raw string so the container's own CSS covers
+// it — keeping the common case byte-for-byte as before.
 export default function RichText({ el }) {
-  if (!el.highlight || !el.highlightColor) return el.content;
-  const runs = highlightRuns(el.content, el.highlight);
-  if (runs.length === 1) return el.content;
-  return runs.map((r, i) =>
-    r.hl ? (
-      <span
-        key={i}
-        style={{
-          background: el.highlightColor,
-          color: el.highlightText || "inherit",
-          padding: "0 0.1em",
-          borderRadius: 3,
-          WebkitBoxDecorationBreak: "clone",
-          boxDecorationBreak: "clone",
-        }}
-      >
-        {r.text}
-      </span>
-    ) : (
-      <React.Fragment key={i}>{r.text}</React.Fragment>
-    )
-  );
+  if (isUniformText(el)) return el.content;
+  const spans = styledRuns(el);
+  return spans.map((s, i) => <span key={i} style={spanStyle(s)}>{s.text}</span>);
+}
+
+// One run's effective style → inline CSS. Background and outline are the
+// inline-only decorations (a span, not the container): background clones across
+// wrapped lines like a marker; outline paints the stroke under the fill.
+export function spanStyle(s) {
+  const st = {
+    color: s.color,
+    fontWeight: s.fontWeight,
+    fontStyle: s.italic ? "italic" : "normal",
+  };
+  if (s.strike) {
+    st.textDecorationLine = "line-through";
+    st.textDecorationColor = s.strikeColor || s.color;
+    st.textDecorationThickness = "0.09em";
+  }
+  if (s.bg) {
+    st.background = s.bg;
+    st.padding = "0 0.1em";
+    st.borderRadius = 3;
+    st.WebkitBoxDecorationBreak = "clone";
+    st.boxDecorationBreak = "clone";
+  }
+  if (s.stroke && s.strokeWidth) {
+    st.WebkitTextStrokeWidth = s.strokeWidth + "px";
+    st.WebkitTextStrokeColor = s.stroke;
+    st.paintOrder = "stroke fill";
+  }
+  return st;
 }

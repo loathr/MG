@@ -187,3 +187,208 @@ export function highlightRuns(content, highlight) {
   if (i + hl.length < text.length) runs.push({ text: text.slice(i + hl.length), hl: false });
   return runs;
 }
+
+// ============================================================================
+// Rich text RUNS — per-character styling within one text element.
+//
+// A text element keeps its plain `content` string (so every existing reader,
+// the AI output, captions, search, etc. are untouched) PLUS an optional
+// `el.runs` = sorted character-range overrides: [{ start, end, ...style }].
+// Each run carries only the keys it overrides; everything else inherits the
+// element-level style. This is the model behind selecting a word and recolouring
+// / bolding / striking / highlighting / outlining just that span — and it is the
+// generalisation of the single `highlight` marker (which is folded in here for
+// back-compat). Pure + unit-tested; the three renderers consume `styledRuns`.
+// ============================================================================
+
+// The style keys a run (or the element base) may carry. Booleans (bold/italic/
+// strike) are tri-state in a run: true / false / absent(inherit).
+export const RUN_STYLE_KEYS = ["color", "bold", "italic", "strike", "strikeColor", "bg", "stroke", "strokeWidth"];
+
+// Offsets of the first case-insensitive occurrence of `hl` in `text`, or null.
+export function highlightOffsets(text, hl) {
+  const t = text == null ? "" : String(text);
+  const h = hl == null ? "" : String(hl);
+  if (!h) return null;
+  const i = t.toLowerCase().indexOf(h.toLowerCase());
+  return i < 0 ? null : { start: i, end: i + h.length };
+}
+
+// The element's base (no-override) style, resolved to concrete render values.
+export function elementBaseStyle(el) {
+  const e = el || {};
+  return {
+    color: e.color || "#ffffff",
+    fontWeight: e.fontWeight || 400,
+    italic: !!e.italic,
+    strike: !!e.strike,
+    strikeColor: e.strikeColor || null,
+    bg: e.textBg || null,
+    stroke: e.textStroke || null,
+    strokeWidth: e.textStrokeWidth || 0,
+  };
+}
+
+// Copy a run's defined style keys onto an accumulator (per-char overlay merge).
+function mergeStyle(prev, run) {
+  const out = Object.assign({}, prev || null);
+  for (const k of RUN_STYLE_KEYS) if (run[k] != null) out[k] = run[k];
+  return out;
+}
+
+// Resolve a per-char override (or null) against the element base → render style.
+function resolveStyle(base, ov) {
+  const o = ov || {};
+  const color = o.color != null ? o.color : base.color;
+  return {
+    color,
+    fontWeight: o.bold != null ? (o.bold ? 700 : 400) : base.fontWeight,
+    italic: o.italic != null ? !!o.italic : base.italic,
+    strike: o.strike != null ? !!o.strike : base.strike,
+    strikeColor: o.strikeColor != null ? o.strikeColor : (base.strikeColor || color),
+    bg: o.bg != null ? o.bg : base.bg,
+    stroke: o.stroke != null ? o.stroke : base.stroke,
+    strokeWidth: o.strokeWidth != null ? o.strokeWidth : base.strokeWidth,
+  };
+}
+
+const styleKey = (s) => s.color + "|" + s.fontWeight + "|" + s.italic + "|" + s.strike + "|" + (s.strikeColor || "") + "|" + (s.bg || "") + "|" + (s.stroke || "") + "|" + s.strokeWidth;
+
+// Build the per-character override overlay for a text element: an array (length
+// = content length) of override objects (or null). Folds in the back-compat
+// `highlight` marker first (lowest precedence) then `el.runs` (so an explicit
+// run wins over the derived marker on overlap).
+function charOverrides(el) {
+  const content = el && el.content != null ? String(el.content) : "";
+  const n = content.length;
+  const ov = new Array(n).fill(null);
+  const sources = [];
+  if (el && el.highlight && el.highlightColor) {
+    const h = highlightOffsets(content, el.highlight);
+    if (h) sources.push({ start: h.start, end: h.end, bg: el.highlightColor, color: el.highlightText || undefined });
+  }
+  if (el && Array.isArray(el.runs)) for (const r of el.runs) sources.push(r);
+  for (const r of sources) {
+    const s = Math.max(0, Math.min(n, r.start | 0));
+    const e = Math.max(0, Math.min(n, r.end | 0));
+    for (let i = s; i < e; i++) ov[i] = mergeStyle(ov[i], r);
+  }
+  return { content, ov };
+}
+
+// Group a per-char override overlay into contiguous {start, end, ...style} runs,
+// dropping ranges whose overlay is empty/null. Normalises overlapping/adjacent
+// input into the canonical stored form.
+function overlayToRuns(ov) {
+  const runs = [];
+  let i = 0;
+  const key = (o) => (o ? RUN_STYLE_KEYS.map((k) => (o[k] == null ? "" : o[k])).join("") : "");
+  while (i < ov.length) {
+    if (!ov[i] || !Object.keys(ov[i]).length) { i++; continue; }
+    const k = key(ov[i]);
+    let j = i + 1;
+    while (j < ov.length && key(ov[j]) === k) j++;
+    runs.push(Object.assign({ start: i, end: j }, ov[i]));
+    i = j;
+  }
+  return runs;
+}
+
+// The element's content split into contiguous, fully-resolved style spans that
+// cover the WHOLE string — what the renderers draw. One span when there are no
+// runs/marker. Each span: { text, color, fontWeight, italic, strike, strikeColor,
+// bg, stroke, strokeWidth }.
+export function styledRuns(el) {
+  const base = elementBaseStyle(el);
+  const { content, ov } = charOverrides(el);
+  if (!content.length) return [];
+  const spans = [];
+  let i = 0;
+  while (i < content.length) {
+    const eff = resolveStyle(base, ov[i]);
+    const k = styleKey(eff);
+    let j = i + 1;
+    while (j < content.length && styleKey(resolveStyle(base, ov[j])) === k) j++;
+    spans.push(Object.assign({ text: content.slice(i, j) }, eff));
+    i = j;
+  }
+  return spans;
+}
+
+// True when the element renders as one uniform span carrying no inline-only
+// decoration (background / outline) — i.e. the container's own CSS fully covers
+// it, so the renderer can fast-path to the raw string (current behaviour).
+export function isUniformText(el) {
+  if ((el && Array.isArray(el.runs) && el.runs.length) || (el && el.highlight && el.highlightColor)) return false;
+  const b = elementBaseStyle(el);
+  return !b.bg && !b.stroke;
+}
+
+// Apply a style `patch` to the character range [start, end) of a text element,
+// returning the new normalised runs array. A patch value of null CLEARS that key
+// in the range (so toggling bold off, or clearing a colour, works). Pure.
+export function applyRunStyle(content, runs, start, end, patch) {
+  const text = content == null ? "" : String(content);
+  const n = text.length;
+  const ov = new Array(n).fill(null);
+  for (const r of (runs || [])) {
+    const s = Math.max(0, Math.min(n, r.start | 0));
+    const e = Math.max(0, Math.min(n, r.end | 0));
+    for (let i = s; i < e; i++) ov[i] = mergeStyle(ov[i], r);
+  }
+  const a = Math.max(0, Math.min(n, start | 0));
+  const b = Math.max(a, Math.min(n, end | 0));
+  for (let i = a; i < b; i++) {
+    const cur = Object.assign({}, ov[i] || null);
+    for (const k of Object.keys(patch || {})) {
+      if (patch[k] == null) delete cur[k];
+      else cur[k] = patch[k];
+    }
+    ov[i] = Object.keys(cur).length ? cur : null;
+  }
+  return overlayToRuns(ov);
+}
+
+// Remove ALL run styling in [start, end). Pure.
+export function clearRunStyle(content, runs, start, end) {
+  const text = content == null ? "" : String(content);
+  const n = text.length;
+  const ov = new Array(n).fill(null);
+  for (const r of (runs || [])) {
+    const s = Math.max(0, Math.min(n, r.start | 0));
+    const e = Math.max(0, Math.min(n, r.end | 0));
+    for (let i = s; i < e; i++) ov[i] = mergeStyle(ov[i], r);
+  }
+  const a = Math.max(0, Math.min(n, start | 0));
+  const b = Math.max(a, Math.min(n, end | 0));
+  for (let i = a; i < b; i++) ov[i] = null;
+  return overlayToRuns(ov);
+}
+
+// Re-map runs after the content text changed (an edit), keeping styling attached
+// to the letters that survived. Uses a common prefix/suffix diff: styling on the
+// unchanged head and tail is preserved; the changed middle (and any inserted
+// text) comes back unstyled. Pure — the robust-enough remap so styling "sticks"
+// through typing without a full DOM diff.
+export function remapRuns(runs, oldContent, newContent) {
+  if (!runs || !runs.length) return [];
+  const oldT = oldContent == null ? "" : String(oldContent);
+  const newT = newContent == null ? "" : String(newContent);
+  if (oldT === newT) return runs.slice();
+  const oldN = oldT.length, newN = newT.length;
+  let p = 0;
+  while (p < oldN && p < newN && oldT[p] === newT[p]) p++;
+  let s = 0;
+  while (s < (oldN - p) && s < (newN - p) && oldT[oldN - 1 - s] === newT[newN - 1 - s]) s++;
+  // old overlay
+  const oldOv = new Array(oldN).fill(null);
+  for (const r of runs) {
+    const a = Math.max(0, Math.min(oldN, r.start | 0));
+    const b = Math.max(0, Math.min(oldN, r.end | 0));
+    for (let i = a; i < b; i++) oldOv[i] = mergeStyle(oldOv[i], r);
+  }
+  const newOv = new Array(newN).fill(null);
+  for (let i = 0; i < p && i < newN; i++) newOv[i] = oldOv[i];                       // preserved head
+  for (let i = 0; i < s; i++) newOv[newN - 1 - i] = oldOv[oldN - 1 - i];             // preserved tail
+  return overlayToRuns(newOv);
+}

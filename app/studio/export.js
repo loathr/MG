@@ -7,7 +7,7 @@
 // Browser-only: every entry point is called from a click handler, so importing
 // this module is SSR/build-safe (no top-level DOM access).
 // ============================================================================
-import { ARTBOARD_W, ARTBOARD_H, highlightRuns } from "./model";
+import { ARTBOARD_W, ARTBOARD_H, styledRuns, isUniformText } from "./model";
 import { makeZip } from "./zip";
 import {
   shapePaint, shapeRadius, shapeBorderW, shapePad, tagNotch, speechTail,
@@ -111,22 +111,27 @@ function drawText(ctx, el) {
   if (supportsLS) ctx.letterSpacing = "0px";
 }
 
-// Word-wrap a list of {text, hl} runs into lines of tagged tokens, honoring
-// explicit "\n" and trimming whitespace at line edges. Measures with the ctx's
-// current font, so call after the font is set.
-export function wrapRuns(ctx, runs, maxWidth) {
+// Word-wrap a list of style-carrying runs into lines of tagged tokens, honoring
+// explicit "\n" and trimming whitespace at line edges. Each token carries its
+// run's full style (color/fontWeight/italic/strike/bg/stroke). When `fontOf` is
+// given, the ctx font is set per token before measuring (a run may be bold/italic
+// independently), so a mixed-weight line wraps correctly; otherwise it measures
+// with the ctx's current font (the plain caller).
+export function wrapRuns(ctx, runs, maxWidth, fontOf) {
   const tokens = [];
   for (const run of runs) {
+    const style = {};
+    for (const k in run) if (k !== "text") style[k] = run[k];
     for (const part of String(run.text).split(/(\s+)/)) {
       if (part === "") continue;
       if (part.indexOf("\n") >= 0) {
         const segs = part.split("\n");
         for (let i = 0; i < segs.length; i++) {
-          if (segs[i]) tokens.push({ text: segs[i], hl: run.hl });
+          if (segs[i]) tokens.push(Object.assign({ text: segs[i] }, style));
           if (i < segs.length - 1) tokens.push({ nl: true });
         }
       } else {
-        tokens.push({ text: part, hl: run.hl });
+        tokens.push(Object.assign({ text: part }, style));
       }
     }
   }
@@ -135,9 +140,10 @@ export function wrapRuns(ctx, runs, maxWidth) {
   const flush = () => { lines.push(line); line = []; width = 0; };
   for (const tok of tokens) {
     if (tok.nl) { flush(); continue; }
+    if (fontOf) ctx.font = fontOf(tok);
     const w = ctx.measureText(tok.text).width;
     const isSpace = /^\s+$/.test(tok.text);
-    if (!isSpace && width + w > maxWidth && line.some((t) => t.text.trim())) flush();
+    if (!isSpace && width + w > maxWidth && line.some((t) => t.text && t.text.trim())) flush();
     line.push(tok); width += w;
   }
   flush();
@@ -149,15 +155,15 @@ export function wrapRuns(ctx, runs, maxWidth) {
   });
 }
 
-// Draw a text element that carries a `highlight` phrase: a knockout marker
-// (accent fill behind the run, bg-color text) on the matched run, plain `color`
-// elsewhere. Left-positions each token manually so center/right alignment still
-// works. Mirrors the DOM RichText render.
-export function drawHighlightText(ctx, el) {
-  const weight = el.fontWeight || 400;
-  const fstyle = el.italic ? "italic " : "";
+// Draw a text element as styled RUNS — per-token colour, weight, italic, strike,
+// background marker, and outline (stroke). The general path mirroring the DOM
+// RichText render; used for any non-uniform text (runs, the highlight marker, or
+// an element-wide background/outline). Left-positions each token so center/right
+// alignment still works across mixed-width runs.
+export function drawRichText(ctx, el) {
   const fs = el.fontSize || 16;
-  ctx.font = fstyle + weight + " " + fs + "px " + (el.fontFamily || "Georgia, serif");
+  const fam = el.fontFamily || "Georgia, serif";
+  const fontOf = (t) => (t.italic ? "italic " : "") + (t.fontWeight || 400) + " " + fs + "px " + fam;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   const supportsLS = "letterSpacing" in ctx;
@@ -165,21 +171,29 @@ export function drawHighlightText(ctx, el) {
   const lh = (el.lineHeight || 1.1) * fs;
   const align = el.align || "left";
   const pad = Math.round(fs * 0.1);
-  const lines = wrapRuns(ctx, highlightRuns(el.content, el.highlight), el.w);
+  const lines = wrapRuns(ctx, styledRuns(el), el.w, fontOf);
   let y = 0;
   for (const line of lines) {
-    const lineW = line.reduce((s, t) => s + ctx.measureText(t.text).width, 0);
+    let lineW = 0;
+    for (const t of line) { ctx.font = fontOf(t); lineW += ctx.measureText(t.text).width; }
     let x = align === "center" ? (el.w - lineW) / 2 : align === "right" ? el.w - lineW : 0;
     for (const tok of line) {
+      ctx.font = fontOf(tok);
       const w = ctx.measureText(tok.text).width;
-      if (tok.hl) {
-        ctx.fillStyle = el.highlightColor;
-        ctx.fillRect(x - pad, y, w + pad * 2, lh);
-        ctx.fillStyle = el.highlightText || el.color || "#ffffff";
-      } else {
-        ctx.fillStyle = el.color || "#ffffff";
+      if (tok.bg) { ctx.fillStyle = tok.bg; ctx.fillRect(x - pad, y, w + pad * 2, lh); }
+      if (tok.stroke && tok.strokeWidth) {
+        ctx.lineWidth = tok.strokeWidth;
+        ctx.strokeStyle = tok.stroke;
+        ctx.lineJoin = "round";
+        ctx.strokeText(tok.text, x, y);
       }
+      ctx.fillStyle = tok.color || "#ffffff";
       ctx.fillText(tok.text, x, y);
+      if (tok.strike) {
+        const th = Math.max(2, fs * 0.09);
+        ctx.fillStyle = tok.strikeColor || tok.color || "#ffffff";
+        ctx.fillRect(x, y + fs * 0.38 - th / 2, w, th);
+      }
       x += w;
     }
     y += lh;
@@ -362,8 +376,8 @@ export async function renderSlideToCanvas(slide) {
       }
     } else if (el.type === "text") {
       if (el.shape) { drawShapeBacking(ctx, el); drawShapedText(ctx, el); }
-      else if (el.highlight && el.highlightColor) drawHighlightText(ctx, el);
-      else drawText(ctx, el);
+      else if (isUniformText(el)) drawText(ctx, el);
+      else drawRichText(ctx, el);
     }
     ctx.restore();
   }

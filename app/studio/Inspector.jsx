@@ -15,8 +15,16 @@ import { fitShapeBox } from "./textfit";
 // Deck-wide type/colour still lives in the Brand panel (left rail); this edits
 // one element only. Editing the words themselves stays double-click-on-canvas.
 
-export default function Inspector({ el, dispatch }) {
+export default function Inspector({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan }) {
   const up = (patch) => el && dispatch({ type: "update", id: el.id, patch });
+
+  // Selection-aware styling: when a span of THIS text element is selected on the
+  // canvas, the Style + Colour & effects controls target that span; otherwise the
+  // whole element. `sel` carries the selected text for the hint/badge.
+  const sel = (el && el.type === "text" && textSel && textSel.id === el.id && textSel.end > textSel.start)
+    ? Object.assign({}, textSel) : null;
+  const setStyle = (patch) => { if (sel && onStyleSpan) onStyleSpan(patch); else up(patch); };
+  const clearSel = () => { if (onClearSpan) onClearSpan(); };
 
   return (
     <aside style={wrap}>
@@ -25,7 +33,7 @@ export default function Inspector({ el, dispatch }) {
           <div style={{ fontSize: 30, opacity: 0.4, marginBottom: 12 }}>⌖</div>
           <b style={{ color: UI.text, fontSize: 13 }}>Nothing selected</b>
           <p style={{ margin: "8px 0 0", lineHeight: 1.5 }}>
-            Click an element to edit it here. Double-click text on the canvas to type.
+            Click an element to edit it here. Double-click text to type; select a word to style just that span.
           </p>
         </div>
       ) : (
@@ -38,7 +46,7 @@ export default function Inspector({ el, dispatch }) {
             </div>
           </div>
 
-          {el.type === "text" && <TypeSection el={el} up={up} />}
+          {el.type === "text" && <TypeSection el={el} up={up} sel={sel} span={spanStyle} setStyle={setStyle} clearSel={clearSel} />}
           {el.type === "text" && <ShapeSection el={el} dispatch={dispatch} up={up} />}
           {el.type === "image" && <ImageSection el={el} dispatch={dispatch} up={up} />}
           {(el.type === "rect" || el.type === "line") && <FillSection el={el} up={up} />}
@@ -52,30 +60,66 @@ export default function Inspector({ el, dispatch }) {
 
 // ---- sections -------------------------------------------------------------
 
-function TypeSection({ el, up }) {
+// The text Type controls. Character (font / size / line / tracking) and align
+// are always element-wide. The Style toggles (B/I/S) and the Colour & effects
+// (text colour, background marker, outline) target a SELECTED span when one is
+// active (sel) — otherwise the whole element. `span` is the selected span's
+// resolved style (so the toggles reflect the selection); `setStyle(patch)` routes
+// to the span (styleText) or the element (update) accordingly.
+function TypeSection({ el, up, sel, span, setStyle, clearSel }) {
+  const cur = sel ? span : el;
+  const bold = (sel ? (span && span.fontWeight) : el.fontWeight) >= 700;
+  const italic = sel ? !!(span && span.italic) : !!el.italic;
+  const strike = sel ? !!(span && span.strike) : !!el.strike;
+  const textCol = sel ? (span && span.color) : el.color;
+  const bgCol = sel ? (span && span.bg) : el.textBg;
+  const strokeCol = sel ? (span && span.stroke) : el.textStroke;
+  const strokeW = sel ? (span && span.strokeWidth) || 0 : el.textStrokeWidth || 0;
+  // element-wide effect controls clear; span clears go through clearSel.
+  const hasEffects = el.strike || el.textBg || (el.textStroke && el.textStrokeWidth);
+  const clearEffects = () => up({ strike: false, strikeColor: null, textBg: null, textStroke: null, textStrokeWidth: 0 });
   return (
     <>
-      <Sec>Type</Sec>
+      <Sec>
+        <span>Type</span>
+        {sel ? <span style={scopeBadge}>SELECTION</span> : null}
+      </Sec>
       <div style={pad}>
-        <Row><FontSelect value={el.fontFamily} options={FONT_OPTIONS} onChange={(v) => up({ fontFamily: v })} title="Font" /></Row>
+        <Grp>Character</Grp>
+        <Row><FontSelect value={el.fontFamily} options={FONT_OPTIONS} onChange={(v) => up({ fontFamily: v })} title="Font (whole text)" /></Row>
         <Row>
           <Num label="Size" value={Math.round(el.fontSize || 0)} min={6} max={400} onChange={(n) => up({ fontSize: Math.max(6, n) })} />
           <Num label="Line" value={round2(el.lineHeight || 1.1)} step={0.05} min={0.7} max={3} onChange={(n) => up({ lineHeight: n })} />
+          <Num label="Track" value={round2(el.letterSpacing || 0)} step={0.5} min={-10} max={40} onChange={(n) => up({ letterSpacing: n })} />
         </Row>
+        <Grp>Style{sel ? " · selection" : ""}</Grp>
         <Row>
           <Seg>
-            <SegBtn on={el.fontWeight >= 700} onClick={() => up({ fontWeight: el.fontWeight >= 700 ? 400 : 700 })}><b>B</b></SegBtn>
-            <SegBtn on={!!el.italic} onClick={() => up({ italic: !el.italic })}><i>I</i></SegBtn>
+            <SegBtn sel={sel} on={bold} onClick={() => setStyle(sel ? { bold: !bold } : { fontWeight: bold ? 400 : 700 })}><b>B</b></SegBtn>
+            <SegBtn sel={sel} on={italic} onClick={() => setStyle({ italic: !italic })}><i>I</i></SegBtn>
+            <SegBtn sel={sel} on={strike} onClick={() => setStyle({ strike: !strike })}><s>S</s></SegBtn>
             <SegBtn on={el.align === "left" || !el.align} onClick={() => up({ align: "left" })}>≣</SegBtn>
             <SegBtn on={el.align === "center"} onClick={() => up({ align: "center" })}>≡</SegBtn>
             <SegBtn on={el.align === "right"} onClick={() => up({ align: "right" })}>≖</SegBtn>
           </Seg>
-          <Chip label="Text" value={el.color} onChange={(v) => up({ color: v })} />
+        </Row>
+        <Grp>Colour &amp; effects{sel ? " · selection" : ""}</Grp>
+        <Row>
+          <Chip label="Text" value={textCol} onChange={(v) => setStyle(sel ? { color: v } : { color: v })} />
+          <EffectChip label="Background" value={bgCol} fallback="#ffd34e" onChange={(v) => setStyle(sel ? { bg: v } : { textBg: v })} />
         </Row>
         <Row>
-          <Num label="Spacing" value={round2(el.letterSpacing || 0)} step={0.5} min={-10} max={40} onChange={(n) => up({ letterSpacing: n })} />
-          <div style={{ flex: 1 }} />
+          <EffectChip label="Outline" value={strokeCol} fallback="#ffffff"
+            onChange={(v) => setStyle(sel ? { stroke: v, strokeWidth: strokeW || 4 } : { textStroke: v, textStrokeWidth: strokeW || 4 })} />
+          <Num label="Width" value={strokeW} min={0} max={40}
+            onChange={(n) => setStyle(sel ? { strokeWidth: Math.max(0, n) } : { textStrokeWidth: Math.max(0, n) })} />
         </Row>
+        {sel ? (
+          <Row><Btn onClick={clearSel}>✕ Clear styling on selection</Btn></Row>
+        ) : hasEffects ? (
+          <Row><Btn onClick={clearEffects}>✕ Clear text effects</Btn></Row>
+        ) : null}
+        {sel ? <div style={selHint}>Styling “{sel.text}”. Font, size, line &amp; align stay element-wide.</div> : null}
       </div>
     </>
   );
@@ -213,10 +257,28 @@ function Chip({ label, value, onChange }) {
 }
 
 function Seg({ children }) { return <div style={{ display: "flex", gap: 4, flex: 1 }}>{children}</div>; }
-function SegBtn({ on, onClick, children }) {
+function SegBtn({ on, sel, onClick, children }) {
+  // Active toggles read brand (white) element-wide, blue when targeting a span.
+  const activeBg = sel ? UI.select : UI.brand;
+  const activeFg = sel ? "#ffffff" : UI.onBrand;
   return <button onClick={onClick} style={{ flex: 1, height: 30, borderRadius: 6, fontSize: 13,
-    background: on ? UI.brand : UI.surface2, border: "1px solid " + (on ? UI.brand : UI.border),
-    color: on ? UI.onBrand : UI.text, cursor: "pointer" }}>{children}</button>;
+    background: on ? activeBg : UI.surface2, border: "1px solid " + (on ? activeBg : UI.border),
+    color: on ? activeFg : UI.text, cursor: "pointer" }}>{children}</button>;
+}
+function Grp({ children }) { return <div style={grp}>{children}</div>; }
+// A colour field that reads "off" (a checker swatch) until a colour is picked —
+// for the optional Background / Outline effects, which are absent by default.
+function EffectChip({ label, value, fallback, onChange }) {
+  const on = !!value;
+  return (
+    <label style={{ ...field, cursor: "pointer", position: "relative", overflow: "hidden" }} title={label + (on ? "" : " — off; pick a colour")}>
+      <span style={fieldLab}>{label}</span>
+      <span style={{ width: 16, height: 16, borderRadius: 4, marginLeft: "auto", border: "1px solid #555",
+        background: on ? value : "repeating-conic-gradient(#3a3a40 0% 25%, #1c1c20 0% 50%) 50% / 8px 8px" }} />
+      <input type="color" value={hexish(value || fallback)} onChange={(e) => onChange(e.target.value)}
+        style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+    </label>
+  );
 }
 
 function Btn({ onClick, children, danger, style, title }) {
@@ -235,12 +297,15 @@ const wrap = { width: 266, flexShrink: 0, background: UI.surface, borderLeft: "1
 const empty = { padding: "40px 22px", textAlign: "center", color: UI.muted, fontSize: 12 };
 const head = { display: "flex", alignItems: "center", gap: 9, padding: "13px 13px 4px" };
 const kindIcon = { width: 28, height: 28, borderRadius: 7, background: UI.surface2, border: "1px solid " + UI.border, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 };
-const sec = { fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: "#74747c", textTransform: "uppercase", borderTop: "1px solid " + UI.soft, padding: "12px 13px 9px", marginTop: 4 };
+const sec = { fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: "#74747c", textTransform: "uppercase", borderTop: "1px solid " + UI.soft, padding: "12px 13px 9px", marginTop: 4, display: "flex", alignItems: "center", justifyContent: "space-between" };
 const pad = { padding: "0 13px" };
 const field = { flex: 1, height: 30, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 6, display: "flex", alignItems: "center", padding: "0 9px", fontSize: 12, color: UI.text, gap: 6, minWidth: 0 };
 const fieldLab = { color: UI.muted, fontSize: 10, flexShrink: 0 };
 const numInput = { flex: 1, minWidth: 0, width: "100%", background: "transparent", border: "none", color: UI.text, fontSize: 12, textAlign: "right", outline: "none" };
 const select = { flex: 1, height: 30, background: UI.surface2, color: UI.text, border: "1px solid " + UI.border, borderRadius: 6, fontSize: 12, padding: "0 8px" };
+const grp = { fontSize: 9.5, letterSpacing: 0.6, color: "#5f5f68", textTransform: "uppercase", margin: "2px 1px 7px", fontWeight: 700 };
+const scopeBadge = { fontSize: 9, letterSpacing: 0.5, color: UI.select, background: "rgba(45,140,255,0.13)", border: "1px solid rgba(45,140,255,0.35)", borderRadius: 5, padding: "2px 6px", textTransform: "none", fontWeight: 700 };
+const selHint = { fontSize: 10.5, color: UI.muted, lineHeight: 1.45, padding: "6px 1px 0" };
 
 const KIND_LABEL = { text: "Text", image: "Image", rect: "Rectangle", line: "Line" };
 const KIND_GLYPH = { text: "T", image: "▤", rect: "▢", line: "—" };
