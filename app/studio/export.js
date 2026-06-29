@@ -155,28 +155,19 @@ export function wrapRuns(ctx, runs, maxWidth, fontOf) {
   });
 }
 
-// Draw a text element as styled RUNS — per-token colour, weight, italic, strike,
-// background marker, and outline (stroke). The general path mirroring the DOM
-// RichText render; used for any non-uniform text (runs, the highlight marker, or
-// an element-wide background/outline). Left-positions each token so center/right
-// alignment still works across mixed-width runs.
-export function drawRichText(ctx, el) {
-  const fs = el.fontSize || 16;
-  const fam = el.fontFamily || "Georgia, serif";
-  const fontOf = (t) => (t.italic ? "italic " : "") + (t.fontWeight || 400) + " " + fs + "px " + fam;
-  ctx.textBaseline = "top";
-  ctx.textAlign = "left";
-  const supportsLS = "letterSpacing" in ctx;
-  if (supportsLS) ctx.letterSpacing = (el.letterSpacing || 0) + "px";
-  const lh = (el.lineHeight || 1.1) * fs;
-  const align = el.align || "left";
+// Draw pre-wrapped lines of style-carrying tokens into the box [boxLeft, boxW]
+// starting at startY — per-token colour, weight, italic, strike, background
+// marker, and outline (stroke). Tokens are left-positioned by measured width so
+// center/right alignment works across mixed-width runs. Shared by drawRichText
+// (top-aligned, full width) and drawShapedText (padded, vertically centred), so
+// the PNG matches the DOM RichText render for plain AND shaped text.
+function drawTokenLines(ctx, lines, fs, fontOf, lh, align, boxLeft, boxW, startY) {
   const pad = Math.round(fs * 0.1);
-  const lines = wrapRuns(ctx, styledRuns(el), el.w, fontOf);
-  let y = 0;
+  let y = startY;
   for (const line of lines) {
     let lineW = 0;
     for (const t of line) { ctx.font = fontOf(t); lineW += ctx.measureText(t.text).width; }
-    let x = align === "center" ? (el.w - lineW) / 2 : align === "right" ? el.w - lineW : 0;
+    let x = boxLeft + (align === "center" ? (boxW - lineW) / 2 : align === "right" ? boxW - lineW : 0);
     for (const tok of line) {
       ctx.font = fontOf(tok);
       const w = ctx.measureText(tok.text).width;
@@ -198,6 +189,22 @@ export function drawRichText(ctx, el) {
     }
     y += lh;
   }
+}
+
+// Draw a (non-shaped) text element as styled RUNS. The general path mirroring the
+// DOM RichText render; used for any non-uniform text (runs, the highlight marker,
+// or an element-wide background/outline).
+export function drawRichText(ctx, el) {
+  const fs = el.fontSize || 16;
+  const fam = el.fontFamily || "Georgia, serif";
+  const fontOf = (t) => (t.italic ? "italic " : "") + (t.fontWeight || 400) + " " + fs + "px " + fam;
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
+  const supportsLS = "letterSpacing" in ctx;
+  if (supportsLS) ctx.letterSpacing = (el.letterSpacing || 0) + "px";
+  const lh = (el.lineHeight || 1.1) * fs;
+  const lines = wrapRuns(ctx, styledRuns(el), el.w, fontOf);
+  drawTokenLines(ctx, lines, fs, fontOf, lh, el.align || "left", 0, el.w, 0);
   if (supportsLS) ctx.letterSpacing = "0px";
 }
 
@@ -291,29 +298,26 @@ function drawShapeBacking(ctx, el) {
   }
 }
 
-// Draw a shaped text element's copy: wrapped within the shape padding and
-// vertically centered in the box (mirrors the flex-centered layer in the DOM
-// renderers). Used only when el.shape is set.
+// Draw a shaped text element's copy: styled RUNS wrapped within the shape padding
+// and vertically centered in the box (mirrors the flex-centered RichText layer in
+// the DOM renderers). Run-aware, so a coloured/bold/struck word inside a bubble
+// exports exactly as it shows on the canvas. Used only when el.shape is set.
 function drawShapedText(ctx, el) {
   const pad = shapePad(el);
   const innerW = Math.max(1, el.w - pad.left - pad.right);
   const fs = el.fontSize || 16;
-  const weight = el.fontWeight || 400;
-  const fstyle = el.italic ? "italic " : "";
-  ctx.font = fstyle + weight + " " + fs + "px " + (el.fontFamily || "Georgia, serif");
-  ctx.fillStyle = el.color || "#ffffff";
+  const fam = el.fontFamily || "Georgia, serif";
+  const fontOf = (t) => (t.italic ? "italic " : "") + (t.fontWeight || 400) + " " + fs + "px " + fam;
   ctx.textBaseline = "top";
-  const align = el.align || "left";
-  ctx.textAlign = align;
+  ctx.textAlign = "left";
   const supportsLS = "letterSpacing" in ctx;
   if (supportsLS) ctx.letterSpacing = (el.letterSpacing || 0) + "px";
   const lh = (el.lineHeight || 1.12) * fs;
-  const lines = wrapLines(ctx, el.content, innerW);
+  const lines = wrapRuns(ctx, styledRuns(el), innerW, fontOf);
   const totalH = lines.length * lh;
   const innerH = el.h - pad.top - pad.bottom;
-  let y = pad.top + Math.max(0, (innerH - totalH) / 2);
-  const x = align === "center" ? pad.left + innerW / 2 : align === "right" ? pad.left + innerW : pad.left;
-  for (const line of lines) { ctx.fillText(line, x, y); y += lh; }
+  const startY = pad.top + Math.max(0, (innerH - totalH) / 2);
+  drawTokenLines(ctx, lines, fs, fontOf, lh, el.align || "left", pad.left, innerW, startY);
   if (supportsLS) ctx.letterSpacing = "0px";
 }
 
