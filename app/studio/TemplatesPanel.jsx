@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { UI } from "./theme";
 import { LAYOUT_LIST, LAYOUT_CATEGORIES, reflowSlide } from "./templates";
 import StaticSlide from "./StaticSlide";
 
@@ -16,7 +17,7 @@ const catHead = { fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: "#7c
 const grid = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "0 12px 4px", alignContent: "start" };
 
 function card(active) {
-  return { display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: 6, borderRadius: 8, cursor: "pointer", background: active ? "#222228" : "transparent", border: "1.5px solid " + (active ? "#2d8cff" : "#2c2c32") };
+  return { display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: 6, borderRadius: 8, cursor: "pointer", background: active ? "#222228" : "transparent", border: "1.5px solid " + (active ? UI.brand : "#2c2c32") };
 }
 
 export default function TemplatesPanel({ slide, brand, onApply, onApplyAll, onReset, onClose }) {

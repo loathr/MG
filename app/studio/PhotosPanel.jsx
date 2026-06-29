@@ -1,5 +1,6 @@
 "use client";
 import React, { useCallback, useRef, useState } from "react";
+import { UI } from "./theme";
 import { uploadResult } from "./model";
 
 // Photos panel (spec §7). Search box -> masonry of results from /api/images, PLUS
@@ -27,7 +28,7 @@ const input = {
   border: "1px solid #36363c", borderRadius: 6, fontSize: 13, minWidth: 0,
 };
 const goBtn = {
-  height: 32, padding: "0 12px", background: "#2d8cff", color: "#fff",
+  height: 32, padding: "0 12px", background: UI.brand, color: "#fff",
   border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600,
 };
 const xBtn = {
@@ -40,7 +41,7 @@ const drop = {
 };
 const dropBig = { flexDirection: "column", height: 116, gap: 5 };
 const dropSm = { flexDirection: "row", height: 54 };
-const dropHi = { borderColor: "#2d8cff", background: "#1c2530" };
+const dropHi = { borderColor: UI.brand, background: "#1c2530" };
 const grid = {
   columnCount: 2, columnGap: 8,
   padding: "0 12px 12px", overflowY: "auto", minHeight: 0,
@@ -100,7 +101,7 @@ function PhotoCard({ img, onSetBackground, onAddImage }) {
       />
       {img.uploaded ? (
         <span style={{
-          position: "absolute", top: 6, left: 6, background: "#2d8cff", color: "#fff",
+          position: "absolute", top: 6, left: 6, background: UI.brand, color: "#fff",
           fontSize: 9, fontWeight: 700, letterSpacing: 0.4, padding: "2px 6px", borderRadius: 4, pointerEvents: "none",
         }}>UPLOADED</span>
       ) : null}

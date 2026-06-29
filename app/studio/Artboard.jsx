@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { ARTBOARD_W, ARTBOARD_H } from "./model";
 import { resize as geoResize, rotate as geoRotate, snapMove, handlePoint, axes } from "./geometry";
 import ElementView from "./Element";
-import Toolbar from "./Toolbar";
+import { UI } from "./theme";
 
 const HANDLES = [
   { sx: -1, sy: -1 }, { sx: 0, sy: -1 }, { sx: 1, sy: -1 },
@@ -108,7 +108,7 @@ export default function Artboard({ slide, selectedId, editingId, dispatch }) {
   const bg = slide.background || {};
 
   return (
-    <div ref={containerRef} style={{ flex: 1, minWidth: 0, minHeight: 0, display: "grid", placeItems: "center", overflow: "hidden", background: "#1c1c1f", position: "relative" }}>
+    <div ref={containerRef} style={{ flex: 1, minWidth: 0, minHeight: 0, display: "grid", placeItems: "center", overflow: "hidden", background: UI.bg, position: "relative" }}>
       <div style={{ position: "relative", width: ARTBOARD_W * scale, height: ARTBOARD_H * scale, boxShadow: "0 10px 40px rgba(0,0,0,0.5)" }}>
         {/* scaled artboard in artboard coordinates */}
         <div
@@ -167,27 +167,12 @@ export default function Artboard({ slide, selectedId, editingId, dispatch }) {
           >✎ Edit photo</button>
         )}
 
-        {/* selection overlay in SCREEN space so handles are a constant size */}
+        {/* selection overlay in SCREEN space so handles are a constant size.
+            (R3: contextual controls now live in the right Inspector, not a
+            floating toolbar — the canvas stays unobstructed.) */}
         {selected && !editingId && (
           <SelectionOverlay el={selected} scale={scale} onHandleDown={beginDrag} />
         )}
-
-        {/* floating contextual toolbar, anchored above (or below) the selection */}
-        {selected && !editingId && (() => {
-          const topY = selected.y * scale;
-          const below = topY < 56;
-          return (
-            <div style={{
-              position: "absolute",
-              left: (selected.x + selected.w / 2) * scale,
-              top: below ? (selected.y + selected.h) * scale + 10 : topY - 10,
-              transform: below ? "translate(-50%, 0)" : "translate(-50%, -100%)",
-              pointerEvents: "auto", zIndex: 20,
-            }}>
-              <Toolbar el={selected} dispatch={dispatch} />
-            </div>
-          );
-        })()}
       </div>
     </div>
   );
@@ -207,7 +192,7 @@ function SelectionOverlay({ el, scale, onHandleDown }) {
     height: el.h * scale,
     transform: "rotate(" + (el.rotation || 0) + "deg)",
     transformOrigin: "center center",
-    border: "1.5px solid #2d8cff",
+    border: "1.5px solid " + UI.select,
     pointerEvents: "none",
     boxSizing: "border-box",
   };
@@ -232,7 +217,7 @@ function SelectionOverlay({ el, scale, onHandleDown }) {
               left: p.x * scale - HS / 2,
               top: p.y * scale - HS / 2,
               width: HS, height: HS,
-              background: "#fff", border: "1.5px solid #2d8cff", borderRadius: 2,
+              background: "#fff", border: "1.5px solid " + UI.select, borderRadius: 2,
               cursor: cursorFor(h, el.rotation), pointerEvents: "auto", boxSizing: "border-box",
             }}
           />
@@ -246,7 +231,7 @@ function SelectionOverlay({ el, scale, onHandleDown }) {
           left: rot.x * scale - 7,
           top: rot.y * scale - 7,
           width: 14, height: 14, borderRadius: "50%",
-          background: "#fff", border: "1.5px solid #2d8cff",
+          background: "#fff", border: "1.5px solid " + UI.select,
           cursor: "grab", pointerEvents: "auto", boxSizing: "border-box",
         }}
       />

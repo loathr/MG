@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { UI } from "./theme";
 import StaticSlide from "./StaticSlide";
 
 // A clickable thumbnail of a slide for the bottom strip. The actual rendering
@@ -20,12 +21,12 @@ function SlideThumb({ slide, index, active, onClick }) {
         flexShrink: 0,
         padding: 0,
         lineHeight: 0,
-        border: "1.5px solid " + (active ? "#2d8cff" : "#36363c"),
+        border: "1.5px solid " + (active ? UI.brand : "#36363c"),
         borderRadius: 5,
         overflow: "hidden",
         cursor: "pointer",
         background: "#0c0c0c",
-        boxShadow: active ? "0 0 0 1px #2d8cff" : "none",
+        boxShadow: active ? ("0 0 0 1px " + UI.brand) : "none",
       }}
     >
       <StaticSlide slide={slide} width={THUMB_W} />

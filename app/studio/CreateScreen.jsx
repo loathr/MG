@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { UI } from "./theme";
 import { STYLE_LIST, DEFAULT_STYLE, BRAND_FONT } from "./styles";
 import { CATEGORY_LIST, getCategory } from "./categories";
 import StylePreview from "./StylePreview";
@@ -113,7 +114,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
         )}
 
         <label style={quickRow} title="Skip the live web search — faster, but it won't pull in the very latest facts.">
-          <input type="checkbox" checked={quickDraft} disabled={generating} onChange={(e) => setQuickDraft(e.target.checked)} style={{ accentColor: "#2d8cff", width: 15, height: 15 }} />
+          <input type="checkbox" checked={quickDraft} disabled={generating} onChange={(e) => setQuickDraft(e.target.checked)} style={{ accentColor: UI.brand, width: 15, height: 15 }} />
           <span>Quick draft — skip web search (faster, less current)</span>
         </label>
 
@@ -147,9 +148,9 @@ const chips = { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wr
 function chip(on) {
   return {
     height: 34, padding: "0 16px", borderRadius: 999, cursor: "pointer", fontSize: 13,
-    background: on ? "#2d8cff" : "transparent",
+    background: on ? UI.brand : "transparent",
     color: on ? "#fff" : "#bdbdbd",
-    border: "1.5px solid " + (on ? "#2d8cff" : "#3a3a42"),
+    border: "1.5px solid " + (on ? UI.brand : "#3a3a42"),
     fontWeight: on ? 600 : 400,
   };
 }
@@ -159,7 +160,7 @@ function card(on) {
     display: "flex", flexDirection: "column", alignItems: "center", gap: 7,
     padding: 10, width: 192, borderRadius: 10, cursor: "pointer",
     background: on ? "#222228" : "transparent",
-    border: "1.5px solid " + (on ? "#2d8cff" : "#2c2c32"),
+    border: "1.5px solid " + (on ? UI.brand : "#2c2c32"),
     transition: "border-color 120ms, background 120ms",
   };
 }
@@ -188,7 +189,7 @@ function primary(disabled) {
   return {
     marginTop: 22, height: 52, padding: "0 28px", minWidth: 260,
     fontSize: 16, fontWeight: 700, letterSpacing: 0.3,
-    background: disabled ? "#2d8cff55" : "#2d8cff", color: "#fff",
+    background: disabled ? (UI.brand + "55") : UI.brand, color: "#fff",
     border: "none", borderRadius: 12, cursor: disabled ? "default" : "pointer",
     boxShadow: disabled ? "none" : "0 8px 24px rgba(45,140,255,0.35)",
   };

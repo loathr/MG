@@ -5,8 +5,10 @@ import { makeElement, imageBackground, blankDoc, ARTBOARD_W, ARTBOARD_H } from "
 import { generateCarousel, regenerateCaption } from "./generate";
 import { photosDemoDoc } from "./demo";
 import Artboard from "./Artboard";
+import Inspector from "./Inspector";
 import SlideThumb from "./SlideThumb";
 import ShapeBacking from "./ShapeBacking";
+import { UI } from "./theme";
 import { SHAPE_VARIANTS, shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
 import PhotosPanel from "./PhotosPanel";
 import BrandPanel from "./BrandPanel";
@@ -18,8 +20,8 @@ import { verifyDeck } from "./verify";
 import FactCheckPanel from "./FactCheckPanel";
 
 const hbtn = {
-  height: 32, padding: "0 12px", background: "#26262b", color: "#e8e8e8",
-  border: "1px solid #36363c", borderRadius: 6, cursor: "pointer", fontSize: 12,
+  height: 32, padding: "0 12px", background: UI.surface2, color: UI.text,
+  border: "1px solid " + UI.border, borderRadius: 7, cursor: "pointer", fontSize: 12,
 };
 const iconBtn = (enabled) => ({
   ...hbtn, minWidth: 34, padding: "0 9px", fontSize: 15, lineHeight: 1,
@@ -226,21 +228,28 @@ export default function Studio() {
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: "#161618", color: "#eee", fontFamily: "Helvetica, Arial, sans-serif" }}>
-      <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderBottom: "1px solid #2a2a2f", flexShrink: 0 }}>
+    <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: UI.bg, color: UI.text, fontFamily: "Helvetica, Arial, sans-serif" }}>
+      <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", background: UI.surface, borderBottom: "1px solid " + UI.border, flexShrink: 0 }}>
+        <span style={{ display: "flex", alignItems: "baseline", gap: 5, marginRight: 2 }}>
+          <span style={{ fontFamily: "'Courier Prime', 'Courier New', monospace", fontWeight: 700, fontSize: 17, letterSpacing: 0.5, color: "#fff" }}>
+            L<span style={{ color: UI.brand }}>O</span>ATHR
+          </span>
+          <span style={{ fontSize: 9, letterSpacing: 2, color: UI.muted, textTransform: "uppercase" }}>studio</span>
+        </span>
+        <span style={{ width: 1, height: 22, background: UI.border, margin: "0 3px" }} />
         <button style={hbtn} onClick={() => setScreen("create")} title="Back to start">‹ New</button>
         <input
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
           title="Project name"
-          style={{ width: 260, height: 32, padding: "0 10px", background: "transparent", color: "#fff", border: "1px solid transparent", borderRadius: 6, fontSize: 14, fontWeight: 600 }}
-          onFocus={(e) => { e.target.style.border = "1px solid #36363c"; e.target.style.background = "#1d1d21"; }}
+          style={{ width: 230, height: 32, padding: "0 10px", background: "transparent", color: "#fff", border: "1px solid transparent", borderRadius: 6, fontSize: 14, fontWeight: 600 }}
+          onFocus={(e) => { e.target.style.border = "1px solid " + UI.border; e.target.style.background = UI.surface2; }}
           onBlur={(e) => { e.target.style.border = "1px solid transparent"; e.target.style.background = "transparent"; }}
         />
         <button style={iconBtn(state.past.length > 0)} disabled={state.past.length === 0} onClick={() => dispatch({ type: "undo" })} title="Undo (Ctrl/Cmd+Z)">↶</button>
         <button style={iconBtn(state.future.length > 0)} disabled={state.future.length === 0} onClick={() => dispatch({ type: "redo" })} title="Redo (Ctrl/Cmd+Shift+Z)">↷</button>
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: "#777", marginRight: 4 }}>
+        <span style={{ fontSize: 11, color: UI.muted, marginRight: 4 }}>
           {state.doc.slides.length} slide{state.doc.slides.length === 1 ? "" : "s"}
         </span>
         <button
@@ -253,7 +262,7 @@ export default function Studio() {
         </button>
         <div style={{ position: "relative" }}>
           <button
-            style={{ ...hbtn, background: "#2d8cff", color: "#fff", border: "none", fontWeight: 600 }}
+            style={{ ...hbtn, background: UI.brand, color: "#fff", border: "none", fontWeight: 700, boxShadow: "0 2px 10px " + UI.brand + "40" }}
             disabled={exporting}
             onClick={() => setDlOpen((o) => !o)}
             title="Download as PNG"
@@ -263,7 +272,7 @@ export default function Studio() {
           {dlOpen && (
             <>
               <div onClick={() => setDlOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-              <div style={{ position: "absolute", right: 0, top: 38, minWidth: 176, background: "#26262b", border: "1px solid #36363c", borderRadius: 8, padding: 4, zIndex: 50, boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}>
+              <div style={{ position: "absolute", right: 0, top: 38, minWidth: 176, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 8, padding: 4, zIndex: 50, boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}>
                 <button style={menuItem} onClick={exportCurrent}>This slide (PNG)</button>
                 <button style={menuItem} onClick={exportDeck}>All {state.doc.slides.length} slides (.zip)</button>
               </div>
@@ -274,18 +283,20 @@ export default function Studio() {
 
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
         {/* Left tool rail */}
-        <nav style={{ width: 72, flexShrink: 0, display: "flex", flexDirection: "column", gap: 2, padding: "8px 6px", background: "#121214", borderRight: "1px solid #2a2a2f" }}>
+        <nav style={{ width: 72, flexShrink: 0, display: "flex", flexDirection: "column", gap: 3, padding: "8px 7px", background: UI.rail, borderRight: "1px solid " + UI.border }}>
           {TOOLS.map((t) => {
             const active = activePanel === t.key;
             return (
               <button key={t.key} onClick={() => toggle(t.key)} title={t.label}
                 style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
-                  height: 58, borderRadius: 8, cursor: "pointer", fontSize: 10,
-                  background: active ? "#26262b" : "transparent",
-                  color: active ? "#fff" : "#9a9a9a",
-                  border: "1px solid " + (active ? "#36363c" : "transparent"),
+                  position: "relative",
+                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4,
+                  height: 58, borderRadius: 9, cursor: "pointer", fontSize: 10,
+                  background: active ? UI.surface2 : "transparent",
+                  color: active ? "#fff" : UI.muted,
+                  border: "1px solid " + (active ? UI.border : "transparent"),
                 }}>
+                {active && <span style={{ position: "absolute", left: -7, top: 14, bottom: 14, width: 3, borderRadius: "0 3px 3px 0", background: UI.brand }} />}
                 <span style={{ fontSize: 18, lineHeight: 1 }}>{t.glyph}</span>
                 <span>{t.label}</span>
               </button>
@@ -308,13 +319,13 @@ export default function Studio() {
           <SidePanel title="Elements" onClose={() => setActivePanel(null)}>
             <PanelButton onClick={addRect}>Rectangle</PanelButton>
             <PanelButton onClick={addLine}>Line / divider</PanelButton>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: "#7c7c84", textTransform: "uppercase", margin: "14px 0 4px", borderTop: "1px solid #2a2a2f", paddingTop: 12 }}>Bubbles &amp; shapes</div>
-            <div style={{ fontSize: 10.5, color: "#7c7c84", lineHeight: 1.4, marginBottom: 9 }}>
-              {selectedIsText ? "Wraps the selected text." : "Tap to drop editable text — or select text first to wrap it."}
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: UI.muted, textTransform: "uppercase", margin: "16px 0 8px", borderTop: "1px solid " + UI.soft, paddingTop: 13 }}>Bubbles &amp; shapes</div>
+            <div style={{ fontSize: 11, color: selectedIsText ? UI.brand : UI.muted, lineHeight: 1.45, marginBottom: 10 }}>
+              {selectedIsText ? "↩ Wraps the selected text." : "Tap to drop editable text, or select text first to wrap it."}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
               {SHAPE_VARIANTS.map((v) => (
-                <ShapeTile key={v.id} v={v} accent={(state.doc.brand && state.doc.brand.accent) || "#e23744"} wrap={selectedIsText} onPick={wrapOrAddShape} />
+                <ShapeTile key={v.id} v={v} accent={(state.doc.brand && state.doc.brand.accent) || UI.brand} wrap={selectedIsText} onPick={wrapOrAddShape} />
               ))}
             </div>
           </SidePanel>
@@ -366,10 +377,13 @@ export default function Studio() {
             onRetry={runFactCheck}
           />
         )}
+
+        {/* Right Inspector (R3 · A) — properties of the selected element. */}
+        <Inspector el={selectedEl} dispatch={dispatch} />
       </div>
 
       {/* Slide strip — lightweight thumbnails (FLAT-LAYERS §3) */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderTop: "1px solid #2a2a2f", overflowX: "auto", flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: UI.surface, borderTop: "1px solid " + UI.border, overflowX: "auto", flexShrink: 0 }}>
         {state.doc.slides.map((s, i) => (
           <SlideStripItem
             key={s.id}
@@ -385,10 +399,10 @@ export default function Studio() {
           />
         ))}
         <button onClick={() => dispatch({ type: "addSlide" })} title="Add slide"
-          style={{ width: 60, height: 75, flexShrink: 0, borderRadius: 5, border: "1.5px dashed #3a3a40", background: "transparent", color: "#888", cursor: "pointer", fontSize: 22 }}>
+          style={{ width: 60, height: 75, flexShrink: 0, borderRadius: 6, border: "1.5px dashed " + UI.border, background: "transparent", color: UI.muted, cursor: "pointer", fontSize: 22 }}>
           +
         </button>
-        <span style={{ marginLeft: 6, fontSize: 11, color: "#777", whiteSpace: "nowrap" }}>
+        <span style={{ marginLeft: 6, fontSize: 11, color: UI.muted, whiteSpace: "nowrap" }}>
           drag thumbnails to reorder · hover for ⧉ duplicate / × delete · ⌘/Ctrl+Z undo
         </span>
       </div>
@@ -396,20 +410,20 @@ export default function Studio() {
   );
 }
 
-const panelNote = { color: "#8a8a8a", fontSize: 12, lineHeight: 1.5, margin: 0 };
+const panelNote = { color: UI.muted, fontSize: 12, lineHeight: 1.5, margin: 0 };
 const menuItem = {
   display: "block", width: "100%", textAlign: "left", height: 32, padding: "0 10px",
-  background: "transparent", color: "#e8e8e8", border: "none", borderRadius: 6,
+  background: "transparent", color: UI.text, border: "none", borderRadius: 6,
   cursor: "pointer", fontSize: 13,
 };
 
 function SidePanel({ title, onClose, children }) {
   return (
-    <div style={{ width: 220, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8, padding: 12, background: "#1b1b1f", borderRight: "1px solid #2a2a2f", fontFamily: "Helvetica, Arial, sans-serif" }}>
+    <div style={{ width: 220, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8, padding: 12, background: UI.surface, borderRight: "1px solid " + UI.border, fontFamily: "Helvetica, Arial, sans-serif", overflowY: "auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <strong style={{ fontSize: 12, letterSpacing: 0.5 }}>{title}</strong>
         <button onClick={onClose} title="Close panel"
-          style={{ width: 24, height: 24, background: "transparent", color: "#999", border: "none", cursor: "pointer", fontSize: 18, borderRadius: 5 }}>×</button>
+          style={{ width: 24, height: 24, background: "transparent", color: UI.muted, border: "none", cursor: "pointer", fontSize: 18, borderRadius: 5 }}>×</button>
       </div>
       {children}
     </div>
@@ -419,39 +433,50 @@ function SidePanel({ title, onClose, children }) {
 function PanelButton({ onClick, children }) {
   return (
     <button onClick={onClick}
-      style={{ height: 36, padding: "0 12px", textAlign: "left", background: "#26262b", color: "#e8e8e8", border: "1px solid #36363c", borderRadius: 6, cursor: "pointer", fontSize: 13 }}>
+      style={{ height: 36, padding: "0 12px", textAlign: "left", background: UI.surface2, color: UI.text, border: "1px solid " + UI.border, borderRadius: 7, cursor: "pointer", fontSize: 13 }}>
       {children}
     </button>
   );
 }
 
-// A grid swatch for a shape — a real (scaled-down) ShapeBacking with the sample
-// label centered on top, so the panel previews exactly what you'll get. Tap to
-// wrap the selected text or drop a fresh shaped text box.
+// A grid swatch for a shape — a uniform tile with a small, consistently-scaled
+// preview of the real ShapeBacking (so it shows exactly what drops) above a
+// label. The shape is scaled to a fixed inner box with margin so tails / ears
+// aren't clipped, keeping the grid tidy regardless of the shape's aspect.
 function ShapeTile({ v, accent, wrap, onPick }) {
-  const tileH = 58;
-  const s = Math.min(98 / v.w, (tileH - 16) / v.h);
+  const PW = 70, PH = 30; // preview box the shape is fit into (leaves margin)
+  const s = Math.min(PW / v.w, PH / v.h);
   const el = {
-    type: "text", shape: v.id, content: v.text, w: v.w, h: v.h, rotation: v.rotation || 0,
+    type: "text", shape: v.id, content: shapeSample(v), w: v.w, h: v.h, rotation: v.rotation || 0,
     shapeFill: v.paper ? SHAPE_PAPER : accent,
     color: v.paper ? SHAPE_PAPER_INK : (v.knockout ? "#0c0c0c" : "#ffffff"),
     fontFamily: v.font, fontSize: v.size, fontWeight: 700, letterSpacing: v.spacing || 0, align: "center",
     tailSide: "left", opacity: 1,
   };
+  const [hover, setHover] = React.useState(false);
   return (
     <button onClick={() => onPick(v.id)} title={(wrap ? "Wrap selection in " : "Add ") + v.label}
-      style={{ position: "relative", height: tileH, background: "#202024", border: "1px solid #2f2f37", borderRadius: 8, cursor: "pointer", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, height: 66,
+        background: hover ? UI.hover : UI.surface2, border: "1px solid " + (hover ? UI.brand : UI.border),
+        borderRadius: 8, cursor: "pointer", overflow: "hidden", transition: "border-color .12s, background .12s" }}>
       <div style={{ position: "relative", width: v.w * s, height: v.h * s }}>
         <div style={{ position: "absolute", top: 0, left: 0, width: v.w, height: v.h, transform: "scale(" + s + ")", transformOrigin: "top left" }}>
           <ShapeBacking el={el} />
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-            <span style={{ fontFamily: v.font, fontSize: v.size, fontWeight: 700, letterSpacing: (v.spacing || 0) + "px", color: el.color, lineHeight: 1.1, padding: "0 8%" }}>{v.text}</span>
+            <span style={{ fontFamily: v.font, fontSize: v.size, fontWeight: 700, letterSpacing: (v.spacing || 0) + "px", color: el.color, lineHeight: 1.05, padding: "0 10%", whiteSpace: "nowrap" }}>{shapeSample(v)}</span>
           </div>
         </div>
       </div>
-      <span style={{ position: "absolute", bottom: 2, left: 0, right: 0, fontSize: 9, color: "#8a8a92", textAlign: "center" }}>{v.label}</span>
+      <span style={{ fontSize: 10, color: UI.muted, letterSpacing: 0.2 }}>{v.label}</span>
     </button>
   );
+}
+
+// Short, uniform preview text per shape so the swatches stay tidy (the dropped
+// element still uses the variant's full sample text).
+function shapeSample(v) {
+  return ({ speech: "Aa", cloud: "Aa", stamp: "OK", banner: "Aa", burst: "NEW", tag: "#1", pill: "SAVE", note: "Aa" })[v.id] || "Aa";
 }
 
 const miniBtn = {
@@ -481,7 +506,7 @@ function SlideStripItem({ slide, index, active, canDelete, dragFrom, onSelect, o
       onDragEnd={() => { dragFrom.current = null; setOver(false); }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ position: "relative", flexShrink: 0, borderRadius: 6, outline: over ? "2px solid #2d8cff" : "none", outlineOffset: 1 }}
+      style={{ position: "relative", flexShrink: 0, borderRadius: 6, outline: over ? "2px solid " + UI.brand : "none", outlineOffset: 1 }}
     >
       <SlideThumb slide={slide} index={index} active={active} onClick={onSelect} />
       {hover && (

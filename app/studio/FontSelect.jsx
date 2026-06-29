@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { UI } from "./theme";
 
 // A compact font picker that previews each option IN its own face — a native
 // <select> can't render options in their font, which matters when choosing
@@ -39,9 +40,9 @@ export default function FontSelect({ value, options, onChange, title }) {
                 const on = f.value === value;
                 return (
                   <div key={f.value} onClick={() => { onChange(f.value); setOpen(false); }}
-                    style={Object.assign({}, opt, { fontFamily: f.value, background: on ? "#2d8cff22" : "transparent", color: on ? "#ffffff" : "#e8e8e8" })}>
+                    style={Object.assign({}, opt, { fontFamily: f.value, background: on ? (UI.brand + "22") : "transparent", color: on ? "#ffffff" : "#e8e8e8" })}>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.label}</span>
-                    {on ? <span style={{ color: "#5b7cff", fontSize: 12, fontFamily: "Helvetica, Arial, sans-serif", flexShrink: 0 }}>✓</span> : null}
+                    {on ? <span style={{ color: UI.brand, fontSize: 12, fontFamily: "Helvetica, Arial, sans-serif", flexShrink: 0 }}>✓</span> : null}
                   </div>
                 );
               })}

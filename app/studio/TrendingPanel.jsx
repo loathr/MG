@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
+import { UI } from "./theme";
 import { BEATS, beatVoice } from "./trending";
 
 // The cued, hidden "Trending" panel on the create screen. Closed by default —
@@ -109,8 +110,8 @@ const beatsRow = { display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 14, 
 function chip(on) {
   return {
     height: 30, padding: "0 13px", borderRadius: 999, fontSize: 12, cursor: "pointer",
-    background: on ? "#2d8cff" : "transparent", color: on ? "#fff" : "#b6b6be",
-    border: "1px solid " + (on ? "#2d8cff" : "#34343c"), fontWeight: on ? 600 : 400,
+    background: on ? UI.brand : "transparent", color: on ? "#fff" : "#b6b6be",
+    border: "1px solid " + (on ? UI.brand : "#34343c"), fontWeight: on ? 600 : 400,
   };
 }
 const cards = { display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" };
