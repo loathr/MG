@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { UI } from "./theme";
-import { STYLE_LIST, DEFAULT_STYLE, BRAND_FONT } from "./styles";
+import { STYLE_LIST, DEFAULT_STYLE } from "./styles";
 import { getCategory } from "./categories";
 import StylePreview from "./StylePreview";
 import TrendingPanel from "./TrendingPanel";
@@ -192,7 +192,9 @@ const screen = {
   fontFamily: "Helvetica, Arial, sans-serif",
 };
 const col = { width: "100%", maxWidth: 660, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" };
-const brand = { fontSize: 13, letterSpacing: 4, color: "#cfcfcf", fontWeight: 700, marginBottom: 36, fontFamily: BRAND_FONT };
+// Wordmark uses the inherited Helvetica sans (the font "LOATHR STUDIO" used
+// before the loathrdotcom rename), not Courier — reverted per design.
+const brand = { fontSize: 13, letterSpacing: 4, color: "#cfcfcf", fontWeight: 700, marginBottom: 36 };
 const label = { fontSize: 13, letterSpacing: 1, color: "#8f8f97", marginBottom: 14, textTransform: "uppercase" };
 const gallery = { display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" };
 // Length control (default-visible, dashed "NEW" box).
