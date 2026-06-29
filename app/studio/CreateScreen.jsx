@@ -5,6 +5,8 @@ import { STYLE_LIST, DEFAULT_STYLE } from "./styles";
 import { getCategory } from "./categories";
 import StylePreview from "./StylePreview";
 import TrendingPanel from "./TrendingPanel";
+import RouteSelect from "./RouteSelect";
+import { routeFraming, getBeat } from "./trending";
 
 // Screen 1 — Create (spec §4, Option C: "segment-first + voice override"). Pick a
 // DESK first — the look (Editorial / Enterprise / News Desk). Each desk implies a
@@ -58,24 +60,31 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   // Grounding seed (R5) from a picked Trending card: { extract, source }. Cleared
   // when the topic is edited by hand, so a typed-over topic isn't grounded stale.
   const [seed, setSeed] = useState(null);
+  // Topic route (TOPIC_ROUTES.md): the picked beat/sector/section, or null = Any
+  // (sector-free — generation is unchanged). Beats are desk-specific, so it
+  // resets when the desk changes.
+  const [beat, setBeat] = useState(null);
 
   const pickDesk = (key) => {
     setDesk(key);
+    setBeat(null);
     if (!voiceTouched) setVoice(DESK_VOICE[key]);
   };
   const pickVoice = (key) => { setVoice(key); setVoiceTouched(true); };
-  // Tap a Trending card → fill the topic and set the matching voice (tie-back).
-  const pickTrending = (t, voiceKey, ground) => {
+  // Tap a Trending card → fill the topic, set the matching voice (tie-back), and
+  // CARRY its beat as the route so the choice keeps paying off into generation.
+  const pickTrending = (t, voiceKey, ground, beatKey) => {
     setTopic(t);
     setSeed(ground && ground.extract ? ground : null);
     if (voiceKey) { setVoice(voiceKey); setVoiceTouched(true); }
+    if (beatKey) setBeat(beatKey);
   };
 
   const submit = () => {
     const t = topic.trim();
     if (!t || generating) return;
     const slides = (LENGTHS.find((l) => l.id === length) || LENGTHS[1]).slides;
-    onGenerate({ style: desk, category: voice, topic: t, quickDraft, ground: seed, slides, tone });
+    onGenerate({ style: desk, category: voice, topic: t, quickDraft, ground: seed, slides, tone, route: beat ? routeFraming(beat) : null });
   };
 
   // Coarse progress label while generating (the call streams searching -> writing).
@@ -116,7 +125,18 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
           autoFocus
           style={topicInput}
         />
-        <TrendingPanel onPick={pickTrending} desk={desk} />
+        <div style={{ width: "100%", marginTop: 16 }}>
+          <RouteSelect desk={desk} value={beat} onChange={setBeat} />
+          {beat && getBeat(beat).seeds && getBeat(beat).seeds.length > 0 && (
+            <div style={seedRow}>
+              <span style={seedCue}>Try</span>
+              {getBeat(beat).seeds.slice(0, 3).map((s) => (
+                <button key={s} type="button" onClick={() => { setTopic(s); setSeed(null); }} style={seedChip}>{s}</button>
+              ))}
+            </div>
+          )}
+        </div>
+        <TrendingPanel onPick={pickTrending} desk={desk} beat={beat} onBeat={setBeat} />
 
         {/* Voice & tone — opt-in; the default path never opens it. Voice overrides
             the desk's writing category; Tone is an optional second axis. */}
@@ -246,6 +266,14 @@ const topicInput = {
   width: "100%", height: 52, padding: "0 18px", fontSize: 17,
   background: "#1d1d21", color: "#fff", border: "1px solid #3a3a42", borderRadius: 10,
   textAlign: "center", outline: "none",
+};
+// Seed "Try" hints — the picked beat's curated topics, as quiet fill-the-topic
+// suggestions (TOPIC_ROUTES.md: ghost hints, never inserted as a slide topic).
+const seedRow = { display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap", marginTop: 12 };
+const seedCue = { fontSize: 11, color: "#6f6f78" };
+const seedChip = {
+  fontSize: 12, color: "#c8c8ce", padding: "6px 11px", borderRadius: 7,
+  background: "#131316", border: "1px solid #232329", cursor: "pointer",
 };
 const advToggle = {
   marginTop: 22, background: "transparent", border: "none", color: "#8f8f97",

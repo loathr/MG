@@ -9,9 +9,12 @@ import { beatsForDesk, defaultBeat, beatVoice } from "./trending";
 // card fills the topic and sets the matching voice (tie-back). Reskins lightly
 // to the current desk: monochrome thumbnails for Enterprise, serif titles for
 // News Desk. Zero Claude credits.
-export default function TrendingPanel({ onPick, desk }) {
+export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat }) {
   const [open, setOpen] = useState(false);
-  const [beat, setBeat] = useState(() => defaultBeat(desk));
+  // The beat is owned by the create screen's route dropdown (shared state). When
+  // the route is "Any" (null) we still browse the desk's first beat so the rail
+  // has something to show; changing it here sets the route too.
+  const beat = routeBeat || defaultBeat(desk);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -43,13 +46,10 @@ export default function TrendingPanel({ onPick, desk }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, beat]);
 
-  // When the desk changes, snap the dropdown back to that desk's first beat.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { setBeat(defaultBeat(desk)); }, [desk]);
-
   // Carry the card's summary + source as a grounding seed (R5) so generation is
-  // built on the actual story, not just its title.
-  const pick = (it) => { onPick(it.title, beatVoice(beat), { extract: it.extract || "", source: it.source || "" }); setOpen(false); };
+  // built on the actual story, not just its title — plus the beat itself as the
+  // route, so a picked card keeps paying off into generation.
+  const pick = (it) => { onPick(it.title, beatVoice(beat), { extract: it.extract || "", source: it.source || "" }, beat); setOpen(false); };
 
   const mono = desk === "enterprise";
   const serif = desk === "newsdesk";
@@ -68,7 +68,7 @@ export default function TrendingPanel({ onPick, desk }) {
           </div>
           <div style={ddRow}>
             <span style={ddLabel}>Trending in</span>
-            <select value={beat} onChange={(e) => setBeat(e.target.value)} style={ddSelect} title="Pick a beat">
+            <select value={beat} onChange={(e) => onBeat(e.target.value)} style={ddSelect} title="Pick a beat">
               {beatsForDesk(desk).map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
             </select>
           </div>

@@ -112,9 +112,13 @@ export function groupsForDesk(desk) {
 // generate.js stays decoupled from this module; the create screen passes the
 // resolved object straight into buildPrompt's `route`.
 const DESK_KIND = { editorial: "Beat", enterprise: "Sector", newsdesk: "Section" };
+// The desk-adaptive name for the route control / dropdown label.
+export function deskKind(desk) {
+  return DESK_KIND[desk] || "Beat";
+}
 export function routeFraming(key) {
   const b = getBeat(key);
-  return { kind: DESK_KIND[b.desk] || "Beat", label: b.label, terms: (b.terms || []).slice() };
+  return { kind: deskKind(b.desk), label: b.label, terms: (b.terms || []).slice() };
 }
 
 // Wikipedia "featured" feed for a day carries the most-read articles. Keyless.
