@@ -478,6 +478,19 @@ test("rethemeDoc recolors the deck frame to the new look — accent, but News De
   assert.equal(out2.slides[1].elements.find((e) => e.role === "frame").fill, "#222233");
 });
 
+test("an explicit frame colour overrides the accent default, and clears back to it", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "loadDoc", doc: slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }], "editorial") });
+  s = reducer(s, { type: "setFrame", frame: "inset", all: true });
+  const frameFill = (d) => d.slides[1].elements.find((e) => e.role === "frame").fill;
+  // override wins over the accent
+  let out = rethemeDoc(s.doc, s.doc.brand, Object.assign({}, s.doc.brand, { frameColor: "#7ed09a", accent: "#00ccff" }));
+  assert.equal(frameFill(out), "#7ed09a");
+  // clearing it (null) falls back to the accent default
+  let cleared = rethemeDoc(out, out.brand, Object.assign({}, out.brand, { frameColor: null }));
+  assert.equal(frameFill(cleared), cleared.brand.accent);
+});
+
 test("detachPhoto turns the bg photo into an editable element + scrim, bg→solid (F1)", () => {
   let s = initStudio();                          // sample slide 0 has an image background + scrim
   const before = cur(s).background;

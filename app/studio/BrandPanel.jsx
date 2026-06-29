@@ -165,6 +165,20 @@ export default function BrandPanel({ brand, category, slideFrame, onApply, onLog
                 );
               })}
             </div>
+            {/* Frame colour — an explicit override; absent = follows the accent
+                (News Desk: ink). Deck-wide. Clear (↺) returns it to the accent. */}
+            <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+              <label style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, position: "relative", height: 30, padding: "0 9px", background: "#26262b", border: "1px solid #36363c", borderRadius: 6, cursor: "pointer" }}
+                title="Frame colour (deck-wide)">
+                <span style={{ width: 16, height: 16, borderRadius: 4, background: cur.frameColor || cur.accent, border: "1px solid #555" }} />
+                <span style={{ fontSize: 11.5, color: "#bbb" }}>{cur.frameColor || "Follows accent"}</span>
+                <input type="color" value={hex(cur.frameColor || cur.accent)} onChange={(e) => set({ frameColor: e.target.value })} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+              </label>
+              {cur.frameColor ? (
+                <button onClick={() => set({ frameColor: null })} title="Reset frame colour to the accent"
+                  style={{ width: 30, height: 30, borderRadius: 6, background: "#26262b", color: "#cfcfcf", border: "1px solid #36363c", cursor: "pointer", fontSize: 13 }}>↺</button>
+              ) : null}
+            </div>
           </div>
         </div>
 

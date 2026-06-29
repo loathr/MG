@@ -115,7 +115,9 @@ export function rethemeDoc(doc, prev, next) {
     // palette swap carries them — they're a derived chrome color with no manual
     // edit path, like the strike/highlight above.
     const style = s.style || "editorial";
-    const frameCol = style === "newsdesk" ? b.ink : b.accent;
+    // An explicit deck-wide frame colour wins; else the derived family default
+    // (News Desk ink, otherwise accent) — same override as templates.frameElements.
+    const frameCol = b.frameColor || (style === "newsdesk" ? b.ink : b.accent);
     const elements = s.elements.map((e) => {
       const n = remapEl(e);
       if (e.role === "frame" && frameCol) return Object.assign({}, n, { fill: frameCol });

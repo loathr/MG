@@ -190,7 +190,9 @@ export function frameElements(style, brand) {
   const mode = (brand && brand.frame) || "off";
   if (mode === "off") return [];
   const st = effectiveStyle(style, brand);
-  const color = frameColor(st);
+  // An explicit deck-wide frame colour wins; otherwise the family default
+  // (accent, or News Desk ink). So the frame is editable, not just auto-themed.
+  const color = (brand && brand.frameColor) || frameColor(st);
   const W = ARTBOARD_W, H = ARTBOARD_H;
   const bar = (x, y, w, h) => makeElement("rect", { id: uid("frame"), role: "frame", locked: true, x, y, w, h, fill: color });
   if (mode === "corners") {
