@@ -16,6 +16,10 @@ import BrandPanel from "./BrandPanel";
 import CaptionPanel from "./CaptionPanel";
 import TemplatesPanel from "./TemplatesPanel";
 import CreateScreen from "./CreateScreen";
+import ProjectsScreen from "./ProjectsScreen";
+import { isCloudEnabled } from "./cloud";
+import { onAuthChange, signOutCloud } from "./firebaseClient";
+import { saveDeck, loadDeck, listDecks, deleteDeck } from "./firebaseStore";
 import { exportSlide, exportSlides } from "./export";
 import { verifyDeck } from "./verify";
 import FactCheckPanel from "./FactCheckPanel";
@@ -61,6 +65,13 @@ export default function Studio() {
   const [textSel, setTextSel] = useState(null); // active text-span selection for per-run styling
   const editApiRef = useRef(null); // imperative style API from the element being edited
   const booted = useRef(false);
+  // ---- Cloud (gated by isCloudEnabled; all no-ops when disabled = today's flow).
+  const cloud = isCloudEnabled();
+  const [user, setUser] = useState(null);          // signed-in Firebase user
+  const [projects, setProjects] = useState([]);    // the user's saved decks (list meta)
+  const [projectId, setProjectId] = useState(null);// current deck's Firestore id
+  const [saveState, setSaveState] = useState("idle"); // "idle" | "saving" | "saved"
+  const saveTimer = useRef(null);
   const genAbort = useRef(null); // AbortController for the in-flight generation
   const fcAbort = useRef(null);  // AbortController for the in-flight fact-check
   const dragFrom = useRef(null); // slide index being drag-reordered in the strip
@@ -78,8 +89,58 @@ export default function Studio() {
       dispatch({ type: "loadDoc", doc: photosDemoDoc() });
       setProjectName("Photo demo");
       setScreen("editor");
+    } else if (cloud) {
+      // Signed-in landing is the Projects screen (the local-only flow opens
+      // straight on Create, unchanged).
+      setScreen("projects");
     }
-  }, []);
+  }, [cloud]);
+
+  // Track the signed-in user (cloud only).
+  useEffect(() => {
+    if (!cloud) return undefined;
+    return onAuthChange(setUser);
+  }, [cloud]);
+
+  // Load the user's deck list whenever the Projects screen is shown.
+  useEffect(() => {
+    if (!cloud || !user || screen !== "projects") return;
+    let live = true;
+    listDecks(user.uid).then((d) => { if (live) setProjects(d || []); });
+    return () => { live = false; };
+  }, [cloud, user, screen]);
+
+  // Autosave the open deck to Firestore (debounced) while editing.
+  useEffect(() => {
+    if (!cloud || !user || screen !== "editor") return undefined;
+    setSaveState("saving");
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveDeck(user.uid, projectId, state.doc, { name: projectName, now: Date.now() })
+        .then((id) => { if (id && !projectId) setProjectId(id); setSaveState("saved"); })
+        .catch(() => setSaveState("idle"));
+    }, 1200);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [cloud, user, screen, state.doc, projectName, projectId]);
+
+  // Projects-screen handlers (cloud only).
+  const openProject = (id) => {
+    if (!user) return;
+    loadDeck(user.uid, id).then((doc) => {
+      if (!doc) return;
+      dispatch({ type: "loadDoc", doc });
+      setProjectId(id);
+      const p = projects.find((x) => x.id === id);
+      setProjectName((p && p.name) || "Untitled");
+      setScreen("editor");
+    });
+  };
+  const newProject = () => { setProjectId(null); setScreen("create"); };
+  const removeProject = (id) => {
+    if (!user) return;
+    deleteDeck(user.uid, id).then(() => setProjects((ps) => ps.filter((p) => p.id !== id)));
+  };
+  const backToProjects = () => { setScreen("projects"); setSaveState("idle"); };
 
   useEffect(() => {
     if (screen !== "editor") return;
@@ -248,6 +309,20 @@ export default function Studio() {
 
   const toggle = (key) => setActivePanel((p) => (p === key ? null : key));
 
+  if (cloud && screen === "projects") {
+    return (
+      <ProjectsScreen
+        projects={projects}
+        onOpen={openProject}
+        onNew={newProject}
+        onDelete={removeProject}
+        email={(user && (user.email || user.displayName)) || ""}
+        onSignOut={() => signOutCloud()}
+        nowMs={Date.now()}
+      />
+    );
+  }
+
   if (screen === "create") {
     return <CreateScreen onGenerate={handleGenerate} onBlank={startBlank} generating={generating} phase={genPhase} onCancel={cancelGenerate} error={genError} />;
   }
@@ -262,7 +337,11 @@ export default function Studio() {
           <span style={{ fontSize: 9, letterSpacing: 2, color: UI.muted, textTransform: "uppercase" }}>studio</span>
         </span>
         <span style={{ width: 1, height: 22, background: UI.border, margin: "0 3px" }} />
-        <button style={hbtn} onClick={() => setScreen("create")} title="Back to start">‹ New</button>
+        {cloud ? (
+          <button style={hbtn} onClick={backToProjects} title="Back to your projects">‹ Projects</button>
+        ) : (
+          <button style={hbtn} onClick={() => setScreen("create")} title="Back to start">‹ New</button>
+        )}
         <input
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
@@ -274,6 +353,13 @@ export default function Studio() {
         <button style={iconBtn(state.past.length > 0)} disabled={state.past.length === 0} onClick={() => dispatch({ type: "undo" })} title="Undo (Ctrl/Cmd+Z)">↶</button>
         <button style={iconBtn(state.future.length > 0)} disabled={state.future.length === 0} onClick={() => dispatch({ type: "redo" })} title="Redo (Ctrl/Cmd+Shift+Z)">↷</button>
         <div style={{ flex: 1 }} />
+        {cloud ? (
+          <span style={{ fontSize: 11, color: saveState === "saved" ? "#7ed09a" : UI.muted, marginRight: 8, display: "inline-flex", alignItems: "center", gap: 5 }}
+            title={saveState === "saved" ? "Saved to your account" : "Saving…"}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: saveState === "saved" ? "#7ed09a" : UI.muted }} />
+            {saveState === "saving" ? "Saving…" : "Saved to cloud"}
+          </span>
+        ) : null}
         <span style={{ fontSize: 11, color: UI.muted, marginRight: 4 }}>
           {state.doc.slides.length} slide{state.doc.slides.length === 1 ? "" : "s"}
         </span>
