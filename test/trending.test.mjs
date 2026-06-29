@@ -99,21 +99,26 @@ test("filterByTerms buckets most-read into a beat; empty terms keep all", () => 
   assert.equal(filterByTerms(items, []).length, items.length); // trivia beat keeps all
 });
 
-test("selectTrending focuses on terms, then broadens so a beat never runs dry", () => {
-  const wiki = parseMostRead(FEATURED); // Dune, Nolan, Federal Reserve
+test("selectTrending keeps section feeds on-topic; general most-read only for trivia", () => {
+  const wiki = parseMostRead(FEATURED); // Dune, Christopher Nolan, Federal Reserve (general)
   const rss = [
     { title: "Bitcoin surges to a record", thumb: "t1", extract: "crypto rally as token prices climb" },
     { title: "High street sales slump", thumb: "t2", extract: "retail" },
     { title: "Carmaker cuts jobs", thumb: "t3", extract: "" },
     { title: "Bank raises rates", thumb: "t4", extract: "finance" },
   ];
-  // focused: the on-topic feed item leads for a sector beat
-  const crypto = selectTrending(rss, wiki, ["crypto", "bitcoin"], 6);
-  assert.ok(/Bitcoin/.test(crypto[0].title), "on-topic item leads");
-  // a term with zero matches still returns a full rail (broaden fallback)
-  assert.ok(selectTrending(rss, wiki, ["zzznope"], 6).length >= 3, "broadens instead of empty");
-  // no terms → straight ranking (broad news beats unchanged)
-  assert.equal(selectTrending(rss, wiki, [], 6).length, rankItems(rss, wiki, 6).length);
+  const isGeneral = (i) => /Dune|Nolan|Federal Reserve/.test(i.title);
+  // focused term surfaces the on-topic feed item first
+  assert.ok(/Bitcoin/.test(selectTrending(rss, wiki, ["crypto", "bitcoin"], 6)[0].title), "on-topic lead");
+  // a no-match term broadens to the FEED, never general most-read (no World-Cup-under-Music)
+  const none = selectTrending(rss, wiki, ["zzznope"], 6);
+  assert.ok(none.length >= 3 && none.every((i) => !isGeneral(i)), "broadens to the feed, no general leak");
+  // a no-terms section beat is the pure feed (still no general most-read)
+  assert.ok(selectTrending(rss, wiki, [], 6).every((i) => !isGeneral(i)));
+  // a FEED-LESS beat with no terms (Did You Know?) DOES use general curiosities
+  assert.ok(selectTrending([], wiki, [], 6).some(isGeneral), "trivia uses general most-read");
+  // a feed-less beat WITH terms stays on-topic (or empty) — never general
+  assert.ok(selectTrending([], wiki, ["zzznope"], 6).every((i) => !isGeneral(i)));
 });
 
 test("rankItems dedupes by title and floats thumbnail-bearing items first", () => {

@@ -196,15 +196,20 @@ export function rankItems(rssItems, wikiItems, max) {
 // Terms now filter the FEED too (not just most-read), so several sectors can
 // share one high-volume section feed and still come back focused.
 export function selectTrending(rssItems, wikiItems, terms, max) {
-  const hasTerms = !!(terms && terms.length);
   const rss = rssItems || [], wiki = wikiItems || [];
-  if (!hasTerms) return rankItems(rss, wiki, max);
-  const rssF = filterByTerms(rss, terms);
-  const wikiF = filterByTerms(wiki, terms);
-  let ranked = rankItems(rssF, wikiF, max);
-  // Thin focused pull → keep the on-topic feed, widen the popularity source.
-  if (ranked.length < 4) ranked = rankItems(rss, wikiF.length ? wikiF : wiki, max);
-  // Still thin (niche beat / quiet day) → fall back to the unfiltered feed.
-  if (ranked.length < 3) ranked = rankItems(rss, wiki, max);
-  return ranked;
+  const hasTerms = !!(terms && terms.length);
+  if (rss.length) {
+    // Section-feed beat: the FEED is the on-topic source. Wikipedia most-read is
+    // added ONLY when it matches the beat's terms; general most-read is NEVER
+    // mixed in — that's what leaked viral off-topic items into a beat (the World
+    // Cup under Music). Broaden to the full feed (still on-topic), not the wiki.
+    const rssF = hasTerms ? filterByTerms(rss, terms) : rss;
+    const wikiF = hasTerms ? filterByTerms(wiki, terms) : [];
+    let ranked = rankItems(rssF, wikiF, max);
+    if (ranked.length < 4) ranked = rankItems(rss, wikiF, max);
+    return ranked;
+  }
+  // Feed-less beat (Photography / Nightlife / Did You Know?): most-read is the
+  // only source — term-matched for the focused ones, general for trivia.
+  return rankItems([], hasTerms ? filterByTerms(wiki, terms) : wiki, max);
 }
