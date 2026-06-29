@@ -185,7 +185,7 @@ Inspector. Mock shown: `b5-anchor`. Lowest priority.
   `node --import ./test/register.mjs <script>` (extensionless ESM, resolved by
   `test/register.mjs`). `--no-save` keeps `package.json` clean — never commit
   these.
-- **Tests / build gate:** `npm test` (**185 passing**) and `npm run build`
+- **Tests / build gate:** `npm test` (**193 passing**) and `npm run build`
   (Next 16 / Turbopack).
 - **Mockups:** headless Chromium screenshot of a `file://` HTML
   (`--headless=new --no-sandbox --force-device-scale-factor=2 --screenshot=out.png
@@ -239,6 +239,15 @@ export.js (canvas PNG) must stay in sync** for any text/shape change.
 
 ## ✅ Shipped recently (newest first, all on PR #9, gated)
 
+- `6b37ecd`,`15ef82f` **Look & Frame** — editable frame colour
+  (`brand.frameColor`) + switch the layout family (Editorial/Enterprise/News
+  Desk) on an existing deck (`setFamily`, keeps colour). Both live-verified.
+- `da0ad63`→`28517a9` **Cloud layer (auth + storage groundwork)** — server-only
+  image keys; `cloud.js` guarded config gate + serialization; Firebase **Google
+  sign-in gate** (AuthGate, no-op when unconfigured) + **token-gated**
+  `/api/generate`; Firestore **adapter** (`firebaseStore.js`); **`docs/CLOUD_SETUP.md`**
+  provisioning guide. Both gate paths verified in-sandbox; live Firebase is
+  deploy-only. Remaining: the Studio autosave/Projects **wiring** (rank #2).
 - `558919b`→`1273e96` **Topic Routes (Tiers 1–3)** — the monolith's per-desk
   routing, folded in as optional framing over the live feed ($0, no preset
   topics). Desk-adaptive route dropdown (Beat/Sector/Section) carried into
@@ -280,14 +289,22 @@ export.js (canvas PNG) must stay in sync** for any text/shape change.
 
 ---
 
-## ⏭ Immediate next step (new session)
-Build **BL · Look & Frame** (mocked + approved this session, not yet built):
-(1) Frame colour control, (2) Layout-family switch — both in `BrandPanel.jsx` →
-Look, approach above. Gate + live-verify in-sandbox (recolour a frame; switch a
-deck's family + screenshot), commit one per increment, push. **Then** the
-remaining text-editor queue B3 → B2 → B1 → B6, and the debug carryovers D3/D4/D5
-(+ D1 trending `?debug=1` confirm) when convenient.
+## ⏭ Ranked build order (canonical next-steps)
+1. ~~**Look & Frame**~~ ✅ SHIPPED (frame colour `6b37ecd`; layout-family switch `15ef82f`).
+2. **Finish Cloud wiring** — autosave + Projects screen + load-on-open into
+   `Studio.jsx`, gated by `isCloudEnabled` (disabled path must stay identical).
+   The adapter (`firebaseStore.js`), auth gate, and `CLOUD_SETUP.md` are done;
+   this is the last cloud piece. Deploy-verified only (no Firestore/auth in
+   sandbox) — verify the disabled path is unchanged here.
+3. **B3 · Per-span SIZE** — next text-editor item (approach in BUILD QUEUE).
+4. **D3 · rethemeDoc remap** of `textBg`/`textStroke`/per-run colours (small).
+5. **B2 · Custom-hex colour popover.**
+6. **Cloud 11c · uploads → Cloud Storage** (Firestore 1 MB doc limit; deploy-only).
+7. **B1 · Live styling preview** (the heavy one).
+8. **B6 · Element-tether anchor** (bonus).
+9. **D4 / D5** · editor edge cases + regression sweep.
+10. **D1** · trending `?debug=1` confirm — the user's check on the deploy.
 
 Two standing caveats (sandbox limits, not gaps): no real end-to-end **generation**
-(needs Anthropic credit) and no live **external-feed** pull — both covered by unit
-tests + the user's `?debug=1` check on the deploy.
+(needs Anthropic credit) and no live **external-feed**/Firestore/auth — covered by
+unit tests + the user's deploy checks.
