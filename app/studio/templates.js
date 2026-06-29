@@ -54,12 +54,15 @@ function kickerEl(st, pal, content, y, size) {
   });
 }
 
-function sourcesEl(st, pal, sources) {
+function sourcesEl(st, pal, sources, y) {
   const s = Array.isArray(sources) ? sources.filter(Boolean).join(" · ") : (sources || "");
   if (!s) return null;
+  // Content slides carry the footer (rule at FOOTER_RULE_Y + LOATHR text at
+  // FOOTER_Y), so the sources line sits ABOVE the rule (FOOTER_SOURCES_Y) to avoid
+  // colliding with it; the cover (no footer) passes its own bottom y.
   return makeText(st.bodyFont, {
     tier: "body", role: "sources",
-    x: M, y: 1262, w: ARTBOARD_W - 2 * M, h: 40,
+    x: M, y: y != null ? y : FOOTER_SOURCES_Y, w: ARTBOARD_W - 2 * M, h: 40,
     content: "Sources: " + s, fontSize: 19, fontWeight: 400, color: pal.muted, lineHeight: 1.2, letterSpacing: 0.5,
   });
 }
@@ -81,7 +84,7 @@ export function coverTemplate(s, style, image) {
     kickerEl(st, pal, s.kicker || "EDITORIAL", 262, 25),
     makeText(st.headFont, { tier: "heading", x: M, y: 320, w: ARTBOARD_W - 2 * M, h: 560, content: s.heading || "Untitled", fontSize: 94, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.03 }),
     s.subhead ? makeText(st.bodyFont, { tier: "body", x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 180, content: s.subhead, fontSize: 33, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
-    sourcesEl(st, pal, s.sources),
+    sourcesEl(st, pal, s.sources, 1262), // cover has no footer — keep sources at the bottom
   ]);
 }
 

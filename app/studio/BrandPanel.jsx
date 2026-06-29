@@ -18,7 +18,7 @@ const wrap = {
 };
 const head = { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 12px 6px" };
 const xBtn = { width: 24, height: 24, lineHeight: "22px", textAlign: "center", background: "transparent", color: "#999", border: "none", cursor: "pointer", fontSize: 18, borderRadius: 5 };
-const body = { padding: "0 12px 14px", display: "flex", flexDirection: "column" };
+const body = { padding: "0 12px 14px", display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflowY: "auto" };
 const sec = { fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: "#7c7c84", textTransform: "uppercase", margin: "14px 0 10px", borderTop: "1px solid #2a2a2f", paddingTop: 12 };
 const secFirst = { ...sec, borderTop: "none", paddingTop: 4, marginTop: 6 };
 const lbl = { fontSize: 11, color: "#9a9a9a", marginBottom: 6, display: "block" };

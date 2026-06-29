@@ -277,6 +277,10 @@ test("generated text carries font tiers; brand marks stay untiered (Courier-lock
   assert.equal(content.elements.find((e) => e.content === "H").tier, "heading");
   assert.equal(content.elements.find((e) => e.content === "the body").tier, "body");
   assert.equal(content.elements.find((e) => e.role === "sources").tier, "body");
+  // sources must sit ABOVE the footer (not collide with the LOATHR footer text)
+  const srcY = content.elements.find((e) => e.role === "sources").y;
+  const footY = content.elements.find((e) => e.role === "footer").y;
+  assert.ok(srcY + 40 <= footY, "sources line clears the footer (" + srcY + " vs " + footY + ")");
   // brand marks: no tier → font stays Courier
   assert.equal(content.elements.find((e) => e.role === "footer").tier, undefined);
   assert.equal(content.elements.find((e) => e.role === "pageno").tier, undefined);
