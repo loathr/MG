@@ -87,10 +87,14 @@ export function mostReadUrl(y, m, d) {
 function decodeEntities(s) {
   return String(s == null ? "" : s)
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/<[^>]+>/g, "")
+    .replace(/<\/?[a-zA-Z][^>]*>/g, "")        // strip literal HTML tags
     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'")
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
+    // Guardian entity-encodes its description HTML (&lt;p&gt;…), so the tags only
+    // become real after the decode above — strip once more so the grounding seed
+    // is clean prose, not "<p>…</p>". Letter-led so "a < b" comparisons survive.
+    .replace(/<\/?[a-zA-Z][^>]*>/g, "")
     .trim();
 }
 
@@ -164,9 +168,15 @@ export function parseMostRead(json) {
 
 // Keep most-read items matching any of the beat's terms (title or extract).
 // Empty terms → keep all (the "Did You Know?" beat = today's general curiosities).
+//
+// WHOLE-WORD match (+ optional plural): the term must END on a word boundary, so
+// a short term can't prefix-match a longer, unrelated word. Without the trailing
+// boundary "tour" matched "tournament" — which dragged the FIFA World Cup into
+// Music — and "AI" matched "air"/"aid". The leading \b + trailing (?:s|es)?\b
+// still allows plurals ("albums", "bands") and possessives ("rapper's").
 export function filterByTerms(items, terms) {
   if (!terms || !terms.length) return (items || []).slice();
-  const rx = new RegExp("\\b(" + terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")", "i");
+  const rx = new RegExp("\\b(" + terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")(?:s|es)?\\b", "i");
   return (items || []).filter((it) => rx.test(it.title) || rx.test(it.extract || ""));
 }
 

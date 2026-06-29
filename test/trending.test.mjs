@@ -74,6 +74,17 @@ test("parseRss captures the description as the item extract (R5 grounding)", () 
   assert.match(items[0].extract, /approved the bill 320-115/); // tags stripped, kept as a seed
 });
 
+test("parseRss strips entity-encoded HTML tags from the extract (Guardian &lt;p&gt;)", () => {
+  // Guardian descriptions encode their HTML, so the tags only appear after the
+  // entity decode — the extract must still come out as clean prose, no "<p>".
+  const xml = `<rss><channel>
+    <item><title>Album of the Week</title><description>&lt;p&gt;The Devon band are preposterous yet nuanced.&lt;/p&gt;&lt;p&gt;A choir appears within three minutes.&lt;/p&gt;</description></item>
+  </channel></rss>`;
+  const ex = parseRss(xml, 5)[0].extract;
+  assert.doesNotMatch(ex, /<\/?p>/, "no surviving <p> tags in the grounding seed");
+  assert.match(ex, /Devon band are preposterous/);
+});
+
 const FEATURED = {
   mostread: { articles: [
     { titles: { normalized: "Main Page" }, views: 9000000 },
@@ -97,6 +108,21 @@ test("filterByTerms buckets most-read into a beat; empty terms keep all", () => 
   assert.ok(film.some((i) => i.title === "Dune: Part Two"));
   assert.ok(!film.some((i) => i.title === "Federal Reserve")); // not film
   assert.equal(filterByTerms(items, []).length, items.length); // trivia beat keeps all
+});
+
+test("filterByTerms matches whole words, not prefixes — no tour→tournament (World Cup) leak", () => {
+  const items = [
+    { title: "2026 FIFA World Cup knockout stage", extract: "a single-elimination tournament of 32 matches" },
+    { title: "Best albums of 2026", extract: "" },                 // plural of a term
+    { title: "Taylor Swift announces a world tour", extract: "" }, // the literal term
+  ];
+  const music = filterByTerms(items, getBeat("music").terms); // terms include "tour" and "album"
+  assert.ok(music.some((i) => /albums of 2026/.test(i.title)), "plural 'albums' still matches 'album'");
+  assert.ok(music.some((i) => /world tour/.test(i.title)), "the literal word 'tour' still matches");
+  assert.ok(!music.some((i) => /World Cup/.test(i.title)), "'tour' must NOT prefix-match 'tournament'");
+  // the AI beat: "AI" must not prefix-match "air"/"aid"
+  assert.equal(filterByTerms([{ title: "Air quality alert hits the city", extract: "" }], getBeat("ent_ai").terms).length, 0, "'AI' must not match 'air'");
+  assert.equal(filterByTerms([{ title: "OpenAI ships a new model", extract: "" }], getBeat("ent_ai").terms).length, 1, "real AI terms still match");
 });
 
 test("selectTrending keeps section feeds on-topic; general most-read only for trivia", () => {
