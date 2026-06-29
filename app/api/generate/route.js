@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { verifyRequest, unauthorized } from "../_auth";
 
 // Vercel kills serverless functions after their maxDuration regardless of
 // streaming. Editorial generations with Claude Opus + web_search routinely take
@@ -65,6 +66,12 @@ async function callAnthropic(payload, apiKey, attempt) {
 }
 
 export async function POST(request) {
+  // Auth gate: when Firebase Admin creds are configured, require a valid signed-in
+  // user's ID token so this isn't an open proxy to the Anthropic key. No creds →
+  // open (the current behaviour). See CLOUD_SETUP.md.
+  const auth = await verifyRequest(request);
+  if (!auth.ok) return unauthorized();
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {

@@ -14,6 +14,7 @@
 import { slidesToDoc } from "./templates";
 import { getCategory, cautionFor } from "./categories";
 import { normalizeCaption, captionText, fallbackCaption } from "./captions";
+import { getIdToken } from "./firebaseClient";
 
 const MODEL = "claude-opus-4-8";
 // Server-side web search — the BASIC variant, deliberately. The dynamic-filtering
@@ -335,9 +336,15 @@ export async function runPrompt(prompt, opts) {
   if (o.webSearch !== false) payload.tools = [WEB_SEARCH_TOOL];
   if (stream) payload.stream = true;
 
+  // Attach the Firebase ID token when signed in, so the gated route accepts the
+  // call. null (cloud disabled / signed out) → no header, route stays open.
+  const headers = { "Content-Type": "application/json" };
+  const token = await getIdToken();
+  if (token) headers.Authorization = "Bearer " + token;
+
   const res = await fetch("/api/generate", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(payload),
     signal: o.signal,
   });
