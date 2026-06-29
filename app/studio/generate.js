@@ -86,6 +86,18 @@ export function buildPrompt(topic, categoryKey, opts) {
   // source seed the deck so it's built on the actual story, not just the headline.
   const ground = o.ground && o.ground.extract ? String(o.ground.extract) : "";
   const groundSrc = o.ground && o.ground.source ? String(o.ground.source) : "";
+  // Optional ROUTE (TOPIC_ROUTES.md): scopes the deck to a template beat / sector
+  // / section the user picked, plus (later tiers) its sourcing. ADDITIVE — when no
+  // route is set (the default one-tap path), the prompt is byte-identical to the
+  // un-routed deck. The route carries already-resolved framing (kind + label +
+  // terms + sourcing), so this builder stays pure and never imports trending.js.
+  const route = o.route && o.route.label ? o.route : null;
+  const routeLine = route
+    ? "Stay within the " + (route.kind || "beat") + " “" + route.label + "” — keep the angle, examples, and sourcing inside it"
+      + (route.terms && route.terms.length ? "; anchor on " + route.terms.slice(0, 8).join(", ") : "")
+      + "."
+      + (route.sourcing ? " Prefer " + route.sourcing + " as sources." : "")
+    : null;
   // Deck length (cover + content + closer) from the create screen's Length control.
   const total = Math.max(4, Math.min(12, o.slides || 8));
   const content = total - 2;
@@ -99,6 +111,7 @@ export function buildPrompt(topic, categoryKey, opts) {
     tone ? "Tone: write it " + tone + " — let this colour the whole deck." : null,
     "",
     research,
+    routeLine,
     ground ? "Grounded source — build the deck on these specific facts, verifying and expanding them with search (correct anything outdated): \"" + ground + "\"" + (groundSrc ? " [" + groundSrc + "]" : "") : null,
     "",
     "Craft standards (this is the quality bar — hold to all of them):",
@@ -329,7 +342,7 @@ export async function generateCarousel(topic, opts) {
   // (o.signal) and reports progress (o.onPhase). Pass webSearch:false for a fast
   // "Quick draft" from the model's knowledge (still anchored to today's date).
   const webSearch = o.webSearch !== false;
-  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch, ground: o.ground, slides: o.slides, tone: o.tone });
+  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch, ground: o.ground, slides: o.slides, tone: o.tone, route: o.route });
   const text = await runPrompt(prompt, { model: o.model, webSearch, stream: o.stream, signal: o.signal, onPhase: o.onPhase });
   const slides = parseSlides(text);
   const wantPhotos = o.photos !== false;

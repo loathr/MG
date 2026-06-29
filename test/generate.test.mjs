@@ -49,6 +49,22 @@ test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabl
   assert.match(buildPrompt("x", "editorial", Object.assign({}, base, { webSearch: true })), /use web search/);
 });
 
+test("buildPrompt: an optional route scopes the deck; an absent route is byte-identical", () => {
+  const base = { seed: 7, today: "2026-06-26" };
+  const plain = buildPrompt("GLP-1 drugs reshape pharma", "business", base);
+  const routed = buildPrompt("GLP-1 drugs reshape pharma", "business", Object.assign({}, base, {
+    route: { kind: "Sector", label: "Healthcare & Pharma", terms: ["pharma", "biotech", "drug"], sourcing: "industry trade press" },
+  }));
+  assert.match(routed, /Stay within the Sector .Healthcare & Pharma./); // scoping line, with the label
+  assert.match(routed, /anchor on pharma, biotech, drug/);              // the beat's terms as anchors
+  assert.match(routed, /Prefer industry trade press as sources/);       // sourcing hint
+  // The load-bearing guarantee: the default (no route) path is unchanged, and an
+  // empty/label-less route is a no-op — byte-identical to today's prompt.
+  assert.doesNotMatch(plain, /Stay within the/);
+  assert.equal(buildPrompt("GLP-1 drugs reshape pharma", "business", Object.assign({}, base, { route: null })), plain);
+  assert.equal(buildPrompt("GLP-1 drugs reshape pharma", "business", Object.assign({}, base, { route: { terms: ["x"] } })), plain); // no label → no-op
+});
+
 test("buildPrompt is deterministic for a fixed seed and varies the angle by seed", () => {
   assert.equal(
     buildPrompt("topic", "news", { seed: 5, today: "2026-06-26" }),
