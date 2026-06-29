@@ -5,7 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   BEATS, getBeat, beatVoice, beatsForDesk, defaultBeat, mostReadUrl, cleanTitle, parseRss, parseMostRead,
-  filterByTerms, rankItems,
+  filterByTerms, rankItems, selectTrending,
 } from "../app/studio/trending.js";
 
 test("BEATS includes the thin segments backed by most-read (no rss)", () => {
@@ -97,6 +97,23 @@ test("filterByTerms buckets most-read into a beat; empty terms keep all", () => 
   assert.ok(film.some((i) => i.title === "Dune: Part Two"));
   assert.ok(!film.some((i) => i.title === "Federal Reserve")); // not film
   assert.equal(filterByTerms(items, []).length, items.length); // trivia beat keeps all
+});
+
+test("selectTrending focuses on terms, then broadens so a beat never runs dry", () => {
+  const wiki = parseMostRead(FEATURED); // Dune, Nolan, Federal Reserve
+  const rss = [
+    { title: "Bitcoin surges to a record", thumb: "t1", extract: "crypto rally as token prices climb" },
+    { title: "High street sales slump", thumb: "t2", extract: "retail" },
+    { title: "Carmaker cuts jobs", thumb: "t3", extract: "" },
+    { title: "Bank raises rates", thumb: "t4", extract: "finance" },
+  ];
+  // focused: the on-topic feed item leads for a sector beat
+  const crypto = selectTrending(rss, wiki, ["crypto", "bitcoin"], 6);
+  assert.ok(/Bitcoin/.test(crypto[0].title), "on-topic item leads");
+  // a term with zero matches still returns a full rail (broaden fallback)
+  assert.ok(selectTrending(rss, wiki, ["zzznope"], 6).length >= 3, "broadens instead of empty");
+  // no terms → straight ranking (broad news beats unchanged)
+  assert.equal(selectTrending(rss, wiki, [], 6).length, rankItems(rss, wiki, 6).length);
 });
 
 test("rankItems dedupes by title and floats thumbnail-bearing items first", () => {

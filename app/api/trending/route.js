@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getBeat, mostReadUrl, parseRss, parseMostRead, filterByTerms, rankItems } from "../../studio/trending";
+import { getBeat, mostReadUrl, parseRss, parseMostRead, selectTrending } from "../../studio/trending";
 
 // Live "Trending" for a beat, from FREE keyless feeds only — per-beat RSS
 // (recency) + Wikipedia most-read (popularity + photos + a never-empty fallback).
@@ -57,7 +57,6 @@ export async function GET(request) {
       featured = await getJson(mostReadUrl(y.getUTCFullYear(), y.getUTCMonth() + 1, y.getUTCDate()), fresh);
     }
     const wikiAll = parseMostRead(featured);
-    const wiki = filterByTerms(wikiAll, beat.terms);
 
     let rssItems = [];
     if (beat.rss && beat.rss.length) {
@@ -66,13 +65,11 @@ export async function GET(request) {
     }
 
     // Refresh (fresh=1) ranks a larger pool and returns a shuffled window, so a
-    // re-pull surfaces different picks. The feeds are stable minute-to-minute, so
-    // without this the same top 6 come back and Refresh looks dead.
+    // re-pull surfaces different picks. selectTrending focuses the feed +
+    // most-read on the beat's terms, then broadens if that pull is thin — so a
+    // sector beat stays on-topic but never returns a near-empty rail.
     const pool = fresh ? 30 : 6;
-    let ranked = rankItems(rssItems, wiki, pool);
-    // Never empty: if a thin beat's keyword filter starved the list, fall back to
-    // the unfiltered most-read (today's general top articles).
-    if (ranked.length < 3) ranked = rankItems(rssItems, wikiAll, pool);
+    const ranked = selectTrending(rssItems, wikiAll, beat.terms, pool);
     const items = (fresh ? shuffle(ranked) : ranked).slice(0, 6);
 
     return NextResponse.json({ beat: beat.key, voice: beat.voice, items });

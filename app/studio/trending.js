@@ -29,31 +29,36 @@ export const BEATS = [
   { key: "trivia",    desk: "editorial", label: "Did You Know?", voice: "editorial", rss: [], terms: [] }, // empty terms → today's general curiosities
 
   // ---- Enterprise · 13 sectors (business voice) ---------------------------
+  // Enterprise sectors share a few HIGH-VOLUME Guardian sections (technology /
+  // business / media / society / money / environment) and are focused by their
+  // TERMS in the route (selectTrending) — niche subsection feeds were too thin.
   { key: "ent_tech",       desk: "enterprise", label: "Tech",        voice: "business", rss: [G("technology"), "https://hnrss.org/frontpage"], terms: ["tech", "software", "app", "chip", "cloud", "Apple", "Google", "Microsoft", "Meta"] },
-  { key: "ent_ai",         desk: "enterprise", label: "AI",          voice: "business", rss: [G("technology/artificialintelligenceai"), "https://hnrss.org/newest?q=AI"], terms: ["AI", "artificial intelligence", "model", "OpenAI", "LLM", "machine learning", "chatbot", "Nvidia", "Anthropic"] },
-  { key: "ent_startups",   desk: "enterprise", label: "Startups",    voice: "business", rss: ["https://hnrss.org/frontpage"], terms: ["startup", "founder", "venture", "funding", "seed", "Series A", "raise", "valuation", "YC"] },
-  { key: "ent_markets",    desk: "enterprise", label: "Markets",     voice: "business", rss: [G("business/stock-markets")], terms: ["market", "stocks", "index", "S&P", "Nasdaq", "Dow", "bond", "shares", "rally"] },
-  { key: "ent_finance",    desk: "enterprise", label: "Finance",     voice: "business", rss: [G("business/banking")], terms: ["bank", "finance", "fund", "lending", "rates", "investment", "credit"] },
-  { key: "ent_crypto",     desk: "enterprise", label: "Crypto",      voice: "business", rss: [G("technology/cryptocurrencies")], terms: ["crypto", "bitcoin", "ethereum", "token", "blockchain", "stablecoin", "exchange"] },
-  { key: "ent_economy",    desk: "enterprise", label: "Economy",     voice: "business", rss: [G("business/economics")], terms: ["economy", "GDP", "inflation", "jobs", "rates", "recession", "Fed", "growth"] },
-  { key: "ent_marketing",  desk: "enterprise", label: "Marketing",   voice: "business", rss: [G("media/advertising")], terms: ["marketing", "advertising", "brand", "campaign", "ad", "agency"] },
+  { key: "ent_ai",         desk: "enterprise", label: "AI",          voice: "business", rss: [G("technology"), "https://hnrss.org/newest?q=AI"], terms: ["AI", "artificial intelligence", "model", "OpenAI", "LLM", "machine learning", "chatbot", "Nvidia", "Anthropic"] },
+  { key: "ent_startups",   desk: "enterprise", label: "Startups",    voice: "business", rss: [G("technology"), "https://hnrss.org/frontpage"], terms: ["startup", "founder", "venture", "funding", "seed", "raise", "valuation", "IPO"] },
+  { key: "ent_markets",    desk: "enterprise", label: "Markets",     voice: "business", rss: [G("business")], terms: ["market", "stocks", "index", "S&P", "Nasdaq", "Dow", "bond", "shares", "rally"] },
+  { key: "ent_finance",    desk: "enterprise", label: "Finance",     voice: "business", rss: [G("business")], terms: ["bank", "finance", "fund", "lending", "rate", "investment", "credit"] },
+  { key: "ent_crypto",     desk: "enterprise", label: "Crypto",      voice: "business", rss: [G("technology"), G("business")], terms: ["crypto", "bitcoin", "ethereum", "token", "blockchain", "stablecoin", "exchange"] },
+  { key: "ent_economy",    desk: "enterprise", label: "Economy",     voice: "business", rss: [G("business")], terms: ["economy", "GDP", "inflation", "jobs", "rate", "recession", "Fed", "growth"] },
+  { key: "ent_marketing",  desk: "enterprise", label: "Marketing",   voice: "business", rss: [G("media")], terms: ["marketing", "advertising", "brand", "campaign", "agency"] },
   { key: "ent_media",      desk: "enterprise", label: "Media",       voice: "business", rss: [G("media")], terms: ["media", "streaming", "publisher", "platform", "press", "subscription"] },
-  { key: "ent_retail",     desk: "enterprise", label: "Retail",      voice: "business", rss: [G("business/retail")], terms: ["retail", "store", "sales", "consumer", "shopping", "ecommerce"] },
-  { key: "ent_energy",     desk: "enterprise", label: "Energy",      voice: "business", rss: [G("business/energy-industry")], terms: ["energy", "oil", "gas", "renewable", "grid", "power", "solar"] },
-  { key: "ent_health",     desk: "enterprise", label: "Healthcare",  voice: "business", rss: [G("society/health")], terms: ["health", "hospital", "pharma", "biotech", "drug", "vaccine", "trial"] },
-  { key: "ent_realestate", desk: "enterprise", label: "Real Estate", voice: "business", rss: [G("money/property")], terms: ["property", "housing", "real estate", "mortgage", "rent", "homes"] },
+  { key: "ent_retail",     desk: "enterprise", label: "Retail",      voice: "business", rss: [G("business")], terms: ["retail", "store", "sales", "consumer", "shopping", "ecommerce"] },
+  { key: "ent_energy",     desk: "enterprise", label: "Energy",      voice: "business", rss: [G("environment"), G("business")], terms: ["energy", "oil", "gas", "renewable", "grid", "power", "solar"] },
+  { key: "ent_health",     desk: "enterprise", label: "Healthcare",  voice: "business", rss: [G("society")], terms: ["health", "hospital", "pharma", "biotech", "drug", "vaccine", "trial"] },
+  { key: "ent_realestate", desk: "enterprise", label: "Real Estate", voice: "business", rss: [G("money"), G("business")], terms: ["property", "housing", "real estate", "mortgage", "rent", "homes"] },
 
   // ---- News Desk · 10 desks (news voice) ----------------------------------
-  { key: "news_world",     desk: "newsdesk", label: "World",        voice: "news", rss: [G("world")],   terms: [] }, // broad — general world top stories
-  { key: "news_politics",  desk: "newsdesk", label: "Politics",     voice: "news", rss: [G("politics")], terms: ["election", "government", "minister", "parliament", "policy", "president", "vote"] },
-  { key: "news_business",  desk: "newsdesk", label: "Business",     voice: "news", rss: [G("business")], terms: ["company", "market", "CEO", "economy", "earnings", "deal"] },
-  { key: "news_science",   desk: "newsdesk", label: "Science",      voice: "news", rss: [G("science")],  terms: ["study", "research", "space", "NASA", "discovery", "physics"] },
-  { key: "news_climate",   desk: "newsdesk", label: "Climate",      voice: "news", rss: [G("environment/climate-crisis")], terms: ["climate", "emissions", "warming", "carbon", "COP", "heat", "flood"] },
-  { key: "news_health",    desk: "newsdesk", label: "Health",       voice: "news", rss: [G("society/health")], terms: ["health", "disease", "NHS", "outbreak", "hospital", "virus"] },
-  { key: "news_tech",      desk: "newsdesk", label: "Technology",   voice: "news", rss: [G("technology")], terms: ["tech", "AI", "cyber", "data", "privacy", "hack", "outage"] },
-  { key: "news_law",       desk: "newsdesk", label: "Law & Justice",voice: "news", rss: [G("law")], terms: ["court", "ruling", "lawsuit", "trial", "justice", "judge", "appeal"] },
-  { key: "news_education", desk: "newsdesk", label: "Education",    voice: "news", rss: [G("education")], terms: ["school", "university", "student", "teacher", "exam", "campus"] },
-  { key: "news_media",     desk: "newsdesk", label: "Media",        voice: "news", rss: [G("media")], terms: ["media", "press", "journalism", "broadcast", "newspaper"] },
+  // Each is its own high-volume Guardian section, so most are broad (no terms);
+  // climate/health ride a parent section and are focused by terms.
+  { key: "news_world",     desk: "newsdesk", label: "World",        voice: "news", rss: [G("world")],      terms: [] },
+  { key: "news_politics",  desk: "newsdesk", label: "Politics",     voice: "news", rss: [G("politics")],   terms: [] },
+  { key: "news_business",  desk: "newsdesk", label: "Business",     voice: "news", rss: [G("business")],   terms: [] },
+  { key: "news_science",   desk: "newsdesk", label: "Science",      voice: "news", rss: [G("science")],    terms: [] },
+  { key: "news_climate",   desk: "newsdesk", label: "Climate",      voice: "news", rss: [G("environment")], terms: ["climate", "emissions", "warming", "carbon", "COP", "heat", "flood", "wildfire"] },
+  { key: "news_health",    desk: "newsdesk", label: "Health",       voice: "news", rss: [G("society")],    terms: ["health", "disease", "NHS", "outbreak", "hospital", "virus", "care"] },
+  { key: "news_tech",      desk: "newsdesk", label: "Technology",   voice: "news", rss: [G("technology")], terms: [] },
+  { key: "news_law",       desk: "newsdesk", label: "Law & Justice",voice: "news", rss: [G("law")],        terms: [] },
+  { key: "news_education", desk: "newsdesk", label: "Education",    voice: "news", rss: [G("education")],  terms: [] },
+  { key: "news_media",     desk: "newsdesk", label: "Media",        voice: "news", rss: [G("media")],      terms: [] },
 ];
 
 export function getBeat(key) {
@@ -183,4 +188,23 @@ export function rankItems(rssItems, wikiItems, max) {
   (rssItems || []).forEach(push);                            // then remaining feed items
   (wikiItems || []).forEach(push);                           // then remaining most-read
   return pick.slice(0, max || 6).map((it) => ({ title: it.title, thumb: it.thumb || null, extract: it.extract || "", source: it.source || "feed" }));
+}
+
+// Pick a beat's trending set: FOCUS the feed + most-read on the beat's terms,
+// then BROADEN if that pull is thin — so a beat stays on-topic but never runs
+// dry (the fix for sector beats that over-filtered into 1-2 generic cards).
+// Terms now filter the FEED too (not just most-read), so several sectors can
+// share one high-volume section feed and still come back focused.
+export function selectTrending(rssItems, wikiItems, terms, max) {
+  const hasTerms = !!(terms && terms.length);
+  const rss = rssItems || [], wiki = wikiItems || [];
+  if (!hasTerms) return rankItems(rss, wiki, max);
+  const rssF = filterByTerms(rss, terms);
+  const wikiF = filterByTerms(wiki, terms);
+  let ranked = rankItems(rssF, wikiF, max);
+  // Thin focused pull → keep the on-topic feed, widen the popularity source.
+  if (ranked.length < 4) ranked = rankItems(rss, wikiF.length ? wikiF : wiki, max);
+  // Still thin (niche beat / quiet day) → fall back to the unfiltered feed.
+  if (ranked.length < 3) ranked = rankItems(rss, wiki, max);
+  return ranked;
 }
