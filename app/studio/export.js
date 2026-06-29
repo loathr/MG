@@ -316,7 +316,9 @@ function drawShapedText(ctx, el) {
   const lines = wrapRuns(ctx, styledRuns(el), innerW, fontOf);
   const totalH = lines.length * lh;
   const innerH = el.h - pad.top - pad.bottom;
-  const startY = pad.top + Math.max(0, (innerH - totalH) / 2);
+  const slack = Math.max(0, innerH - totalH);
+  // Match the DOM's vertical alignment (shapeVAlign): top / middle / bottom.
+  const startY = pad.top + (el.vAlign === "top" ? 0 : el.vAlign === "bottom" ? slack : slack / 2);
   drawTokenLines(ctx, lines, fs, fontOf, lh, el.align || "left", pad.left, innerW, startY);
   if (supportsLS) ctx.letterSpacing = "0px";
 }

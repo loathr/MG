@@ -3,7 +3,7 @@ import React from "react";
 import { ARTBOARD_W, ARTBOARD_H } from "./model";
 import RichText from "./RichText";
 import ShapeBacking from "./ShapeBacking";
-import { shapePad } from "./shapes";
+import { shapePad, shapeVAlign } from "./shapes";
 
 // A non-interactive, CSS-scaled miniature of a slide. Used by the slide strip
 // (SlideThumb) and the Create-screen style previews (StylePreview), so both are
@@ -50,7 +50,7 @@ function StaticElement({ el }) {
         <div style={{ ...frame, overflow: "visible" }}>
           <ShapeBacking el={el} />
           <div style={{
-            position: "absolute", inset: 0, display: "flex", alignItems: "center", boxSizing: "border-box",
+            position: "absolute", inset: 0, display: "flex", alignItems: shapeVAlign(el), boxSizing: "border-box",
             justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start",
             paddingTop: pad.top, paddingRight: pad.right, paddingBottom: pad.bottom, paddingLeft: pad.left,
           }}>

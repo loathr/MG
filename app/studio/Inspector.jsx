@@ -158,6 +158,15 @@ function ShapeSection({ el, dispatch, up }) {
                 </Box>
               ) : <div style={{ flex: 1 }} />}
             </Row>
+            {/* Vertical placement of the copy inside the shape (default middle). */}
+            <Row>
+              <span style={{ fontSize: 10, color: UI.muted, alignSelf: "center", flexShrink: 0, marginRight: 1 }}>Text</span>
+              <Seg>
+                <SegBtn on={el.vAlign === "top"} onClick={() => up({ vAlign: "top" })} title="Text top">⌃</SegBtn>
+                <SegBtn on={!el.vAlign || el.vAlign === "middle"} onClick={() => up({ vAlign: "middle" })} title="Text middle">–</SegBtn>
+                <SegBtn on={el.vAlign === "bottom"} onClick={() => up({ vAlign: "bottom" })} title="Text bottom">⌄</SegBtn>
+              </Seg>
+            </Row>
             <Row>
               <Btn onClick={() => up(fitShapeBox(el, el.w))}>⤢ Fit to text</Btn>
               <Btn danger onClick={() => setShape(null)}>✕ Remove</Btn>
@@ -267,11 +276,11 @@ function Chip({ label, value, onChange }) {
 }
 
 function Seg({ children }) { return <div style={{ display: "flex", gap: 4, flex: 1 }}>{children}</div>; }
-function SegBtn({ on, sel, onClick, onMouseDown, children }) {
+function SegBtn({ on, sel, onClick, onMouseDown, title, children }) {
   // Active toggles read brand (white) element-wide, blue when targeting a span.
   const activeBg = sel ? UI.select : UI.brand;
   const activeFg = sel ? "#ffffff" : UI.onBrand;
-  return <button onClick={onClick} onMouseDown={onMouseDown} style={{ flex: 1, height: 30, borderRadius: 6, fontSize: 13,
+  return <button onClick={onClick} onMouseDown={onMouseDown} title={title} style={{ flex: 1, height: 30, borderRadius: 6, fontSize: 13,
     background: on ? activeBg : UI.surface2, border: "1px solid " + (on ? activeBg : UI.border),
     color: on ? activeFg : UI.text, cursor: "pointer" }}>{children}</button>;
 }

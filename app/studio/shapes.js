@@ -123,6 +123,13 @@ export function shapePad(el) {
   }
 }
 
+// Vertical placement of a shaped element's copy within its box. Default middle
+// (the long-standing behaviour); top/bottom let the text sit against an edge.
+// CSS flex value for the DOM renderers; the export computes the same from vAlign.
+export function shapeVAlign(el) {
+  return el && el.vAlign === "top" ? "flex-start" : el && el.vAlign === "bottom" ? "flex-end" : "center";
+}
+
 // Tag left-notch depth (px) — how far the point juts out at mid-height.
 export function tagNotch(el) {
   return Math.max(8, Math.round(Math.min(el.h * 0.34, 30)));

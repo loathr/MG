@@ -6,8 +6,15 @@ import assert from "node:assert/strict";
 import {
   SHAPE_VARIANTS, SHAPE_BACKING, SHAPE_PAPER, BURST_POINTS, BANNER_RULE,
   shapeVariant, hasShape, shapeRadius, shapePaint, shapeBorderW, shapePad,
-  tagNotch, speechTail, noteEar, hexA,
+  tagNotch, speechTail, noteEar, hexA, shapeVAlign,
 } from "../app/studio/shapes.js";
+
+test("shapeVAlign maps the vertical text position to a flex value (default middle)", () => {
+  assert.equal(shapeVAlign({}), "center");
+  assert.equal(shapeVAlign({ vAlign: "middle" }), "center");
+  assert.equal(shapeVAlign({ vAlign: "top" }), "flex-start");
+  assert.equal(shapeVAlign({ vAlign: "bottom" }), "flex-end");
+});
 
 test("there are 8 shapes with unique ids and drop defaults", () => {
   assert.equal(SHAPE_VARIANTS.length, 8);

@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import RichText from "./RichText";
 import ShapeBacking from "./ShapeBacking";
-import { shapePad } from "./shapes";
+import { shapePad, shapeVAlign } from "./shapes";
 import { styledRuns, applyRunStyle, clearRunStyle, remapRuns } from "./model";
 import { selectionOffsets } from "./richedit";
 
@@ -172,7 +172,7 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
         <>
           <ShapeBacking el={el} />
           <div style={{
-            position: "absolute", inset: 0, display: "flex", alignItems: "center", boxSizing: "border-box",
+            position: "absolute", inset: 0, display: "flex", alignItems: shapeVAlign(el), boxSizing: "border-box",
             justifyContent: el.align === "center" ? "center" : el.align === "right" ? "flex-end" : "flex-start",
             paddingTop: pad.top, paddingRight: pad.right, paddingBottom: pad.bottom, paddingLeft: pad.left,
           }}>
