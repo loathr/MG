@@ -294,20 +294,23 @@ test("closer is a registered layout; renderLayout('closer') builds the sign-off"
   assert.ok(els.some((e) => e.content === "Thanks"));
 });
 
-test("frameElements: off yields nothing; edge/inset are 4 locked bars; corners are 8 (R4)", () => {
+test("frameElements: off → nothing; edge/inset → one movable bordered rect; corners → 8 bars (R4)", () => {
   assert.deepEqual(frameElements("editorial", { frame: "off" }), []);
   assert.deepEqual(frameElements("editorial", null), []);
   const inset = frameElements("editorial", { frame: "inset" });
-  assert.equal(inset.length, 4);
-  assert.ok(inset.every((e) => e.type === "rect" && e.role === "frame" && e.locked === true));
-  assert.ok(inset.every((e) => e.fill === STYLES.editorial.accent)); // editorial frame = accent
-  assert.equal(frameElements("editorial", { frame: "edge" }).length, 4);
-  assert.equal(frameElements("editorial", { frame: "corners" }).length, 8);
+  assert.equal(inset.length, 1);                                   // ONE selectable element now
+  assert.equal(inset[0].type, "rect");
+  assert.equal(inset[0].role, "frame");
+  assert.ok(!inset[0].locked, "frame is movable (not locked chrome)");
+  assert.equal(inset[0].fill, "none");
+  assert.equal(inset[0].stroke, STYLES.editorial.accent);         // colour on the stroke (border)
+  assert.equal(frameElements("editorial", { frame: "edge" }).length, 1);
+  assert.equal(frameElements("editorial", { frame: "corners" }).length, 8); // corner marks stay bars
 });
 
 test("frameElements: News Desk frames in ink (near-black), not its loud accent (R4)", () => {
   const nw = frameElements("newsdesk", { frame: "inset" });
-  assert.ok(nw.length === 4 && nw.every((e) => e.fill === STYLES.newsdesk.ink));
+  assert.equal(nw[0].stroke, STYLES.newsdesk.ink);
   assert.notEqual(STYLES.newsdesk.ink, STYLES.newsdesk.accent);
 });
 

@@ -388,10 +388,10 @@ test("setFrame all:true frames every slide + records the deck default; off clear
   s = reducer(s, { type: "loadDoc", doc });
   s = reducer(s, { type: "setFrame", frame: "inset", all: true });
   assert.equal(s.doc.brand.frame, "inset");
-  assert.ok(s.doc.slides.every((sl) => sl.elements.some((e) => e.role === "frame" && e.locked)));
-  // re-applying a different style replaces, never duplicates
+  assert.ok(s.doc.slides.every((sl) => sl.elements.some((e) => e.role === "frame")));
+  // re-applying a different style replaces, never duplicates (edge/inset = 1 element)
   s = reducer(s, { type: "setFrame", frame: "edge", all: true });
-  assert.ok(s.doc.slides.every((sl) => sl.elements.filter((e) => e.role === "frame").length === 4));
+  assert.ok(s.doc.slides.every((sl) => sl.elements.filter((e) => e.role === "frame").length === 1));
   s = reducer(s, { type: "setFrame", frame: "off", all: true });
   assert.equal(s.doc.brand.frame, "off");
   assert.ok(s.doc.slides.every((sl) => !sl.elements.some((e) => e.role === "frame")));
@@ -468,14 +468,14 @@ test("rethemeDoc recolors the deck frame to the new look — accent, but News De
   s = reducer(s, { type: "loadDoc", doc: slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }], "editorial") });
   s = reducer(s, { type: "setFrame", frame: "inset", all: true });
   let out = rethemeDoc(s.doc, s.doc.brand, Object.assign({}, s.doc.brand, { accent: "#00ccff" }));
-  assert.equal(out.slides[1].elements.find((e) => e.role === "frame").fill, "#00ccff");
+  assert.equal(out.slides[1].elements.find((e) => e.role === "frame").stroke, "#00ccff"); // edge/inset → stroke
 
   // newsdesk: frame follows ink, NOT the accent
   let s2 = initStudio();
   s2 = reducer(s2, { type: "loadDoc", doc: slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }], "newsdesk") });
   s2 = reducer(s2, { type: "setFrame", frame: "edge", all: true });
   let out2 = rethemeDoc(s2.doc, s2.doc.brand, Object.assign({}, s2.doc.brand, { ink: "#222233", accent: "#ff0000" }));
-  assert.equal(out2.slides[1].elements.find((e) => e.role === "frame").fill, "#222233");
+  assert.equal(out2.slides[1].elements.find((e) => e.role === "frame").stroke, "#222233");
 });
 
 test("setFamily switches the layout family + fonts but keeps the colour palette", () => {
@@ -486,8 +486,9 @@ test("setFamily switches the layout family + fonts but keeps the colour palette"
   // every slide's family flips; the cover takes the News Desk cover layout
   assert.ok(s.doc.slides.every((sl) => sl.style === "newsdesk"), "all slides on the new family");
   assert.equal(s.doc.slides[0].layout, "masthead");          // News Desk cover layout
-  // type follows the family; colour palette is untouched
-  assert.equal(s.doc.brand.bodyFont, getStyle("newsdesk").bodyFont);
+  // type follows the family — the UNIQUE loathr fonts (FONT_PRESET), not generic
+  assert.match(s.doc.brand.bodyFont, /CarbonText/); // News Desk preset body font
+  assert.match(s.doc.brand.headFont, /CrownHeritage/);
   assert.equal(s.doc.brand.accent, accentBefore, "colour palette kept (no stomp)");
   // undoable
   s = reducer(s, { type: "undo" });
@@ -498,13 +499,13 @@ test("an explicit frame colour overrides the accent default, and clears back to 
   let s = initStudio();
   s = reducer(s, { type: "loadDoc", doc: slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }], "editorial") });
   s = reducer(s, { type: "setFrame", frame: "inset", all: true });
-  const frameFill = (d) => d.slides[1].elements.find((e) => e.role === "frame").fill;
+  const frameCol = (d) => d.slides[1].elements.find((e) => e.role === "frame").stroke; // edge/inset → stroke
   // override wins over the accent
   let out = rethemeDoc(s.doc, s.doc.brand, Object.assign({}, s.doc.brand, { frameColor: "#7ed09a", accent: "#00ccff" }));
-  assert.equal(frameFill(out), "#7ed09a");
+  assert.equal(frameCol(out), "#7ed09a");
   // clearing it (null) falls back to the accent default
   let cleared = rethemeDoc(out, out.brand, Object.assign({}, out.brand, { frameColor: null }));
-  assert.equal(frameFill(cleared), cleared.brand.accent);
+  assert.equal(frameCol(cleared), cleared.brand.accent);
 });
 
 test("detachPhoto turns the bg photo into an editable element + scrim, bg→solid (F1)", () => {

@@ -375,8 +375,12 @@ export async function renderSlideToCanvas(slide) {
 
     if (el.type === "rect") {
       roundRectPath(ctx, 0, 0, el.w, el.h, el.radius);
-      ctx.fillStyle = el.fill || "#ffffff";
-      ctx.fill();
+      // A "none"/absent fill is transparent (the movable frame is a stroked box) —
+      // skip the fill so we don't paint a solid block with a stale colour.
+      if (el.fill && el.fill !== "none") {
+        ctx.fillStyle = el.fill;
+        ctx.fill();
+      }
       if (el.stroke && el.stroke !== "none") {
         ctx.lineWidth = el.strokeWidth || 1;
         ctx.strokeStyle = el.stroke;

@@ -197,25 +197,27 @@ export function frameElements(style, brand) {
   // (accent, or News Desk ink). So the frame is editable, not just auto-themed.
   const color = (brand && brand.frameColor) || frameColor(st);
   const W = ARTBOARD_W, H = ARTBOARD_H;
-  const bar = (x, y, w, h) => makeElement("rect", { id: uid("frame"), role: "frame", locked: true, x, y, w, h, fill: color });
+  // The frame is now a real, selectable element (NOT locked chrome) — move /
+  // resize / recolour it on the canvas. The Brand-panel modes just set its
+  // starting shape; setFrame places it at the BACK so it never blocks content.
   if (mode === "corners") {
-    const L = 120, t = 5, m = 30; // arm length, thickness, inset
+    // Corner marks can't be one box, so they stay as bars (each movable). Recolour
+    // follows `fill` (solid bars).
+    const bar = (x, y, w, h) => makeElement("rect", { id: uid("frame"), role: "frame", x, y, w, h, fill: color });
+    const L = 120, t = 5, m = 30;
     return [
-      bar(m, m, L, t), bar(m, m, t, L),                         // top-left
-      bar(W - m - L, m, L, t), bar(W - m - t, m, t, L),         // top-right
-      bar(m, H - m - t, L, t), bar(m, H - m - L, t, L),         // bottom-left
-      bar(W - m - L, H - m - t, L, t), bar(W - m - t, H - m - L, t, L), // bottom-right
+      bar(m, m, L, t), bar(m, m, t, L),
+      bar(W - m - L, m, L, t), bar(W - m - t, m, t, L),
+      bar(m, H - m - t, L, t), bar(m, H - m - L, t, L),
+      bar(W - m - L, H - m - t, L, t), bar(W - m - t, H - m - L, t, L),
     ];
   }
+  // Edge / Inset → ONE bordered rect (transparent fill, the colour on the stroke),
+  // so it's a single selectable/movable element. Element.jsx renders a rect's
+  // stroke as a CSS border.
   const m = mode === "edge" ? 16 : 32; // inset distance
-  const t = mode === "edge" ? 4 : 3;   // bar thickness
-  const x1 = W - m, y1 = H - m;
-  return [
-    bar(m, m, x1 - m, t),        // top
-    bar(m, y1 - t, x1 - m, t),   // bottom
-    bar(m, m, t, y1 - m),        // left
-    bar(x1 - t, m, t, y1 - m),   // right
-  ];
+  const t = mode === "edge" ? 4 : 3;   // border thickness
+  return [makeElement("rect", { id: uid("frame"), role: "frame", x: m, y: m, w: W - 2 * m, h: H - 2 * m, fill: "none", stroke: color, strokeWidth: t, radius: 0 })];
 }
 
 // --- Layout registry -------------------------------------------------------

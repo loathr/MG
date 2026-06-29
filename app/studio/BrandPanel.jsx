@@ -35,6 +35,12 @@ function hex(c) {
   return typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? c : "#000000";
 }
 
+// Display name from a CSS font stack: the first quoted family, else the first token.
+function fontName(stack) {
+  const m = String(stack || "").match(/'([^']+)'/);
+  return m ? m[1] : String(stack || "").split(",")[0].trim();
+}
+
 // Deck-wide slide frame (R4). "Off" by default; the others map to frameElements.
 const FRAME_MODES = [
   { id: "off", label: "Off" },
@@ -99,17 +105,20 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
       <div style={body}>
         {/* ---------- LOOK (collapsible) ---------- */}
         <div style={secFirst}>Look</div>
-        {/* Layout family — switches the whole deck's cover/content layout + type,
-            keeping the current colour palette. */}
-        <div style={{ fontSize: 10, color: "#7c7c84", letterSpacing: 0.5, marginBottom: 8 }}>Layout</div>
+        {/* Style preset — switches the deck's cover/content layout AND its unique
+            per-desk fonts (one pick), keeping the current colour palette. */}
+        <div style={{ fontSize: 10, color: "#7c7c84", letterSpacing: 0.5, marginBottom: 8 }}>Style preset <span style={{ color: "#5f5f66" }}>· layout + fonts</span></div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
           {STYLE_LIST.map((s) => {
             const on = (family || "editorial") === s.key;
+            const fp = FONT_PRESETS.find((p) => p.id === s.key);
+            const fonts = fp ? fontName(fp.headFont) + " · " + fontName(fp.bodyFont) : "";
             return (
-              <button key={s.key} type="button" onClick={() => onFamily && onFamily(s.key)} title={s.label + " layout"}
+              <button key={s.key} type="button" onClick={() => onFamily && onFamily(s.key)} title={s.label + " — layout + " + fonts}
                 style={{ background: "transparent", border: "1.5px solid " + (on ? "#fff" : "#2c2c32"), borderRadius: 7, padding: 4, cursor: "pointer", overflow: "hidden" }}>
                 <div style={{ borderRadius: 4, overflow: "hidden", lineHeight: 0 }}><StylePreview style={s} width={64} /></div>
                 <div style={{ fontSize: 9, marginTop: 3, color: on ? "#fff" : "#9a9a9a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</div>
+                <div style={{ fontSize: 7.5, color: "#6f6f78", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fonts}</div>
               </button>
             );
           })}
@@ -184,31 +193,31 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
             </div>
             {/* Frame colour — an explicit override; absent = follows the accent
                 (News Desk: ink). Deck-wide. Clear (↺) returns it to the accent. */}
+            {/* Frame colour with an accent SYNC link. Linked (frameColor unset) =
+                the frame follows the accent live; the 🔗 toggle unlinks it to a
+                held colour (and re-links it back). */}
             <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-              <label style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, position: "relative", height: 30, padding: "0 9px", background: "#26262b", border: "1px solid #36363c", borderRadius: 6, cursor: "pointer" }}
-                title="Frame colour (deck-wide)">
-                <span style={{ width: 16, height: 16, borderRadius: 4, background: cur.frameColor || cur.accent, border: "1px solid #555" }} />
-                <span style={{ fontSize: 11.5, color: "#bbb" }}>{cur.frameColor || "Follows accent"}</span>
-                <input type="color" value={hex(cur.frameColor || cur.accent)} onChange={(e) => set({ frameColor: e.target.value })} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-              </label>
               {cur.frameColor ? (
-                <button onClick={() => set({ frameColor: null })} title="Reset frame colour to the accent"
-                  style={{ width: 30, height: 30, borderRadius: 6, background: "#26262b", color: "#cfcfcf", border: "1px solid #36363c", cursor: "pointer", fontSize: 13 }}>↺</button>
-              ) : null}
+                <label style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, position: "relative", height: 30, padding: "0 9px", background: "#26262b", border: "1px solid #36363c", borderRadius: 6, cursor: "pointer" }} title="Frame colour (deck-wide)">
+                  <span style={{ width: 16, height: 16, borderRadius: 4, background: cur.frameColor, border: "1px solid #555" }} />
+                  <span style={{ fontSize: 11.5, color: "#bbb" }}>{cur.frameColor}</span>
+                  <input type="color" value={hex(cur.frameColor)} onChange={(e) => set({ frameColor: e.target.value })} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+                </label>
+              ) : (
+                <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, height: 30, padding: "0 9px", background: "#26262b", border: "1px solid #36363c", borderRadius: 6 }}>
+                  <span style={{ width: 16, height: 16, borderRadius: 4, background: cur.accent, border: "1px solid #555" }} />
+                  <span style={{ fontSize: 11.5, color: "#7ed09a" }}>Linked to accent</span>
+                </div>
+              )}
+              <button onClick={() => set({ frameColor: cur.frameColor ? null : cur.accent })}
+                title={cur.frameColor ? "Link the frame to the accent" : "Unlink — hold a custom frame colour"}
+                style={{ width: 30, height: 30, borderRadius: 6, background: cur.frameColor ? "#26262b" : UI.brand, color: cur.frameColor ? "#cfcfcf" : UI.onBrand, border: "1px solid " + (cur.frameColor ? "#36363c" : UI.brand), cursor: "pointer", fontSize: 13 }}>🔗</button>
             </div>
           </div>
         </div>
 
-        {/* ---------- TYPE ---------- */}
-        <div style={sec}>Type <span style={{ fontWeight: 400, color: "#5f5f66", letterSpacing: 0 }}>· three tiers</span></div>
-        <div style={frow}>
-          <span style={frowK}>Preset</span>
-          <select value={preset || "custom"} onChange={(e) => { if (e.target.value !== "custom") applyPreset(e.target.value); }} style={{ ...sel, flex: 1 }} title="Set all three tiers at once (mimics the monolith)">
-            {preset == null ? <option value="custom">Custom</option> : null}
-            {FONT_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-          </select>
-        </div>
-        <div style={{ height: 1, background: "#2a2a2f", margin: "10px 0" }} />
+        {/* ---------- TYPE (fine-tune; the Style preset above sets the fonts) ---- */}
+        <div style={sec}>Type <span style={{ fontWeight: 400, color: "#5f5f66", letterSpacing: 0 }}>· fine-tune</span></div>
         <div style={frow}><span style={frowK}>Label</span><FontSelect title="Label font" value={cur.labelFont} options={FONT_OPTIONS} onChange={(v) => set({ labelFont: v })} /></div>
         <div style={frow}><span style={frowK}>Heading</span><FontSelect title="Heading font" value={cur.headFont} options={FONT_OPTIONS} onChange={(v) => set({ headFont: v })} /></div>
         <div style={frow}><span style={frowK}>Body</span><FontSelect title="Body font" value={cur.bodyFont} options={FONT_OPTIONS} onChange={(v) => set({ bodyFont: v })} /></div>

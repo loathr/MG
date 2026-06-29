@@ -11,7 +11,7 @@
 // ============================================================================
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H, applyRunStyle, clearRunStyle, remapRuns } from "./model";
 import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements } from "./templates";
-import { brandFromStyle, getStyle } from "./styles";
+import { brandFromStyle, getStyle, FONT_PRESETS } from "./styles";
 import { shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
 
 const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
@@ -120,7 +120,13 @@ export function rethemeDoc(doc, prev, next) {
     const frameCol = b.frameColor || (style === "newsdesk" ? b.ink : b.accent);
     const elements = s.elements.map((e) => {
       const n = remapEl(e);
-      if (e.role === "frame" && frameCol) return Object.assign({}, n, { fill: frameCol });
+      // The edge/inset frame carries its colour on the STROKE (a bordered box);
+      // corner-mark bars carry it on the FILL. Recolour whichever it uses.
+      if (e.role === "frame" && frameCol) {
+        return (e.stroke && e.stroke !== "none")
+          ? Object.assign({}, n, { stroke: frameCol })
+          : Object.assign({}, n, { fill: frameCol });
+      }
       return n;
     });
     let background = s.background;
@@ -375,7 +381,9 @@ function docReducer(state, a) {
       const applyFrame = (s) => {
         const kept = (s.elements || []).filter((e) => e.role !== "frame");
         const bars = mode === "off" ? [] : frameElements(s.style || "editorial", Object.assign({}, brand, { frame: mode }));
-        return Object.assign({}, s, { frame: mode, elements: kept.concat(bars) });
+        // Frame goes at the BACK of the stack so the movable (now un-locked) frame
+        // never sits over / intercepts the content elements.
+        return Object.assign({}, s, { frame: mode, elements: bars.concat(kept) });
       };
       const slides = state.doc.slides.map((s, i) => (a.all || i === idx ? applyFrame(s) : s));
       const nextBrand = a.all ? Object.assign({}, brand, { frame: mode }) : brand;
@@ -459,9 +467,13 @@ function docReducer(state, a) {
       // custom layout (quote/stat/…) or fall to the family default. Chrome carried.
       const family = a.family || "editorial";
       const fam = getStyle(family);
-      const brand = Object.assign({}, state.doc.brand, {
-        labelFont: fam.kickerFont, headFont: fam.headFont, bodyFont: fam.bodyFont,
-      });
+      // Apply the family's UNIQUE loathr library fonts (the matching FONT_PRESET),
+      // not the generic Georgia/Helvetica fallbacks — the Style preset is layout +
+      // premium per-desk type in one pick.
+      const fp = FONT_PRESETS.find((p) => p.id === family);
+      const brand = Object.assign({}, state.doc.brand, fp
+        ? { labelFont: fp.labelFont, headFont: fp.headFont, bodyFont: fp.bodyFont }
+        : { labelFont: fam.kickerFont, headFont: fam.headFont, bodyFont: fam.bodyFont });
       const coverL = (fam.layouts && fam.layouts.cover) || "cover";
       const contentL = (fam.layouts && fam.layouts.content) || "classic";
       const COVER_LAYOUTS = { cover: 1, dossier: 1, masthead: 1 };
