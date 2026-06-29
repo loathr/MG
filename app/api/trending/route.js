@@ -89,7 +89,7 @@ export async function GET(request) {
     // sector beat stays on-topic but never returns a near-empty rail. hasFeeds
     // keeps a feed-down section beat from leaking unfiltered general most-read.
     const pool = fresh ? 30 : 6;
-    const ranked = selectTrending(rssItems, wikiAll, beat.terms, pool, hasFeeds);
+    const ranked = selectTrending(rssItems, wikiAll, beat.terms, pool, hasFeeds, beat.filterFeed);
     const items = (fresh ? shuffle(ranked) : ranked).slice(0, 6);
 
     const payload = { beat: beat.key, voice: beat.voice, items };

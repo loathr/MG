@@ -24,8 +24,11 @@ export const BEATS = [
   { key: "food",      desk: "editorial", label: "Food",          voice: "editorial", rss: [G("food")],    terms: ["restaurant", "chef", "food", "cuisine", "cocktail", "recipe", "dining"] },
   // The Tea — celebrity gossip, TMZ-style: real gossip feeds drive it.
   { key: "tea",       desk: "editorial", label: "The Tea",       voice: "story",     rss: ["https://www.tmz.com/rss.xml", "https://pagesix.com/feed/", "https://www.justjared.com/feed/"], terms: ["celebrity", "actor", "actress", "singer", "rapper", "star", "model", "dating", "split", "divorce", "breakup", "engaged", "wedding", "baby", "feud", "scandal", "red carpet", "Kardashian", "romance", "drama"] },
-  { key: "photo",     desk: "editorial", label: "Photography",   voice: "editorial", rss: [], terms: ["photographer", "photograph", "camera", "photo"] },
-  { key: "nightlife", desk: "editorial", label: "Nightlife",     voice: "editorial", rss: [], terms: ["nightclub", "DJ", "festival", "rave", "bar"] },
+  // Sub-topic culture beats borrow a parent section feed and FILTER it to their
+  // terms (so they're not empty like a feed-less narrow beat is): Photography
+  // rides Art & Design, Nightlife rides Music.
+  { key: "photo",     desk: "editorial", label: "Photography",   voice: "editorial", rss: [G("artanddesign")], filterFeed: true, terms: ["photographer", "photograph", "photography", "camera", "photo", "exhibition", "portrait"] },
+  { key: "nightlife", desk: "editorial", label: "Nightlife",     voice: "editorial", rss: [G("music")], filterFeed: true, terms: ["nightclub", "club", "DJ", "festival", "rave", "dancefloor", "techno", "house", "electronic"] },
   { key: "trivia",    desk: "editorial", label: "Did You Know?", voice: "editorial", rss: [], terms: [] }, // empty terms → today's general curiosities
 
   // ---- Enterprise · 13 sectors (business voice) ---------------------------
@@ -33,7 +36,8 @@ export const BEATS = [
   // business / media / society / money / environment) and are focused by their
   // TERMS in the route (selectTrending) — niche subsection feeds were too thin.
   { key: "ent_tech",       desk: "enterprise", label: "Tech",        voice: "business", rss: [G("technology"), "https://hnrss.org/frontpage"], terms: ["tech", "software", "app", "chip", "cloud", "Apple", "Google", "Microsoft", "Meta"] },
-  { key: "ent_ai",         desk: "enterprise", label: "AI",          voice: "business", rss: [G("technology"), "https://hnrss.org/newest?q=AI"], terms: ["AI", "artificial intelligence", "model", "OpenAI", "LLM", "machine learning", "chatbot", "Nvidia", "Anthropic"] },
+  // HN: points>=50 keeps it to VETTED AI posts, not raw newest (1-point noise).
+  { key: "ent_ai",         desk: "enterprise", label: "AI",          voice: "business", rss: [G("technology"), "https://hnrss.org/newest?q=AI&points=50"], terms: ["AI", "artificial intelligence", "model", "OpenAI", "LLM", "machine learning", "chatbot", "Nvidia", "Anthropic"] },
   { key: "ent_startups",   desk: "enterprise", label: "Startups",    voice: "business", rss: [G("technology"), "https://hnrss.org/frontpage"], terms: ["startup", "founder", "venture", "funding", "seed", "raise", "valuation", "IPO"] },
   { key: "ent_markets",    desk: "enterprise", label: "Markets",     voice: "business", rss: [G("business")], terms: ["market", "stocks", "index", "S&P", "Nasdaq", "Dow", "bond", "shares", "rally"] },
   { key: "ent_finance",    desk: "enterprise", label: "Finance",     voice: "business", rss: [G("business")], terms: ["bank", "finance", "fund", "lending", "rate", "investment", "credit"] },
@@ -60,6 +64,12 @@ export const BEATS = [
   { key: "news_education", desk: "newsdesk", label: "Education",    voice: "news", rss: [G("education")],  terms: [] },
   { key: "news_media",     desk: "newsdesk", label: "Media",        voice: "news", rss: [G("media")],      terms: [] },
 ];
+
+// Enterprise sectors SHARE high-volume feeds (technology / business / media / …),
+// so their feed is term-FILTERED down to the sector. Dedicated single-section
+// feeds (Editorial culture, News desks) use the whole feed — every item is
+// already on-topic, so filtering only drops good cards.
+for (const b of BEATS) if (b.desk === "enterprise") b.filterFeed = true;
 
 export function getBeat(key) {
   return BEATS.find((b) => b.key === key) || BEATS[0];
@@ -106,7 +116,15 @@ export function cleanTitle(s) {
 // Condense a feed item's description/summary into a short factual seed (R5
 // grounding): strip tags/entities and clamp to ~300 chars on a word boundary.
 function trimExtract(s) {
-  const t = decodeEntities(s).replace(/\s+/g, " ").trim();
+  const t = decodeEntities(s)
+    // Hacker News (hnrss) descriptions are boilerplate, not a summary — strip the
+    // "Article URL: … Comments URL: … Points: N # Comments: N" scaffolding so the
+    // R5 grounding seed is real prose (or empty), never link noise.
+    .replace(/Article URL:\s*\S+/gi, "")
+    .replace(/Comments URL:\s*\S+/gi, "")
+    .replace(/Points:\s*\d+/gi, "")
+    .replace(/#\s*Comments:\s*\d+/gi, "")
+    .replace(/\s+/g, " ").trim();
   return t.length > 300 ? t.slice(0, 300).replace(/\s+\S*$/, "") + "…" : t;
 }
 
@@ -128,6 +146,13 @@ export function pickThumb(block) {
   if (!best) {
     const e = block.match(/<enclosure[^>]*\burl="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i);
     if (e) best = e[1];
+  }
+  if (!best) {
+    // Gossip feeds (JustJared / Page Six) carry the image as an <img> inside
+    // content:encoded rather than media:content — grab the first one so the card
+    // has a photo instead of a grey tile.
+    const im = block.match(/<img[^>]*\bsrc=["']([^"']+\.(?:jpg|jpeg|png|webp)[^"']*)["']/i);
+    if (im) best = im[1];
   }
   return best ? best.replace(/&amp;/g, "&").replace(/&#0?38;/g, "&") : null;
 }
@@ -212,18 +237,27 @@ export function rankItems(rssItems, wikiItems, max) {
 // we DON'T fall back to unfiltered general most-read — that's what put the World
 // Cup under Music/Science. Without it, a feed-down section beat is
 // indistinguishable from a genuinely feed-less curiosity beat.
-export function selectTrending(rssItems, wikiItems, terms, max, hasFeeds) {
+const ENOUGH = 6; // a feed at least this rich stands alone — no most-read mixed in
+
+export function selectTrending(rssItems, wikiItems, terms, max, hasFeeds, filterFeed) {
   const rss = rssItems || [], wiki = wikiItems || [];
   const hasTerms = !!(terms && terms.length);
   if (rss.length) {
-    // Section-feed beat with a live feed: the FEED is the on-topic source.
-    // Wikipedia most-read is added ONLY when it matches the beat's terms;
-    // general most-read is NEVER mixed in — that's what leaked viral off-topic
-    // items into a beat. Broaden to the full feed (still on-topic), not the wiki.
-    const rssF = hasTerms ? filterByTerms(rss, terms) : rss;
+    // Shared / sub-topic feeds (Enterprise sectors, Photography, Nightlife) are
+    // term-FILTERED down to the beat; dedicated single-section feeds use the whole
+    // feed (every item is already on-topic).
+    const base = (filterFeed && hasTerms) ? filterByTerms(rss, terms) : rss;
+    // A rich feed is the on-topic source on its own — do NOT mix general most-read
+    // in, even term-matched. That mix is how 2026 films matching gossip terms
+    // ("star"/"drama"/"romance") leaked into The Tea. Only a THIN feed borrows
+    // term-matched most-read, then broadens to the full feed before giving up.
+    if (base.length >= ENOUGH) return rankItems(base, [], max);
     const wikiF = hasTerms ? filterByTerms(wiki, terms) : [];
-    let ranked = rankItems(rssF, wikiF, max);
-    if (ranked.length < 4) ranked = rankItems(rss, wikiF, max);
+    let ranked = rankItems(base, wikiF, max);
+    // Thin pull → broaden to the FULL feed, but only for a DEDICATED feed (every
+    // item on-topic). A shared/filtered feed must NOT broaden back to the whole
+    // section — that would re-admit the off-sector items the filter removed.
+    if (ranked.length < 4 && !filterFeed) ranked = rankItems(rss, wikiF, max);
     return ranked;
   }
   // No feed items came back.

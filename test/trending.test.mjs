@@ -8,16 +8,25 @@ import {
   filterByTerms, rankItems, selectTrending,
 } from "../app/studio/trending.js";
 
-test("BEATS includes the thin segments backed by most-read (no rss)", () => {
+test("BEATS feed config: dedicated vs shared/sub-topic vs the lone feed-less beat", () => {
   const keys = BEATS.map((b) => b.key);
   for (const k of ["film", "news_world", "news_business", "ent_tech", "photo", "nightlife", "trivia", "tea"]) assert.ok(keys.includes(k), "has beat " + k);
-  // thin beats have no rss feeds → they resolve via Wikipedia most-read
-  assert.deepEqual(getBeat("nightlife").rss, []);
-  assert.deepEqual(getBeat("trivia").terms, []); // general curiosities
+  // trivia is the ONLY truly feed-less beat (general curiosities via most-read).
+  assert.deepEqual(getBeat("trivia").rss, []);
+  assert.deepEqual(getBeat("trivia").terms, []);
+  // photo & nightlife now ride a filtered parent feed (art / music) so they're
+  // never an empty rail like a feed-less narrow-term beat was.
+  assert.ok(getBeat("nightlife").rss.length >= 1 && getBeat("nightlife").filterFeed, "nightlife rides a filtered feed");
+  assert.ok(getBeat("photo").rss.length >= 1 && getBeat("photo").filterFeed, "photo rides a filtered feed");
+  // dedicated section feeds use the WHOLE feed; Enterprise sectors term-filter
+  // their shared feed.
   assert.equal(getBeat("film").rss.length >= 1, true);
-  // The Tea is celebrity gossip, TMZ-style — it now has real gossip feeds.
+  assert.ok(!getBeat("film").filterFeed, "a dedicated section feed isn't term-filtered");
+  assert.ok(getBeat("ent_ai").filterFeed && getBeat("ent_tech").filterFeed, "enterprise sectors filter their shared feed");
+  // The Tea is celebrity gossip, TMZ-style — real gossip feeds, used whole.
   assert.ok(getBeat("tea").rss.length >= 1, "The Tea pulls gossip feeds");
   assert.match(getBeat("tea").rss.join(" "), /tmz/i);
+  assert.ok(!getBeat("tea").filterFeed, "gossip feed is dedicated (not term-filtered)");
 });
 
 test("beatVoice maps a beat to its writing voice (tie-back)", () => {
@@ -83,6 +92,21 @@ test("parseRss strips entity-encoded HTML tags from the extract (Guardian &lt;p&
   const ex = parseRss(xml, 5)[0].extract;
   assert.doesNotMatch(ex, /<\/?p>/, "no surviving <p> tags in the grounding seed");
   assert.match(ex, /Devon band are preposterous/);
+});
+
+test("parseRss strips Hacker News boilerplate from the extract", () => {
+  // hnrss descriptions are scaffolding, not a summary — must not become a seed.
+  const xml = `<rss><channel>
+    <item><title>Some AI post</title><description>Article URL: https://x.example/a Comments URL: https://news.ycombinator.com/item?id=1 Points: 1 # Comments: 0</description></item>
+  </channel></rss>`;
+  const ex = parseRss(xml, 5)[0].extract;
+  assert.doesNotMatch(ex, /Article URL|Comments URL|Points:|# Comments/, "HN boilerplate stripped");
+});
+
+test("pickThumb falls back to the first <img> in content (gossip feeds)", () => {
+  const block = `<item><title>Star spotted</title><content:encoded><![CDATA[<p>x</p><img src="https://pagesix.com/x/photo.jpg" />]]></content:encoded></item>`;
+  const items = parseRss(`<rss><channel>${block}</channel></rss>`, 5);
+  assert.equal(items[0].thumb, "https://pagesix.com/x/photo.jpg");
 });
 
 const FEATURED = {
@@ -155,6 +179,34 @@ test("selectTrending keeps section feeds on-topic; general most-read only for tr
   assert.ok(selectTrending([], wiki, ["crypto", "bitcoin"], 6, true).every((i) => !isGeneral(i)), "feed-down beat stays on-topic, no general leak");
   // contrast: a genuinely feed-less curiosity beat (hasFeeds=false) still uses general most-read
   assert.ok(selectTrending([], wiki, [], 6, false).some(isGeneral), "true feed-less trivia still uses general most-read");
+});
+
+test("selectTrending: a RICH feed stands alone — term-matched general most-read is NOT mixed in", () => {
+  const wiki = parseMostRead(FEATURED); // includes "Dune: Part Two" (a 2024 film)
+  // a dedicated feed with plenty of items (>= ENOUGH); "film" would match Dune in
+  // most-read, but the feed is rich, so Dune must NOT appear (the Tea/film-leak fix).
+  const feed = Array.from({ length: 8 }, (_, i) => ({ title: "Music story " + i, thumb: "t" + i, extract: "" }));
+  const out = selectTrending(feed, wiki, ["film"], 6, true, false);
+  assert.equal(out.length, 6);
+  assert.ok(out.every((i) => /Music story/.test(i.title)), "only feed items; no general most-read leak");
+});
+
+test("selectTrending: a THIN feed borrows term-matched most-read, then broadens", () => {
+  const wiki = parseMostRead(FEATURED);
+  const feed = [{ title: "Lone music story", thumb: "t", extract: "" }];
+  const out = selectTrending(feed, wiki, ["film"], 6, true, false);
+  assert.ok(out.some((i) => /Lone music story/.test(i.title)), "keeps the feed item");
+  assert.ok(out.some((i) => /Dune/.test(i.title)), "supplements with term-matched most-read when thin");
+});
+
+test("selectTrending: a SHARED feed (filterFeed) is term-filtered down to the beat", () => {
+  const feed = [
+    { title: "Markets rally as the index climbs", thumb: "t", extract: "stocks" },
+    { title: "A celebrity wedding bonanza", thumb: "t", extract: "gossip" },
+  ];
+  const out = selectTrending(feed, [], ["market", "stocks", "index"], 6, true, true);
+  assert.ok(out.some((i) => /Markets rally/.test(i.title)), "keeps the on-sector item");
+  assert.ok(!out.some((i) => /celebrity wedding/.test(i.title)), "off-sector feed item filtered out");
 });
 
 test("rankItems dedupes by title and floats thumbnail-bearing items first", () => {
