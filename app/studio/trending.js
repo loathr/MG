@@ -144,6 +144,28 @@ export const URGENCY = [
 export function regionById(id) { return REGIONS.find((r) => r.id === id) || REGIONS[0]; }
 export function urgencyById(id) { return URGENCY.find((u) => u.id === id) || null; }
 
+// ---- Advanced framing (Tier 3) ---------------------------------------------
+// News Angle + Emphasis (from the monolith's NEWSDESK_ANGLES / NEWSDESK_EMPHASIS)
+// and Enterprise Mode (distilled from its three prompt builders). {id, label,
+// prompt}; the prompt is appended verbatim to the route block (generate.js).
+// Surfaced inside the create screen's Advanced disclosure — lowest priority.
+export const ANGLES = [
+  { id: "neutral", label: "Neutral", prompt: "Report objectively — present all sides without editorial judgment." },
+  { id: "critical", label: "Critical", prompt: "Take a critical stance — question official narratives and examine the power dynamics." },
+  { id: "investigative", label: "Investigative", prompt: "Dig deeper — follow the money, the connections, and the motivations behind the story." },
+];
+export const EMPHASIS = [
+  { id: "facts", label: "Facts-first", prompt: "Lead every slide with verified facts — maximise reporting, minimise analysis." },
+  { id: "context", label: "Context-heavy", prompt: "Give deep context for every claim — connect the story to the larger pattern." },
+  { id: "quotes", label: "Quote-driven", prompt: "Build it around direct quotes from key figures — every slide should carry a voice." },
+];
+export const MODES = [
+  { id: "analysis", label: "Analysis", prompt: "Write a full analysis arc: the landscape, the force reshaping it, who wins and loses, the data, and the playbook." },
+  { id: "news", label: "Business News", prompt: "Frame it as business news — what happened, who's affected, the numbers, and what to do about it." },
+  { id: "tips", label: "Industry Tips", prompt: "Make it an actionable tips deck — each slide one specific, tactical move a business could run this week." },
+];
+export function framingPrompt(list, id) { const x = (list || []).find((y) => y.id === id); return x ? x.prompt : null; }
+
 // Tier 2b: region-scope the live pull — keep items mentioning a country in the
 // region (title or extract). Global / unknown → unchanged. Heuristic, so if the
 // filter would gut the rail (< 3 left), keep the original rather than show empty.

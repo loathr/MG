@@ -92,7 +92,7 @@ export function buildPrompt(topic, categoryKey, opts) {
   // un-routed deck. The route carries already-resolved framing (kind + label +
   // terms + sourcing), so this builder stays pure and never imports trending.js.
   const route = o.route || null;
-  const hasRoute = !!(route && (route.label || route.region || route.urgency));
+  const hasRoute = !!(route && (route.label || route.region || route.urgency || route.angle || route.emphasis || route.mode));
   let routeLine = null;
   if (hasRoute) {
     const parts = [];
@@ -106,6 +106,11 @@ export function buildPrompt(topic, categoryKey, opts) {
     if (route.region && route.region !== "Global") parts.push("Focus on " + route.region + " — prioritise stories, sources, and examples from that region.");
     if (route.urgency === "breaking") parts.push("BREAKING: lead with the single most recent development; open the cover with the news itself, datelined today, and keep it tight and fast.");
     else if (route.urgency === "developing") parts.push("This is a DEVELOPING story — frame it as unfolding now; flag what's confirmed versus still emerging.");
+    // Advanced framing (Tier 3): News angle + emphasis, Enterprise mode — already
+    // resolved to their prompt strings by the caller.
+    if (route.angle) parts.push(route.angle);
+    if (route.emphasis) parts.push(route.emphasis);
+    if (route.mode) parts.push(route.mode);
     routeLine = parts.join(" ");
   }
   // Deck length (cover + content + closer) from the create screen's Length control.

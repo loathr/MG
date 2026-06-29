@@ -6,7 +6,7 @@ import { getCategory } from "./categories";
 import StylePreview from "./StylePreview";
 import TrendingPanel from "./TrendingPanel";
 import RouteSelect from "./RouteSelect";
-import { routeFraming, getBeat, REGIONS, URGENCY } from "./trending";
+import { routeFraming, getBeat, REGIONS, URGENCY, ANGLES, EMPHASIS, MODES, framingPrompt } from "./trending";
 
 // Screen 1 — Create (spec §4, Option C: "segment-first + voice override"). Pick a
 // DESK first — the look (Editorial / Enterprise / News Desk). Each desk implies a
@@ -68,12 +68,20 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   // default (Global / none) and reset on desk change — they're News-only.
   const [region, setRegion] = useState(null);
   const [urgency, setUrgency] = useState(null);
+  // Advanced framing (Tier 3): News angle + emphasis, Enterprise mode. Ids, all
+  // null by default, reset on desk change — they live in the Advanced disclosure.
+  const [angle, setAngle] = useState(null);
+  const [emphasis, setEmphasis] = useState(null);
+  const [mode, setMode] = useState(null);
 
   const pickDesk = (key) => {
     setDesk(key);
     setBeat(null);
     setRegion(null);
     setUrgency(null);
+    setAngle(null);
+    setEmphasis(null);
+    setMode(null);
     if (!voiceTouched) setVoice(DESK_VOICE[key]);
   };
   // Urgency preselects the deck length (Breaking → fast/Brief, Trending → Deep);
@@ -99,8 +107,15 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   const buildRoute = () => {
     const base = beat ? routeFraming(beat) : {};
     const regionLabel = region && region !== "global" ? (REGIONS.find((r) => r.id === region) || {}).label : null;
-    const r = Object.assign({}, base, { region: regionLabel || null, urgency: urgency || null });
-    return (r.label || r.region || r.urgency) ? r : null;
+    const r = Object.assign({}, base, {
+      region: regionLabel || null,
+      urgency: urgency || null,
+      // Tier 3 framing resolves to the prompt string for buildPrompt.
+      angle: framingPrompt(ANGLES, angle),
+      emphasis: framingPrompt(EMPHASIS, emphasis),
+      mode: framingPrompt(MODES, mode),
+    });
+    return (r.label || r.region || r.urgency || r.angle || r.emphasis || r.mode) ? r : null;
   };
 
   const submit = () => {
@@ -203,6 +218,38 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
                 ))}
               </div>
             </div>
+            {/* Advanced framing (Tier 3) — desk-specific: News Angle + Emphasis,
+                Enterprise Mode. Optional; ported from the monolith configs. */}
+            {desk === "newsdesk" && (
+              <>
+                <div style={vRow}>
+                  <span style={vKey}>Angle</span>
+                  <div style={tones}>
+                    {ANGLES.map((a) => (
+                      <button key={a.id} type="button" onClick={() => setAngle(angle === a.id ? null : a.id)} style={toneChip(angle === a.id)} title={a.prompt}>{a.label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div style={vRow}>
+                  <span style={vKey}>Emphasis</span>
+                  <div style={tones}>
+                    {EMPHASIS.map((em) => (
+                      <button key={em.id} type="button" onClick={() => setEmphasis(emphasis === em.id ? null : em.id)} style={toneChip(emphasis === em.id)} title={em.prompt}>{em.label}</button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+            {desk === "enterprise" && (
+              <div style={vRow}>
+                <span style={vKey}>Mode</span>
+                <div style={tones}>
+                  {MODES.map((m) => (
+                    <button key={m.id} type="button" onClick={() => setMode(mode === m.id ? null : m.id)} style={toneChip(mode === m.id)} title={m.prompt}>{m.label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div style={vHint}>Keeps the {deskLabel(desk)} look — only how it&apos;s written changes.</div>
           </div>
         )}

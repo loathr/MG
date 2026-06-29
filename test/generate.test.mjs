@@ -83,6 +83,19 @@ test("buildPrompt: a News route adds region scope + urgency framing", () => {
   assert.equal(buildPrompt("x", "news", Object.assign({}, base, { route: {} })), buildPrompt("x", "news", base));
 });
 
+test("buildPrompt: advanced framing (angle / emphasis / mode) appends verbatim", () => {
+  const base = { seed: 4, today: "2026-06-26" };
+  const newsy = buildPrompt("x", "news", Object.assign({}, base, {
+    route: { angle: "Dig deeper — follow the money.", emphasis: "Build it around direct quotes." },
+  }));
+  assert.match(newsy, /Dig deeper — follow the money\./);
+  assert.match(newsy, /Build it around direct quotes\./);
+  const ent = buildPrompt("x", "business", Object.assign({}, base, { route: { mode: "Make it an actionable tips deck." } }));
+  assert.match(ent, /Make it an actionable tips deck\./);
+  // still byte-identical with an empty route
+  assert.equal(buildPrompt("x", "news", Object.assign({}, base, { route: {} })), buildPrompt("x", "news", base));
+});
+
 test("buildPrompt is deterministic for a fixed seed and varies the angle by seed", () => {
   assert.equal(
     buildPrompt("topic", "news", { seed: 5, today: "2026-06-26" }),
