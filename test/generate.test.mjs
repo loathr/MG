@@ -32,6 +32,12 @@ test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabl
   // content-driven layout: the model may pick a fit layout, not a forced pattern
   assert.match(p, /MAY set "layout"/);
   assert.match(p, /never to force variety/);
+  // quotes must name the quoter — no floating unattributed quotations
+  assert.match(p, /Attribute every quote/);
+  // headlines specific to content; stakes / human story / evidence must land
+  assert.match(p, /Headlines must be SPECIFIC/);
+  assert.match(p, /STAKES/);
+  assert.match(p, /HUMAN STORY/);
   // default (no web search): a "from knowledge" grounding line, not a search instruction
   assert.match(p, /Ground every claim/);
   assert.doesNotMatch(p, /use web search/);
