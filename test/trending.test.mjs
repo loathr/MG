@@ -5,7 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   BEATS, getBeat, beatVoice, beatsForDesk, defaultBeat, groupsForDesk, routeFraming, mostReadUrl, cleanTitle, parseRss, parseMostRead,
-  filterByTerms, rankItems, selectTrending,
+  filterByTerms, rankItems, selectTrending, filterByRegion, filterByRecency,
 } from "../app/studio/trending.js";
 
 test("BEATS feed config: dedicated vs shared/sub-topic vs the lone feed-less beat", () => {
@@ -148,6 +148,36 @@ test("filterByTerms matches whole words, not prefixes — no tour→tournament (
   const aiTerms = ["AI", "artificial intelligence", "OpenAI"];
   assert.equal(filterByTerms([{ title: "Air quality alert hits the city", extract: "" }], aiTerms).length, 0, "'AI' must not match 'air'");
   assert.equal(filterByTerms([{ title: "OpenAI ships a new model", extract: "" }], aiTerms).length, 1, "real AI terms still match");
+});
+
+test("Tier 2b region filter: keeps in-region items, broadens rather than gutting the rail", () => {
+  const items = [
+    { title: "France passes new law", extract: "" },
+    { title: "Germany and Spain agree deal", extract: "" },
+    { title: "Italy budget vote", extract: "" },
+    { title: "Brazil election result", extract: "" },
+  ];
+  const eu = filterByRegion(items, "europe");
+  assert.equal(eu.length, 3);                                   // FR, DE/ES, IT
+  assert.ok(!eu.some((i) => /Brazil/.test(i.title)), "off-region item dropped");
+  assert.equal(filterByRegion(items, "global").length, items.length); // global → all
+  // if the filter would leave < 3, keep the original (never an empty rail)
+  assert.equal(filterByRegion(items, "oceania").length, items.length);
+});
+
+test("Tier 2b recency filter: drops stale feed items, keeps recent + date-less", () => {
+  const now = Date.parse("2026-06-29T12:00:00Z");
+  const items = [
+    { title: "today", when: "2026-06-29T08:00:00Z" },
+    { title: "yesterday", when: "2026-06-28T08:00:00Z" },
+    { title: "last month", when: "2026-05-20T08:00:00Z" },
+    { title: "no date (most-read)", when: "" },
+    { title: "also recent", when: "2026-06-28T20:00:00Z" },
+  ];
+  const breaking = filterByRecency(items, 2, now); // within 2 days
+  assert.ok(breaking.some((i) => i.title === "today") && breaking.some((i) => i.title === "no date (most-read)"));
+  assert.ok(!breaking.some((i) => i.title === "last month"), "stale feed item dropped");
+  assert.equal(filterByRecency(items, 0, now).length, items.length); // no window → all
 });
 
 test("taxonomy: every beat carries a group; Enterprise sectors carry seeds; helpers resolve", () => {

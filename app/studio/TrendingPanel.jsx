@@ -9,7 +9,7 @@ import { beatsForDesk, defaultBeat, beatVoice } from "./trending";
 // card fills the topic and sets the matching voice (tie-back). Reskins lightly
 // to the current desk: monochrome thumbnails for Enterprise, serif titles for
 // News Desk. Zero Claude credits.
-export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat }) {
+export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, region, urgency }) {
   const [open, setOpen] = useState(false);
   // The beat is owned by the create screen's route dropdown (shared state). When
   // the route is "Any" (null) we still browse the desk's first beat so the rail
@@ -28,7 +28,13 @@ export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat })
     const ac = new AbortController();
     abortRef.current = ac;
     setLoading(true); setError("");
-    fetch("/api/trending?beat=" + encodeURIComponent(beat) + (fresh ? "&fresh=1" : ""), { signal: ac.signal })
+    // Region + urgency (News-desk secondary route, Tier 2b) scope/recency-filter
+    // the live pull server-side; omitted when unset (other desks).
+    const params = "?beat=" + encodeURIComponent(beat)
+      + (region ? "&region=" + encodeURIComponent(region) : "")
+      + (urgency ? "&urgency=" + encodeURIComponent(urgency) : "")
+      + (fresh ? "&fresh=1" : "");
+    fetch("/api/trending" + params, { signal: ac.signal })
       .then((r) => r.json())
       .then((d) => {
         if (ac.signal.aborted) return;
@@ -44,7 +50,7 @@ export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat })
     load(false);
     return () => { if (abortRef.current) abortRef.current.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, beat]);
+  }, [open, beat, region, urgency]);
 
   // Carry the card's summary + source as a grounding seed (R5) so generation is
   // built on the actual story, not just its title — plus the beat itself as the

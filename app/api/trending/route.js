@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getBeat, mostReadUrl, parseRss, parseMostRead, selectTrending } from "../../studio/trending";
+import { getBeat, mostReadUrl, parseRss, parseMostRead, selectTrending, filterByRegion, filterByRecency, urgencyById } from "../../studio/trending";
 
 // Live "Trending" for a beat, from FREE keyless feeds only — per-beat RSS
 // (recency) + Wikipedia most-read (popularity + photos + a never-empty fallback).
@@ -83,13 +83,25 @@ export async function GET(request) {
       rssItems = texts.flatMap((t) => parseRss(t, 12));
     }
 
+    // Tier 2b — News-desk secondary route: urgency tightens the recency window
+    // (feed dates) and region scopes the pull to its countries. Both broaden
+    // rather than gut the rail if they'd leave too few. Absent → no-ops.
+    let wikiPool = wikiAll;
+    const urg = urgencyById(searchParams.get("urgency"));
+    if (urg) rssItems = filterByRecency(rssItems, urg.days, now.getTime());
+    const region = searchParams.get("region");
+    if (region && region !== "global") {
+      rssItems = filterByRegion(rssItems, region);
+      wikiPool = filterByRegion(wikiAll, region);
+    }
+
     // Refresh (fresh=1) ranks a larger pool and returns a shuffled window, so a
     // re-pull surfaces different picks. selectTrending focuses the feed +
     // most-read on the beat's terms, then broadens if that pull is thin — so a
     // sector beat stays on-topic but never returns a near-empty rail. hasFeeds
     // keeps a feed-down section beat from leaking unfiltered general most-read.
     const pool = fresh ? 30 : 6;
-    const ranked = selectTrending(rssItems, wikiAll, beat.terms, pool, hasFeeds, beat.filterFeed);
+    const ranked = selectTrending(rssItems, wikiPool, beat.terms, pool, hasFeeds, beat.filterFeed);
     const items = (fresh ? shuffle(ranked) : ranked).slice(0, 6);
 
     const payload = { beat: beat.key, voice: beat.voice, items };

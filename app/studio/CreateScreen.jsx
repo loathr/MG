@@ -175,7 +175,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             </div>
           )}
         </div>
-        <TrendingPanel onPick={pickTrending} desk={desk} beat={beat} onBeat={setBeat} />
+        <TrendingPanel onPick={pickTrending} desk={desk} beat={beat} onBeat={setBeat} region={region} urgency={urgency} />
 
         {/* Voice & tone — opt-in; the default path never opens it. Voice overrides
             the desk's writing category; Tone is an optional second axis. */}

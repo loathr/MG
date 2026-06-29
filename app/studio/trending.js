@@ -144,6 +144,31 @@ export const URGENCY = [
 export function regionById(id) { return REGIONS.find((r) => r.id === id) || REGIONS[0]; }
 export function urgencyById(id) { return URGENCY.find((u) => u.id === id) || null; }
 
+// Tier 2b: region-scope the live pull — keep items mentioning a country in the
+// region (title or extract). Global / unknown → unchanged. Heuristic, so if the
+// filter would gut the rail (< 3 left), keep the original rather than show empty.
+export function filterByRegion(items, regionId) {
+  const r = REGIONS.find((x) => x.id === regionId);
+  if (!r || !r.countries.length) return (items || []).slice();
+  const rx = new RegExp("\\b(" + r.countries.map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")\\b", "i");
+  const hit = (items || []).filter((it) => rx.test(it.title || "") || rx.test(it.extract || ""));
+  return hit.length >= 3 ? hit : (items || []).slice();
+}
+
+// Tier 2b: urgency recency — keep feed items dated within `days` of nowMs. Items
+// without a parseable date (Wikipedia most-read has none) are kept. Broadens
+// (returns all) if the window would leave too few. nowMs is passed in so this
+// stays pure/testable.
+export function filterByRecency(items, days, nowMs) {
+  if (!days || !nowMs) return (items || []).slice();
+  const cutoff = nowMs - days * 864e5;
+  const within = (items || []).filter((it) => {
+    const t = it && it.when ? Date.parse(it.when) : NaN;
+    return isNaN(t) ? true : t >= cutoff;
+  });
+  return within.length >= 3 ? within : (items || []).slice();
+}
+
 // Wikipedia "featured" feed for a day carries the most-read articles. Keyless.
 export function mostReadUrl(y, m, d) {
   const p2 = (n) => String(n).padStart(2, "0");
