@@ -8,7 +8,7 @@ import {
 } from "../app/studio/store.js";
 import { makeElement } from "../app/studio/model.js";
 import { slidesToDoc } from "../app/studio/templates.js";
-import { brandFromStyle } from "../app/studio/styles.js";
+import { brandFromStyle, getStyle } from "../app/studio/styles.js";
 
 const cur = (s) => s.doc.slides[s.slideIndex];
 
@@ -476,6 +476,22 @@ test("rethemeDoc recolors the deck frame to the new look — accent, but News De
   s2 = reducer(s2, { type: "setFrame", frame: "edge", all: true });
   let out2 = rethemeDoc(s2.doc, s2.doc.brand, Object.assign({}, s2.doc.brand, { ink: "#222233", accent: "#ff0000" }));
   assert.equal(out2.slides[1].elements.find((e) => e.role === "frame").fill, "#222233");
+});
+
+test("setFamily switches the layout family + fonts but keeps the colour palette", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "loadDoc", doc: slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }], "editorial") });
+  const accentBefore = s.doc.brand.accent;
+  s = reducer(s, { type: "setFamily", family: "newsdesk" });
+  // every slide's family flips; the cover takes the News Desk cover layout
+  assert.ok(s.doc.slides.every((sl) => sl.style === "newsdesk"), "all slides on the new family");
+  assert.equal(s.doc.slides[0].layout, "masthead");          // News Desk cover layout
+  // type follows the family; colour palette is untouched
+  assert.equal(s.doc.brand.bodyFont, getStyle("newsdesk").bodyFont);
+  assert.equal(s.doc.brand.accent, accentBefore, "colour palette kept (no stomp)");
+  // undoable
+  s = reducer(s, { type: "undo" });
+  assert.ok(s.doc.slides.every((sl) => sl.style === "editorial"), "undo restores the family");
 });
 
 test("an explicit frame colour overrides the accent default, and clears back to it", () => {

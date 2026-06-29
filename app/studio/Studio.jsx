@@ -369,7 +369,9 @@ export default function Studio() {
           <BrandPanel
             brand={state.doc.brand}
             category={state.doc.category}
+            family={(state.doc.slides[0] && state.doc.slides[0].style) || "editorial"}
             slideFrame={(slide && slide.frame) || "off"}
+            onFamily={(key) => dispatch({ type: "setFamily", family: key })}
             onApply={(prev, next) => dispatch({ type: "applyBrand", prev, brand: next })}
             onLogo={(logo) => dispatch({ type: "setLogo", logo })}
             onCaution={(text) => dispatch({ type: "setCaution", text })}

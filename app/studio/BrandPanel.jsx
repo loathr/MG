@@ -1,9 +1,10 @@
 "use client";
 import React from "react";
 import { UI } from "./theme";
-import { brandFromStyle, EDITORIAL_PALETTES, paletteBrand, BRAND_FONT, FONT_OPTIONS, FONT_PRESETS, activePresetId } from "./styles";
+import { brandFromStyle, EDITORIAL_PALETTES, paletteBrand, BRAND_FONT, FONT_OPTIONS, FONT_PRESETS, activePresetId, STYLE_LIST } from "./styles";
 import { cautionFor } from "./categories";
 import FontSelect from "./FontSelect";
+import StylePreview from "./StylePreview";
 
 // Brand panel (spec §7), reorganized into four sections — Look · Type · Brand
 // marks · Closing. Deck-wide and undoable; re-themes by matching the current
@@ -70,7 +71,7 @@ function readLogoFile(file, cb) {
   reader.readAsDataURL(file);
 }
 
-export default function BrandPanel({ brand, category, slideFrame, onApply, onLogo, onCaution, onFrame, onChrome, onResetAll, onClose }) {
+export default function BrandPanel({ brand, category, family, slideFrame, onFamily, onApply, onLogo, onCaution, onFrame, onChrome, onResetAll, onClose }) {
   // Fill any missing fields from the editorial defaults so a swap always has a
   // known "previous" to remap from.
   const cur = Object.assign({}, brandFromStyle("editorial"), brand);
@@ -98,6 +99,22 @@ export default function BrandPanel({ brand, category, slideFrame, onApply, onLog
       <div style={body}>
         {/* ---------- LOOK (collapsible) ---------- */}
         <div style={secFirst}>Look</div>
+        {/* Layout family — switches the whole deck's cover/content layout + type,
+            keeping the current colour palette. */}
+        <div style={{ fontSize: 10, color: "#7c7c84", letterSpacing: 0.5, marginBottom: 8 }}>Layout</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+          {STYLE_LIST.map((s) => {
+            const on = (family || "editorial") === s.key;
+            return (
+              <button key={s.key} type="button" onClick={() => onFamily && onFamily(s.key)} title={s.label + " layout"}
+                style={{ background: "transparent", border: "1.5px solid " + (on ? "#fff" : "#2c2c32"), borderRadius: 7, padding: 4, cursor: "pointer", overflow: "hidden" }}>
+                <div style={{ borderRadius: 4, overflow: "hidden", lineHeight: 0 }}><StylePreview style={s} width={64} /></div>
+                <div style={{ fontSize: 9, marginTop: 3, color: on ? "#fff" : "#9a9a9a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.label}</div>
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ fontSize: 10, color: "#7c7c84", letterSpacing: 0.5, marginBottom: 8 }}>Colour</div>
         <button type="button" style={disc} onClick={() => setLooksOpen((o) => !o)} title="Choose a look">
           <span style={{ color: "#9a9a9a" }}>{looksOpen ? "▾" : "▸"}</span>
           <span style={{ width: 22, height: 18, borderRadius: 4, background: cur.bg, position: "relative", boxShadow: "inset 0 0 0 1px #ffffff22", flexShrink: 0 }}>

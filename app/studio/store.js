@@ -11,7 +11,7 @@
 // ============================================================================
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H, applyRunStyle, clearRunStyle, remapRuns } from "./model";
 import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements } from "./templates";
-import { brandFromStyle } from "./styles";
+import { brandFromStyle, getStyle } from "./styles";
 import { shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
 
 const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
@@ -450,6 +450,29 @@ function docReducer(state, a) {
         : state.doc.slides.map((s, idx) => (idx === (a.index == null ? state.slideIndex : a.index) ? reset(s) : s));
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides }), selectedId: null, editingId: null });
     }
+    case "setFamily": {
+      // Switch the deck's LAYOUT FAMILY (Editorial / Enterprise / News Desk) on
+      // an existing deck — re-flow every slide into the family's cover/content
+      // layout and apply its TYPE (fonts), while KEEPING the current colour
+      // palette (so a custom look isn't stomped). Each slide's `style` flips to the
+      // family; the cover takes the family's cover layout; content slides keep a
+      // custom layout (quote/stat/…) or fall to the family default. Chrome carried.
+      const family = a.family || "editorial";
+      const fam = getStyle(family);
+      const brand = Object.assign({}, state.doc.brand, {
+        labelFont: fam.kickerFont, headFont: fam.headFont, bodyFont: fam.bodyFont,
+      });
+      const coverL = (fam.layouts && fam.layouts.cover) || "cover";
+      const contentL = (fam.layouts && fam.layouts.content) || "classic";
+      const COVER_LAYOUTS = { cover: 1, dossier: 1, masthead: 1 };
+      const slides = state.doc.slides.map((s, i) => {
+        const isCover = i === 0 || String(s.role || "").toUpperCase() === "COVER";
+        const ns = Object.assign({}, s, { style: family });
+        const layoutKey = isCover ? coverL : (s.layout && !COVER_LAYOUTS[s.layout] ? s.layout : contentL);
+        return carryChrome(ns, reflowSlide(ns, layoutKey, brand));
+      });
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides, brand }), selectedId: null, editingId: null });
+    }
     case "setSlide":
       return Object.assign({}, state, { slideIndex: a.index, selectedId: null, editingId: null });
     default:
@@ -459,7 +482,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, update: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, resetSlideToBrand: 1 };
+const MUTATES = { add: 1, update: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
 
 function snap(state) {
