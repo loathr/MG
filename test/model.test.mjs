@@ -124,6 +124,19 @@ test("styledRuns: a run recolours/bolds just its range, rest inherits base", () 
   assert.equal(isUniformText(el), false);
 });
 
+test("styledRuns: a per-span SIZE run resizes just its range; rest keeps the element size", () => {
+  const el = makeElement("text", { content: "big small", fontSize: 40, runs: [{ start: 0, end: 3, size: 96 }] });
+  const spans = styledRuns(el);
+  assert.deepEqual(spans.map((s) => s.text), ["big", " small"]);
+  assert.equal(spans[0].fontSize, 96);   // the sized run
+  assert.equal(spans[1].fontSize, 40);   // inherits the element fontSize
+  assert.equal(isUniformText(el), false); // a run → not the uniform fast path
+  // applyRunStyle writes the size key over a range
+  const runs = applyRunStyle("hello world", [], 6, 11, { size: 72 });
+  assert.equal(runs[0].size, 72);
+  assert.deepEqual([runs[0].start, runs[0].end], [6, 11]);
+});
+
 test("styledRuns: element-wide background/outline force inline spans (not uniform)", () => {
   const bgEl = makeElement("text", { content: "Hi", textBg: "#ffd34e" });
   assert.equal(isUniformText(bgEl), false);

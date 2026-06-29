@@ -25,6 +25,8 @@ export function spanStyle(s) {
     fontWeight: s.fontWeight,
     fontStyle: s.italic ? "italic" : "normal",
   };
+  // Per-span size (B3): inline fontSize overrides the container when a run set it.
+  if (s.fontSize) st.fontSize = s.fontSize;
   if (s.strike) {
     st.textDecorationLine = "line-through";
     st.textDecorationColor = s.strikeColor || s.color;

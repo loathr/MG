@@ -37,8 +37,8 @@ export default function FormatBar({ style, accent, rect, onStyle, onClear, onSiz
         <span style={{ WebkitTextStroke: "1px #fff", color: "transparent", fontWeight: 800, fontSize: 13 }}>O</span>
       </Tog>
       <span style={sep} />
-      <Tog onMouseDown={hold} onClick={() => onSize(-6)} title="Smaller (whole text)">A−</Tog>
-      <Tog onMouseDown={hold} onClick={() => onSize(6)} title="Larger (whole text)">A+</Tog>
+      <Tog onMouseDown={hold} onClick={() => onSize(-6)} title="Smaller (selection)">A−</Tog>
+      <Tog onMouseDown={hold} onClick={() => onSize(6)} title="Larger (selection)">A+</Tog>
       <span style={sep} />
       <Tog onMouseDown={hold} onClick={onClear} title="Clear styling on selection"><span style={{ color: UI.muted }}>✕</span></Tog>
     </div>

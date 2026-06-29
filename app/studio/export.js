@@ -162,34 +162,48 @@ export function wrapRuns(ctx, runs, maxWidth, fontOf) {
 // center/right alignment works across mixed-width runs. Shared by drawRichText
 // (top-aligned, full width) and drawShapedText (padded, vertically centred), so
 // the PNG matches the DOM RichText render for plain AND shaped text.
-function drawTokenLines(ctx, lines, fs, fontOf, lh, align, boxLeft, boxW, startY) {
-  const pad = Math.round(fs * 0.1);
+// `lhFactor` is the unitless line-height (not an absolute px). Each line's height
+// derives from its LARGEST token's fontSize (B3 per-span size), and smaller tokens
+// are baseline-aligned within the line (mirroring the DOM, which aligns baselines,
+// not tops). With a uniform size this is identical to the old behaviour.
+function drawTokenLines(ctx, lines, fs, fontOf, lhFactor, align, boxLeft, boxW, startY) {
   let y = startY;
   for (const line of lines) {
+    const lineFs = line.reduce((m, t) => Math.max(m, t.fontSize || fs), 0) || fs;
+    const lineLH = lineFs * lhFactor;
     let lineW = 0;
     for (const t of line) { ctx.font = fontOf(t); lineW += ctx.measureText(t.text).width; }
     let x = boxLeft + (align === "center" ? (boxW - lineW) / 2 : align === "right" ? boxW - lineW : 0);
     for (const tok of line) {
+      const tokFs = tok.fontSize || fs;
+      const pad = Math.round(tokFs * 0.1);
+      const ty = y + (lineFs - tokFs) * 0.8; // shift smaller tokens down so baselines line up
       ctx.font = fontOf(tok);
       const w = ctx.measureText(tok.text).width;
-      if (tok.bg) { ctx.fillStyle = tok.bg; ctx.fillRect(x - pad, y, w + pad * 2, lh); }
+      if (tok.bg) { ctx.fillStyle = tok.bg; ctx.fillRect(x - pad, y, w + pad * 2, lineLH); }
       if (tok.stroke && tok.strokeWidth) {
         ctx.lineWidth = tok.strokeWidth;
         ctx.strokeStyle = tok.stroke;
         ctx.lineJoin = "round";
-        ctx.strokeText(tok.text, x, y);
+        ctx.strokeText(tok.text, x, ty);
       }
       ctx.fillStyle = tok.color || "#ffffff";
-      ctx.fillText(tok.text, x, y);
+      ctx.fillText(tok.text, x, ty);
       if (tok.strike) {
-        const th = Math.max(2, fs * 0.09);
+        const th = Math.max(2, tokFs * 0.09);
         ctx.fillStyle = tok.strikeColor || tok.color || "#ffffff";
-        ctx.fillRect(x, y + fs * 0.38 - th / 2, w, th);
+        ctx.fillRect(x, ty + tokFs * 0.38 - th / 2, w, th);
       }
       x += w;
     }
-    y += lh;
+    y += lineLH;
   }
+}
+
+// Total height of wrapped lines, each line sized by its largest token (for shaped
+// vertical centring with mixed per-span sizes).
+function linesHeight(lines, fs, lhFactor) {
+  return lines.reduce((sum, line) => sum + (line.reduce((m, t) => Math.max(m, t.fontSize || fs), 0) || fs) * lhFactor, 0);
 }
 
 // Draw a (non-shaped) text element as styled RUNS. The general path mirroring the
@@ -198,14 +212,14 @@ function drawTokenLines(ctx, lines, fs, fontOf, lh, align, boxLeft, boxW, startY
 export function drawRichText(ctx, el) {
   const fs = el.fontSize || 16;
   const fam = el.fontFamily || "Georgia, serif";
-  const fontOf = (t) => (t.italic ? "italic " : "") + (t.fontWeight || 400) + " " + fs + "px " + fam;
+  const fontOf = (t) => (t.italic ? "italic " : "") + (t.fontWeight || 400) + " " + (t.fontSize || fs) + "px " + fam;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   const supportsLS = "letterSpacing" in ctx;
   if (supportsLS) ctx.letterSpacing = (el.letterSpacing || 0) + "px";
-  const lh = (el.lineHeight || 1.1) * fs;
+  const lhFactor = el.lineHeight || 1.1;
   const lines = wrapRuns(ctx, styledRuns(el), el.w, fontOf);
-  drawTokenLines(ctx, lines, fs, fontOf, lh, el.align || "left", 0, el.w, 0);
+  drawTokenLines(ctx, lines, fs, fontOf, lhFactor, el.align || "left", 0, el.w, 0);
   if (supportsLS) ctx.letterSpacing = "0px";
 }
 
@@ -308,19 +322,19 @@ function drawShapedText(ctx, el) {
   const innerW = Math.max(1, el.w - pad.left - pad.right);
   const fs = el.fontSize || 16;
   const fam = el.fontFamily || "Georgia, serif";
-  const fontOf = (t) => (t.italic ? "italic " : "") + (t.fontWeight || 400) + " " + fs + "px " + fam;
+  const fontOf = (t) => (t.italic ? "italic " : "") + (t.fontWeight || 400) + " " + (t.fontSize || fs) + "px " + fam;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   const supportsLS = "letterSpacing" in ctx;
   if (supportsLS) ctx.letterSpacing = (el.letterSpacing || 0) + "px";
-  const lh = (el.lineHeight || 1.12) * fs;
+  const lhFactor = el.lineHeight || 1.12;
   const lines = wrapRuns(ctx, styledRuns(el), innerW, fontOf);
-  const totalH = lines.length * lh;
+  const totalH = linesHeight(lines, fs, lhFactor);
   const innerH = el.h - pad.top - pad.bottom;
   const slack = Math.max(0, innerH - totalH);
   // Match the DOM's vertical alignment (shapeVAlign): top / middle / bottom.
   const startY = pad.top + (el.vAlign === "top" ? 0 : el.vAlign === "bottom" ? slack : slack / 2);
-  drawTokenLines(ctx, lines, fs, fontOf, lh, el.align || "left", pad.left, innerW, startY);
+  drawTokenLines(ctx, lines, fs, fontOf, lhFactor, el.align || "left", pad.left, innerW, startY);
   if (supportsLS) ctx.letterSpacing = "0px";
 }
 

@@ -203,7 +203,7 @@ export function highlightRuns(content, highlight) {
 
 // The style keys a run (or the element base) may carry. Booleans (bold/italic/
 // strike) are tri-state in a run: true / false / absent(inherit).
-export const RUN_STYLE_KEYS = ["color", "bold", "italic", "strike", "strikeColor", "bg", "stroke", "strokeWidth"];
+export const RUN_STYLE_KEYS = ["color", "bold", "italic", "strike", "strikeColor", "bg", "stroke", "strokeWidth", "size"];
 
 // Offsets of the first case-insensitive occurrence of `hl` in `text`, or null.
 export function highlightOffsets(text, hl) {
@@ -226,6 +226,7 @@ export function elementBaseStyle(el) {
     bg: e.textBg || null,
     stroke: e.textStroke || null,
     strokeWidth: e.textStrokeWidth || 0,
+    fontSize: e.fontSize || 64,
   };
 }
 
@@ -249,10 +250,11 @@ function resolveStyle(base, ov) {
     bg: o.bg != null ? o.bg : base.bg,
     stroke: o.stroke != null ? o.stroke : base.stroke,
     strokeWidth: o.strokeWidth != null ? o.strokeWidth : base.strokeWidth,
+    fontSize: o.size != null ? o.size : base.fontSize,
   };
 }
 
-const styleKey = (s) => s.color + "|" + s.fontWeight + "|" + s.italic + "|" + s.strike + "|" + (s.strikeColor || "") + "|" + (s.bg || "") + "|" + (s.stroke || "") + "|" + s.strokeWidth;
+const styleKey = (s) => s.color + "|" + s.fontWeight + "|" + s.italic + "|" + s.strike + "|" + (s.strikeColor || "") + "|" + (s.bg || "") + "|" + (s.stroke || "") + "|" + s.strokeWidth + "|" + s.fontSize;
 
 // Build the per-character override overlay for a text element: an array (length
 // = content length) of override objects (or null). Folds in the back-compat

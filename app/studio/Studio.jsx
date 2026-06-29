@@ -185,11 +185,18 @@ export default function Studio() {
     if (editApiRef.current) editApiRef.current.clearStyle();
     setTextSel((ts) => (ts ? { ...ts, style: null } : ts));
   };
-  // The bar's A−/A+ nudges the WHOLE text element's size (size stays element-wide).
+  // The bar's A−/A+ nudges size. With a live span selection it targets JUST that
+  // span (a per-run `size`, B3); otherwise the whole element's fontSize.
   const sizeSpan = (delta) => {
     if (!textSel) return;
     const elx = slide && (slide.elements || []).find((e) => e.id === textSel.id);
-    if (elx) dispatch({ type: "update", id: textSel.id, patch: { fontSize: Math.max(6, (elx.fontSize || 0) + delta) } });
+    if (!elx) return;
+    if (textSel.end > textSel.start) {
+      const cur = (textSel.style && textSel.style.size) || elx.fontSize || 64;
+      styleSpan({ size: Math.max(6, cur + delta) });
+    } else {
+      dispatch({ type: "update", id: textSel.id, patch: { fontSize: Math.max(6, (elx.fontSize || 0) + delta) } });
+    }
   };
 
   // Create screen → generate in the chosen style → land in the editor. Capture
