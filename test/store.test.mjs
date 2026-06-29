@@ -139,6 +139,19 @@ test("setShape wears a shape on a text element (accent fill, undoable)", () => {
   assert.equal(s.past.length, frames + 1); // undoable
 });
 
+test("setShape clears prior B4 Fill/Border overrides on switch and removal", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "S", content: "Hi", shape: "speech", shapeBody: "#102030", shapeBorderC: "#00ff00" }) });
+  s = reducer(s, { type: "setShape", id: "S", shape: "banner" });   // switch variant
+  let el = cur(s).elements.find((e) => e.id === "S");
+  assert.equal(el.shapeBody, undefined);     // fresh variant starts from its defaults
+  assert.equal(el.shapeBorderC, undefined);
+  s = reducer(s, { type: "update", id: "S", patch: { shapeBody: "#abcdef" } });
+  s = reducer(s, { type: "setShape", id: "S", shape: null });        // remove
+  el = cur(s).elements.find((e) => e.id === "S");
+  assert.equal(el.shapeBody, undefined);     // cleared with the shape
+});
+
 test("setShape on a fill shape knocks out the text, stashing + restoring the prior color", () => {
   let s = initStudio();
   s = reducer(s, { type: "add", element: makeElement("text", { id: "P", content: "SAVE", color: "#ffffff" }) });
@@ -182,12 +195,15 @@ test("rethemeDoc carries a shaped text's accent, leaving paper notes alone", () 
       elements: [
         makeElement("text", { content: "A", shape: "speech", shapeFill: prev.accent, color: "#ffffff" }),
         makeElement("text", { content: "B", shape: "note", shapeFill: "#f3efe2", color: "#1a1a1a" }),
+        makeElement("text", { content: "C", shape: "speech", shapeFill: prev.accent, shapeBody: prev.accent, shapeBorderC: prev.accent, color: "#ffffff" }),
       ],
     }],
   };
   const out = rethemeDoc(doc, prev, next);
   assert.equal(out.slides[0].elements[0].shapeFill, "#00ff00");  // accent shape follows the swap
   assert.equal(out.slides[0].elements[1].shapeFill, "#f3efe2");  // paper note untouched
+  assert.equal(out.slides[0].elements[2].shapeBody, "#00ff00");   // B4 Fill override follows the swap
+  assert.equal(out.slides[0].elements[2].shapeBorderC, "#00ff00"); // B4 Border override follows the swap
 });
 
 test("stampLogo lands on the bookend slides only, and clears cleanly", () => {

@@ -7,6 +7,7 @@ import {
   SHAPE_VARIANTS, SHAPE_BACKING, SHAPE_PAPER, BURST_POINTS, BANNER_RULE,
   shapeVariant, hasShape, shapeRadius, shapePaint, shapeBorderW, shapePad,
   tagNotch, speechTail, noteEar, hexA, shapeVAlign,
+  shapeAccentColor, shapeTailColor,
 } from "../app/studio/shapes.js";
 
 test("shapeVAlign maps the vertical text position to a flex value (default middle)", () => {
@@ -74,6 +75,45 @@ test("paint reads shapeFill (not the text color)", () => {
   // The element's `color` is the text; only `shapeFill` paints the shape.
   const p = shapePaint({ shape: "speech", shapeFill: "#00ff00", color: "#ffffff" });
   assert.equal(p.border, "#00ff00");
+});
+
+test("B4 paint: shapeBody overrides the box, shapeBorderC overrides the outline", () => {
+  // Outline variant: Fill writes the dark plate, Border writes the accent line.
+  const speech = shapePaint({ shape: "speech", shapeFill: "#e23744", shapeBody: "#102030", shapeBorderC: "#00ff00" });
+  assert.equal(speech.bg, "#102030");
+  assert.equal(speech.border, "#00ff00");
+  // Filled variant: Fill writes the body.
+  const pill = shapePaint({ shape: "pill", shapeFill: "#e23744", shapeBody: "#abcdef" });
+  assert.equal(pill.bg, "#abcdef");
+});
+
+test("B4 paint: absent overrides leave every variant's defaults untouched", () => {
+  // Byte-for-byte the pre-B4 result when neither field is present.
+  assert.deepEqual(shapePaint({ shape: "speech", shapeFill: "#e23744" }), { bg: SHAPE_BACKING, border: "#e23744" });
+  assert.deepEqual(shapePaint({ shape: "pill", shapeFill: "#e23744" }), { bg: "#e23744", border: "none" });
+  assert.deepEqual(shapePaint({ shape: "banner", shapeFill: "#e23744" }), { bg: SHAPE_BACKING, border: "none", rule: "#e23744" });
+});
+
+test("B4 paint: a banner Border override retints the rule, not a box border", () => {
+  const banner = shapePaint({ shape: "banner", shapeFill: "#e23744", shapeBorderC: "#00ff00" });
+  assert.equal(banner.rule, "#00ff00");   // the accent rule follows Border
+  assert.equal(banner.border, "none");    // never an outline around the plate
+});
+
+test("B4 borderW: a filled shape gains a thin outline only once Border is picked", () => {
+  assert.equal(shapeBorderW({ shape: "pill" }), 0);
+  assert.ok(shapeBorderW({ shape: "pill", shapeBorderC: "#00ff00" }) > 0);
+  assert.equal(shapeBorderW({ shape: "speech" }), 3); // outline variants unchanged
+});
+
+test("B4 tail/accent colours follow the override, else the brand fill", () => {
+  // Default (no override) preserves the hollow-bubble look: tail = accent fill.
+  assert.equal(shapeTailColor({ shapeFill: "#e23744" }), "#e23744");
+  // Fill override makes the tail follow the body.
+  assert.equal(shapeTailColor({ shapeFill: "#e23744", shapeBody: "#102030" }), "#102030");
+  // The cloud glow follows a Border override, else the fill.
+  assert.equal(shapeAccentColor({ shapeFill: "#e23744" }), "#e23744");
+  assert.equal(shapeAccentColor({ shapeFill: "#e23744", shapeBorderC: "#00ff00" }), "#00ff00");
 });
 
 test("radius: pill is fully rounded, banner/burst/tag square", () => {

@@ -3,7 +3,7 @@ import React from "react";
 import { UI } from "./theme";
 import FontSelect from "./FontSelect";
 import { FONT_OPTIONS } from "./styles";
-import { SHAPE_VARIANTS } from "./shapes";
+import { SHAPE_VARIANTS, shapePaint } from "./shapes";
 import { fitShapeBox } from "./textfit";
 
 // The right-hand Inspector (R3 · structural A) — the persistent home for the
@@ -147,17 +147,27 @@ function ShapeSection({ el, dispatch, up }) {
             {SHAPE_VARIANTS.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
           </select>
         </Row>
-        {el.shape && (
+        {el.shape && (() => {
+          // Fill = the shape body, Border = its outline (B4). Both read the
+          // resolved paint so the chips reflect the variant's brand-seeded default
+          // until the user overrides them; Text colour stays in the Type section.
+          const paint = shapePaint(el);
+          const borderVal = paint.rule != null ? paint.rule : paint.border;
+          return (
           <>
             <Row>
-              <Chip label="Fill" value={el.shapeFill || UI.brand} onChange={(v) => up({ shapeFill: v })} />
-              {el.shape === "speech" ? (
+              <Chip label="Fill" value={paint.bg === "transparent" ? UI.brand : paint.bg} onChange={(v) => up({ shapeBody: v })} />
+              <EffectChip label="Border" value={borderVal && borderVal !== "none" ? borderVal : null} fallback={UI.brand} onChange={(v) => up({ shapeBorderC: v })} />
+            </Row>
+            {el.shape === "speech" && (
+              <Row>
                 <Box onClick={() => up({ tailSide: el.tailSide === "left" ? "center" : el.tailSide === "center" ? "right" : "left" })} title="Tail side">
                   <span style={{ color: UI.muted, fontSize: 10, marginRight: 6 }}>Tail</span>
                   {el.tailSide === "right" ? "▸ right" : el.tailSide === "center" ? "▾ center" : "◂ left"}
                 </Box>
-              ) : <div style={{ flex: 1 }} />}
-            </Row>
+                <div style={{ flex: 1 }} />
+              </Row>
+            )}
             {/* Vertical placement of the copy inside the shape (default middle). */}
             <Row>
               <span style={{ fontSize: 10, color: UI.muted, alignSelf: "center", flexShrink: 0, marginRight: 1 }}>Text</span>
@@ -172,7 +182,8 @@ function ShapeSection({ el, dispatch, up }) {
               <Btn danger onClick={() => setShape(null)}>✕ Remove</Btn>
             </Row>
           </>
-        )}
+          );
+        })()}
       </div>
     </>
   );

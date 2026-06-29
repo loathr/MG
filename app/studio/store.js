@@ -88,6 +88,9 @@ export function rethemeDoc(doc, prev, next) {
       // swap (paper/knockout shapes carry their own fixed colors, so they don't
       // match prev.accent and are left alone — same idea as the rect fills above).
       if (e.shapeFill && b.accent && p.accent && e.shapeFill === p.accent) n = Object.assign({}, n, { shapeFill: b.accent });
+      // B4 Fill/Border overrides follow the accent on a palette swap the same way.
+      if (e.shapeBody && b.accent && p.accent && e.shapeBody === p.accent) n = Object.assign({}, n, { shapeBody: b.accent });
+      if (e.shapeBorderC && b.accent && p.accent && e.shapeBorderC === p.accent) n = Object.assign({}, n, { shapeBorderC: b.accent });
       // Fonts remap by TIER, not by matching the font string — so each tier moves
       // independently even when two share a face, and untagged brand marks (the
       // LOATHR wordmark / footer / sign-off) keep their Courier font.
@@ -231,12 +234,16 @@ function docReducer(state, a) {
           if (!shape) {
             if (n.priorColor != null) n.color = n.priorColor;
             delete n.shape; delete n.shapeFill; delete n.tailSide; delete n.priorColor;
+            delete n.shapeBody; delete n.shapeBorderC;
             return n;
           }
           const v = shapeVariant(shape);
           n.shape = shape;
           n.tailSide = e.tailSide || "left";
           n.shapeFill = v.paper ? SHAPE_PAPER : accent;
+          // Drop any prior Fill/Border overrides so a fresh variant starts from
+          // its own brand-seeded defaults (B4).
+          delete n.shapeBody; delete n.shapeBorderC;
           if (v.paper || v.knockout) {
             if (n.priorColor == null) n.priorColor = e.color;
             n.color = v.paper ? SHAPE_PAPER_INK : "#0c0c0c";

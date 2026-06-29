@@ -2,7 +2,8 @@
 import React from "react";
 import {
   shapePaint, shapeRadius, shapeBorderW, tagNotch, speechTail,
-  noteEar, hexA, BURST_POINTS, BANNER_RULE, SHAPE_PAPER_EAR,
+  noteEar, hexA, shapeAccentColor, shapeTailColor,
+  BURST_POINTS, BANNER_RULE, SHAPE_PAPER_EAR,
 } from "./shapes";
 
 // The shape backing (no text) a text element wears. Fills its parent frame
@@ -34,7 +35,7 @@ export default function ShapeBacking({ el }) {
   if (variant === "burst") { box.clipPath = burstClip(); box.borderRadius = 0; box.border = "none"; }
   if (variant === "tag") { box.clipPath = tagClip(tagNotch(el)); box.borderRadius = 0; }
   if (variant === "cloud") {
-    box.boxShadow = "0 0 0 4px " + hexA(el.shapeFill || "#e23744", 0.1);
+    box.boxShadow = "0 0 0 4px " + hexA(shapeAccentColor(el), 0.1);
     box.overflow = "visible";
   }
   if (variant === "banner") {
@@ -60,7 +61,7 @@ function Tail({ el }) {
       position: "absolute", top: "100%", left: t.x, width: 0, height: 0,
       borderLeft: (t.w / 2) + "px solid transparent",
       borderRight: (t.w / 2) + "px solid transparent",
-      borderTop: t.h + "px solid " + (el.shapeFill || "#e23744"),
+      borderTop: t.h + "px solid " + shapeTailColor(el),
     }} />
   );
 }

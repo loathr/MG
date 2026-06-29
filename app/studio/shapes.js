@@ -13,7 +13,9 @@
 // shape looks identical live, in the strip, and in the exported image.
 //
 // Fields a shaped text element carries: `shape` (variant id), `shapeFill` (the
-// accent/shape color), `tailSide` (speech only), `priorColor` (the text color
+// accent/shape color — the brand-seeded default that drives variant defaults and
+// rethemeDoc), optional `shapeBody`/`shapeBorderC` (per-element Fill/Border
+// overrides, B4), `tailSide` (speech only), `priorColor` (the text color
 // stashed when a knockout/paper variant overrode it, restored on removal).
 // Vector + text only, so a shape never touches the image-decode path (§3).
 // ============================================================================
@@ -72,35 +74,64 @@ export function shapeRadius(el) {
   }
 }
 
-// How `shapeFill` (the accent) paints a shape. Always:
+// How a shape paints. Always:
 //   bg     — the box background ("transparent" / a dark plate / the fill)
 //   border — outline color, or "none"
 //   dashed — true for the stamp's dashed rule
 //   rule   — banner top/bottom rule color (no full border)
 // The TEXT color is the element's own `color`, drawn separately by the text path.
+//
+// `shapeFill` seeds the brand-default look (the accent on the body or the
+// border/tail). B4 layers per-element overrides on top: `shapeBody` retints the
+// box (the Inspector "Fill"), `shapeBorderC` retints the outline (the Inspector
+// "Border"). Both are absent by default, so every existing deck renders byte-for-
+// byte unchanged. The banner's accent is its rule rather than a box border, so a
+// Border override retints that rule instead of adding an outline to the plate.
 export function shapePaint(el) {
   const fill = el.shapeFill || "#e23744";
+  let p;
   switch (el.shape) {
     case "burst":
-    case "pill":   return { bg: fill, border: "none" };
-    case "note":   return { bg: fill || SHAPE_PAPER, border: "none" };
-    case "banner": return { bg: SHAPE_BACKING, border: "none", rule: fill };
-    case "stamp":  return { bg: "transparent", border: fill, dashed: true };
+    case "pill":   p = { bg: fill, border: "none" }; break;
+    case "note":   p = { bg: fill || SHAPE_PAPER, border: "none" }; break;
+    case "banner": p = { bg: SHAPE_BACKING, border: "none", rule: fill }; break;
+    case "stamp":  p = { bg: "transparent", border: fill, dashed: true }; break;
     case "tag":
     case "speech":
     case "cloud":
-    default:       return { bg: SHAPE_BACKING, border: fill };
+    default:       p = { bg: SHAPE_BACKING, border: fill }; break;
   }
+  if (el.shapeBody != null) p.bg = el.shapeBody;
+  if (el.shapeBorderC != null) {
+    if (p.rule != null) p.rule = el.shapeBorderC; // banner: the rule is the accent
+    else p.border = el.shapeBorderC;
+  }
+  return p;
 }
 
-// Border thickness (px) by shape; 0 for the filled / ruled / paper ones.
+// The accent used by the soft cloud glow — follows a Border override, else the
+// brand-seeded fill (so an un-overridden cloud glows exactly as before).
+export function shapeAccentColor(el) {
+  return el && el.shapeBorderC != null ? el.shapeBorderC : ((el && el.shapeFill) || "#e23744");
+}
+
+// The speech tail / paper ear read the body when the user overrides Fill, else
+// the brand accent — preserving the long-standing hollow-bubble look (dark plate,
+// accent outline + tail) for every deck that never touched the new field.
+export function shapeTailColor(el) {
+  return el && el.shapeBody != null ? el.shapeBody : ((el && el.shapeFill) || "#e23744");
+}
+
+// Border thickness (px) by shape; 0 for the filled / ruled / paper ones — but a
+// filled shape gains a thin outline once the user picks an explicit Border colour
+// (so the new control is visible there too; defaults stay 0 without it).
 export function shapeBorderW(el) {
   switch (el.shape) {
     case "stamp":  return 3;
     case "speech": return 3;
     case "tag":    return 3;
     case "cloud":  return 2;
-    default:       return 0;
+    default:       return el && el.shapeBorderC != null ? 3 : 0;
   }
 }
 

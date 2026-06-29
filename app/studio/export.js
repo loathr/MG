@@ -11,7 +11,8 @@ import { ARTBOARD_W, ARTBOARD_H, styledRuns, isUniformText } from "./model";
 import { makeZip } from "./zip";
 import {
   shapePaint, shapeRadius, shapeBorderW, shapePad, tagNotch, speechTail,
-  noteEar, hexA, BURST_POINTS, BANNER_RULE, SHAPE_PAPER_EAR,
+  noteEar, hexA, shapeAccentColor, shapeTailColor,
+  BURST_POINTS, BANNER_RULE, SHAPE_PAPER_EAR,
 } from "./shapes";
 
 function loadImage(src) {
@@ -255,7 +256,7 @@ function drawShapeBacking(ctx, el) {
   } else {
     if (variant === "cloud") { // soft accent glow ring behind
       roundRectPath(ctx, -4, -4, w + 8, h + 8, radius + 4);
-      ctx.fillStyle = hexA(el.shapeFill || "#e23744", 0.1);
+      ctx.fillStyle = hexA(shapeAccentColor(el), 0.1);
       ctx.fill();
     }
     roundRectPath(ctx, 0, 0, w, h, radius);
@@ -284,7 +285,7 @@ function drawShapeBacking(ctx, el) {
     ctx.lineTo(t.x + t.w, t.y);
     ctx.lineTo(t.x + t.w / 2, t.y + t.h);
     ctx.closePath();
-    ctx.fillStyle = el.shapeFill || "#e23744";
+    ctx.fillStyle = shapeTailColor(el);
     ctx.fill();
   } else if (variant === "note") {
     const e = noteEar(el);
