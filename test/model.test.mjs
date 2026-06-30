@@ -164,6 +164,27 @@ test("styledRuns: a run recolours/bolds just its range, rest inherits base", () 
   assert.equal(isUniformText(el), false);
 });
 
+test("applyRunStyle never splits a surrogate pair (emoji-safe boundaries) — D4", () => {
+  const text = "Big win 🎉";            // "Big win " = 8 units; 🎉 = units 8,9; length 10
+  assert.equal(text.length, 10);
+  // end lands mid-emoji (9) → snaps UP to 10 so the 🎉 is fully styled, never halved
+  let runs = applyRunStyle(text, [], 0, 9, { bold: true });
+  assert.ok(runs.every((r) => r.start !== 9 && r.end !== 9), "no run boundary inside the pair");
+  assert.equal(runs[0].end, 10);
+  // start lands mid-emoji (9) → snaps DOWN to 8 so the 🎉 isn't half-styled
+  runs = applyRunStyle(text, [], 9, 10, { bold: true });
+  assert.equal(runs[0].start, 8);
+  // clearRunStyle snaps the same way
+  const styled = applyRunStyle(text, [], 0, 10, { bold: true });
+  const cleared = clearRunStyle(text, styled, 0, 9);
+  assert.ok(cleared.every((r) => r.start !== 9 && r.end !== 9));
+  // no resulting run slice ends on a lone high surrogate (a split emoji)
+  for (const r of runs) {
+    const last = text.slice(r.start, r.end).charCodeAt(text.slice(r.start, r.end).length - 1);
+    assert.ok(!(last >= 0xd800 && last <= 0xdbff), "no run ends on a lone high surrogate");
+  }
+});
+
 test("underline: element-wide and per-run, independent of strike", () => {
   // whole-box underline
   const el = makeElement("text", { content: "abc", underline: true });

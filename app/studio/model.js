@@ -412,8 +412,8 @@ export function applyRunStyle(content, runs, start, end, patch) {
     const e = Math.max(0, Math.min(n, r.end | 0));
     for (let i = s; i < e; i++) ov[i] = mergeStyle(ov[i], r);
   }
-  const a = Math.max(0, Math.min(n, start | 0));
-  const b = Math.max(a, Math.min(n, end | 0));
+  const a = snapStart(text, Math.max(0, Math.min(n, start | 0)));
+  const b = snapEnd(text, Math.max(a, Math.min(n, end | 0)));
   for (let i = a; i < b; i++) {
     const cur = Object.assign({}, ov[i] || null);
     for (const k of Object.keys(patch || {})) {
@@ -435,11 +435,23 @@ export function clearRunStyle(content, runs, start, end) {
     const e = Math.max(0, Math.min(n, r.end | 0));
     for (let i = s; i < e; i++) ov[i] = mergeStyle(ov[i], r);
   }
-  const a = Math.max(0, Math.min(n, start | 0));
-  const b = Math.max(a, Math.min(n, end | 0));
+  const a = snapStart(text, Math.max(0, Math.min(n, start | 0)));
+  const b = snapEnd(text, Math.max(a, Math.min(n, end | 0)));
   for (let i = a; i < b; i++) ov[i] = null;
   return overlayToRuns(ov);
 }
+
+// A surrogate pair (emoji) is two UTF-16 code units; a run boundary that lands
+// BETWEEN them would slice a lone surrogate (a broken glyph + corrupted run). So
+// snap a boundary off any pair: the start snaps DOWN to before the pair, the end
+// snaps UP to after it — the emoji is always whole on both sides. (D4.)
+function splitsPair(text, i) {
+  if (i <= 0 || i >= text.length) return false;
+  const hi = text.charCodeAt(i - 1), lo = text.charCodeAt(i);
+  return hi >= 0xd800 && hi <= 0xdbff && lo >= 0xdc00 && lo <= 0xdfff;
+}
+function snapStart(text, i) { return splitsPair(text, i) ? i - 1 : i; }
+function snapEnd(text, i) { return splitsPair(text, i) ? i + 1 : i; }
 
 // Re-map runs after the content text changed (an edit), keeping styling attached
 // to the letters that survived. Uses a common prefix/suffix diff: styling on the

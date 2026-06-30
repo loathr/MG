@@ -106,6 +106,13 @@ test("round-trip: per-run size survives", () => {
   assert.deepEqual(runs, [{ start: 0, end: 3, size: 120 }]);
 });
 
+test("round-trip: an emoji survives intact with its run boundary beside it (D4)", () => {
+  const content = "Big win 🎉";                         // 🎉 = code units 8,9
+  const { text, runs } = roundTrip(content, [{ start: 0, end: 8, bold: true }]);
+  assert.equal(text, content, "emoji not split into a lone surrogate");
+  assert.deepEqual(runs, [{ start: 0, end: 8, bold: true }]);
+});
+
 // --- domToContentRuns against browser-shaped markup -------------------------
 
 test("domToContentRuns: <br> reads back as one newline char", () => {
