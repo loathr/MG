@@ -157,7 +157,16 @@ export const FOOTER_SOURCES_Y = 1186;
 // Brand-panel wordmark change re-themes it; its red strike follows the accent.
 export function coverWordmark(style, brand) {
   const st = effectiveStyle(style, brand);
-  if (style === "newsdesk") return [];
+  if (style === "newsdesk") {
+    // A masthead "ear": the wordmark + a section descriptor over a red rule,
+    // top-centre, so the News Desk cover is branded as editorial (it previously
+    // had no mark). Role-tagged so the white-label toggle strips it like the rest.
+    const wm = (brand && brand.wordmark) || "LOATHR";
+    return [
+      makeText(st.headFont, { id: uid("wm"), role: "wordmark", x: M, y: 96, w: ARTBOARD_W - 2 * M, h: 38, content: (wm + " · The News Desk").toUpperCase(), fontSize: 21, fontWeight: st.headWeight, color: st.ink, align: "center", letterSpacing: 4, lineHeight: 1 }),
+      makeElement("rect", { id: uid("r"), role: "wordmark", x: ARTBOARD_W / 2 - 70, y: 142, w: 140, h: 3, fill: st.accent }),
+    ];
+  }
   if (style === "enterprise") {
     return [
       makeText(st.headFont, { id: uid("wm"), role: "wordmark", x: M, y: 92, w: 700, h: 50, content: "Enterprise", fontSize: 34, fontWeight: st.headWeight, color: st.ink, lineHeight: 1 }),

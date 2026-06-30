@@ -249,14 +249,22 @@ test("coverWordmark: editorial is a struck-out LOATHR in Courier, right-aligned"
   assert.equal(wm.strikeColor, STYLES.editorial.accent); // red strike follows the accent
 });
 
-test("coverWordmark: enterprise is an 'Enterprise' / 'by Loathr' lockup; news has none", () => {
+test("coverWordmark: enterprise is an 'Enterprise' / 'by Loathr' lockup", () => {
   const ent = coverWordmark("enterprise");
   assert.equal(ent.length, 2);
   assert.ok(ent.every((e) => e.role === "wordmark"));
   assert.equal(ent[0].content, "Enterprise");
   assert.equal(ent[1].content, "by Loathr");
   assert.equal(ent[1].fontFamily, BRAND_FONT);          // the Loathr token is Courier
-  assert.deepEqual(coverWordmark("newsdesk"), []);      // no Loathr on the News Desk cover
+});
+
+test("coverWordmark: News Desk now carries a masthead ear (role-tagged, white-labellable)", () => {
+  const nd = coverWordmark("newsdesk");
+  assert.ok(nd.length >= 1, "News Desk cover is no longer unbranded");
+  assert.ok(nd.every((e) => e.role === "wordmark"), "role-tagged so white-label strips it");
+  const tag = nd.find((e) => e.type === "text");
+  assert.match(tag.content, /NEWS DESK/i);
+  assert.ok(nd.some((e) => e.type === "rect" && e.fill === STYLES.newsdesk.accent), "red masthead rule");
 });
 
 test("coverWordmark editorial follows a brand wordmark + accent", () => {
