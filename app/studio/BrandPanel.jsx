@@ -83,6 +83,7 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
   const cur = Object.assign({}, brandFromStyle("editorial"), brand);
   // Auto-chrome visibility (R2). Absent = shown.
   const show = Object.assign({ wordmark: true, footer: true, pageno: true }, (brand && brand.show) || {});
+  const brandless = show.brandless === true; // white-label: overrides the LOATHR marks off
   const set = (patch) => onApply(cur, Object.assign({}, cur, patch));
   const fileRef = React.useRef(null);
   const [looksOpen, setLooksOpen] = React.useState(false);
@@ -225,17 +226,28 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
 
         {/* ---------- ELEMENTS ---------- */}
         <div style={sec}>Elements</div>
+        {/* White-label master toggle — removes every LOATHR mark (cover · footer ·
+            closer lockup). Page numbers stay user-owned. */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: brandless ? "#241f1a" : "#211c2a", border: "1px solid " + (brandless ? "#4a3a28" : "#332a40"), borderRadius: 9, padding: "10px 12px", marginBottom: 8 }}>
+          <span style={{ fontSize: 13, color: brandless ? "#f0d9b8" : "#cdbfe0", fontWeight: 600 }}>Remove LOATHR branding
+            <small style={{ display: "block", fontSize: 10, color: brandless ? "#b89a72" : "#8a7ca6", fontWeight: 400, marginTop: 2 }}>White-label · hides every mark, incl. closer</small></span>
+          <button onClick={() => onChrome("brandless", !brandless)} title="Strip all LOATHR branding from every slide"
+            style={{ width: 36, height: 20, borderRadius: 11, border: "none", cursor: "pointer", position: "relative", background: brandless ? "#e8b069" : "#3a3a42", flexShrink: 0 }}>
+            <span style={{ position: "absolute", top: 2, left: brandless ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: brandless ? "#241a0e" : "#fff" }} />
+          </button>
+        </div>
         {[
-          { k: "wordmark", label: "Cover wordmark", sub: "struck LOATHR / desk lockup" },
-          { k: "footer", label: "Running footer", sub: "LOATHR · content slides" },
-          { k: "pageno", label: "Page numbers", sub: "bottom-right" },
+          { k: "wordmark", label: "Cover wordmark", sub: "struck LOATHR / desk lockup", locked: brandless },
+          { k: "footer", label: "Running footer", sub: "LOATHR · content slides", locked: brandless },
+          { k: "pageno", label: "Page numbers", sub: "bottom-right · not a LOATHR mark", locked: false },
         ].map((row) => {
-          const on = show[row.k] !== false;
+          const on = !row.locked && show[row.k] !== false; // white-label forces the marks visually off
           return (
-            <div key={row.k} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 38 }}>
+            <div key={row.k} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 38, opacity: row.locked ? 0.45 : 1 }}>
               <span style={{ fontSize: 12.5, color: "#dcdcdc" }}>{row.label}<small style={{ display: "block", fontSize: 10, color: "#7c7c84" }}>{row.sub}</small></span>
-              <button onClick={() => onChrome(row.k, !on)} title={(on ? "Hide" : "Show") + " " + row.label.toLowerCase() + " on every slide"}
-                style={{ width: 36, height: 20, borderRadius: 11, border: "none", cursor: "pointer", position: "relative", background: on ? UI.brand : "#3a3a42", flexShrink: 0 }}>
+              <button onClick={() => { if (!row.locked) onChrome(row.k, !on); }} disabled={row.locked}
+                title={row.locked ? "Overridden by white-label" : (on ? "Hide" : "Show") + " " + row.label.toLowerCase() + " on every slide"}
+                style={{ width: 36, height: 20, borderRadius: 11, border: "none", cursor: row.locked ? "default" : "pointer", position: "relative", background: on ? UI.brand : "#3a3a42", flexShrink: 0 }}>
                 <span style={{ position: "absolute", top: 2, left: on ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: on ? UI.onBrand : "#fff" }} />
               </button>
             </div>

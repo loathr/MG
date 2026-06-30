@@ -91,6 +91,44 @@ test("loadDoc installs a fresh document and clears history", () => {
   assert.deepEqual(s.future, []);
 });
 
+test("setChrome white-label strips every LOATHR mark incl. the closer; page numbers stay; toggling off restores", () => {
+  const doc = {
+    brand: { show: {} },
+    slides: [
+      { id: "c", style: "editorial", elements: [
+        { id: "w", type: "text", role: "wordmark", content: "LOATHR" },
+        { id: "h", type: "text", content: "Cover" },
+      ] },
+      { id: "m", style: "editorial", elements: [
+        { id: "b", type: "text", content: "Body" },
+        { id: "f", type: "text", role: "footer", content: "LOATHR" },
+        { id: "p", type: "text", role: "pageno", content: "1" },
+        { id: "fr", type: "rect", role: "footrule" },
+      ] },
+      { id: "z", style: "editorial", elements: [
+        { id: "zw", type: "text", role: "wordmark", content: "LOATHR" },
+        { id: "zr", type: "rect", role: "closerrule" },
+        { id: "zh", type: "text", content: "Thanks" },
+      ] },
+    ],
+  };
+  let s = initStudio();
+  s = reducer(s, { type: "loadDoc", doc });
+  const roles = (i) => s.doc.slides[i].elements.map((e) => e.role).filter(Boolean);
+
+  s = reducer(s, { type: "setChrome", key: "brandless", on: true });
+  assert.ok(!roles(0).includes("wordmark"), "cover wordmark stripped");
+  assert.ok(!roles(1).includes("footer"), "running footer stripped");
+  assert.ok(roles(1).includes("pageno"), "page numbers kept (not a LOATHR mark)");
+  assert.ok(!roles(2).includes("wordmark") && !roles(2).includes("closerrule"), "closer lockup stripped");
+  assert.ok(s.doc.slides[2].elements.some((e) => e.content === "Thanks"), "closer content survives");
+
+  s = reducer(s, { type: "setChrome", key: "brandless", on: false });
+  assert.ok(roles(0).includes("wordmark"), "cover wordmark restored");
+  assert.ok(roles(1).includes("footer"), "running footer restored");
+  assert.ok(roles(2).includes("wordmark") && roles(2).includes("closerrule"), "closer lockup restored");
+});
+
 test("slide ops: add / duplicate / delete-keeps-one / move", () => {
   let s = initStudio();
   s = reducer(s, { type: "addSlide" });

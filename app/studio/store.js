@@ -10,7 +10,7 @@
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H, applyRunStyle, clearRunStyle, remapRuns } from "./model";
-import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements } from "./templates";
+import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements, closerMarksFor } from "./templates";
 import { brandFromStyle, getStyle, FONT_PRESETS } from "./styles";
 import { shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
 
@@ -345,8 +345,13 @@ function docReducer(state, a) {
       // roles, then re-add the ones still shown (wordmark on covers; footer rule /
       // LOATHR / page number on content slides). The footrule shows if either the
       // footer or the page number is on.
-      const show = Object.assign({ wordmark: true, footer: true, pageno: true }, state.doc.brand.show || {}, { [a.key]: !!a.on });
-      const brand = Object.assign({}, state.doc.brand, { show });
+      const curBrand = state.doc.brand || {};
+      const show = Object.assign({ wordmark: true, footer: true, pageno: true }, curBrand.show || {}, { [a.key]: !!a.on });
+      const brand = Object.assign({}, curBrand, { show });
+      // White-label master toggle: when on it OVERRIDES the cover wordmark, the
+      // running footer, AND the closer lockup off (page numbers stay user-owned).
+      // The individual prefs are kept in `show` so unchecking it restores them.
+      const eff = { wordmark: show.brandless ? false : show.wordmark !== false, footer: show.brandless ? false : show.footer !== false, pageno: show.pageno !== false };
       const slides = state.doc.slides;
       const n = slides.length;
       const roleOf = (s) => String((s.content && s.content.role) || s.role || "").toUpperCase();
@@ -354,14 +359,18 @@ function docReducer(state, a) {
       const next = slides.map((s, i) => {
         const isCover = i === 0 || roleOf(s) === "COVER";
         const isCloser = !isCover && (i === n - 1 || roleOf(s) === "CLOSER" || roleOf(s) === "OUTRO");
-        let els = (s.elements || []).filter((e) => e.role !== "wordmark" && e.role !== "footer" && e.role !== "pageno" && e.role !== "footrule");
+        // Strip every managed mark (cover/footer/pageno + the closer lockup), then
+        // re-add the ones still shown.
+        let els = (s.elements || []).filter((e) => e.role !== "wordmark" && e.role !== "footer" && e.role !== "pageno" && e.role !== "footrule" && e.role !== "closerrule");
         const sStyle = s.style || "editorial";
         if (isCover) {
-          if (show.wordmark) els = els.concat(coverWordmark(sStyle, brand));
-        } else if (!isCloser) {
+          if (eff.wordmark) els = els.concat(coverWordmark(sStyle, brand));
+        } else if (isCloser) {
+          if (eff.wordmark) els = els.concat(closerMarksFor(sStyle, brand, !!(s.background && s.background.type === "image")));
+        } else {
           pageNum += 1;
           const fe = footerElements(sStyle, pageNum, brand).filter((e) =>
-            e.role === "footer" ? show.footer : e.role === "pageno" ? show.pageno : (show.footer || show.pageno),
+            e.role === "footer" ? eff.footer : e.role === "pageno" ? eff.pageno : (eff.footer || eff.pageno),
           );
           els = els.concat(fe);
         }

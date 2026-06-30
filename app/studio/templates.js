@@ -100,13 +100,28 @@ export function contentTemplate(s, index, style, image) {
   ]);
 }
 
+// The closer's LOATHR lockup (centred wordmark + its accent rule). Role-tagged so
+// the Brand-panel white-label toggle can strip/restore it like the cover/footer
+// marks (store.setChrome). `cy` is the lockup's top y.
+export function closerMarks(st, pal, brand, cy) {
+  return [
+    makeText(BRAND_FONT, { id: uid("wm"), role: "wordmark", x: M, y: cy, w: ARTBOARD_W - 2 * M, h: 60, content: (brand && brand.wordmark) || "LOATHR", fontSize: 30, fontWeight: 700, color: pal.ink, align: "center", letterSpacing: 8, lineHeight: 1 }),
+    makeElement("rect", { id: uid("r"), role: "closerrule", x: ARTBOARD_W / 2 - 30, y: cy + 86, w: 60, h: 4, fill: pal.accent }),
+  ];
+}
+
+// Rebuild just the closer lockup for a slide (store.setChrome white-label path).
+export function closerMarksFor(style, brand, hasImage) {
+  const st = effectiveStyle(style, brand);
+  return closerMarks(st, palette(st, !!hasImage), brand, 470);
+}
+
 export function closerTemplate(s, style, image, caution, brand) {
   const st = effectiveStyle(style, brand);
   const pal = palette(st, !!(image && image.url));
   const cy = 470;
   return slideShell(st, image, [
-    makeText(BRAND_FONT, { x: M, y: cy, w: ARTBOARD_W - 2 * M, h: 60, content: (brand && brand.wordmark) || "LOATHR", fontSize: 30, fontWeight: 700, color: pal.ink, align: "center", letterSpacing: 8, lineHeight: 1 }),
-    makeElement("rect", { id: uid("r"), x: ARTBOARD_W / 2 - 30, y: cy + 86, w: 60, h: 4, fill: pal.accent }),
+    ...closerMarks(st, pal, brand, cy),
     makeText(st.headFont, { tier: "heading", x: M, y: cy + 130, w: ARTBOARD_W - 2 * M, h: 320, content: s.heading || s.body || "Thanks for reading.", fontSize: 52, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.15 }),
     s.cta ? makeText(st.bodyFont, { tier: "body", x: M, y: cy + 470, w: ARTBOARD_W - 2 * M, h: 60, content: s.cta, fontSize: 26, fontWeight: 400, color: pal.accent, align: "center", lineHeight: 1.3 }) : null,
     caution ? cautionElement(style, caution, !!(image && image.url), brand) : null,
