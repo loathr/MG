@@ -1,10 +1,12 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { UI } from "./theme";
 import FontSelect from "./FontSelect";
 import { FONT_OPTIONS } from "./styles";
 import { SHAPE_VARIANTS, shapePaint } from "./shapes";
 import { fitShapeBox } from "./textfit";
+import { readImageFile } from "./imageFile";
+import { removeBackground } from "./bgRemove";
 
 // The top contextual toolbar (Canva-style, top-only). It replaces the right-hand
 // Inspector: one horizontal bar above the canvas whose controls reflect the
@@ -14,6 +16,8 @@ import { fitShapeBox } from "./textfit";
 // selected text SPAN still routes colour/weight through the floating FormatBar.
 export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan }) {
   const [pop, setPop] = useState(null); // open popover: "position" | "effects" | "shape" | null
+  const [bgBusy, setBgBusy] = useState(false);
+  const fileRef = useRef(null);
   const up = (patch) => el && dispatch({ type: "update", id: el.id, patch });
   const sel = (el && el.type === "text" && textSel && textSel.id === el.id && textSel.end > textSel.start) ? textSel : null;
   const setStyle = (patch) => { if (sel && onStyleSpan) onStyleSpan(patch); else up(patch); };
@@ -63,6 +67,17 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
       {el.type === "image" && (
         <>
           <PopBtn label="⌗ Crop" open={pop === "crop"} onClick={() => toggle("crop")} />
+          <TextBtn title="Remove background (in-browser, no key)"
+            onClick={async () => {
+              if (bgBusy || !el.src) return;
+              const id = el.id, srcWas = el.origSrc || el.src;
+              setBgBusy(true);
+              const out = await removeBackground(el.src);
+              setBgBusy(false);
+              if (out) dispatch({ type: "update", id, patch: { origSrc: srcWas, src: out, thumb: out } });
+            }}>{bgBusy ? "… removing" : "✦ BG Remover"}</TextBtn>
+          {el.origSrc && <TextBtn title="Restore the original image" onClick={() => up({ src: el.origSrc, thumb: el.origSrc, origSrc: null })}>↺ Restore</TextBtn>}
+          <Sep />
           <SelectBtn value={el.fit || "cover"} onChange={(v) => up({ fit: v })} title="Fit" options={[["cover", "Fill"], ["contain", "Fit"]]} />
           <NumBtn label="Radius" value={el.radius || 0} onChange={(n) => up({ radius: Math.max(0, n) })} />
           <Seg>
@@ -71,7 +86,10 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
             <SegBtn on={!!el.mono} onClick={() => up({ mono: !el.mono })} title="Black & white">◑</SegBtn>
           </Seg>
           <Sep />
+          <TextBtn onClick={() => fileRef.current && fileRef.current.click()} title="Replace with another image">⧉ Replace</TextBtn>
           <TextBtn onClick={() => dispatch({ type: "imageToBackground", id: el.id })} title="Set as slide background">⤓ Background</TextBtn>
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
+            onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) readImageFile(f, (img) => { if (img) up({ src: img.src, thumb: img.thumb, crop: null }); }); e.target.value = ""; }} />
         </>
       )}
 
