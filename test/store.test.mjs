@@ -29,6 +29,30 @@ test("add selects the new element and pushes one undo frame", () => {
   assert.equal(s.past.length, 1);
 });
 
+test("crop toggles free-form crop mode and clears on leaving the element", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("image", { id: "IMG", src: "p.jpg" }) });
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "T", content: "x" }) });
+  // enter crop on the image
+  s = reducer(s, { type: "crop", id: "IMG" });
+  assert.equal(s.croppingId, "IMG");
+  assert.equal(s.selectedId, "IMG");
+  // toggling the same id again exits crop mode (the Done button)
+  s = reducer(s, { type: "crop", id: "IMG" });
+  assert.equal(s.croppingId, null);
+  // re-enter, then selecting a DIFFERENT element clears crop mode
+  s = reducer(s, { type: "crop", id: "IMG" });
+  s = reducer(s, { type: "select", id: "T" });
+  assert.equal(s.croppingId, null, "leaving the cropped image exits crop mode");
+  // re-selecting the SAME cropped element keeps crop mode
+  s = reducer(s, { type: "crop", id: "IMG" });
+  s = reducer(s, { type: "select", id: "IMG" });
+  assert.equal(s.croppingId, "IMG", "re-selecting the cropped image keeps crop mode");
+  // deselect / edit / slide change all exit crop mode
+  assert.equal(reducer(s, { type: "deselect" }).croppingId, null);
+  assert.equal(reducer(s, { type: "edit", id: "IMG" }).croppingId, null);
+});
+
 test("a continuous drag (update same id) coalesces into one undo frame", () => {
   let s = initStudio();
   s = reducer(s, { type: "add", element: makeElement("rect", { id: "R" }) });

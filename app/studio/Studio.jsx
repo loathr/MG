@@ -507,11 +507,13 @@ export default function Studio() {
             spanStyle={textSel ? textSel.style : null}
             onStyleSpan={styleSpan}
             onClearSpan={clearSpanStyle}
+            cropping={!!selectedEl && state.croppingId === selectedEl.id}
           />
           <Artboard
             slide={slide}
             selectedId={state.selectedId}
             editingId={state.editingId}
+            croppingId={state.croppingId}
             dispatch={dispatch}
             onTextSelect={setTextSel}
             onEditApi={(api) => { editApiRef.current = api; }}

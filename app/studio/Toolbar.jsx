@@ -14,7 +14,7 @@ import { removeBackground } from "./bgRemove";
 // inline; denser ones (Position, Effects, Shape) open as dropdown popovers
 // anchored to the bar. Wired to the same reducer actions the Inspector used; a
 // selected text SPAN still routes colour/weight through the floating FormatBar.
-export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan }) {
+export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan, cropping }) {
   const [pop, setPop] = useState(null); // open popover: "position" | "effects" | "shape" | "crop" | "more" | null
   const [bgBusy, setBgBusy] = useState(false);
   const [barW, setBarW] = useState(9999); // measured width → responsive overflow
@@ -82,7 +82,16 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
 
       {el.type === "image" && (
         <>
-          <PopBtn label="⌗ Crop" open={pop === "crop"} onClick={() => toggle("crop")} />
+          {/* Free-form crop: a MODE toggle (drag the photo to reposition, scroll to
+              zoom — see Artboard). While active it swaps to Done + Reset. */}
+          {cropping ? (
+            <>
+              <TextBtn title="Finish cropping" onClick={() => dispatch({ type: "crop", id: el.id })} style={cropDone}>✓ Done</TextBtn>
+              <TextBtn title="Reset the crop" onClick={() => up({ crop: null })}>↺ Reset</TextBtn>
+            </>
+          ) : (
+            <PopBtn label="⌗ Crop" open={false} onClick={() => dispatch({ type: "crop", id: el.id })} />
+          )}
           <TextBtn title="Remove background (in-browser, no key)"
             onClick={async () => {
               if (bgBusy || !el.src) return;
@@ -165,17 +174,6 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
 
       {pop === "shape" && el.type === "text" && <ShapePop el={el} up={up} dispatch={dispatch} onClose={() => setPop(null)} />}
 
-      {pop === "crop" && el.type === "image" && (() => {
-        const c = el.crop || { zoom: 1, x: 0.5, y: 0.5 };
-        const setC = (patch) => up({ crop: Object.assign({ zoom: 1, x: 0.5, y: 0.5 }, c, patch) });
-        return <Popover onClose={() => setPop(null)}>
-          <Title>Crop &amp; zoom</Title>
-          <Slider label="Zoom" min={1} max={3} step={0.05} value={c.zoom || 1} suffix="×" onChange={(v) => setC({ zoom: v })} />
-          <Slider label="Pan X" min={0} max={1} step={0.02} value={c.x == null ? 0.5 : c.x} onChange={(v) => setC({ x: v })} />
-          <Slider label="Pan Y" min={0} max={1} step={0.02} value={c.y == null ? 0.5 : c.y} onChange={(v) => setC({ y: v })} />
-          <WBtn onClick={() => up({ crop: null })}>↺ Reset crop</WBtn>
-        </Popover>;
-      })()}
     </div>
   );
 }
@@ -242,7 +240,7 @@ function DashSelect({ value, onChange }) {
     <option value="solid">—— Solid</option><option value="dashed">- - Dashed</option><option value="dotted">··· Dotted</option>
   </select>;
 }
-function TextBtn({ children, onClick, title }) { return <button style={pillBtn} onClick={onClick} title={title}>{children}</button>; }
+function TextBtn({ children, onClick, title, style }) { return <button style={style ? { ...pillBtn, ...style } : pillBtn} onClick={onClick} title={title}>{children}</button>; }
 function IconBtn({ children, onClick, title }) { return <button style={{ ...pillBtn, padding: "0 10px" }} onClick={onClick} title={title}>{children}</button>; }
 function PopBtn({ label, open, onClick }) { return <button style={{ ...pillBtn, background: open ? "#34343c" : pillBtn.background }} onClick={onClick}>{label} ▾</button>; }
 
@@ -266,16 +264,6 @@ function EffectField({ label, value, fallback, onChange }) {
   return <label style={{ ...pField, cursor: "pointer", position: "relative", overflow: "hidden" }}><span style={pLab}>{label}</span><span style={{ width: 16, height: 16, borderRadius: 4, marginLeft: "auto", border: "1px solid #555", background: on ? value : "repeating-conic-gradient(#3a3a40 0% 25%, #1c1c20 0% 50%) 50% / 8px 8px" }} /><input type="color" value={hexish(value || fallback)} onChange={(e) => onChange(e.target.value)} style={{ position: "absolute", inset: 0, opacity: 0 }} /></label>;
 }
 function WBtn({ children, onClick, danger }) { return <button onClick={onClick} style={{ ...wBtn, color: danger ? "#ff8a8a" : UI.text }}>{children}</button>; }
-function Slider({ label, min, max, step, value, onChange, suffix }) {
-  return (
-    <div style={{ marginBottom: 9 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-        <span style={pLab}>{label}</span><span style={{ color: UI.text, fontSize: 11 }}>{Math.round(value * 100) / 100}{suffix || ""}</span>
-      </div>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(+e.target.value)} style={{ width: "100%", accentColor: UI.brand }} />
-    </div>
-  );
-}
 
 const KIND_GLYPH = { text: "T", image: "▤", rect: "▢", line: "—" };
 function round2(n) { return Math.round(n * 100) / 100; }
@@ -291,6 +279,7 @@ const pillLab = { color: "#8a8a90", fontSize: 10.5 };
 const pillNum = { width: 42, background: "transparent", border: "none", color: "#eaeaea", fontSize: 12.5, textAlign: "right", outline: "none" };
 const pillSelect = { height: 32, background: "#24242a", color: "#eaeaea", border: "1px solid #34343c", borderRadius: 9, fontSize: 12.5, padding: "0 8px", cursor: "pointer" };
 const pillBtn = { height: 32, padding: "0 11px", borderRadius: 9, background: "#24242a", border: "1px solid #34343c", color: "#eaeaea", fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" };
+const cropDone = { background: "#1f7a3a", border: "1px solid #2a9a4a", color: "#eafff0", fontWeight: 700 };
 const miniClear = { background: "transparent", border: "none", color: "#9a9a9a", cursor: "pointer", fontSize: 13, padding: "0 2px", marginLeft: 2 };
 const segWrap = { display: "inline-flex", height: 32, background: "#24242a", border: "1px solid #34343c", borderRadius: 9, overflow: "hidden", flexShrink: 0 };
 const segBtn = { width: 32, height: 30, border: "none", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" };

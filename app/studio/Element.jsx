@@ -8,7 +8,7 @@ import { imageTransform } from "./model";
 
 // One element. Wrapped in React.memo so it re-renders only when its own object
 // (or its editing flag) changes — the key to Canva-like drag performance.
-function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, onCommitText, onEndEdit, onTextSelect, onEditApi, onStyleApply }) {
+function ElementView({ element: el, isEditing, isCropping, onPointerDownBody, onStartEdit, onStartCrop, onCommitText, onEndEdit, onTextSelect, onEditApi, onStyleApply }) {
   // Editing is delegated to RichEditable (B1) — a contentEditable seeded from the
   // element's runs so styling previews live. It commits content+runs on exit.
 
@@ -29,6 +29,9 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
   // so a full-bleed-edge frame never intercepts a click meant for the content
   // beneath it. Removed/changed via its own control (Brand → Look), not the canvas.
   if (el.locked) { frame.pointerEvents = "none"; frame.cursor = "default"; }
+  // Images clip to their box so a crop zoom/pan never bleeds past the frame.
+  // In free-form crop mode the whole photo drags, so show a grab cursor.
+  if (el.type === "image") { frame.overflow = "hidden"; if (isCropping) frame.cursor = "grab"; }
 
   let inner = null;
   if (el.type === "text") {
@@ -116,9 +119,31 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
     <div
       style={frame}
       onPointerDown={(e) => { if (!isEditing && !el.locked) onPointerDownBody(e, el.id); }}
-      onDoubleClick={(e) => { if (el.type === "text") { e.stopPropagation(); onStartEdit(el.id); } }}
+      onDoubleClick={(e) => {
+        if (el.type === "text") { e.stopPropagation(); onStartEdit(el.id); }
+        else if (el.type === "image" && onStartCrop) { e.stopPropagation(); onStartCrop(el.id); }
+      }}
     >
       {inner}
+      {isCropping && el.type === "image" && <CropOverlay />}
+    </div>
+  );
+}
+
+// The free-form crop affordance: a rule-of-thirds guide + hint, drawn over the
+// photo while in crop mode. pointerEvents:none so drags fall through to the
+// frame (which pans the focal point) and the wheel still zooms.
+function CropOverlay() {
+  const line = { position: "absolute", background: "rgba(255,255,255,0.45)" };
+  const badge = { position: "absolute", background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 12, fontFamily: "Helvetica, Arial, sans-serif", padding: "3px 9px", borderRadius: 13, whiteSpace: "nowrap" };
+  return (
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", boxShadow: "inset 0 0 0 2px rgba(255,255,255,0.9)" }}>
+      <div style={{ ...line, left: "33.33%", top: 0, bottom: 0, width: 1 }} />
+      <div style={{ ...line, left: "66.66%", top: 0, bottom: 0, width: 1 }} />
+      <div style={{ ...line, top: "33.33%", left: 0, right: 0, height: 1 }} />
+      <div style={{ ...line, top: "66.66%", left: 0, right: 0, height: 1 }} />
+      <div style={{ ...badge, left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}>✛ drag to reposition</div>
+      <div style={{ ...badge, right: 8, bottom: 8 }}>scroll = zoom</div>
     </div>
   );
 }

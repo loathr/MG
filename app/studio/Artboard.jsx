@@ -12,7 +12,9 @@ const HANDLES = [
   { sx: -1, sy: 1 }, { sx: 0, sy: 1 }, { sx: 1, sy: 1 },
 ];
 
-export default function Artboard({ slide, selectedId, editingId, dispatch, onTextSelect, onEditApi }) {
+const clamp01 = (n) => Math.max(0, Math.min(1, n));
+
+export default function Artboard({ slide, selectedId, editingId, croppingId, dispatch, onTextSelect, onEditApi }) {
   const containerRef = useRef(null);
   const artRef = useRef(null);
   const [scale, setScale] = useState(0.4);
@@ -61,6 +63,16 @@ export default function Artboard({ slide, selectedId, editingId, dispatch, onTex
     } else if (d.mode === "rotate") {
       const deg = geoRotate(d.startEl, p, 3);
       dispatch({ type: "update", id: d.id, patch: { rotation: Math.round(deg) } });
+    } else if (d.mode === "crop") {
+      // Free-form crop: dragging the photo pans its focal point. Moving the photo
+      // right reveals its left edge, so focal x DECREASES with a rightward drag.
+      // The pan range tracks the overscan (~ box·(z-1)); a floor keeps z≈1 usable.
+      const el0 = d.startEl;
+      const c0 = el0.crop || { zoom: 1, x: 0.5, y: 0.5 };
+      const z = Math.max(1, c0.zoom || 1);
+      const nx = clamp01((c0.x == null ? 0.5 : c0.x) - (p.x - d.start.x) / (el0.w * Math.max(z - 1, 0.6)));
+      const ny = clamp01((c0.y == null ? 0.5 : c0.y) - (p.y - d.start.y) / (el0.h * Math.max(z - 1, 0.6)));
+      dispatch({ type: "update", id: d.id, patch: { crop: { zoom: z, x: nx, y: ny } } });
     }
   }, [dispatch, toArtboard]);
 
@@ -88,7 +100,7 @@ export default function Artboard({ slide, selectedId, editingId, dispatch, onTex
     window.addEventListener("pointerup", endDrag);
   }, [slide, toArtboard, onWindowMove, endDrag]);
 
-  // element body -> select + move
+  // element body -> select + move, OR pan the focal point when in crop mode
   const onPointerDownBody = useCallback((e, id) => {
     e.stopPropagation();
     dispatch({ type: "select", id });
@@ -96,6 +108,7 @@ export default function Artboard({ slide, selectedId, editingId, dispatch, onTex
   }, [dispatch, beginDrag]);
 
   const onStartEdit = useCallback((id) => dispatch({ type: "edit", id }), [dispatch]);
+  const onStartCrop = useCallback((id) => dispatch({ type: "crop", id }), [dispatch]);
   const onCommitText = useCallback((id, text, runs) => {
     // B1 commits content AND the live runs read back from the editable; older
     // callers pass text only (runs stay whatever the store already holds).
@@ -113,6 +126,23 @@ export default function Artboard({ slide, selectedId, editingId, dispatch, onTex
   const onEndEdit = useCallback(() => dispatch({ type: "endEdit" }), [dispatch]);
 
   useEffect(() => () => endDrag(), [endDrag]);
+
+  // Scroll / pinch to zoom the photo being cropped (free-form crop). Native
+  // non-passive listener so preventDefault stops the page/canvas from scrolling.
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node || !croppingId) return undefined;
+    const onWheel = (e) => {
+      const el = slide.elements.find((x) => x.id === croppingId);
+      if (!el) return;
+      e.preventDefault();
+      const c0 = el.crop || { zoom: 1, x: 0.5, y: 0.5 };
+      const z = Math.max(1, Math.min(4, (c0.zoom || 1) - e.deltaY * 0.0015));
+      dispatch({ type: "update", id: croppingId, patch: { crop: { zoom: z, x: c0.x == null ? 0.5 : c0.x, y: c0.y == null ? 0.5 : c0.y } } });
+    };
+    node.addEventListener("wheel", onWheel, { passive: false });
+    return () => node.removeEventListener("wheel", onWheel);
+  }, [croppingId, slide, dispatch]);
 
   // Drag an image file straight onto the canvas → place it as a movable, resizable
   // element at the drop point. PNG alpha is preserved (readImageFile), large files
@@ -149,6 +179,7 @@ export default function Artboard({ slide, selectedId, editingId, dispatch, onTex
   }, [toArtboard, dispatch]);
 
   const selected = selectedId ? slide.elements.find((e) => e.id === selectedId) : null;
+  const cropEl = croppingId ? slide.elements.find((e) => e.id === croppingId) : null;
   const bg = slide.background || {};
 
   return (
@@ -179,8 +210,10 @@ export default function Artboard({ slide, selectedId, editingId, dispatch, onTex
               key={el.id}
               element={el}
               isEditing={editingId === el.id}
+              isCropping={croppingId === el.id}
               onPointerDownBody={onPointerDownBody}
               onStartEdit={onStartEdit}
+              onStartCrop={onStartCrop}
               onCommitText={onCommitText}
               onEndEdit={onEndEdit}
               onTextSelect={onTextSelect}
@@ -219,8 +252,23 @@ export default function Artboard({ slide, selectedId, editingId, dispatch, onTex
         {/* selection overlay in SCREEN space so handles are a constant size.
             (R3: contextual controls now live in the right Inspector, not a
             floating toolbar — the canvas stays unobstructed.) */}
-        {selected && !editingId && (
+        {selected && !editingId && !cropEl && (
           <SelectionOverlay el={selected} scale={scale} onHandleDown={beginDrag} />
+        )}
+
+        {/* Free-form crop capture: a transparent layer over the cropped image's box
+            (above any scrim/text that overlaps it) so a drag anywhere in the box
+            pans the photo. The rule-of-thirds guide (Element) shows beneath it. */}
+        {cropEl && (
+          <div
+            onPointerDown={(e) => { e.stopPropagation(); beginDrag("crop", cropEl.id, e.clientX, e.clientY); }}
+            style={{
+              position: "absolute", left: cropEl.x * scale, top: cropEl.y * scale,
+              width: cropEl.w * scale, height: cropEl.h * scale,
+              transform: "rotate(" + (cropEl.rotation || 0) + "deg)", transformOrigin: "center center",
+              cursor: "grab", zIndex: 22, touchAction: "none",
+            }}
+          />
         )}
 
         {/* drop-to-place highlight while an image file is dragged over the canvas */}

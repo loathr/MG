@@ -37,6 +37,7 @@ export function initStudio() {
     slideIndex: 0,
     selectedId: null,
     editingId: null,
+    croppingId: null,
     past: [],
     future: [],
     lastTag: null,
@@ -69,6 +70,7 @@ function withDoc(state, slides, slideIndex) {
     slideIndex: slideIndex == null ? state.slideIndex : slideIndex,
     selectedId: null,
     editingId: null,
+    croppingId: null,
   });
 }
 
@@ -223,20 +225,29 @@ function docReducer(state, a) {
       return Object.assign({}, state, {
         selectedId: a.id,
         editingId: state.editingId === a.id ? state.editingId : null,
+        // Leaving an element exits its crop mode; re-selecting the same one keeps it.
+        croppingId: state.croppingId === a.id ? state.croppingId : null,
       });
     case "deselect":
-      return Object.assign({}, state, { selectedId: null, editingId: null });
+      return Object.assign({}, state, { selectedId: null, editingId: null, croppingId: null });
     case "edit":
-      return Object.assign({}, state, { selectedId: a.id, editingId: a.id });
+      return Object.assign({}, state, { selectedId: a.id, editingId: a.id, croppingId: null });
     case "endEdit":
       return Object.assign({}, state, { editingId: null });
+    case "crop":
+      // Toggle free-form crop mode for an image element (drag pans, wheel zooms).
+      return Object.assign({}, state, {
+        selectedId: a.id,
+        editingId: null,
+        croppingId: state.croppingId === a.id ? null : a.id,
+      });
     case "update":
       return withSlide(state, (s) => patchEl(s, a.id, a.patch));
     case "delete":
       return Object.assign({}, withSlide(state, (s) => ({
         ...s,
         elements: s.elements.filter((e) => e.id !== a.id),
-      })), { selectedId: null, editingId: null });
+      })), { selectedId: null, editingId: null, croppingId: null });
     case "add":
       return Object.assign({}, withSlide(state, (s) => ({
         ...s,
@@ -537,7 +548,7 @@ function docReducer(state, a) {
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides, brand }), selectedId: null, editingId: null });
     }
     case "setSlide":
-      return Object.assign({}, state, { slideIndex: a.index, selectedId: null, editingId: null });
+      return Object.assign({}, state, { slideIndex: a.index, selectedId: null, editingId: null, croppingId: null });
     default:
       return state;
   }
@@ -546,7 +557,7 @@ function docReducer(state, a) {
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
 const MUTATES = { add: 1, duplicate: 1, update: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1 };
-const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
+const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1, crop: 1 };
 
 function snap(state) {
   return { doc: state.doc, slideIndex: state.slideIndex };
