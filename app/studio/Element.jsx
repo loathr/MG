@@ -85,12 +85,14 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
       inner = textNode;
     }
   } else if (el.type === "image") {
+    const flip = "scaleX(" + (el.flipX ? -1 : 1) + ") scaleY(" + (el.flipY ? -1 : 1) + ")";
     inner = el.src ? (
       <img
         src={el.src}
         alt=""
         draggable={false}
-        style={{ width: "100%", height: "100%", objectFit: el.fit || "cover", borderRadius: el.radius || 0, display: "block" }}
+        style={{ width: "100%", height: "100%", objectFit: el.fit || "cover", borderRadius: el.radius || 0, display: "block",
+          transform: (el.flipX || el.flipY) ? flip : undefined, filter: el.mono ? "grayscale(1)" : undefined }}
         onError={(e) => { e.currentTarget.style.opacity = "0"; }}
       />
     ) : (
@@ -102,11 +104,13 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
         width: "100%", height: "100%",
         background: el.fill,
         borderRadius: el.radius || 0,
-        border: el.stroke && el.stroke !== "none" ? (el.strokeWidth || 1) + "px solid " + el.stroke : "none",
+        border: el.stroke && el.stroke !== "none" ? (el.strokeWidth || 1) + "px " + (el.dash || "solid") + " " + el.stroke : "none",
       }} />
     );
   } else if (el.type === "line") {
-    inner = <div style={{ width: "100%", height: "100%", background: el.fill }} />;
+    inner = (el.dash && el.dash !== "solid")
+      ? <div style={{ width: "100%", height: "100%", boxSizing: "border-box", borderTop: el.h + "px " + el.dash + " " + el.fill, background: "transparent" }} />
+      : <div style={{ width: "100%", height: "100%", background: el.fill }} />;
   }
 
   return (

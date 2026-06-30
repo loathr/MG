@@ -64,16 +64,20 @@ function StaticElement({ el }) {
   if (el.type === "image") {
     return el.thumb ? (
       <img src={el.thumb} alt="" draggable={false}
-        style={{ ...frame, width: el.w, height: el.h, objectFit: el.fit || "cover", borderRadius: el.radius || 0 }} />
+        style={{ ...frame, width: el.w, height: el.h, objectFit: el.fit || "cover", borderRadius: el.radius || 0,
+          transform: (frame.transform || "") + " scaleX(" + (el.flipX ? -1 : 1) + ") scaleY(" + (el.flipY ? -1 : 1) + ")", filter: el.mono ? "grayscale(1)" : undefined }} />
     ) : (
       <div style={{ ...frame, background: "#2a2a2e", borderRadius: el.radius || 0 }} />
     );
   }
   if (el.type === "rect") {
-    return <div style={{ ...frame, background: el.fill, borderRadius: el.radius || 0 }} />;
+    return <div style={{ ...frame, background: el.fill, borderRadius: el.radius || 0,
+      border: el.stroke && el.stroke !== "none" ? (el.strokeWidth || 1) + "px " + (el.dash || "solid") + " " + el.stroke : undefined, boxSizing: "border-box" }} />;
   }
   if (el.type === "line") {
-    return <div style={{ ...frame, background: el.fill }} />;
+    return (el.dash && el.dash !== "solid")
+      ? <div style={{ ...frame, boxSizing: "border-box", borderTop: el.h + "px " + el.dash + " " + el.fill }} />
+      : <div style={{ ...frame, background: el.fill }} />;
   }
   return null;
 }

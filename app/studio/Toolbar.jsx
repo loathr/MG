@@ -64,6 +64,11 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
         <>
           <SelectBtn value={el.fit || "cover"} onChange={(v) => up({ fit: v })} title="Fit" options={[["cover", "Fill"], ["contain", "Fit"]]} />
           <NumBtn label="Radius" value={el.radius || 0} onChange={(n) => up({ radius: Math.max(0, n) })} />
+          <Seg>
+            <SegBtn on={!!el.flipX} onClick={() => up({ flipX: !el.flipX })} title="Flip horizontal">⇋</SegBtn>
+            <SegBtn on={!!el.flipY} onClick={() => up({ flipY: !el.flipY })} title="Flip vertical">⥯</SegBtn>
+            <SegBtn on={!!el.mono} onClick={() => up({ mono: !el.mono })} title="Black & white">◑</SegBtn>
+          </Seg>
           <Sep />
           <TextBtn onClick={() => dispatch({ type: "imageToBackground", id: el.id })} title="Set as slide background">⤓ Background</TextBtn>
         </>
@@ -84,6 +89,7 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
             </>
           )}
           {el.type === "line" && <NumBtn label="Weight" value={Math.round(el.h) || 0} onChange={(n) => up({ h: Math.max(1, Math.round(n)) })} />}
+          <DashSelect value={el.dash || "solid"} onChange={(v) => up({ dash: v })} />
         </>
       )}
 

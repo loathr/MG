@@ -384,17 +384,38 @@ export async function renderSlideToCanvas(slide) {
       if (el.stroke && el.stroke !== "none") {
         ctx.lineWidth = el.strokeWidth || 1;
         ctx.strokeStyle = el.stroke;
+        if (el.dash === "dashed") ctx.setLineDash([(el.strokeWidth || 1) * 2.5, (el.strokeWidth || 1) * 2]);
+        else if (el.dash === "dotted") ctx.setLineDash([el.strokeWidth || 1, (el.strokeWidth || 1) * 1.6]);
         ctx.stroke();
+        ctx.setLineDash([]);
       }
     } else if (el.type === "line") {
-      ctx.fillStyle = el.fill || "#ffffff";
-      ctx.fillRect(0, 0, el.w, el.h);
+      if (el.dash && el.dash !== "solid") {
+        ctx.strokeStyle = el.fill || "#ffffff";
+        ctx.lineWidth = el.h;
+        ctx.lineCap = el.dash === "dotted" ? "round" : "butt";
+        ctx.setLineDash(el.dash === "dotted" ? [0.1, el.h * 1.8] : [el.h * 2.4, el.h * 1.8]);
+        ctx.beginPath();
+        ctx.moveTo(0, el.h / 2);
+        ctx.lineTo(el.w, el.h / 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.lineCap = "butt";
+      } else {
+        ctx.fillStyle = el.fill || "#ffffff";
+        ctx.fillRect(0, 0, el.w, el.h);
+      }
     } else if (el.type === "image" && el.src) {
       const img = await loadImage(el.src);
       if (img) {
         ctx.save();
         roundRectPath(ctx, 0, 0, el.w, el.h, el.radius);
         ctx.clip();
+        if (el.mono) ctx.filter = "grayscale(1)";
+        if (el.flipX || el.flipY) { // flip about the element box
+          ctx.translate(el.flipX ? el.w : 0, el.flipY ? el.h : 0);
+          ctx.scale(el.flipX ? -1 : 1, el.flipY ? -1 : 1);
+        }
         if ((el.fit || "cover") === "contain") drawContain(ctx, img, 0, 0, el.w, el.h);
         else drawCover(ctx, img, 0, 0, el.w, el.h);
         ctx.restore();
