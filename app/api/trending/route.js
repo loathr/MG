@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getBeat, mostReadUrl, parseRss, parseMostRead, selectTrending, filterByRegion, filterByCountry, filterByRecency, urgencyById } from "../../studio/trending";
+import { getBeat, mostReadUrl, parseRss, parseMostRead, selectTrending, filterByRegion, filterByCountry, filterByRecency, urgencyById, regionById, geoHint, scopeQuery, googleNewsUrl, gdeltUrl, parseGdelt, mergeSources, backfillSeeds } from "../../studio/trending";
 
 // Live "Trending" for a beat, from FREE keyless feeds only — per-beat RSS
 // (recency) + Wikipedia most-read (popularity + photos + a never-empty fallback).
@@ -101,23 +101,50 @@ export async function GET(request) {
       wikiPool = filterByCountry(wikiPool, country);
     }
 
-    // Refresh (fresh=1) ranks a larger pool and returns a shuffled window, so a
-    // re-pull surfaces different picks. selectTrending focuses the feed +
-    // most-read on the beat's terms, then broadens if that pull is thin — so a
-    // sector beat stays on-topic but never returns a near-empty rail. hasFeeds
-    // keeps a feed-down section beat from leaking unfiltered general most-read.
     const pool = fresh ? 30 : 6;
     // Enterprise sectors share broad section feeds, so always term-FILTER them to
     // the sector (then seed-backfill keeps the rail full); News/editorial keep
     // their own per-beat filterFeed flag.
     const filterFeed = !!beat.filterFeed || beat.desk === "enterprise";
-    const ranked = selectTrending(rssItems, wikiPool, beat.terms, pool, hasFeeds, filterFeed, beat.seeds);
-    const items = (fresh ? shuffle(ranked) : ranked).slice(0, 6);
+    // Base (Guardian + Wikipedia) pull — the default/unscoped path & fallback.
+    const baseRanked = selectTrending(rssItems, wikiPool, beat.terms, pool, hasFeeds, filterFeed);
 
-    const payload = { beat: beat.key, voice: beat.voice, items };
+    // Scoped sources (GDELT + Google News), paired — fired whenever a place
+    // (country/region) is set OR the beat has terms, so a narrow combo is scoped
+    // AT THE SOURCE instead of post-filtering sparse generic feeds. GDELT carries
+    // images; Google News carries fresh in-region coverage; merged + deduped.
+    const regionLabel = region && region !== "global" ? regionById(region).label : null;
+    const place = country || regionLabel || "";
+    const hasTerms = !!(beat.terms && beat.terms.length);
+    let scopedItems = [];
+    if (place || hasTerms) {
+      const hint = geoHint(country);
+      const q = scopeQuery(beat.terms, beat.label, place);
+      const [gnText, gdJson] = await Promise.all([
+        getText(googleNewsUrl(q, hint), fresh, diag),
+        getJson(gdeltUrl(q, hint), fresh, diag),
+      ]);
+      scopedItems = mergeSources([parseGdelt(gdJson, 20), parseRss(gnText, 20)], 30);
+    }
+
+    // Compose: scoped items lead (on-topic, in-region, often pictured), then the
+    // base pull fills, then curated seeds backfill so the rail is never empty.
+    const merged = mergeSources([scopedItems, baseRanked], pool);
+    const composed = backfillSeeds(merged, beat.seeds, pool);
+    const items = (fresh ? shuffle(composed) : composed).slice(0, 6);
+
+    // Honest scope label: say what actually produced the rail. If a place was
+    // requested but the scoped sources came back empty, flag that it broadened.
+    const requested = country || regionLabel || null;
+    const scope = requested
+      ? { requested, sourced: scopedItems.length > 0, label: scopedItems.length > 0 ? requested : requested + " — few live results, broadened" }
+      : null;
+
+    const payload = { beat: beat.key, voice: beat.voice, items, scope };
     if (debug) {
       payload.debug = {
-        hasFeeds, terms: beat.terms, configuredFeeds: beat.rss || [],
+        hasFeeds, terms: beat.terms, configuredFeeds: beat.rss || [], place, scope,
+        scopedCount: scopedItems.length, baseCount: baseRanked.length,
         rssParsed: rssItems.length, wikiParsed: wikiAll.length, returned: items.length,
         sources: diag,
       };

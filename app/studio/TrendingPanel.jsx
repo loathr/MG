@@ -16,6 +16,7 @@ export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, r
   // has something to show; changing it here sets the route too.
   const beat = routeBeat || defaultBeat(desk);
   const [items, setItems] = useState([]);
+  const [scope, setScope] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const abortRef = useRef(null);
@@ -40,6 +41,7 @@ export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, r
       .then((d) => {
         if (ac.signal.aborted) return;
         setItems(Array.isArray(d.items) ? d.items : []);
+        setScope(d.scope || null);
         if (d.error) setError(d.error);
         setLoading(false);
       })
@@ -80,6 +82,12 @@ export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, r
             </select>
           </div>
 
+          {scope && scope.requested && !loading ? (
+            <div style={scopeNote(scope.sourced)} title="What scope produced these results">
+              <span>📍</span> {scope.sourced ? "Scoped to " + scope.requested : "No live results for " + scope.requested + " — showing broader"}
+            </div>
+          ) : null}
+
           {loading ? (
             <div style={note}>Loading what&apos;s trending…</div>
           ) : items.length ? (
@@ -88,6 +96,8 @@ export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, r
                 <button key={i} type="button" onClick={() => pick(it)} style={card} title={"Use: " + it.title}>
                   {it.thumb ? (
                     <span style={Object.assign({}, thumb, { backgroundImage: "url(" + it.thumb + ")", filter: mono ? "grayscale(1) contrast(1.05)" : "none" })} />
+                  ) : it.source === "seed" ? (
+                    <span style={seedTile}><span style={seedBadge}>IDEA</span></span>
                   ) : (
                     <span style={noimg}><span style={{ fontFamily: "Georgia, serif", fontSize: 22, color: "#5a5a64" }}>{(it.title[0] || "?").toUpperCase()}</span></span>
                   )}
@@ -121,7 +131,15 @@ const refreshBtn = { fontSize: 11.5, color: "#9aa0ab", background: "transparent"
 const ddRow = { display: "flex", alignItems: "center", gap: 10, marginBottom: 14 };
 const ddLabel = { fontSize: 12, color: UI.muted, flexShrink: 0 };
 const ddSelect = { flex: 1, height: 38, borderRadius: 8, background: UI.surface2, color: "#fff", border: "1px solid " + UI.border, fontSize: 13, padding: "0 11px", cursor: "pointer" };
+const scopeNote = (sourced) => ({
+  display: "flex", alignItems: "center", gap: 6, fontSize: 11, marginBottom: 12, padding: "6px 10px",
+  borderRadius: 7, background: sourced ? "#142019" : "#221c16",
+  border: "1px solid " + (sourced ? "#264a36" : "#43381f"), color: sourced ? "#8fd3a8" : "#d9b88a",
+});
 const cards = { display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" };
+// Seed (curated topic) card tile — a clean "idea" placeholder, not a broken image.
+const seedTile = { display: "flex", height: 120, borderRadius: 10, alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#20202a,#191921)", border: "1px dashed #3a3a46" };
+const seedBadge = { fontSize: 8.5, fontWeight: 700, letterSpacing: 1, color: "#8a8ad0", border: "1px solid #3a3a5a", borderRadius: 4, padding: "2px 5px" };
 const card = { width: 96, cursor: "pointer", background: "transparent", border: "none", padding: 0, textAlign: "left", display: "block" };
 const thumb = {
   display: "block", height: 120, borderRadius: 10, backgroundSize: "cover",

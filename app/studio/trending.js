@@ -413,3 +413,106 @@ export function selectTrending(rssItems, wikiItems, terms, max, hasFeeds, filter
   // Backfill from the beat's curated seeds when the live pull is thin (Enterprise).
   return backfillSeeds(out, seeds, max);
 }
+
+// ---------------------------------------------------------------------------
+// Scoped sources — GDELT + Google News, paired, for narrow beat×region×country
+// pulls. The Guardian/Wikipedia feeds can't be scoped at the source, so a narrow
+// combo (e.g. Music × US) post-filters to noise. These two query-scope at the
+// source instead: GDELT brings images (socialimage), Google News brings fresh
+// in-region coverage; merged + deduped they cover each other's gaps.
+// ---------------------------------------------------------------------------
+
+// Geo hints for the major countries: gl/lang for Google News, FIPS for GDELT's
+// sourcecountry. Unmapped countries still scope via the country-name KEYWORD in
+// the query (geoHint → null), so every country works, just less precisely.
+export const GEO_HINTS = {
+  "United States": { gl: "US", lang: "en", gdelt: "US" },
+  "United Kingdom": { gl: "GB", lang: "en", gdelt: "UK" },
+  "Canada": { gl: "CA", lang: "en", gdelt: "CA" },
+  "Australia": { gl: "AU", lang: "en", gdelt: "AS" },
+  "New Zealand": { gl: "NZ", lang: "en", gdelt: "NZ" },
+  "Ireland": { gl: "IE", lang: "en", gdelt: "EI" },
+  "France": { gl: "FR", lang: "fr", gdelt: "FR" },
+  "Germany": { gl: "DE", lang: "de", gdelt: "GM" },
+  "Spain": { gl: "ES", lang: "es", gdelt: "SP" },
+  "Italy": { gl: "IT", lang: "it", gdelt: "IT" },
+  "Netherlands": { gl: "NL", lang: "nl", gdelt: "NL" },
+  "India": { gl: "IN", lang: "en", gdelt: "IN" },
+  "Japan": { gl: "JP", lang: "ja", gdelt: "JA" },
+  "China": { gl: "CN", lang: "zh", gdelt: "CH" },
+  "South Korea": { gl: "KR", lang: "ko", gdelt: "KS" },
+  "Singapore": { gl: "SG", lang: "en", gdelt: "SN" },
+  "Brazil": { gl: "BR", lang: "pt", gdelt: "BR" },
+  "Mexico": { gl: "MX", lang: "es", gdelt: "MX" },
+  "Nigeria": { gl: "NG", lang: "en", gdelt: "NI" },
+  "South Africa": { gl: "ZA", lang: "en", gdelt: "SF" },
+  "Kenya": { gl: "KE", lang: "en", gdelt: "KE" },
+  "Egypt": { gl: "EG", lang: "en", gdelt: "EG" },
+  "Saudi Arabia": { gl: "SA", lang: "en", gdelt: "SA" },
+  "United Arab Emirates": { gl: "AE", lang: "en", gdelt: "AE" },
+  "UAE": { gl: "AE", lang: "en", gdelt: "AE" },
+  "Israel": { gl: "IL", lang: "en", gdelt: "IS" },
+};
+export function geoHint(country) { return (country && GEO_HINTS[country]) || null; }
+
+// The search query for the scoped sources: the beat's terms (OR-joined) or its
+// label, plus the place (country or region name) as a keyword. Pure.
+export function scopeQuery(terms, label, place) {
+  const core = (terms && terms.length) ? terms.slice(0, 6).join(" OR ") : (label || "");
+  const q = core ? "(" + core + ")" : "";
+  return [q, place ? "\"" + place + "\"" : ""].filter(Boolean).join(" ").trim();
+}
+
+export function googleNewsUrl(query, hint) {
+  const gl = (hint && hint.gl) || "US";
+  const lang = (hint && hint.lang) || "en";
+  return "https://news.google.com/rss/search?q=" + encodeURIComponent(query)
+    + "&hl=" + lang + "-" + gl + "&gl=" + gl + "&ceid=" + encodeURIComponent(gl + ":" + lang);
+}
+
+export function gdeltUrl(query, hint) {
+  const q = query + (hint && hint.gdelt ? " sourcecountry:" + hint.gdelt : "");
+  return "https://api.gdeltproject.org/api/v2/doc/doc?query=" + encodeURIComponent(q)
+    + "&mode=ArtList&maxrecords=20&sort=DateDesc&format=json";
+}
+
+// GDELT seendate "20260629T123000Z" → ISO (for recency filtering/parity).
+function gdeltDate(s) {
+  const m = String(s || "").match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
+  return m ? m[1] + "-" + m[2] + "-" + m[3] + "T" + m[4] + ":" + m[5] + ":" + m[6] + "Z" : "";
+}
+
+// GDELT DOC ArtList JSON → items in the shared shape. Keeps only http(s) images.
+export function parseGdelt(json, max) {
+  const arts = (json && json.articles) || [];
+  const out = [];
+  for (const a of arts) {
+    const title = cleanTitle(a.title || "");
+    if (!title) continue;
+    const thumb = a.socialimage && /^https?:\/\//i.test(a.socialimage) ? a.socialimage : null;
+    out.push({ title, thumb, when: gdeltDate(a.seendate), extract: "", source: a.domain || "GDELT" });
+    if (max && out.length >= max) break;
+  }
+  return out;
+}
+
+// Merge several item lists into one, deduped by normalized title, preferring the
+// variant that carries a thumbnail (it's a photo rail) and filling a missing
+// thumb from a duplicate that has one. Thumbed items lead. Pure.
+export function mergeSources(lists, max) {
+  const norm = (t) => String(t || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const order = [];
+  const byKey = new Map();
+  for (const list of lists) {
+    for (const it of (list || [])) {
+      const k = norm(it.title);
+      if (!k) continue;
+      const prev = byKey.get(k);
+      if (!prev) { byKey.set(k, Object.assign({}, it)); order.push(k); }
+      else if (!prev.thumb && it.thumb) prev.thumb = it.thumb;
+    }
+  }
+  const arr = order.map((k) => byKey.get(k));
+  arr.sort((a, b) => (b.thumb ? 1 : 0) - (a.thumb ? 1 : 0));
+  return max ? arr.slice(0, max) : arr;
+}

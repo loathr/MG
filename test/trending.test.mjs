@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import {
   BEATS, getBeat, beatVoice, beatsForDesk, defaultBeat, groupsForDesk, routeFraming, mostReadUrl, cleanTitle, parseRss, parseMostRead,
   filterByTerms, rankItems, selectTrending, backfillSeeds, filterByRegion, filterByCountry, countriesForRegion, filterByRecency,
+  geoHint, scopeQuery, googleNewsUrl, gdeltUrl, parseGdelt, mergeSources,
 } from "../app/studio/trending.js";
 
 test("BEATS feed config: dedicated vs shared/sub-topic vs the lone feed-less beat", () => {
@@ -269,6 +270,58 @@ test("countriesForRegion: returns the region's country list (empty for global)",
   assert.ok(countriesForRegion("europe").includes("France"));
   assert.deepEqual(countriesForRegion("global"), []);
   assert.deepEqual(countriesForRegion("nope"), []);
+});
+
+test("scopeQuery: OR-joins beat terms and quotes the place; falls back to label", () => {
+  assert.equal(scopeQuery(["music", "album", "singer"], "Music", "United States"), '(music OR album OR singer) "United States"');
+  assert.equal(scopeQuery([], "Real Estate", "Europe"), '(Real Estate) "Europe"');
+  assert.equal(scopeQuery(["x"], "X", ""), "(x)");
+});
+
+test("geoHint: maps a known country, null for unmapped (keyword-only scoping)", () => {
+  assert.deepEqual(geoHint("United States"), { gl: "US", lang: "en", gdelt: "US" });
+  assert.equal(geoHint("Atlantis"), null);
+  assert.equal(geoHint(null), null);
+});
+
+test("googleNewsUrl / gdeltUrl: build keyless scoped URLs (gl/ceid · sourcecountry)", () => {
+  const gn = googleNewsUrl('(music) "France"', geoHint("France"));
+  assert.match(gn, /news\.google\.com\/rss\/search\?q=/);
+  assert.match(gn, /gl=FR/);
+  assert.match(gn, /ceid=FR%3Afr/);
+  const gd = gdeltUrl('(music) "France"', geoHint("France"));
+  assert.match(gd, /api\.gdeltproject\.org\/api\/v2\/doc\/doc\?query=/);
+  assert.match(gd, /sourcecountry%3AFR/);
+  assert.match(gd, /format=json/);
+  // unmapped → no sourcecountry, default gl
+  assert.doesNotMatch(gdeltUrl("(x)", geoHint("Atlantis")), /sourcecountry/);
+  assert.match(googleNewsUrl("(x)", geoHint("Atlantis")), /gl=US/);
+});
+
+test("parseGdelt: maps ArtList JSON to items, keeps only http images + ISO date", () => {
+  const json = { articles: [
+    { title: "US rate decision - Reuters", url: "u", socialimage: "https://img/a.jpg", seendate: "20260629T123000Z", domain: "reuters.com" },
+    { title: "No image story", url: "v", socialimage: "", seendate: "20260629T000000Z", domain: "ap.org" },
+    { title: "", url: "w" },
+  ] };
+  const out = parseGdelt(json, 10);
+  assert.equal(out.length, 2);                        // blank-title dropped
+  assert.equal(out[0].thumb, "https://img/a.jpg");
+  assert.equal(out[0].when, "2026-06-29T12:30:00Z");  // seendate → ISO
+  assert.equal(out[1].thumb, null);                   // empty image → null
+});
+
+test("mergeSources: dedupes by title, prefers a thumb, thumbed items lead", () => {
+  const gdelt = [{ title: "Rate cut looms", thumb: "https://i/x.jpg", source: "gdelt" }];
+  const gnews = [
+    { title: "Rate cut looms", thumb: null, source: "gnews" },     // dup → keeps gdelt thumb
+    { title: "Budget vote today", thumb: null, source: "gnews" },
+  ];
+  const merged = mergeSources([gdelt, gnews], 10);
+  assert.equal(merged.length, 2);                                  // deduped
+  assert.equal(merged[0].title, "Rate cut looms");                 // thumbed leads
+  assert.equal(merged[0].thumb, "https://i/x.jpg");
+  assert.ok(merged.some((m) => m.title === "Budget vote today"));
 });
 
 test("backfillSeeds: fills a thin pull up to max, deduped, only when seeds exist", () => {
