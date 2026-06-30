@@ -3,6 +3,7 @@ import React, { useEffect, useReducer, useRef, useState } from "react";
 import { reducer, initStudio, carryBrandKit } from "./store";
 import { makeElement, imageBackground, blankDoc, ARTBOARD_W, ARTBOARD_H } from "./model";
 import { generateCarousel, regenerateCaption } from "./generate";
+import { writeElementText } from "./aitext";
 import { setShare as buildShare, shareUrl } from "./sharing";
 import { photosDemoDoc } from "./demo";
 import Artboard from "./Artboard";
@@ -245,6 +246,28 @@ export default function Studio() {
     } else {
       dispatch({ type: "update", id: textSel.id, patch: { fontSize: Math.max(6, (elx.fontSize || 0) + delta) } });
     }
+  };
+
+  // ✨ Inline AI text — write/replace the SELECTED text box's copy from a preset
+  // (Headline/Body/Shorten/…) and/or a free-text instruction, scoped to the deck's
+  // topic. Reuses the cheap-utility lane (Haiku, no search). The result lands as a
+  // single undoable `update` (⌘Z reverts); throws on failure so the popover can
+  // surface it. No-op unless a text element is selected.
+  const handleAiWrite = async ({ kind, instruction }) => {
+    const elx = selectedEl;
+    if (!elx || elx.type !== "text") return;
+    const brandShow = (state.doc.brand && state.doc.brand.show) || {};
+    const text = await writeElementText({
+      kind,
+      instruction,
+      current: elx.content || "",
+      context: {
+        topic: projectName && projectName !== "Untitled" ? projectName : "",
+        unbranded: !!brandShow.brandless,
+      },
+    });
+    if (!text) throw new Error("The model returned nothing — please try again.");
+    dispatch({ type: "update", id: elx.id, patch: { content: text, runs: [] } });
   };
 
   // Create screen → generate in the chosen style → land in the editor. Capture
@@ -593,6 +616,7 @@ export default function Studio() {
             onClearSpan={clearSpanStyle}
             cropping={!!selectedEl && state.croppingId === selectedEl.id}
             siblings={selectedEl && slide ? (slide.elements || []).filter((e) => e.id !== selectedEl.id && !e.locked && e.tetherTo !== selectedEl.id) : []}
+            onAiWrite={handleAiWrite}
           />
           <Artboard
             slide={slide}

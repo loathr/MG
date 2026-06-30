@@ -7,6 +7,7 @@ import { SHAPE_VARIANTS, shapePaint } from "./shapes";
 import { fitShapeBox } from "./textfit";
 import { readImageFile } from "./imageFile";
 import { removeBackground } from "./bgRemove";
+import { WRITE_KINDS, WRITE_KIND_ORDER } from "./aitext";
 
 // The top contextual toolbar (Canva-style, top-only). It replaces the right-hand
 // Inspector: one horizontal bar above the canvas whose controls reflect the
@@ -14,8 +15,8 @@ import { removeBackground } from "./bgRemove";
 // inline; denser ones (Position, Effects, Shape) open as dropdown popovers
 // anchored to the bar. Wired to the same reducer actions the Inspector used; a
 // selected text SPAN still routes colour/weight through the floating FormatBar.
-export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan, cropping, siblings }) {
-  const [pop, setPop] = useState(null); // open popover: "position" | "effects" | "shape" | "crop" | "more" | null
+export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan, cropping, siblings, onAiWrite }) {
+  const [pop, setPop] = useState(null); // open popover: "position" | "effects" | "shape" | "crop" | "more" | "ai" | null
   const [bgBusy, setBgBusy] = useState(false);
   const [barW, setBarW] = useState(9999); // measured width → responsive overflow
   const fileRef = useRef(null);
@@ -81,6 +82,7 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
           <ColorBtn title="Highlight" value={hl || "#ffd34e"} dim={!hl} onChange={(v) => setHl(v)}
             glyph={<span style={{ background: hl || "#ffd34e", color: "#101010", borderRadius: 3, padding: "0 3px", fontSize: 11, fontWeight: 700 }}>H</span>}
             extra={<button style={miniClear} onMouseDown={sel ? hold : undefined} onClick={() => setHl(null)} title="No highlight">⊘</button>} />
+          {onAiWrite && <><Sep /><button style={{ ...aiPill, ...(pop === "ai" ? aiPillOn : null) }} onClick={() => toggle("ai")} title="Write this text with AI">✨ Write</button></>}
           {showEffects && <PopBtn label="Effects" open={pop === "effects"} onClick={() => toggle("effects")} />}
           {showShape && <PopBtn label="Shape" open={pop === "shape"} onClick={() => toggle("shape")} />}
         </>
@@ -198,7 +200,54 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
 
       {pop === "shape" && el.type === "text" && <ShapePop el={el} up={up} dispatch={dispatch} onClose={() => setPop(null)} />}
 
+      {pop === "ai" && el.type === "text" && onAiWrite && <AiPop onWrite={onAiWrite} onClose={() => setPop(null)} />}
+
     </div>
+  );
+}
+
+// ---- ✨ inline-AI "write this for me" popover ----
+// Self-contained: holds its own draft (instruction + preset chip) and in-flight
+// state. `onWrite({kind,instruction})` is the parent's async writer — it resolves
+// on success (we close) and throws on failure (we surface the message, stay open).
+function AiPop({ onWrite, onClose }) {
+  const [kind, setKind] = useState("heading");
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const canGo = !busy && !!(kind || text.trim());
+  const go = async () => {
+    if (!canGo) return;
+    setBusy(true); setErr("");
+    try { await onWrite({ kind, instruction: text.trim() }); onClose(); }
+    catch (e) { setErr((e && e.message) || "Couldn't generate — please try again."); setBusy(false); }
+  };
+  return (
+    <>
+      <div onClick={busy ? undefined : onClose} style={backdrop} />
+      <div style={aiPop} onMouseDown={(e) => { const t = e.target.tagName; if (t !== "INPUT" && t !== "SELECT" && t !== "TEXTAREA" && t !== "BUTTON") e.preventDefault(); }}>
+        <div style={aiHead}>✨ Write this for me</div>
+        <div style={aiSub}>Generate copy into this text box, using the deck&rsquo;s topic for context.</div>
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") go(); }}
+          placeholder="Describe what to write… e.g. 'a punchy hook about Q3 revenue growth' — or just pick a chip"
+          style={aiArea}
+        />
+        <div style={aiChips}>
+          {WRITE_KIND_ORDER.map((k) => (
+            <button key={k} onClick={() => setKind((cur) => (cur === k ? null : k))} style={{ ...aiChip, ...(kind === k ? aiChipOn : null) }}>{WRITE_KINDS[k].label}</button>
+          ))}
+        </div>
+        {err ? <div style={aiErrBox}>{err}</div> : null}
+        <div style={aiRow}>
+          <span style={aiNote}>Replaces this text box · ⌘Z undoes it</span>
+          <button onClick={busy ? undefined : onClose} style={aiCancel}>Cancel</button>
+          <button onClick={go} disabled={!canGo} style={{ ...aiGo, opacity: canGo ? 1 : 0.5, cursor: canGo ? "pointer" : "default" }}>{busy ? "✨ Writing…" : "✨ Generate"}</button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -324,6 +373,21 @@ const stepBtn = { width: 28, height: 30, border: "none", background: "transparen
 const stepVal = { minWidth: 30, textAlign: "center", color: "#eaeaea", fontSize: 12.5, fontWeight: 600 };
 const backdrop = { position: "fixed", inset: 0, zIndex: 70 };
 const popover = { position: "absolute", top: 54, zIndex: 71, width: 230, background: "#161619", border: "1px solid #34343c", borderRadius: 12, boxShadow: "0 18px 40px rgba(0,0,0,0.6)", padding: 12 };
+// ✨ inline-AI "Write" pill + its popover (gradient accent so it reads as the AI affordance)
+const aiPill = { height: 32, padding: "0 13px", borderRadius: 9, background: "linear-gradient(135deg,#3a2a6e,#6d3bd1)", border: "1px solid #7d54e0", color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, boxShadow: "0 0 0 1px rgba(125,84,224,0.2)" };
+const aiPillOn = { background: "linear-gradient(135deg,#4a3686,#7d4ae6)", boxShadow: "0 0 0 2px rgba(125,84,224,0.4)" };
+const aiPop = { position: "absolute", top: 54, left: 8, zIndex: 71, width: 340, maxWidth: "calc(100vw - 24px)", background: "#1a1a1d", border: "1px solid #34343c", borderRadius: 12, boxShadow: "0 18px 50px rgba(0,0,0,0.6)", padding: 14 };
+const aiHead = { fontSize: 13, fontWeight: 600, color: UI.text, marginBottom: 3 };
+const aiSub = { fontSize: 11.5, color: UI.muted, lineHeight: 1.45, marginBottom: 11 };
+const aiArea = { width: "100%", boxSizing: "border-box", background: "#111114", border: "1px solid #34343c", borderRadius: 8, padding: "9px 11px", fontSize: 13, color: UI.text, minHeight: 60, resize: "vertical", lineHeight: 1.4, outline: "none", fontFamily: "inherit" };
+const aiChips = { display: "flex", flexWrap: "wrap", gap: 6, margin: "10px 0 12px" };
+const aiChip = { fontSize: 11, padding: "5px 10px", borderRadius: 999, background: "#232327", border: "1px solid #34343c", color: "#bcbcc2", cursor: "pointer" };
+const aiChipOn = { background: "#2a2150", borderColor: "#6d3bd1", color: "#cdbcff" };
+const aiErrBox = { fontSize: 11.5, color: "#ff9a9a", marginBottom: 9, lineHeight: 1.4 };
+const aiRow = { display: "flex", alignItems: "center", gap: 8 };
+const aiNote = { fontSize: 10.5, color: UI.muted, flex: 1, minWidth: 0 };
+const aiCancel = { fontSize: 12, fontWeight: 600, padding: "8px 13px", borderRadius: 8, background: "#232327", color: "#bcbcc2", border: "1px solid #34343c", cursor: "pointer" };
+const aiGo = { fontSize: 12, fontWeight: 600, padding: "8px 15px", borderRadius: 8, background: "linear-gradient(135deg,#6d3bd1,#8b5cf6)", color: "#fff", border: "none", whiteSpace: "nowrap" };
 const popTitle = { fontSize: 10, fontWeight: 700, letterSpacing: 1.1, color: "#7c7c84", textTransform: "uppercase", marginBottom: 10 };
 const popSelect = { width: "100%", height: 32, background: UI.surface2, color: UI.text, border: "1px solid " + UI.border, borderRadius: 7, fontSize: 12.5, padding: "0 8px" };
 const pField = { flex: 1, height: 32, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 7, display: "flex", alignItems: "center", padding: "0 9px", gap: 6, minWidth: 0 };
