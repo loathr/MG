@@ -174,16 +174,20 @@ export function filterByRegion(items, regionId) {
   if (!r || !r.countries.length) return (items || []).slice();
   const rx = new RegExp("\\b(" + r.countries.map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")\\b", "i");
   const hit = (items || []).filter((it) => rx.test(it.title || "") || rx.test(it.extract || ""));
-  return hit.length >= 3 ? hit : (items || []).slice();
+  // Scope to the region whenever ANYTHING matches — only broaden to the full pool
+  // when nothing does. (Was 3+, which made region a no-op on sparse feeds, so a
+  // picked region appeared to do nothing; selectTrending's seed/most-read backfill
+  // keeps the rail from going empty.)
+  return hit.length ? hit : (items || []).slice();
 }
 
 // Sub-region drill-down: narrow the pull to a single COUNTRY (title or extract).
-// Broadens (returns all) if the filter would leave too few, like filterByRegion.
+// Same rule — scope when anything matches, broaden only when nothing does.
 export function filterByCountry(items, country) {
   if (!country) return (items || []).slice();
   const rx = new RegExp("\\b" + String(country).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
   const hit = (items || []).filter((it) => rx.test(it.title || "") || rx.test(it.extract || ""));
-  return hit.length >= 2 ? hit : (items || []).slice();
+  return hit.length ? hit : (items || []).slice();
 }
 
 // The country list for a region id (the sub-region dropdown options).

@@ -161,7 +161,7 @@ test("Tier 2b region filter: keeps in-region items, broadens rather than gutting
   assert.equal(eu.length, 3);                                   // FR, DE/ES, IT
   assert.ok(!eu.some((i) => /Brazil/.test(i.title)), "off-region item dropped");
   assert.equal(filterByRegion(items, "global").length, items.length); // global → all
-  // if the filter would leave < 3, keep the original (never an empty rail)
+  // only a ZERO-match region broadens to the original (never an empty rail)
   assert.equal(filterByRegion(items, "oceania").length, items.length);
 });
 
@@ -259,8 +259,10 @@ test("filterByCountry: narrows to a single country, broadens if it would gut the
   assert.ok(fr.every((i) => /France/.test(i.title)));
   // no country → untouched
   assert.equal(filterByCountry(items, null).length, 4);
-  // a country with <2 hits broadens back to the full list (never near-empty)
-  assert.equal(filterByCountry(items, "Spain").length, 4);
+  // ANY match scopes the rail (even one), so the country actually takes effect
+  assert.equal(filterByCountry(items, "Spain").length, 1);
+  // only a ZERO-match country broadens back to the full list (never empty)
+  assert.equal(filterByCountry(items, "Japan").length, 4);
 });
 
 test("countriesForRegion: returns the region's country list (empty for global)", () => {
