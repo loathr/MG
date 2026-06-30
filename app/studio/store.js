@@ -243,10 +243,30 @@ function docReducer(state, a) {
       });
     case "update":
       return withSlide(state, (s) => patchEl(s, a.id, a.patch));
+    case "move":
+      // Move an element to (x,y) and drag every element TETHERED to it (B6) by the
+      // same delta, so a pinned badge/caption follows its parent. One level deep.
+      return withSlide(state, (s) => {
+        const el = (s.elements || []).find((e) => e.id === a.id);
+        if (!el) return s;
+        const dx = a.x - el.x, dy = a.y - el.y;
+        return {
+          ...s,
+          elements: s.elements.map((e) => {
+            if (e.id === a.id) return { ...e, x: a.x, y: a.y };
+            if (e.tetherTo === a.id) return { ...e, x: Math.round(e.x + dx), y: Math.round(e.y + dy) };
+            return e;
+          }),
+        };
+      });
     case "delete":
       return Object.assign({}, withSlide(state, (s) => ({
         ...s,
-        elements: s.elements.filter((e) => e.id !== a.id),
+        // Drop the element, and untether any children pinned to it so they're
+        // never left following a parent that no longer exists (B6).
+        elements: s.elements
+          .filter((e) => e.id !== a.id)
+          .map((e) => (e.tetherTo === a.id ? (({ tetherTo, ...rest }) => rest)(e) : e)),
       })), { selectedId: null, editingId: null, croppingId: null });
     case "add":
       return Object.assign({}, withSlide(state, (s) => ({
@@ -556,7 +576,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, duplicate: 1, update: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1 };
+const MUTATES = { add: 1, duplicate: 1, update: 1, move: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1, crop: 1 };
 
 function snap(state) {

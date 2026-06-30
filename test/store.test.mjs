@@ -53,6 +53,23 @@ test("crop toggles free-form crop mode and clears on leaving the element", () =>
   assert.equal(reducer(s, { type: "edit", id: "IMG" }).croppingId, null);
 });
 
+test("tether (B6): moving a parent drags its children by the same delta; delete untethers", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("image", { id: "P", x: 100, y: 100, w: 400, h: 400 }) });
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "C", x: 120, y: 130, content: "badge", tetherTo: "P" }) });
+  s = reducer(s, { type: "move", id: "P", x: 150, y: 130 });   // +50, +30
+  const child = () => cur(s).elements.find((e) => e.id === "C");
+  assert.equal(child().x, 170); assert.equal(child().y, 160);  // followed the parent
+  // moving the child alone does NOT move the parent
+  s = reducer(s, { type: "move", id: "C", x: 300, y: 300 });
+  assert.equal(cur(s).elements.find((e) => e.id === "P").x, 150);
+  // deleting the parent untethers the child (kept, not orphaned)
+  s = reducer(s, { type: "delete", id: "P" });
+  const c2 = cur(s).elements.find((e) => e.id === "C");
+  assert.ok(c2, "child survives the parent's deletion");
+  assert.equal(c2.tetherTo, undefined, "child is untethered");
+});
+
 test("a continuous drag (update same id) coalesces into one undo frame", () => {
   let s = initStudio();
   s = reducer(s, { type: "add", element: makeElement("rect", { id: "R" }) });

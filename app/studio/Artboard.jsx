@@ -56,7 +56,9 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
       const box = { x: nx, y: ny, w: d.startEl.w, h: d.startEl.h };
       const snapped = snapMove(box, { w: ARTBOARD_W, h: ARTBOARD_H }, d.siblings, 8);
       setGuides(snapped.guides);
-      dispatch({ type: "update", id: d.id, patch: { x: Math.round(snapped.x), y: Math.round(snapped.y) } });
+      // "move" (not a plain x/y update) so any element tethered to this one (B6)
+      // is dragged along by the same delta.
+      dispatch({ type: "move", id: d.id, x: Math.round(snapped.x), y: Math.round(snapped.y) });
     } else if (d.mode === "resize") {
       const patch = geoResize(d.startEl, d.handle.sx, d.handle.sy, p, { min: 16 });
       dispatch({ type: "update", id: d.id, patch: roundBox(patch) });

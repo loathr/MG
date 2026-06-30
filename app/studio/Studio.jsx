@@ -512,6 +512,7 @@ export default function Studio() {
             onStyleSpan={styleSpan}
             onClearSpan={clearSpanStyle}
             cropping={!!selectedEl && state.croppingId === selectedEl.id}
+            siblings={selectedEl && slide ? (slide.elements || []).filter((e) => e.id !== selectedEl.id && !e.locked && e.tetherTo !== selectedEl.id) : []}
           />
           <Artboard
             slide={slide}

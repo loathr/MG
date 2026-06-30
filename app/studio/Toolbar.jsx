@@ -14,7 +14,7 @@ import { removeBackground } from "./bgRemove";
 // inline; denser ones (Position, Effects, Shape) open as dropdown popovers
 // anchored to the bar. Wired to the same reducer actions the Inspector used; a
 // selected text SPAN still routes colour/weight through the floating FormatBar.
-export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan, cropping }) {
+export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan, cropping, siblings }) {
   const [pop, setPop] = useState(null); // open popover: "position" | "effects" | "shape" | "crop" | "more" | null
   const [bgBusy, setBgBusy] = useState(false);
   const [barW, setBarW] = useState(9999); // measured width → responsive overflow
@@ -176,6 +176,10 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
         {el.type === "text" && !showEffects && <><WBtn onClick={() => setPop("effects")}>Effects…</WBtn><div style={{ height: 6 }} /></>}
         {el.type === "text" && !showShape && <><WBtn onClick={() => setPop("shape")}>Shape…</WBtn><div style={{ height: 6 }} /></>}
         {el.type === "image" && !showImgExtra && <><WBtn onClick={() => { fileRef.current && fileRef.current.click(); setPop(null); }}>⧉ Replace image</WBtn><div style={{ height: 6 }} /><WBtn onClick={() => { dispatch({ type: "imageToBackground", id: el.id }); setPop(null); }}>⤓ Set as background</WBtn><div style={{ height: 6 }} /></>}
+        {/* B6 tether: pin this element to a parent so it follows the parent's drag. */}
+        {el.tetherTo
+          ? <><div style={tetherRow}><span style={{ color: "#bfe9bf" }}>🔗 Tethered to {tetherName(el.tetherTo, siblings)}</span><button style={miniClear} title="Untether" onClick={() => up({ tetherTo: null })}>✕</button></div><div style={{ height: 6 }} /></>
+          : ((siblings && siblings.length) ? <><div style={tetherRow}><span style={pLab}>🔗 Tether to…</span><select value="" onChange={(e) => { if (e.target.value) up({ tetherTo: e.target.value }); }} style={tetherSelect}><option value="">choose…</option>{siblings.map((s) => <option key={s.id} value={s.id}>{tetherLabel(s)}</option>)}</select></div><div style={{ height: 6 }} /></> : null)}
         <WBtn onClick={() => { dispatch({ type: "duplicate", id: el.id }); setPop(null); }}>⧉ Duplicate</WBtn>
         <div style={{ height: 6 }} />
         <WBtn danger onClick={() => { dispatch({ type: "delete", id: el.id }); setPop(null); }}>🗑 Delete</WBtn>
@@ -289,6 +293,13 @@ function EffectField({ label, value, fallback, onChange }) {
 function WBtn({ children, onClick, danger }) { return <button onClick={onClick} style={{ ...wBtn, color: danger ? "#ff8a8a" : UI.text }}>{children}</button>; }
 
 const KIND_GLYPH = { text: "T", image: "▤", rect: "▢", line: "—" };
+// A short label for an element in the tether picker: its glyph + a content hint.
+function tetherLabel(e) {
+  const g = KIND_GLYPH[e.type] || "▦";
+  if (e.type === "text") { const t = (e.content || "").trim().replace(/\s+/g, " "); return g + " " + (t ? "“" + t.slice(0, 16) + (t.length > 16 ? "…" : "") + "”" : "Text"); }
+  return g + " " + ({ image: "Photo", rect: "Rectangle", line: "Line" }[e.type] || "Element");
+}
+function tetherName(id, siblings) { const m = (siblings || []).find((s) => s.id === id); return m ? tetherLabel(m) : "another element"; }
 function round2(n) { return Math.round(n * 100) / 100; }
 function hexish(c) { return (typeof c === "string" && /^#[0-9a-fA-F]{6}$/.test(c)) ? c : "#ffffff"; }
 
@@ -303,6 +314,8 @@ const pillNum = { width: 42, background: "transparent", border: "none", color: "
 const pillSelect = { height: 32, background: "#24242a", color: "#eaeaea", border: "1px solid #34343c", borderRadius: 9, fontSize: 12.5, padding: "0 8px", cursor: "pointer" };
 const pillBtn = { height: 32, padding: "0 11px", borderRadius: 9, background: "#24242a", border: "1px solid #34343c", color: "#eaeaea", fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" };
 const cropDone = { background: "#1f7a3a", border: "1px solid #2a9a4a", color: "#eafff0", fontWeight: 700 };
+const tetherRow = { display: "flex", alignItems: "center", gap: 7, height: 32, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 7, padding: "0 9px", fontSize: 12 };
+const tetherSelect = { marginLeft: "auto", maxWidth: 130, background: "#2a2a30", color: "#eaeaea", border: "1px solid #3a3a42", borderRadius: 6, fontSize: 12, padding: "2px 4px", cursor: "pointer" };
 const miniClear = { background: "transparent", border: "none", color: "#9a9a9a", cursor: "pointer", fontSize: 13, padding: "0 2px", marginLeft: 2 };
 const segWrap = { display: "inline-flex", height: 32, background: "#24242a", border: "1px solid #34343c", borderRadius: 9, overflow: "hidden", flexShrink: 0 };
 const segBtn = { width: 32, height: 30, border: "none", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" };
