@@ -208,6 +208,14 @@ function docReducer(state, a) {
         ...s,
         elements: s.elements.concat([a.element]),
       })), { selectedId: a.element.id });
+    case "duplicate": {
+      // Clone an element with a fresh id, nudged down-right, selected. Used by the
+      // toolbar's ⋯ menu.
+      const cur = (state.doc.slides[state.slideIndex].elements || []).find((e) => e.id === a.id);
+      if (!cur) return state;
+      const copy = Object.assign({}, cur, { id: uid(cur.type), x: (cur.x || 0) + 24, y: (cur.y || 0) + 24 });
+      return Object.assign({}, withSlide(state, (s) => ({ ...s, elements: s.elements.concat([copy]) })), { selectedId: copy.id });
+    }
     case "raise":
     case "lower": {
       return withSlide(state, (s) => {
@@ -503,7 +511,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, update: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1 };
+const MUTATES = { add: 1, duplicate: 1, update: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1 };
 
 function snap(state) {

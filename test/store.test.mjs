@@ -129,6 +129,20 @@ test("setChrome white-label strips every LOATHR mark incl. the closer; page numb
   assert.ok(roles(2).includes("wordmark") && roles(2).includes("closerrule"), "closer lockup restored");
 });
 
+test("duplicate clones an element with a fresh id, offset, and selects the copy", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("rect", { id: "R", x: 100, y: 100, fill: "#abccde" }) });
+  const before = s.doc.slides[s.slideIndex].elements.length;
+  s = reducer(s, { type: "duplicate", id: "R" });
+  const els = s.doc.slides[s.slideIndex].elements;
+  assert.equal(els.length, before + 1);
+  const copy = els.find((e) => e.fill === "#abccde" && e.id !== "R");
+  assert.ok(copy, "a clone exists");
+  assert.equal(copy.x, 124);
+  assert.equal(copy.y, 124);
+  assert.equal(s.selectedId, copy.id);
+});
+
 test("slide ops: add / duplicate / delete-keeps-one / move", () => {
   let s = initStudio();
   s = reducer(s, { type: "addSlide" });

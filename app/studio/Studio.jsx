@@ -5,7 +5,7 @@ import { makeElement, imageBackground, blankDoc, ARTBOARD_W, ARTBOARD_H } from "
 import { generateCarousel, regenerateCaption } from "./generate";
 import { photosDemoDoc } from "./demo";
 import Artboard from "./Artboard";
-import Inspector from "./Inspector";
+import Toolbar from "./Toolbar";
 import FormatBar from "./FormatBar";
 import SlideThumb from "./SlideThumb";
 import ShapeBacking from "./ShapeBacking";
@@ -413,6 +413,17 @@ export default function Studio() {
         </div>
       </header>
 
+      {/* Top contextual toolbar (Canva-style) — properties of the SELECTED element.
+          A selected text span still routes colour/weight through the FormatBar. */}
+      <Toolbar
+        el={selectedEl}
+        dispatch={dispatch}
+        textSel={textSel}
+        spanStyle={textSel ? textSel.style : null}
+        onStyleSpan={styleSpan}
+        onClearSpan={clearSpanStyle}
+      />
+
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
         {/* Left tool rail */}
         <nav style={{ width: 72, flexShrink: 0, display: "flex", flexDirection: "column", gap: 3, padding: "8px 7px", background: UI.rail, borderRight: "1px solid " + UI.border }}>
@@ -519,17 +530,6 @@ export default function Studio() {
           />
         )}
 
-        {/* Right Inspector (R3 · A) — properties of the selected element. In
-            SELECTION mode (a text span is selected) its Style + Colour & effects
-            controls target that span. */}
-        <Inspector
-          el={selectedEl}
-          dispatch={dispatch}
-          textSel={textSel}
-          spanStyle={textSel ? textSel.style : null}
-          onStyleSpan={styleSpan}
-          onClearSpan={clearSpanStyle}
-        />
       </div>
 
       {/* Floating format bar above a live text selection (per-span styling). */}
