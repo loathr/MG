@@ -33,21 +33,31 @@ state on top of it.
 > You are continuing the LOATHR Studio rebuild on branch
 > `claude/charming-fermat-2niyvq` (PR #9). Read this handover end-to-end first.
 >
-> The recent threads: the **text / shapes editor** (BUILD QUEUE), the **Topic
-> Routes** feature (shipped — see `docs/TOPIC_ROUTES.md`), and the **Look & Frame**
-> editor gaps (mocked + approved, not yet built — top of the queue now). Work the
-> **BUILD QUEUE** in order; each item's design is described; confirm anything
-> ambiguous with a quick visual, then build, gate (test + build), and **verify
-> live in-sandbox** (recipe below), commit, and push. One item per commit.
+> The editor is now a **top contextual toolbar** (Canva-style, `Toolbar.jsx`)
+> with free-form crop, a brand **Secondary** colour, white-label, region-scoped
+> trending, and a large **cloud/workspace track**. The original BUILD QUEUE (B1–B6,
+> Look & Frame, Topic Routes) is **all shipped**; see "Ranked build order" below
+> for the real current backlog. Work it top-down: confirm anything ambiguous with
+> a quick visual, then build, gate (`npm test` + `npm run build`), **verify live
+> in-sandbox** where possible (recipe below), commit, push. One logical change per
+> commit.
 >
-> Two open loops to also close: re-confirm trending on the deploy (the user
-> pastes `?debug=1`), and the small debug-carryovers (D3–D5) when convenient.
+> The dominant open theme is the **multi-account workspace** (roles, usage limits,
+> shared/live links, Drive, admin console). Its pure decision cores are built and
+> tested (`authority.js`, `sharing.js`); the rest is **deploy-only** wiring — none
+> of it is exercisable in this sandbox (no Firebase project / Google OAuth), so it
+> ships structurally-complete + documented in `VERIFY.md`, validated on deploy.
 >
-> Honor the standing rules (show-visual; gate; one-bg-image crash rule).
+> Honor the standing rules (show-visual; gate; one-bg-image crash rule; no model
+> id in artifacts).
 
 ---
 
 ## 🏗 BUILD QUEUE (the active work, in order)
+
+> ✅ **This entire BUILD QUEUE is now SHIPPED** (B1–B6, BL Look & Frame, Topic
+> Routes, and the D3 rethemeDoc remap). It's kept below as a design record;
+> the live backlog is the **"Ranked build order"** section near the end.
 
 The user's running complaint list, mapped to items. **B4 + B5 shipped; Topic
 Routes shipped.** Next up is **BL (Look & Frame)** — mocked + approved. Then the
@@ -145,6 +155,12 @@ Inspector. Mock shown: `b5-anchor`. Lowest priority.
 ---
 
 ## 🐞 OPEN DEBUG CARRYOVERS (close when convenient)
+
+> Status: **D3 shipped** (rethemeDoc remaps textBg/textStroke/per-run colours +
+> the new Secondary, by value and by tier). **D4 shipped** (emoji/surrogate-safe
+> run boundaries; multi-line + FormatBar clamping were already correct). **D5**
+> regression sweep was run live (full toolbar across text/image/rect/line, 0
+> errors). **D1** is the only one left — a user `?debug=1` check on the deploy.
 
 - **D1 · Trending — confirm on the deploy.** All four reported issues are FIXED
   in code (commit `4e4f16c`, see below) but the sandbox can't reach the deploy
@@ -289,29 +305,47 @@ export.js (canvas PNG) must stay in sync** for any text/shape change.
 
 ---
 
-## ⏭ Ranked build order (canonical next-steps)
-1. ~~**Look & Frame**~~ ✅ SHIPPED (frame colour `6b37ecd`; layout-family switch `15ef82f`).
-2. **Finish Cloud wiring** — autosave + Projects screen + load-on-open into
-   `Studio.jsx`, gated by `isCloudEnabled` (disabled path must stay identical).
-   The adapter (`firebaseStore.js`), auth gate, and `CLOUD_SETUP.md` are done;
-   this is the last cloud piece. Deploy-verified only (no Firestore/auth in
-   sandbox) — verify the disabled path is unchanged here.
-3. ~~**B3 · Per-span SIZE**~~ ✅ SHIPPED (`987c378`).
-4. **D3 · rethemeDoc remap** of `textBg`/`textStroke`/per-run colours (small).
-5. ~~**B2 · Custom-hex colour popover**~~ ✅ SHIPPED (`ebf8cde`) — FormatBar `+`
-   swatch → hex field + recents + system picker; styling now targets stored
-   selection offsets so it survives focus loss.
-6. **Cloud 11c · uploads → Cloud Storage** (Firestore 1 MB doc limit; deploy-only).
-7. ~~**B1 · Live styling preview**~~ ✅ SHIPPED — `RichEditable.jsx` (a
-   never-re-rendering rich contentEditable) seeds its DOM from runs at edit start
-   so styling previews live; repaints only on style-apply (caret restored by
-   offset), plain typing stays native. `richedit.js` gained
-   `runsToHtml`/`domToContentRuns`/`setCaret`/`cssForOverride`. Gated by
-   `test/richedit.test.mjs` (serialize↔DOM round-trip) + a Puppeteer live pass.
-8. **B6 · Element-tether anchor** (bonus).
-9. **D4 / D5** · editor edge cases + regression sweep.
-10. **D1** · trending `?debug=1` confirm — the user's check on the deploy.
+## ✅ Shipped this session (newest first — all on PR #9, gated, pushed)
+Editor: **top contextual Toolbar** (replaced the right Inspector) · **free-form
+crop** (drag-pan + scroll-zoom + rule-of-thirds + **edge resize handles**) ·
+**background remover** · image **replace / set-as-background** · **underline** +
+working element-wide **highlight** + **remove-fill** (rect & shape) · **opacity
+slider fix** · **reset-slide** header button · **collapsible** Elements panel ·
+**responsive ⋯ overflow** · feature **colour-panel box** + **photo-owned scrim**
+overlay · **B6 element tether** · **Brand Secondary colour** (drives the kicker)
+· **News Desk cover** masthead ear · **Editorial → Vintage Typist** head font ·
+**D4** emoji/surrogate-safe runs · Photos **2-col grid**.
+Brand/white-label: master toggle (panel + create page, suppresses generated
+LOATHR lines) · brand-look **reset**.
+Trending: region/sub-region on all desks + **scopedPlan fan-out** (deep
+region/country pulls) · enterprise seed backfill · richer crime feeds.
+Cloud/workspace: **Cloud 11c** (image→Storage on save) · **authority.js**
+(roles/quota) + **sharing.js** (link access) pure cores · **deploy-only wiring**:
+/api/generate usage-limit 429, /api/admin/role, 🔗 Share link UI, rules + VERIFY.
+Fixes: cloneSlide tether remap; setChrome brandless hardening.
 
-Two standing caveats (sandbox limits, not gaps): no real end-to-end **generation**
-(needs Anthropic credit) and no live **external-feed**/Firestore/auth — covered by
-unit tests + the user's deploy checks.
+## ⏭ Ranked build order (canonical next-steps)
+The original BUILD QUEUE (B1–B6, Look & Frame, Cloud foundation/auth/storage,
+Topic Routes, D3) is **all shipped**. Current backlog:
+
+1. **Workspace track — deploy-only wiring left** (cores done in `authority.js` /
+   `sharing.js`, server wiring in `_auth`/`adminStore`/`/api/admin/role` + the
+   generate 429): the **share OPEN route** `/studio/<id>?s=` + a Firestore
+   `onSnapshot` **live-view** listener (Tier A), and the **admin console**
+   (all-decks list + usage dashboard + role/limit management UI). All deploy-only.
+   Decided defaults: team workspace · generations/month limit · Drive = PNGs+PDF ·
+   collaboration **Tier A** (share + live view; not Tier C CRDT).
+2. **Google Drive export** (P5) — `drive.file` OAuth scope + multipart upload of
+   the export (PNGs + combined PDF). Deploy-only.
+3. **Deploy-verification pass** — work `docs/VERIFY.md` on a real Firebase deploy
+   (sign-in, autosave, per-user isolation, token-gate 401, Cloud 11c upload,
+   roles/limits 429, share link live view, trending `?debug=1`, end-to-end gen).
+4. **Crop export↔canvas parity** (low) — confirm `cropRect` (export) and
+   `imageTransform` (CSS) agree for a zoomed+panned+**flipped** photo; add a
+   parity test/visual diff. Audit flagged as possible, not confirmed.
+5. **Deferred-by-design** (low) — more premium layouts, recent-projects shelf,
+   grid snapping, News "breaking" deck mode.
+
+Standing caveats (sandbox limits, not gaps): no real **generation** (Anthropic
+credit), and no live **Firebase / Google OAuth / external feeds** — all covered
+by unit tests + `docs/VERIFY.md` deploy checks.
