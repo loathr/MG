@@ -62,6 +62,7 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
 
       {el.type === "image" && (
         <>
+          <PopBtn label="⌗ Crop" open={pop === "crop"} onClick={() => toggle("crop")} />
           <SelectBtn value={el.fit || "cover"} onChange={(v) => up({ fit: v })} title="Fit" options={[["cover", "Fill"], ["contain", "Fit"]]} />
           <NumBtn label="Radius" value={el.radius || 0} onChange={(n) => up({ radius: Math.max(0, n) })} />
           <Seg>
@@ -125,6 +126,18 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
       </Popover>}
 
       {pop === "shape" && el.type === "text" && <ShapePop el={el} up={up} dispatch={dispatch} onClose={() => setPop(null)} />}
+
+      {pop === "crop" && el.type === "image" && (() => {
+        const c = el.crop || { zoom: 1, x: 0.5, y: 0.5 };
+        const setC = (patch) => up({ crop: Object.assign({ zoom: 1, x: 0.5, y: 0.5 }, c, patch) });
+        return <Popover onClose={() => setPop(null)}>
+          <Title>Crop &amp; zoom</Title>
+          <Slider label="Zoom" min={1} max={3} step={0.05} value={c.zoom || 1} suffix="×" onChange={(v) => setC({ zoom: v })} />
+          <Slider label="Pan X" min={0} max={1} step={0.02} value={c.x == null ? 0.5 : c.x} onChange={(v) => setC({ x: v })} />
+          <Slider label="Pan Y" min={0} max={1} step={0.02} value={c.y == null ? 0.5 : c.y} onChange={(v) => setC({ y: v })} />
+          <WBtn onClick={() => up({ crop: null })}>↺ Reset crop</WBtn>
+        </Popover>;
+      })()}
     </div>
   );
 }
@@ -215,6 +228,16 @@ function EffectField({ label, value, fallback, onChange }) {
   return <label style={{ ...pField, cursor: "pointer", position: "relative", overflow: "hidden" }}><span style={pLab}>{label}</span><span style={{ width: 16, height: 16, borderRadius: 4, marginLeft: "auto", border: "1px solid #555", background: on ? value : "repeating-conic-gradient(#3a3a40 0% 25%, #1c1c20 0% 50%) 50% / 8px 8px" }} /><input type="color" value={hexish(value || fallback)} onChange={(e) => onChange(e.target.value)} style={{ position: "absolute", inset: 0, opacity: 0 }} /></label>;
 }
 function WBtn({ children, onClick, danger }) { return <button onClick={onClick} style={{ ...wBtn, color: danger ? "#ff8a8a" : UI.text }}>{children}</button>; }
+function Slider({ label, min, max, step, value, onChange, suffix }) {
+  return (
+    <div style={{ marginBottom: 9 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+        <span style={pLab}>{label}</span><span style={{ color: UI.text, fontSize: 11 }}>{Math.round(value * 100) / 100}{suffix || ""}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(+e.target.value)} style={{ width: "100%", accentColor: UI.brand }} />
+    </div>
+  );
+}
 
 const KIND_GLYPH = { text: "T", image: "▤", rect: "▢", line: "—" };
 function round2(n) { return Math.round(n * 100) / 100; }

@@ -7,7 +7,7 @@
 // Browser-only: every entry point is called from a click handler, so importing
 // this module is SSR/build-safe (no top-level DOM access).
 // ============================================================================
-import { ARTBOARD_W, ARTBOARD_H, styledRuns, isUniformText } from "./model";
+import { ARTBOARD_W, ARTBOARD_H, styledRuns, isUniformText, cropRect } from "./model";
 import { makeZip } from "./zip";
 import {
   shapePaint, shapeRadius, shapeBorderW, shapePad, tagNotch, speechTail,
@@ -416,7 +416,10 @@ export async function renderSlideToCanvas(slide) {
           ctx.translate(el.flipX ? el.w : 0, el.flipY ? el.h : 0);
           ctx.scale(el.flipX ? -1 : 1, el.flipY ? -1 : 1);
         }
-        if ((el.fit || "cover") === "contain") drawContain(ctx, img, 0, 0, el.w, el.h);
+        if (el.crop) {
+          const c = cropRect(img.naturalWidth || img.width, img.naturalHeight || img.height, el.w, el.h, el.crop);
+          ctx.drawImage(img, c.sx, c.sy, c.sw, c.sh, 0, 0, el.w, el.h);
+        } else if ((el.fit || "cover") === "contain") drawContain(ctx, img, 0, 0, el.w, el.h);
         else drawCover(ctx, img, 0, 0, el.w, el.h);
         ctx.restore();
       }

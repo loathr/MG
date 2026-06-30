@@ -7,7 +7,33 @@ import {
   blankSlide, sampleSlide, cloneSlide, imageBackground,
   findElement, highlightRuns, uploadResult,
   styledRuns, applyRunStyle, clearRunStyle, remapRuns, isUniformText, elementBaseStyle, highlightOffsets,
+  cropRect, imageTransform,
 } from "../app/studio/model.js";
+
+test("cropRect: no crop = centred cover band; zoom shrinks the source window", () => {
+  // a 1000x1000 image into a 100x50 (2:1) box → cover keeps the middle horizontal band
+  const base = cropRect(1000, 1000, 100, 50, null);
+  assert.deepEqual(base, { sx: 0, sy: 250, sw: 1000, sh: 500 });
+  // zoom 2 (centred) halves the source window, still centred on the cover band
+  const z = cropRect(1000, 1000, 100, 50, { zoom: 2, x: 0.5, y: 0.5 });
+  assert.equal(z.sw, 500);
+  assert.equal(z.sh, 250);
+  assert.equal(z.sx, 250);   // centred horizontally
+  // focal x=1 pushes the window to the right edge under zoom
+  assert.equal(cropRect(1000, 1000, 100, 50, { zoom: 2, x: 1, y: 0.5 }).sx, 500);
+  // zoom is clamped to >= 1 (no zoom-out)
+  assert.deepEqual(cropRect(1000, 1000, 100, 50, { zoom: 0.3 }), base);
+});
+
+test("imageTransform: crop focal + flip + mono compose into CSS", () => {
+  assert.deepEqual(imageTransform({}), {});                              // plain image → no overrides
+  assert.equal(imageTransform({ flipX: true }).transform, "scaleX(-1) scaleY(1)");
+  assert.equal(imageTransform({ mono: true }).filter, "grayscale(1)");
+  const c = imageTransform({ crop: { zoom: 2, x: 0.25, y: 0.75 } });
+  assert.equal(c.transform, "scaleX(2) scaleY(2)");
+  assert.equal(c.transformOrigin, "25% 75%");
+  assert.equal(c.objectPosition, "25% 75%");
+});
 
 test("artboard is Instagram portrait 1080x1350", () => {
   assert.equal(ARTBOARD_W, 1080);

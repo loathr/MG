@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { ARTBOARD_W, ARTBOARD_H } from "./model";
+import { ARTBOARD_W, ARTBOARD_H, imageTransform } from "./model";
 import RichText from "./RichText";
 import ShapeBacking from "./ShapeBacking";
 import { shapePad, shapeVAlign } from "./shapes";
@@ -64,8 +64,7 @@ function StaticElement({ el }) {
   if (el.type === "image") {
     return el.thumb ? (
       <img src={el.thumb} alt="" draggable={false}
-        style={{ ...frame, width: el.w, height: el.h, objectFit: el.fit || "cover", borderRadius: el.radius || 0,
-          transform: (frame.transform || "") + " scaleX(" + (el.flipX ? -1 : 1) + ") scaleY(" + (el.flipY ? -1 : 1) + ")", filter: el.mono ? "grayscale(1)" : undefined }} />
+        style={imageStyle(frame, el)} />
     ) : (
       <div style={{ ...frame, background: "#2a2a2e", borderRadius: el.radius || 0 }} />
     );
@@ -80,6 +79,18 @@ function StaticElement({ el }) {
       : <div style={{ ...frame, background: el.fill }} />;
   }
   return null;
+}
+
+// Image style merging the element frame (position + rotation) with the crop /
+// flip / mono transform. When the element is rotated we keep the frame's centre
+// origin (rotate dominates); otherwise we use the crop focal origin.
+function imageStyle(frame, el) {
+  const it = imageTransform(el);
+  const base = { ...frame, width: el.w, height: el.h, objectFit: el.fit || "cover", borderRadius: el.radius || 0 };
+  if ((el.rotation || 0) !== 0) {
+    return Object.assign(base, { transform: frame.transform + (it.transform ? " " + it.transform : ""), objectPosition: it.objectPosition, filter: it.filter });
+  }
+  return Object.assign(base, it);
 }
 
 function StaticSlide({ slide, width }) {

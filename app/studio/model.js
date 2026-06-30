@@ -161,6 +161,40 @@ export function uploadResult(src, thumb, name) {
   return { url: src, thumb: thumb || src, uploaded: true, source: "Upload", credit: "", alt: name || "" };
 }
 
+// Non-destructive image crop → the source rectangle {sx,sy,sw,sh} of the natural
+// image to draw into the element box. crop = { zoom>=1, x, y } where x/y are the
+// focal point 0..1 (0.5 = centred). Mirrors the CSS object-fit:cover +
+// object-position + scale used by the live/thumbnail renderers, so the PNG export
+// matches. Pure.
+export function cropRect(natW, natH, boxW, boxH, crop) {
+  const z = Math.max(1, (crop && crop.zoom) || 1);
+  const fx = crop && crop.x != null ? crop.x : 0.5;
+  const fy = crop && crop.y != null ? crop.y : 0.5;
+  const coverScale = Math.max(boxW / natW, boxH / natH);
+  let sw = Math.min(natW, boxW / coverScale);
+  let sh = Math.min(natH, boxH / coverScale);
+  const sw2 = sw / z, sh2 = sh / z;                 // zoom shrinks the source window
+  const sx = (natW - sw) * fx + (sw - sw2) * fx;    // object-position pan + zoom focal
+  const sy = (natH - sh) * fy + (sh - sh2) * fy;
+  return { sx, sy, sw: sw2, sh: sh2 };
+}
+
+// CSS transform/filter for an image element (crop zoom+focal · flip · mono),
+// shared by the live editor and the thumbnail so they match the export. Pure.
+export function imageTransform(el) {
+  const z = Math.max(1, (el.crop && el.crop.zoom) || 1);
+  const fx = el.crop && el.crop.x != null ? el.crop.x : 0.5;
+  const fy = el.crop && el.crop.y != null ? el.crop.y : 0.5;
+  const out = {};
+  if (z !== 1 || el.flipX || el.flipY) {
+    out.transform = "scaleX(" + (el.flipX ? -z : z) + ") scaleY(" + (el.flipY ? -z : z) + ")";
+    out.transformOrigin = (fx * 100) + "% " + (fy * 100) + "%";
+  }
+  if (el.crop) out.objectPosition = (fx * 100) + "% " + (fy * 100) + "%";
+  if (el.mono) out.filter = "grayscale(1)";
+  return out;
+}
+
 // --- selectors / helpers --------------------------------------------------
 export function findElement(slide, id) {
   if (!slide || !id) return null;

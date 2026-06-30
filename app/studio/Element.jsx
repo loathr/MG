@@ -4,6 +4,7 @@ import RichText from "./RichText";
 import RichEditable from "./RichEditable";
 import ShapeBacking from "./ShapeBacking";
 import { shapePad, shapeVAlign } from "./shapes";
+import { imageTransform } from "./model";
 
 // One element. Wrapped in React.memo so it re-renders only when its own object
 // (or its editing flag) changes — the key to Canva-like drag performance.
@@ -85,14 +86,12 @@ function ElementView({ element: el, isEditing, onPointerDownBody, onStartEdit, o
       inner = textNode;
     }
   } else if (el.type === "image") {
-    const flip = "scaleX(" + (el.flipX ? -1 : 1) + ") scaleY(" + (el.flipY ? -1 : 1) + ")";
     inner = el.src ? (
       <img
         src={el.src}
         alt=""
         draggable={false}
-        style={{ width: "100%", height: "100%", objectFit: el.fit || "cover", borderRadius: el.radius || 0, display: "block",
-          transform: (el.flipX || el.flipY) ? flip : undefined, filter: el.mono ? "grayscale(1)" : undefined }}
+        style={Object.assign({ width: "100%", height: "100%", objectFit: el.fit || "cover", borderRadius: el.radius || 0, display: "block" }, imageTransform(el))}
         onError={(e) => { e.currentTarget.style.opacity = "0"; }}
       />
     ) : (
