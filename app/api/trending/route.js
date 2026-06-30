@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getBeat, mostReadUrl, parseRss, parseMostRead, selectTrending, filterByRegion, filterByRecency, urgencyById } from "../../studio/trending";
+import { getBeat, mostReadUrl, parseRss, parseMostRead, selectTrending, filterByRegion, filterByCountry, filterByRecency, urgencyById } from "../../studio/trending";
 
 // Live "Trending" for a beat, from FREE keyless feeds only — per-beat RSS
 // (recency) + Wikipedia most-read (popularity + photos + a never-empty fallback).
@@ -93,6 +93,12 @@ export async function GET(request) {
     if (region && region !== "global") {
       rssItems = filterByRegion(rssItems, region);
       wikiPool = filterByRegion(wikiAll, region);
+    }
+    // Sub-region: narrow further to a single country when one is picked.
+    const country = searchParams.get("country");
+    if (country) {
+      rssItems = filterByCountry(rssItems, country);
+      wikiPool = filterByCountry(wikiPool, country);
     }
 
     // Refresh (fresh=1) ranks a larger pool and returns a shuffled window, so a

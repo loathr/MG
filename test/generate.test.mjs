@@ -83,6 +83,28 @@ test("buildPrompt: a News route adds region scope + urgency framing", () => {
   assert.equal(buildPrompt("x", "news", Object.assign({}, base, { route: {} })), buildPrompt("x", "news", base));
 });
 
+test("buildPrompt: a country sub-region narrows the framing", () => {
+  const base = { seed: 2, today: "2026-06-26" };
+  const p = buildPrompt("bank earnings", "business", Object.assign({}, base, {
+    route: { region: "Europe", country: "France" },
+  }));
+  assert.match(p, /Focus on Europe/);
+  assert.match(p, /Zero in on France specifically/);
+});
+
+test("buildPrompt: white-label strips every brand mention from the copy; default keeps the follow", () => {
+  const base = { seed: 5, today: "2026-06-26" };
+  const branded = buildPrompt("the creator economy", "business", base);
+  assert.match(branded, /@loathrdotcom/);                         // default keeps the sign-off
+  assert.match(branded, /invites the follow/);
+  const wl = buildPrompt("the creator economy", "business", Object.assign({}, base, { unbranded: true }));
+  assert.match(wl, /WHITE-LABEL/);                                // explicit instruction
+  assert.doesNotMatch(wl, /@loathrdotcom/);                       // no handle anywhere
+  assert.doesNotMatch(wl, /invites the follow/);                  // closer is brand-free
+  // off by default → byte-identical to the plain prompt (no behavioural drift)
+  assert.equal(buildPrompt("x", "business", Object.assign({}, base, { unbranded: false })), buildPrompt("x", "business", base));
+});
+
 test("buildPrompt: advanced framing (angle / emphasis / mode) appends verbatim", () => {
   const base = { seed: 4, today: "2026-06-26" };
   const newsy = buildPrompt("x", "news", Object.assign({}, base, {

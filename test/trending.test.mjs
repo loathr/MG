@@ -5,7 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   BEATS, getBeat, beatVoice, beatsForDesk, defaultBeat, groupsForDesk, routeFraming, mostReadUrl, cleanTitle, parseRss, parseMostRead,
-  filterByTerms, rankItems, selectTrending, backfillSeeds, filterByRegion, filterByRecency,
+  filterByTerms, rankItems, selectTrending, backfillSeeds, filterByRegion, filterByCountry, countriesForRegion, filterByRecency,
 } from "../app/studio/trending.js";
 
 test("BEATS feed config: dedicated vs shared/sub-topic vs the lone feed-less beat", () => {
@@ -245,6 +245,28 @@ test("selectTrending: a THIN feed borrows term-matched most-read, then broadens"
   const out = selectTrending(feed, wiki, ["film"], 6, true, false);
   assert.ok(out.some((i) => /Lone music story/.test(i.title)), "keeps the feed item");
   assert.ok(out.some((i) => /Dune/.test(i.title)), "supplements with term-matched most-read when thin");
+});
+
+test("filterByCountry: narrows to a single country, broadens if it would gut the rail", () => {
+  const items = [
+    { title: "France raises rates", extract: "Paris" },
+    { title: "Germany factory data", extract: "Berlin" },
+    { title: "France election latest", extract: "" },
+    { title: "Spain tourism boom", extract: "" },
+  ];
+  const fr = filterByCountry(items, "France");
+  assert.equal(fr.length, 2);
+  assert.ok(fr.every((i) => /France/.test(i.title)));
+  // no country → untouched
+  assert.equal(filterByCountry(items, null).length, 4);
+  // a country with <2 hits broadens back to the full list (never near-empty)
+  assert.equal(filterByCountry(items, "Spain").length, 4);
+});
+
+test("countriesForRegion: returns the region's country list (empty for global)", () => {
+  assert.ok(countriesForRegion("europe").includes("France"));
+  assert.deepEqual(countriesForRegion("global"), []);
+  assert.deepEqual(countriesForRegion("nope"), []);
 });
 
 test("backfillSeeds: fills a thin pull up to max, deduped, only when seeds exist", () => {

@@ -177,6 +177,21 @@ export function filterByRegion(items, regionId) {
   return hit.length >= 3 ? hit : (items || []).slice();
 }
 
+// Sub-region drill-down: narrow the pull to a single COUNTRY (title or extract).
+// Broadens (returns all) if the filter would leave too few, like filterByRegion.
+export function filterByCountry(items, country) {
+  if (!country) return (items || []).slice();
+  const rx = new RegExp("\\b" + String(country).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
+  const hit = (items || []).filter((it) => rx.test(it.title || "") || rx.test(it.extract || ""));
+  return hit.length >= 2 ? hit : (items || []).slice();
+}
+
+// The country list for a region id (the sub-region dropdown options).
+export function countriesForRegion(regionId) {
+  const r = REGIONS.find((x) => x.id === regionId);
+  return r ? r.countries.slice() : [];
+}
+
 // Tier 2b: urgency recency — keep feed items dated within `days` of nowMs. Items
 // without a parseable date (Wikipedia most-read has none) are kept. Broadens
 // (returns all) if the window would leave too few. nowMs is passed in so this

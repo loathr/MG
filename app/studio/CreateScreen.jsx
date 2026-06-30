@@ -6,7 +6,7 @@ import { getCategory } from "./categories";
 import StylePreview from "./StylePreview";
 import TrendingPanel from "./TrendingPanel";
 import RouteSelect from "./RouteSelect";
-import { routeFraming, getBeat, REGIONS, URGENCY, ANGLES, EMPHASIS, MODES, framingPrompt } from "./trending";
+import { routeFraming, getBeat, REGIONS, URGENCY, ANGLES, EMPHASIS, MODES, framingPrompt, countriesForRegion } from "./trending";
 
 // Screen 1 — Create (spec §4, Option C: "segment-first + voice override"). Pick a
 // DESK first — the look (Editorial / Enterprise / News Desk). Each desk implies a
@@ -64,10 +64,16 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   // (sector-free — generation is unchanged). Beats are desk-specific, so it
   // resets when the desk changes.
   const [beat, setBeat] = useState(null);
-  // News-desk secondary route (Tier 2): region scope + urgency. Both null by
-  // default (Global / none) and reset on desk change — they're News-only.
+  // Region scope (all desks): a region + optional country sub-region scope the
+  // trending pull AND frame generation, paired with the sector (Finance × Europe,
+  // Sport × Africa). Urgency stays News-only. Region/country reset on desk change.
   const [region, setRegion] = useState(null);
+  const [country, setCountry] = useState(null);
   const [urgency, setUrgency] = useState(null);
+  // White-label: remove all LOATHR branding at GENERATION time too (no marks, and
+  // no "Follow @loathr…" sign-off in the generated copy). Sticky across desks.
+  const [unbranded, setUnbranded] = useState(false);
+  const pickRegion = (id) => { setRegion(id === "global" ? null : id); setCountry(null); };
   // Advanced framing (Tier 3): News angle + emphasis, Enterprise mode. Ids, all
   // null by default, reset on desk change — they live in the Advanced disclosure.
   const [angle, setAngle] = useState(null);
@@ -78,6 +84,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     setDesk(key);
     setBeat(null);
     setRegion(null);
+    setCountry(null);
     setUrgency(null);
     setAngle(null);
     setEmphasis(null);
@@ -109,20 +116,21 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     const regionLabel = region && region !== "global" ? (REGIONS.find((r) => r.id === region) || {}).label : null;
     const r = Object.assign({}, base, {
       region: regionLabel || null,
+      country: country || null,
       urgency: urgency || null,
       // Tier 3 framing resolves to the prompt string for buildPrompt.
       angle: framingPrompt(ANGLES, angle),
       emphasis: framingPrompt(EMPHASIS, emphasis),
       mode: framingPrompt(MODES, mode),
     });
-    return (r.label || r.region || r.urgency || r.angle || r.emphasis || r.mode) ? r : null;
+    return (r.label || r.region || r.country || r.urgency || r.angle || r.emphasis || r.mode) ? r : null;
   };
 
   const submit = () => {
     const t = topic.trim();
     if (!t || generating) return;
     const slides = (LENGTHS.find((l) => l.id === length) || LENGTHS[1]).slides;
-    onGenerate({ style: desk, category: voice, topic: t, quickDraft, ground: seed, slides, tone, route: buildRoute() });
+    onGenerate({ style: desk, category: voice, topic: t, quickDraft, ground: seed, slides, tone, route: buildRoute(), unbranded });
   };
 
   // Coarse progress label while generating (the call streams searching -> writing).
@@ -173,13 +181,23 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
               ))}
             </div>
           )}
-          {/* News-desk secondary route (Tier 2): region scope + urgency. */}
-          {desk === "newsdesk" && (
-            <div style={secBox}>
-              <div style={secLab}>Region &amp; urgency <span style={opt}>— optional</span></div>
-              <select value={region || "global"} onChange={(e) => setRegion(e.target.value === "global" ? null : e.target.value)} style={regionSelect} title="Region">
+          {/* Region scope (all desks): region + optional country sub-region scope
+              the live pull AND frame generation, paired with the sector. Urgency
+              is News-only. */}
+          <div style={secBox}>
+            <div style={secLab}>Region &amp; country <span style={opt}>— optional · scopes topics + sources</span></div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <select value={region || "global"} onChange={(e) => pickRegion(e.target.value)} style={{ ...regionSelect, flex: 1, marginBottom: 0 }} title="Region">
                 {REGIONS.map((r) => <option key={r.id} value={r.id}>{r.id === "global" ? "🌍 Global" : r.label}</option>)}
               </select>
+              {region && region !== "global" && (
+                <select value={country || ""} onChange={(e) => setCountry(e.target.value || null)} style={{ ...regionSelect, flex: 1, marginBottom: 0, borderColor: country ? UI.brand : "#36363c" }} title="Country (sub-region)">
+                  <option value="">All of {(REGIONS.find((r) => r.id === region) || {}).label}</option>
+                  {countriesForRegion(region).map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              )}
+            </div>
+            {desk === "newsdesk" && (
               <div style={urgRow}>
                 {URGENCY.map((u) => (
                   <button key={u.id} type="button" onClick={() => pickUrgency(u.id)} style={urgChip(urgency === u.id, u.id)}>
@@ -187,10 +205,17 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+          {/* White-label: strip ALL LOATHR branding, including at generation time. */}
+          <button type="button" onClick={() => setUnbranded((v) => !v)} title="Remove all LOATHR branding from the generated deck"
+            style={wlRow(unbranded)}>
+            <span style={{ textAlign: "left" }}>Remove LOATHR branding
+              <small style={{ display: "block", fontSize: 10, color: unbranded ? "#b89a72" : "#7c7c84", fontWeight: 400, marginTop: 2 }}>White-label · also stops the generated “Follow @loathr…” sign-off</small></span>
+            <span style={wlTog(unbranded)}><span style={wlKnob(unbranded)} /></span>
+          </button>
         </div>
-        <TrendingPanel onPick={pickTrending} desk={desk} beat={beat} onBeat={setBeat} region={region} urgency={urgency} />
+        <TrendingPanel onPick={pickTrending} desk={desk} beat={beat} onBeat={setBeat} region={region} country={country} urgency={urgency} />
 
         {/* Voice & tone — opt-in; the default path never opens it. Voice overrides
             the desk's writing category; Tone is an optional second axis. */}
@@ -374,7 +399,20 @@ const regionSelect = {
   width: "100%", height: 42, borderRadius: 9, background: "#161619", color: "#f0f0f2",
   border: "1px solid #2a2a31", fontSize: 13.5, padding: "0 12px", cursor: "pointer", marginBottom: 11,
 };
-const urgRow = { display: "flex", gap: 8 };
+const urgRow = { display: "flex", gap: 8, marginTop: 9 };
+// White-label create-page toggle (mirrors the Brand-panel one).
+function wlRow(on) {
+  return { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: 10,
+    marginTop: 12, padding: "11px 13px", borderRadius: 10, cursor: "pointer",
+    background: on ? "#241f1a" : "#161619", border: "1px solid " + (on ? "#4a3a28" : "#2a2a31"),
+    color: on ? "#f0d9b8" : "#cfcfcf", fontSize: 13, fontWeight: 600 };
+}
+function wlTog(on) {
+  return { width: 38, height: 21, borderRadius: 11, position: "relative", flexShrink: 0, background: on ? "#e8b069" : "#3a3a42" };
+}
+function wlKnob(on) {
+  return { position: "absolute", top: 2, left: on ? 19 : 2, width: 17, height: 17, borderRadius: "50%", background: on ? "#241a0e" : "#fff" };
+}
 function urgChip(on, id) {
   const c = id === "breaking" ? "#e2433f" : id === "developing" ? "#e67e22" : "#888";
   return {

@@ -93,7 +93,8 @@ export function buildPrompt(topic, categoryKey, opts) {
   // un-routed deck. The route carries already-resolved framing (kind + label +
   // terms + sourcing), so this builder stays pure and never imports trending.js.
   const route = o.route || null;
-  const hasRoute = !!(route && (route.label || route.region || route.urgency || route.angle || route.emphasis || route.mode));
+  const hasRoute = !!(route && (route.label || route.region || route.country || route.urgency || route.angle || route.emphasis || route.mode));
+  const unbranded = !!o.unbranded;
   let routeLine = null;
   if (hasRoute) {
     const parts = [];
@@ -105,6 +106,7 @@ export function buildPrompt(topic, categoryKey, opts) {
     if (route.sourcing) parts.push("Prefer " + route.sourcing + " as sources.");
     // News-desk secondary route (Tier 2): region scope + urgency framing.
     if (route.region && route.region !== "Global") parts.push("Focus on " + route.region + " — prioritise stories, sources, and examples from that region.");
+    if (route.country) parts.push("Zero in on " + route.country + " specifically — centre the reporting, data, and sources there.");
     if (route.urgency === "breaking") parts.push("BREAKING: lead with the single most recent development; open the cover with the news itself, datelined today, and keep it tight and fast.");
     else if (route.urgency === "developing") parts.push("This is a DEVELOPING story — frame it as unfolding now; flag what's confirmed versus still emerging.");
     // Advanced framing (Tier 3): News angle + emphasis, Enterprise mode — already
@@ -118,6 +120,19 @@ export function buildPrompt(topic, categoryKey, opts) {
   const total = Math.max(4, Math.min(12, o.slides || 8));
   const content = total - 2;
   const tone = o.tone && TONE_DESC[o.tone] ? TONE_DESC[o.tone] : "";
+  // White-label: strip every LOATHR mark from the GENERATED copy — no @handle in
+  // the caption cta, no "invite the follow" closer, no brand sign-off. Default
+  // (unbranded=false) keeps the prompt byte-identical to before.
+  const brandingLine = unbranded
+    ? "WHITE-LABEL: produce NO brand marks anywhere — never write \"LOATHR\", any @handle, a wordmark, or a \"follow for more\" sign-off in any slide or the caption; the closer is a neutral, brand-free sign-off."
+    : null;
+  const followClose = unbranded
+    ? "- The closer pays off the cover's hook and lands a line worth screenshotting."
+    : "- The closer pays off the cover's hook, lands a line worth screenshotting, then invites the follow naturally.";
+  const captionCta = unbranded
+    ? "- cta: drive SAVES and SHARES (the strongest signals), ask a question to invite comments — do NOT add any @handle, brand name, or \"follow\" sign-off."
+    : "- cta: drive SAVES and SHARES (the strongest signals), ask a question to invite comments, then end on the follow (@loathrdotcom).";
+  const closerCta = unbranded ? "a clean closing line — no brand, no @handle, no \"follow\"" : cat.cta;
   return [
     "You are " + cat.persona + " writing a premium Instagram carousel.",
     'Topic: "' + topic + '".',
@@ -128,6 +143,7 @@ export function buildPrompt(topic, categoryKey, opts) {
     "",
     research,
     routeLine,
+    brandingLine,
     ground ? "Grounded source — build the deck on these specific facts, verifying and expanding them with search (correct anything outdated): \"" + ground + "\"" + (groundSrc ? " [" + groundSrc + "]" : "") : null,
     "",
     "Craft standards (this is the quality bar — hold to all of them):",
@@ -135,7 +151,7 @@ export function buildPrompt(topic, categoryKey, opts) {
     "- One idea per slide, made concrete: back each claim with a name, number, date, or place.",
     "- Show, don't summarize — concrete nouns and strong verbs over adjectives. Vary sentence length; if a line reads like a press release, rewrite it.",
     '- Banned as lazy: "in today\'s world", "delve", "moreover", "it\'s important to note", "game-changer", "unlock", "navigate the landscape", "in conclusion".',
-    "- The closer pays off the cover's hook, lands a line worth screenshotting, then invites the follow naturally.",
+    followClose,
     "",
     "Make it ONE carousel, not a stack of cards — decide the SPINE first (the single through-line the whole deck advances), then build the slides on each other:",
     "- Arc: the cover poses the tension, each middle slide escalates it one concrete step (raise the stakes, or deepen the last point), and the closer resolves it.",
@@ -146,7 +162,7 @@ export function buildPrompt(topic, categoryKey, opts) {
     "Also write the Instagram CAPTION (the post text under the carousel), built to perform:",
     "- hook: ONE scroll-stopping line, <= 125 chars (only this part shows before the fold) — carry the cover's tension.",
     "- body: the deck's spine in 2-4 short, skimmable lines (separate them with \\n) — it should read even without swiping.",
-    "- cta: drive SAVES and SHARES (the strongest signals), ask a question to invite comments, then end on the follow (@loathrdotcom).",
+    captionCta,
     "- hashtags: 10-15 relevant tags mixing broad and niche; words only, lowercase, no # symbol.",
     "- Weave a few plain topic keywords into the body (Instagram indexes caption text for search).",
     "",
@@ -157,7 +173,7 @@ export function buildPrompt(topic, categoryKey, opts) {
     '    {"role":"COVER","kicker":"1-4 word section label, specific to the deck","heading":"the hook, <= 9 words","subhead":"one vivid sentence that makes the swipe irresistible"},',
     '    {"role":"' + roles[0] + '","kicker":"1-4 word section label, specific to THIS slide","heading":"a specific, concrete headline","body":"2-3 tight sentences carrying one proof point","sources":["Outlet"]},',
     "    ... more content slides, same shape ...",
-    '    {"role":"CLOSER","heading":"a resonant closing line","cta":"' + cat.cta + '"}',
+    '    {"role":"CLOSER","heading":"a resonant closing line","cta":"' + closerCta + '"}',
     '  ]',
     '}',
     "",
@@ -364,7 +380,7 @@ export async function generateCarousel(topic, opts) {
   // (o.signal) and reports progress (o.onPhase). Pass webSearch:false for a fast
   // "Quick draft" from the model's knowledge (still anchored to today's date).
   const webSearch = o.webSearch !== false;
-  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch, ground: o.ground, slides: o.slides, tone: o.tone, route: o.route });
+  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch, ground: o.ground, slides: o.slides, tone: o.tone, route: o.route, unbranded: o.unbranded });
   const text = await runPrompt(prompt, { model: o.model, webSearch, stream: o.stream, signal: o.signal, onPhase: o.onPhase });
   const slides = parseSlides(text);
   const wantPhotos = o.photos !== false;
