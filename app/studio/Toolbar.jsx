@@ -116,6 +116,13 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
             <SegBtn on={!!el.flipY} onClick={() => up({ flipY: !el.flipY })} title="Flip vertical">⥯</SegBtn>
             <SegBtn on={!!el.mono} onClick={() => up({ mono: !el.mono })} title="Black & white">◑</SegBtn>
           </Seg>
+          {/* Photo-owned darkening overlay (the scrim) — fixed-width slider so it
+              never overflows the bar; ⊘ clears it. */}
+          <span style={{ ...pill, gap: 7 }} title="Darken this photo (overlay)">
+            <span>Overlay</span>
+            <input type="range" min={0} max={80} value={Math.round((el.scrim || 0) * 100)} onChange={(e) => up({ scrim: (+e.target.value || 0) / 100 })} style={{ width: 64, accentColor: UI.brand }} />
+            <button style={miniClear} onClick={() => up({ scrim: 0 })} title="No overlay">⊘</button>
+          </span>
           {showImgExtra && <Sep />}
           {showImgExtra && <TextBtn onClick={() => fileRef.current && fileRef.current.click()} title="Replace with another image">⧉ Replace</TextBtn>}
           {showImgExtra && <TextBtn onClick={() => dispatch({ type: "imageToBackground", id: el.id })} title="Set as slide background">⤓ Background</TextBtn>}

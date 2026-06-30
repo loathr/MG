@@ -89,16 +89,23 @@ function ElementView({ element: el, isEditing, isCropping, onPointerDownBody, on
       inner = textNode;
     }
   } else if (el.type === "image") {
-    inner = el.src ? (
-      <img
-        src={el.src}
-        alt=""
-        draggable={false}
-        style={Object.assign({ width: "100%", height: "100%", objectFit: el.fit || "cover", borderRadius: el.radius || 0, display: "block" }, imageTransform(el))}
-        onError={(e) => { e.currentTarget.style.opacity = "0"; }}
-      />
-    ) : (
-      <div style={{ width: "100%", height: "100%", background: "#222", borderRadius: el.radius || 0 }} />
+    inner = (
+      <>
+        {el.src ? (
+          <img
+            src={el.src}
+            alt=""
+            draggable={false}
+            style={Object.assign({ width: "100%", height: "100%", objectFit: el.fit || "cover", borderRadius: el.radius || 0, display: "block" }, imageTransform(el))}
+            onError={(e) => { e.currentTarget.style.opacity = "0"; }}
+          />
+        ) : (
+          <div style={{ width: "100%", height: "100%", background: "#222", borderRadius: el.radius || 0 }} />
+        )}
+        {/* Darkening overlay (photo-owned scrim) — non-clicking, so it never
+            blocks selecting the photo. Tuned via the toolbar's Overlay control. */}
+        {el.scrim ? <div style={{ position: "absolute", inset: 0, background: "#000", opacity: el.scrim, borderRadius: el.radius || 0, pointerEvents: "none" }} /> : null}
+      </>
     );
   } else if (el.type === "rect") {
     inner = (

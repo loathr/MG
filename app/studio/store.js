@@ -464,14 +464,14 @@ function docReducer(state, a) {
       const slide = state.doc.slides[i];
       const bgi = slide && slide.background;
       if (!bgi || bgi.type !== "image" || !bgi.src) return state;
+      // The darkening scrim is now a PROPERTY of the photo (rendered as a
+      // non-clicking overlay), not a separate rect on top — so it never blocks
+      // selecting the photo, and the image toolbar's Overlay control tunes it.
       const photo = makeElement("image", {
         id: uid("photo"), role: "photo", x: 0, y: 0, w: ARTBOARD_W, h: ARTBOARD_H,
-        src: bgi.src, thumb: bgi.thumb || bgi.src, fit: "cover", radius: 0,
+        src: bgi.src, thumb: bgi.thumb || bgi.src, fit: "cover", radius: 0, scrim: bgi.scrim || 0,
       });
       const pre = [photo];
-      if (bgi.scrim) pre.push(makeElement("rect", {
-        id: uid("scrim"), role: "scrim", x: 0, y: 0, w: ARTBOARD_W, h: ARTBOARD_H, fill: "#000000", opacity: bgi.scrim,
-      }));
       const slides = state.doc.slides.map((s, idx) => idx === i ? Object.assign({}, s, {
         background: { type: "color", color: bgi.color || "#0c0c0c" },
         elements: pre.concat(s.elements || []),
@@ -480,15 +480,15 @@ function docReducer(state, a) {
     }
     case "imageToBackground": {
       // Reverse of detachPhoto (works on any image element): make the selected
-      // image the slide's full-bleed background again, re-absorbing a sibling
-      // scrim layer's opacity into the background scrim, and removing the element
-      // (and that scrim rect). One raster, now a background.
+      // image the slide's full-bleed background again, re-absorbing its overlay
+      // (el.scrim — or a legacy sibling scrim rect) into the background scrim, and
+      // removing the element. One raster, now a background.
       const i = state.slideIndex;
       const slide = state.doc.slides[i];
       const el = slide && (slide.elements || []).find((e) => e.id === a.id);
       if (!el || el.type !== "image" || !el.src) return state;
-      const scrimEl = (slide.elements || []).find((e) => e.role === "scrim");
-      const scrim = scrimEl ? (scrimEl.opacity == null ? 0.4 : scrimEl.opacity) : 0.4;
+      const legacyScrim = (slide.elements || []).find((e) => e.role === "scrim");
+      const scrim = el.scrim != null ? el.scrim : (legacyScrim ? (legacyScrim.opacity == null ? 0.4 : legacyScrim.opacity) : 0.4);
       const elements = (slide.elements || []).filter((e) => e.id !== el.id && e.role !== "scrim");
       const background = { type: "image", src: el.src, thumb: el.thumb || el.src, scrim, color: (slide.background && slide.background.color) || "#0c0c0c" };
       const slides = state.doc.slides.map((s, idx) => idx === i ? Object.assign({}, s, { background, elements }) : s);

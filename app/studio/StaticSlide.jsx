@@ -62,12 +62,12 @@ function StaticElement({ el }) {
     return <div style={{ ...frame, ...typography }}><RichText el={el} /></div>;
   }
   if (el.type === "image") {
-    return el.thumb ? (
-      <img src={el.thumb} alt="" draggable={false}
-        style={imageStyle(frame, el)} />
-    ) : (
-      <div style={{ ...frame, background: "#2a2a2e", borderRadius: el.radius || 0 }} />
-    );
+    if (!el.thumb) return <div style={{ ...frame, background: "#2a2a2e", borderRadius: el.radius || 0 }} />;
+    const img = <img src={el.thumb} alt="" draggable={false} style={imageStyle(frame, el)} />;
+    if (!el.scrim) return img;
+    // Photo-owned darkening overlay, matching the photo's box + rotation.
+    const overlay = { position: "absolute", left: el.x, top: el.y, width: el.w, height: el.h, transform: frame.transform, transformOrigin: "center center", background: "#000", opacity: el.scrim, borderRadius: el.radius || 0 };
+    return <>{img}<div style={overlay} /></>;
   }
   if (el.type === "rect") {
     return <div style={{ ...frame, background: el.fill, borderRadius: el.radius || 0,

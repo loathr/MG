@@ -428,6 +428,16 @@ export async function renderSlideToCanvas(slide) {
         else drawCover(ctx, img, 0, 0, el.w, el.h);
         ctx.restore();
       }
+      // Photo-owned darkening overlay (el.scrim), clipped to the rounded box.
+      if (el.scrim) {
+        ctx.save();
+        roundRectPath(ctx, 0, 0, el.w, el.h, el.radius);
+        ctx.clip();
+        ctx.globalAlpha = (el.opacity == null ? 1 : el.opacity) * el.scrim;
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, el.w, el.h);
+        ctx.restore();
+      }
     } else if (el.type === "text") {
       if (el.shape) { drawShapeBacking(ctx, el); drawShapedText(ctx, el); }
       else if (isUniformText(el)) drawText(ctx, el);

@@ -271,17 +271,13 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
           />
         )}
 
-        {/* drop-to-place highlight while an image file is dragged over the canvas */}
+        {/* drop-to-place highlight while an image file is dragged over the canvas
+            — a quiet outline, no prompt text (decluttered). */}
         {dropping && (
           <div style={{
             position: "absolute", inset: 0, zIndex: 30, pointerEvents: "none",
             border: "2px dashed " + UI.select, borderRadius: 4, background: "rgba(45,140,255,0.07)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <span style={{ background: "rgba(20,20,24,0.85)", color: "#cfe2ff", fontSize: 13, fontWeight: 600, padding: "8px 14px", borderRadius: 16, fontFamily: "Helvetica, Arial, sans-serif" }}>
-              Drop image to place · PNG transparency kept
-            </span>
-          </div>
+          }} />
         )}
       </div>
     </div>

@@ -630,7 +630,7 @@ test("an explicit frame colour overrides the accent default, and clears back to 
   assert.equal(frameCol(cleared), cleared.brand.accent);
 });
 
-test("detachPhoto turns the bg photo into an editable element + scrim, bg→solid (F1)", () => {
+test("detachPhoto turns the bg photo into an editable element, scrim folded onto it, bg→solid (F1)", () => {
   let s = initStudio();                          // sample slide 0 has an image background + scrim
   const before = cur(s).background;
   assert.equal(before.type, "image");
@@ -641,7 +641,9 @@ test("detachPhoto turns the bg photo into an editable element + scrim, bg→soli
   assert.ok(photo && photo.type === "image" && photo.src === before.src);
   assert.ok(photo.thumb, "photo carries a thumb so the off-screen strip stays light");
   assert.equal(photo.w, 1080); assert.equal(photo.h, 1350);     // full-bleed
-  assert.ok(sl.elements.find((e) => e.role === "scrim"), "scrim preserved as its own layer");
+  // The scrim is now a PROPERTY of the photo (non-blocking overlay), not a rect.
+  assert.equal(photo.scrim, before.scrim, "scrim folded onto the photo element");
+  assert.ok(!sl.elements.some((e) => e.role === "scrim"), "no separate scrim rect to block clicks");
   assert.equal(s.selectedId, photo.id, "new photo is selected for immediate editing");
   // §3: still exactly ONE decoded raster (one image element, solid background)
   const rasters = (sl.background.type === "image" ? 1 : 0) + sl.elements.filter((e) => e.type === "image").length;
@@ -658,11 +660,11 @@ test("imageToBackground flattens a photo element back to the bg, re-absorbing th
   let s = initStudio();
   s = reducer(s, { type: "detachPhoto" });
   const photo = cur(s).elements.find((e) => e.role === "photo");
-  const scrim = cur(s).elements.find((e) => e.role === "scrim").opacity;
+  const scrim = photo.scrim;                                      // scrim now lives on the photo
   s = reducer(s, { type: "imageToBackground", id: photo.id });
   const sl = cur(s);
   assert.equal(sl.background.type, "image");
   assert.equal(sl.background.src, photo.src);
-  assert.equal(sl.background.scrim, scrim);                       // scrim recovered from the layer
-  assert.ok(!sl.elements.some((e) => e.role === "photo" || e.role === "scrim")); // both gone
+  assert.equal(sl.background.scrim, scrim);                       // scrim recovered from the element
+  assert.ok(!sl.elements.some((e) => e.role === "photo" || e.role === "scrim")); // gone
 });
