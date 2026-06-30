@@ -64,10 +64,13 @@ PR: `https://github.com/loathr/MG/pull/9`
   your uid as bootstrap, `POST /api/admin/role {uid, role:"admin"}`, re-auth, then
   set another account to `viewer`/`editor` and confirm UI + rules match. Set a
   small `users/{uid}.limits.monthly`, generate past it → **429**; raise it → works.
-- [ ] **Share link / live view (Tier A)**: 🔗 Share → "Anyone with the link can
-  view" → open the `…/studio/<id>?s=<token>` link in another browser/account →
-  it loads read-only and updates live as the owner edits; "Reset link" makes the
-  old URL stop working; "Off" revokes it.
+- [ ] **Share link / live view (Tier A)**: save a deck → 🔗 Share → "Anyone with
+  the link can view" → copy the `…/studio?deck=<id>&s=<token>` URL → open it in
+  another browser (even signed-out) → it loads in the **read-only live viewer**
+  (banner "👁 View only · live", StaticSlide + strip) and reflects the owner's
+  edits within ~4s; "Reset link" makes the old URL 403; "Off" revokes it. The
+  resolver is `/api/shared` (server-side token check) — `shares/{deckId}` index
+  must exist and the deck under `users/{owner}/decks/{id}`. Needs admin creds.
 - [ ] **End-to-end generation** of any deck (Anthropic credit) — the core path
   the sandbox can't exercise.
 - [ ] **D1 (carryover)** — re-confirm trending beats on the deploy via `?debug=1`

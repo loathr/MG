@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   normalizeShare, linkAccess, memberAccess, effectiveAccess, canView, canEdit,
-  setShare, shareUrl, resolveAccess,
+  setShare, shareUrl, resolveAccess, shareIndex, resolveShared,
 } from "../app/studio/sharing.js";
 
 const deck = (share, ownerUid) => ({ ownerUid, share });
@@ -69,10 +69,27 @@ test("setShare: enable mints/keeps a token; disable keeps it; rotate replaces it
 
 test("shareUrl builds a link only when the link is live", () => {
   assert.equal(shareUrl("https://app.x.com/", "DECK1", { link: "view", token: "t k/+" }),
-    "https://app.x.com/studio/DECK1?s=t%20k%2F%2B");   // origin trimmed, token encoded
+    "https://app.x.com/studio?deck=DECK1&s=t%20k%2F%2B");  // origin trimmed, params encoded
   assert.equal(shareUrl("https://app.x.com", "DECK1", { link: "none", token: "t" }), null);
   assert.equal(shareUrl("https://app.x.com", "DECK1", { link: "view" }), null); // no token
   assert.equal(shareUrl("https://app.x.com", "", { link: "view", token: "t" }), null); // no id
+});
+
+test("shareIndex: built when shared (carries the owner); null when off", () => {
+  assert.deepEqual(shareIndex({ link: "view", token: "tk" }, "ownerU", "DECK1"),
+    { ownerUid: "ownerU", deckId: "DECK1", link: "view", token: "tk" });
+  assert.equal(shareIndex({ link: "none", token: "tk" }, "ownerU", "DECK1"), null);
+  assert.equal(shareIndex({ link: "view" }, "ownerU", "DECK1"), null);   // no token
+  assert.equal(shareIndex({ link: "view", token: "tk" }, "", "DECK1"), null); // no owner
+});
+
+test("resolveShared: server-side token check → level or none (rotation revokes)", () => {
+  const idx = { ownerUid: "o", deckId: "D", link: "edit", token: "tk" };
+  assert.equal(resolveShared(idx, "tk"), "edit");
+  assert.equal(resolveShared(idx, "old"), "none");           // rotated/old token
+  assert.equal(resolveShared(idx, undefined), "none");
+  assert.equal(resolveShared({ ...idx, link: "none" }, "tk"), "none");
+  assert.equal(resolveShared(null, "tk"), "none");
 });
 
 test("resolveAccess returns the access + both gates in one call", () => {

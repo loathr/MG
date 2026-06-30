@@ -58,12 +58,33 @@ export function setShare(share, level, newToken) {
 }
 
 // The shareable URL for a deck, or null when the link is off / has no token.
-// `origin` is the deploy origin (e.g. https://app.example.com); the share token
-// rides as ?s= so the open route can resolve access before rendering.
+// `origin` is the deploy origin (e.g. https://app.example.com). The deck id +
+// token ride as query params so the existing /studio page resolves them on load
+// (no extra dynamic route), via the server /api/shared resolver.
 export function shareUrl(origin, deckId, share) {
   const s = share || {};
   if (!s.token || normalizeShare(s.link) === "none" || !deckId) return null;
-  return String(origin || "").replace(/\/+$/, "") + "/studio/" + encodeURIComponent(deckId) + "?s=" + encodeURIComponent(s.token);
+  return String(origin || "").replace(/\/+$/, "") + "/studio?deck=" + encodeURIComponent(deckId) + "&s=" + encodeURIComponent(s.token);
+}
+
+// The top-level shares/{deckId} INDEX doc, written when a deck is shared so a
+// viewer holding only the deckId + token can be resolved to the owner's deck by
+// the server (the owner's uid isn't in the link). Returns null when sharing is
+// off → the caller deletes the index. Pure.
+export function shareIndex(share, ownerUid, deckId) {
+  const s = share || {};
+  if (normalizeShare(s.link) === "none" || !s.token || !ownerUid || !deckId) return null;
+  return { ownerUid, deckId, link: normalizeShare(s.link), token: s.token };
+}
+
+// Resolve a presented token against a shares index doc → the granted level, or
+// "none" (wrong/absent token, missing/disabled index). The SERVER checks this
+// (Admin SDK), so a rotated token truly revokes old links and anonymous viewers
+// never touch Firestore directly. Pure.
+export function resolveShared(indexDoc, presentedToken) {
+  const i = indexDoc || {};
+  if (!i.token || normalizeShare(i.link) === "none") return "none";
+  return presentedToken && presentedToken === i.token ? normalizeShare(i.link) : "none";
 }
 
 // One-call resolution for the open route / UI: the effective access plus the

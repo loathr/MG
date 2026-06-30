@@ -7,6 +7,7 @@
 
 import { adminCredentials } from "./authCore";
 import { quotaCheck, usagePeriodKey } from "../studio/authority";
+import { resolveShared } from "../studio/sharing";
 
 let _db = null;
 async function db() {
@@ -50,6 +51,29 @@ export async function meterGenerate(uid, nowMs) {
     return check;
   } catch (e) {
     return { allowed: true, unlimited: true, error: true }; // never block on a blip
+  }
+}
+
+// Resolve a share link (deckId + token) to the deck, SERVER-SIDE: read the
+// shares/{deckId} index (which carries the owner uid the link doesn't), verify
+// the token, then read the owner's deck. The Admin SDK bypasses rules, so a
+// viewer never needs Firestore access and a rotated token truly revokes — the
+// token check is here, not in the rules. Returns { access, doc, name }.
+export async function readShared(deckId, presentedToken) {
+  const d = await db();
+  if (!d || !deckId) return { access: "none" };
+  try {
+    const idxSnap = await d.doc("shares/" + deckId).get();
+    if (!idxSnap.exists) return { access: "none" };
+    const idx = idxSnap.data();
+    const access = resolveShared(idx, presentedToken);
+    if (access === "none") return { access: "none" };
+    const deckSnap = await d.doc("users/" + idx.ownerUid + "/decks/" + deckId).get();
+    if (!deckSnap.exists) return { access: "none" };
+    const rec = deckSnap.data() || {};
+    return { access, doc: rec.doc || null, name: rec.name || "Shared carousel" };
+  } catch (e) {
+    return { access: "none", error: true };
   }
 }
 

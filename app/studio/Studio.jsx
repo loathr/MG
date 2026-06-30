@@ -9,6 +9,7 @@ import Artboard from "./Artboard";
 import Toolbar from "./Toolbar";
 import FormatBar from "./FormatBar";
 import SlideThumb from "./SlideThumb";
+import StaticSlide from "./StaticSlide";
 import ShapeBacking from "./ShapeBacking";
 import { UI } from "./theme";
 import { SHAPE_VARIANTS, shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
@@ -73,6 +74,7 @@ export default function Studio() {
   const [projectId, setProjectId] = useState(null);// current deck's Firestore id
   const [saveState, setSaveState] = useState("idle"); // "idle" | "saving" | "saved"
   const [shareOpen, setShareOpen] = useState(false);  // Share-link popover (Tier A)
+  const [sharedView, setSharedView] = useState(null); // opened via a share link: { deck, s, access, name }
   const saveTimer = useRef(null);
   const genAbort = useRef(null); // AbortController for the in-flight generation
   const fcAbort = useRef(null);  // AbortController for the in-flight fact-check
@@ -87,6 +89,25 @@ export default function Studio() {
     if (booted.current) return;
     booted.current = true;
     const params = new URLSearchParams(window.location.search);
+    const deck = params.get("deck"), s = params.get("s");
+    if (deck && s) {
+      // Opened via a share link → resolve it server-side and show the deck
+      // read-only + live (Tier A). No sign-in required; the token is the grant.
+      setScreen("editor");
+      fetch("/api/shared?deck=" + encodeURIComponent(deck) + "&s=" + encodeURIComponent(s))
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data && data.doc) {
+            dispatch({ type: "loadDoc", doc: data.doc });
+            setProjectName(data.name || "Shared carousel");
+            setSharedView({ deck, s, access: data.access, name: data.name || "Shared carousel" });
+          } else {
+            setGenError("This share link is no longer valid.");
+          }
+        })
+        .catch(() => setGenError("Couldn't open the shared link."));
+      return;
+    }
     if (params.get("demo") === "photos9") {
       dispatch({ type: "loadDoc", doc: photosDemoDoc() });
       setProjectName("Photo demo");
@@ -104,6 +125,20 @@ export default function Studio() {
     return onAuthChange(setUser);
   }, [cloud]);
 
+  // Live view of a shared deck: re-pull every few seconds so a watcher sees the
+  // owner's edits land (Tier A "instant live view" via short poll — upgradeable
+  // to an onSnapshot listener for signed-in viewers later).
+  useEffect(() => {
+    if (!sharedView) return undefined;
+    const id = setInterval(() => {
+      fetch("/api/shared?deck=" + encodeURIComponent(sharedView.deck) + "&s=" + encodeURIComponent(sharedView.s))
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => { if (data && data.doc) dispatch({ type: "loadDoc", doc: data.doc }); })
+        .catch(() => {});
+    }, 4000);
+    return () => clearInterval(id);
+  }, [sharedView]);
+
   // Load the user's deck list whenever the Projects screen is shown.
   useEffect(() => {
     if (!cloud || !user || screen !== "projects") return;
@@ -112,9 +147,10 @@ export default function Studio() {
     return () => { live = false; };
   }, [cloud, user, screen]);
 
-  // Autosave the open deck to Firestore (debounced) while editing.
+  // Autosave the open deck to Firestore (debounced) while editing. NEVER while
+  // viewing a shared link — a watcher must not write the deck into their account.
   useEffect(() => {
-    if (!cloud || !user || screen !== "editor") return undefined;
+    if (!cloud || !user || screen !== "editor" || sharedView) return undefined;
     setSaveState("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
@@ -123,7 +159,7 @@ export default function Studio() {
         .catch(() => setSaveState("idle"));
     }, 1200);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [cloud, user, screen, state.doc, projectName, projectId]);
+  }, [cloud, user, screen, state.doc, projectName, projectId, sharedView]);
 
   // Projects-screen handlers (cloud only).
   const openProject = (id) => {
@@ -331,6 +367,13 @@ export default function Studio() {
   const cancelFactCheck = () => { if (fcAbort.current) fcAbort.current.abort(); };
 
   const toggle = (key) => setActivePanel((p) => (p === key ? null : key));
+
+  // Opened via a share link → a read-only, live viewer (no editing surface at
+  // all — it renders StaticSlide, the same non-interactive renderer as the strip).
+  if (sharedView) {
+    return <SharedViewer doc={state.doc} slideIndex={state.slideIndex} name={projectName}
+      onNav={(i) => dispatch({ type: "setSlide", index: i })} error={genError} />;
+  }
 
   if (cloud && screen === "projects") {
     return (
@@ -638,6 +681,40 @@ const menuItem = {
   background: "transparent", color: UI.text, border: "none", borderRadius: 6,
   cursor: "pointer", fontSize: 13,
 };
+
+// The read-only, live viewer shown when a deck is opened via a share link. Zero
+// editing surface: a banner + a large StaticSlide of the current slide + the
+// strip for navigation. The parent re-pulls the doc on a poll, so this updates
+// live as the owner edits.
+function SharedViewer({ doc, slideIndex, name, onNav, error }) {
+  const slides = (doc && doc.slides) || [];
+  const cur = slides[slideIndex] || slides[0];
+  return (
+    <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: UI.bg, color: UI.text, fontFamily: "Helvetica, Arial, sans-serif" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, height: 48, padding: "0 16px", borderBottom: "1px solid " + UI.border, flexShrink: 0 }}>
+        <strong style={{ fontSize: 13 }}>{name || "Shared carousel"}</strong>
+        <span style={{ fontSize: 11, color: UI.muted, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 12, padding: "2px 9px" }}>👁 View only · live</span>
+        <span style={{ marginLeft: "auto", fontSize: 11, color: UI.muted }}>{slides.length} slide{slides.length === 1 ? "" : "s"}</span>
+      </div>
+      {error ? (
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: UI.muted }}>{error}</div>
+      ) : (
+        <>
+          <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+            {cur ? <div style={{ boxShadow: "0 10px 40px rgba(0,0,0,0.5)" }}><StaticSlide slide={cur} width={Math.min(520, typeof window !== "undefined" ? window.innerWidth - 60 : 520)} /></div> : null}
+          </div>
+          <div style={{ display: "flex", gap: 8, padding: "10px 16px", borderTop: "1px solid " + UI.border, overflowX: "auto", flexShrink: 0 }}>
+            {slides.map((s, i) => (
+              <div key={s.id || i} onClick={() => onNav(i)} style={{ flexShrink: 0, cursor: "pointer", borderRadius: 6, outline: i === slideIndex ? "2px solid " + UI.brand : "1px solid " + UI.border, outlineOffset: -1 }}>
+                <StaticSlide slide={s} width={64} />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 function SidePanel({ title, onClose, children }) {
   return (

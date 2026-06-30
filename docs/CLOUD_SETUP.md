@@ -56,6 +56,14 @@ service cloud.firestore {
       allow read:  if isAdmin() || (request.auth != null && request.auth.uid == uid);
       allow write: if false;
     }
+    // Share index: the owner writes/clears it (sharing on/off); NOBODY reads it
+    // via the client — share links are resolved by the server (/api/shared, Admin
+    // SDK), which verifies the token, so a rotated token revokes old links.
+    match /shares/{deckId} {
+      allow read:   if false;
+      allow create, update: if request.auth != null && request.auth.uid == request.resource.data.ownerUid;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
+    }
   }
 }
 ```

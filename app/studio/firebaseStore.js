@@ -1,5 +1,6 @@
 "use client";
 import { cloudConfig, projectRecord, docFromRecord, collectImageData, imageKey, rewriteImages } from "./cloud";
+import { shareIndex } from "./sharing";
 
 // Guarded Firestore adapter for deck storage. The firebase SDK loads LAZILY and
 // only when cloud is configured; every call is a safe no-op (null / []) when
@@ -73,6 +74,15 @@ export async function saveDeck(uid, id, doc, opts) {
   const stored = await uploadDeckImages(uid, ref.id, doc);
   const rec = projectRecord(stored, Object.assign({ id: ref.id }, o));
   await fs.setDoc(ref, rec, { merge: true });
+  // Maintain the top-level shares/{deckId} index so a share link (deck id + token,
+  // no owner uid) is resolvable by the server. Written when shared, removed when
+  // off. Best-effort — a share-index hiccup never fails the save.
+  try {
+    const idx = shareIndex(stored.share, uid, ref.id);
+    const sref = fs.doc(d, "shares", ref.id);
+    if (idx) await fs.setDoc(sref, idx, { merge: true });
+    else await fs.deleteDoc(sref);
+  } catch (e) { /* index is best-effort */ }
   return ref.id;
 }
 
