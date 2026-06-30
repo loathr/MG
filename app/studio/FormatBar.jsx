@@ -32,16 +32,17 @@ function pushRecent(hex) {
 // then targets the STORED selection offsets (B2), and the editor's blur is
 // guarded against [data-formatbar] so editing does not end.
 export default function FormatBar({ style, accent, rect, onStyle, onClear, onSize }) {
-  const [open, setOpen] = useState(false);
+  const [pop, setPop] = useState(null); // open colour popover: "text" | "bg" | null
   const [hex, setHex] = useState("");
   const [recents, setRecents] = useState([]);
   const [off, setOff] = useState({ x: 0, y: 0 }); // manual drag offset (grip)
   const colorRef = useRef(null);
   const dragRef = useRef(null);
+  const key = pop === "bg" ? "bg" : "color"; // which run-style the popover edits
 
-  useEffect(() => { setRecents(readRecents()); }, [open]);
-  // Seed the hex field from the selection's current colour when the popover opens.
-  useEffect(() => { if (open) setHex((style && style.color) || accent || "#ffffff"); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setRecents(readRecents()); }, [pop]);
+  // Seed the hex field from the selection's current colour/highlight when opened.
+  useEffect(() => { if (pop) setHex((style && style[pop === "bg" ? "bg" : "color"]) || accent || "#ffffff"); }, [pop]); // eslint-disable-line react-hooks/exhaustive-deps
   // A new selection re-homes the bar (drop any manual drag offset).
   const anchorKey = rect ? Math.round(rect.top) + ":" + Math.round(rect.left) : "";
   useEffect(() => { setOff({ x: 0, y: 0 }); }, [anchorKey]);
@@ -70,9 +71,10 @@ export default function FormatBar({ style, accent, rect, onStyle, onClear, onSiz
     window.addEventListener("pointerup", up);
   };
 
-  const apply = (c) => { const n = normalizeHex(c); if (!n) return; onStyle({ color: n }); setRecents(pushRecent(n)); };
-  const onHexChange = (v) => { setHex(v); const n = normalizeHex(v); if (n) onStyle({ color: n }); };
+  const apply = (c) => { const n = normalizeHex(c); if (!n) return; onStyle({ [key]: n }); setRecents(pushRecent(n)); };
+  const onHexChange = (v) => { setHex(v); const n = normalizeHex(v); if (n) onStyle({ [key]: n }); };
   const customActive = !!(s.color && !swatches.some((c) => c.toLowerCase() === String(s.color).toLowerCase()));
+  const HL_SWATCHES = [accent || "#ffd34e", "#ffd34e", "#aef0c0", "#ffd0e0", "#bcdcff", "#e2473e"];
 
   return (
     <div data-formatbar style={{ ...wrap, left: cx, top, width: W }} onMouseDown={(e) => { if (e.target.tagName !== "INPUT") hold(e); }}>
@@ -81,12 +83,12 @@ export default function FormatBar({ style, accent, rect, onStyle, onClear, onSiz
       <span style={sep} />
       {/* preset text colours */}
       {swatches.map((c, i) => (
-        <button key={i} onMouseDown={hold} onClick={() => { setOpen(false); onStyle({ color: c }); }}
+        <button key={i} onMouseDown={hold} onClick={() => { setPop(null); onStyle({ color: c }); }}
           title={"Text colour"} style={{ ...sw, background: c, outline: s.color === c ? "2px solid " + UI.select : "none" }} />
       ))}
-      {/* custom-hex swatch — opens the popover */}
-      <button onMouseDown={hold} onClick={() => setOpen((o) => !o)} title="Custom colour…"
-        style={{ ...sw, ...rainbow, outline: (customActive || open) ? "2px solid " + UI.select : "none" }}>
+      {/* custom-hex swatch — opens the text-colour popover */}
+      <button onMouseDown={hold} onClick={() => setPop((p) => (p === "text" ? null : "text"))} title="Custom colour…"
+        style={{ ...sw, ...rainbow, outline: (customActive || pop === "text") ? "2px solid " + UI.select : "none" }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: "#fff", textShadow: "0 1px 2px #0008", lineHeight: "16px" }}>+</span>
       </button>
       <span style={sep} />
@@ -94,7 +96,7 @@ export default function FormatBar({ style, accent, rect, onStyle, onClear, onSiz
       <Tog on={!!s.italic} onMouseDown={hold} onClick={() => onStyle({ italic: !s.italic })} title="Italic"><i>I</i></Tog>
       <Tog on={!!s.strike} onMouseDown={hold} onClick={() => onStyle({ strike: !s.strike })} title="Strikethrough"><s>S</s></Tog>
       <span style={sep} />
-      <Tog on={!!s.bg} onMouseDown={hold} onClick={() => onStyle(s.bg ? { bg: null } : { bg: accent || "#ffd34e" })} title="Highlight (background)">
+      <Tog on={!!s.bg || pop === "bg"} onMouseDown={hold} onClick={() => setPop((p) => (p === "bg" ? null : "bg"))} title="Highlight colour…">
         <span style={{ background: s.bg || "#ffd34e", color: "#101010", borderRadius: 3, padding: "0 3px", fontSize: 11, fontWeight: 700 }}>H</span>
       </Tog>
       <Tog on={!!(s.stroke && s.strokeWidth)} onMouseDown={hold} onClick={() => onStyle((s.stroke && s.strokeWidth) ? { stroke: null, strokeWidth: 0 } : { stroke: "#ffffff", strokeWidth: 4 })} title="Outline">
@@ -106,9 +108,18 @@ export default function FormatBar({ style, accent, rect, onStyle, onClear, onSiz
       <span style={sep} />
       <Tog onMouseDown={hold} onClick={onClear} title="Clear styling on selection"><span style={{ color: UI.muted }}>✕</span></Tog>
 
-      {open && (
-        <div style={pop} onMouseDown={(e) => { if (e.target.tagName !== "INPUT") hold(e); }}>
-          <div style={popTitle}>Custom text colour</div>
+      {pop && (
+        <div style={popStyle} onMouseDown={(e) => { if (e.target.tagName !== "INPUT") hold(e); }}>
+          <div style={popTitle}>{pop === "bg" ? "Highlight colour" : "Custom text colour"}</div>
+          {pop === "bg" && (
+            <div style={{ display: "flex", gap: 6, marginBottom: 11 }}>
+              {HL_SWATCHES.map((c, i) => (
+                <button key={i} onMouseDown={hold} onClick={() => { apply(c); setHex(c); }} title={c} style={{ ...gsw, background: c }} />
+              ))}
+              <button onMouseDown={hold} onClick={() => { onStyle({ bg: null }); setPop(null); }} title="No highlight"
+                style={{ ...gsw, background: "#222", color: "#9a9a9a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⊘</button>
+            </div>
+          )}
           <div style={hexRow}>
             <span style={{ ...chip, background: normalizeHex(hex) || "#26262b" }} />
             <span style={hexField}>
@@ -116,7 +127,7 @@ export default function FormatBar({ style, accent, rect, onStyle, onClear, onSiz
               <input
                 value={String(hex).replace(/^#/, "").toUpperCase()}
                 onChange={(e) => onHexChange(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); apply(hex); setOpen(false); } else if (e.key === "Escape") { e.preventDefault(); setOpen(false); } }}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); apply(hex); setPop(null); } else if (e.key === "Escape") { e.preventDefault(); setPop(null); } }}
                 spellCheck={false} maxLength={7}
                 style={hexInput} />
             </span>
@@ -170,7 +181,7 @@ const rainbow = { background: "conic-gradient(#ff4d4d,#ffd34e,#56e07a,#56b3ff,#b
 const sep = { width: 1, height: 20, background: "#33333c", margin: "0 4px", flexShrink: 0 };
 
 // --- custom-hex popover ---
-const pop = {
+const popStyle = {
   position: "absolute", top: 50, left: "50%", transform: "translateX(-50%)", width: 222,
   background: "#161619", border: "1px solid #34343c", borderRadius: 12,
   boxShadow: "0 18px 40px rgba(0,0,0,0.6)", padding: 12,
