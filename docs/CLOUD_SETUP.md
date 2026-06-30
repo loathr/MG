@@ -50,6 +50,13 @@ service firebase.storage {
 }
 ```
 
+**Uploads are wired (step 11c).** On save, every embedded `data:` image in the
+deck is pushed to `users/{uid}/decks/{deckId}/img_<hash>.{jpg,png}` and the doc
+is rewritten to download URLs, so the Firestore doc stays well under its 1 MB
+limit. Set `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` and enable Cloud Storage for
+this to engage; with no bucket the editor falls back to inline data URLs (small
+decks only). Content-hashed paths dedupe repeats across slides and re-saves.
+
 ## 5. Service account (server token verification)
 **Project settings → Service accounts → Generate new private key** → downloads a
 JSON file. You'll paste it (or its three fields) into the `FIREBASE_*` admin vars

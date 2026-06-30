@@ -1,5 +1,5 @@
 "use client";
-import { cloudConfig, projectRecord, docFromRecord } from "./cloud";
+import { cloudConfig, projectRecord, docFromRecord, collectImageData, imageKey, rewriteImages } from "./cloud";
 
 // Guarded Firestore adapter for deck storage. The firebase SDK loads LAZILY and
 // only when cloud is configured; every call is a safe no-op (null / []) when
@@ -21,14 +21,57 @@ async function db() {
   return _dbPromise;
 }
 
+// Lazy Cloud Storage handle — only when a bucket is configured. Used to offload
+// embedded images so the Firestore doc stays under the 1 MB limit (Cloud 11c).
+let _storagePromise = null;
+async function storage() {
+  const cfg = cloudConfig();
+  if (!cfg || !cfg.storageBucket || typeof window === "undefined") return null;
+  if (!_storagePromise) {
+    _storagePromise = (async () => {
+      const { initializeApp, getApps } = await import("firebase/app");
+      const app = getApps().length ? getApps()[0] : initializeApp(cfg);
+      const { getStorage } = await import("firebase/storage");
+      return getStorage(app);
+    })();
+  }
+  return _storagePromise;
+}
+
+// Push every embedded `data:` image in `doc` to Storage under the deck's folder
+// and return the doc rewritten to download URLs. No bucket configured (or no
+// embedded images) → returns the doc unchanged (today's inline behaviour). A
+// single failed upload leaves just that image inline rather than aborting save.
+export async function uploadDeckImages(uid, deckId, doc) {
+  const st = await storage();
+  if (!st || !uid) return doc;
+  const datas = collectImageData(doc);
+  if (!datas.length) return doc;
+  const sm = await import("firebase/storage");
+  const map = {};
+  for (const dataUrl of datas) {
+    try {
+      const r = sm.ref(st, "users/" + uid + "/decks/" + deckId + "/" + imageKey(dataUrl));
+      await sm.uploadString(r, dataUrl, "data_url");
+      map[dataUrl] = await sm.getDownloadURL(r);
+    } catch (e) { /* leave this image inline; the rest still offload */ }
+  }
+  return rewriteImages(doc, map);
+}
+
 // Create or update a user's deck. Returns the deck id (a new one when `id` is
 // null). `now`/`createdAt` are stamped by the caller (projectRecord shape).
+// Embedded images are offloaded to Storage first (Cloud 11c); opts.onUploading
+// (optional) fires once before that step so the UI can show an "uploading" beat.
 export async function saveDeck(uid, id, doc, opts) {
   const d = await db(); if (!d || !uid) return null;
   const fs = await import("firebase/firestore");
   const col = fs.collection(d, "users", uid, "decks");
   const ref = id ? fs.doc(col, id) : fs.doc(col);
-  const rec = projectRecord(doc, Object.assign({ id: ref.id }, opts || {}));
+  const o = opts || {};
+  if (o.onUploading && collectImageData(doc).length) o.onUploading();
+  const stored = await uploadDeckImages(uid, ref.id, doc);
+  const rec = projectRecord(stored, Object.assign({ id: ref.id }, o));
   await fs.setDoc(ref, rec, { merge: true });
   return ref.id;
 }

@@ -49,6 +49,12 @@ PR: `https://github.com/loathr/MG/pull/9`
   re-flows, fonts change, colour palette kept).
 
 ## 5. General
+- [ ] **Cloud 11c — image upload to Storage** (needs a Firebase project with
+  Cloud Storage + `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`): add a photo, save a
+  deck, confirm the indicator shows "Uploading images…" then "Saved", the
+  Firestore doc holds Storage download URLs (not `data:` base64), the images
+  live under `users/{uid}/decks/{id}/img_*`, reload restores them, and a
+  photo-heavy deck (previously >1 MB) now saves. Sandbox blocks the bucket.
 - [ ] **End-to-end generation** of any deck (Anthropic credit) — the core path
   the sandbox can't exercise.
 - [ ] **D1 (carryover)** — re-confirm trending beats on the deploy via `?debug=1`

@@ -51,6 +51,60 @@ export function projectRecord(doc, opts) {
 // The deck doc back out of a stored record (or null if absent/malformed).
 export function docFromRecord(rec) { return rec && rec.doc ? rec.doc : null; }
 
+// ---- Cloud 11c: embedded-image offload to Cloud Storage --------------------
+// Firestore caps a document at 1 MB, but uploaded photos ride in the doc as
+// base64 `data:` URLs (imageFile.js) — a couple of photos blow the limit. On
+// save we push each embedded image to Storage and swap the data URL for its
+// download URL, keeping the persisted doc tiny. These helpers are PURE (no
+// firebase) so they're unit-tested; firebaseStore wires them to the SDK.
+
+const IMG_FIELDS = ["src", "thumb", "origSrc"]; // per-element image-bearing keys
+function isDataUrl(u) { return typeof u === "string" && u.indexOf("data:") === 0; }
+
+// Every distinct embedded `data:` image in a deck (slide backgrounds, image
+// elements + their BG-remover original, and the brand logo).
+export function collectImageData(doc) {
+  const set = new Set();
+  const add = (u) => { if (isDataUrl(u)) set.add(u); };
+  for (const s of (doc && doc.slides) || []) {
+    if (s.background) { add(s.background.src); add(s.background.thumb); }
+    for (const e of s.elements || []) for (const f of IMG_FIELDS) add(e[f]);
+  }
+  if (doc && doc.brand && doc.brand.logo) add(doc.brand.logo.src);
+  return [...set];
+}
+
+// A stable, content-addressed storage key for a data URL (FNV-1a, so the same
+// image dedupes to one upload across slides and re-saves). Pure/deterministic.
+export function imageKey(dataUrl) {
+  let h = 0x811c9dc5;
+  const str = String(dataUrl);
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  const hex = (h >>> 0).toString(16).padStart(8, "0") + (str.length % 0xffff).toString(16).padStart(4, "0");
+  return "img_" + hex + (/^data:image\/png/i.test(str) ? ".png" : ".jpg");
+}
+
+// Return a new doc with every `data:` image replaced by map[dataUrl] when
+// present (missing entries — e.g. an upload that failed — are left inline).
+export function rewriteImages(doc, map) {
+  if (!doc || !map) return doc;
+  const sub = (u) => (isDataUrl(u) && map[u]) ? map[u] : u;
+  const slides = (doc.slides || []).map((s) => {
+    const background = s.background ? Object.assign({}, s.background, { src: sub(s.background.src), thumb: sub(s.background.thumb) }) : s.background;
+    const elements = (s.elements || []).map((e) => {
+      let n = e;
+      for (const f of IMG_FIELDS) if (isDataUrl(e[f]) && map[e[f]]) { if (n === e) n = Object.assign({}, e); n[f] = map[e[f]]; }
+      return n;
+    });
+    return Object.assign({}, s, { background, elements });
+  });
+  let brand = doc.brand;
+  if (brand && brand.logo && isDataUrl(brand.logo.src) && map[brand.logo.src]) {
+    brand = Object.assign({}, brand, { logo: Object.assign({}, brand.logo, { src: map[brand.logo.src] }) });
+  }
+  return Object.assign({}, doc, { slides, brand });
+}
+
 // "2h ago" relative label for the Projects list. Pure — nowMs is passed in.
 export function relativeTime(ms, nowMs) {
   if (!ms || !nowMs || nowMs < ms) return "just now";

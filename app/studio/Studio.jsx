@@ -116,7 +116,7 @@ export default function Studio() {
     setSaveState("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      saveDeck(user.uid, projectId, state.doc, { name: projectName, now: Date.now() })
+      saveDeck(user.uid, projectId, state.doc, { name: projectName, now: Date.now(), onUploading: () => setSaveState("uploading") })
         .then((id) => { if (id && !projectId) setProjectId(id); setSaveState("saved"); })
         .catch(() => setSaveState("idle"));
     }, 1200);
@@ -379,7 +379,7 @@ export default function Studio() {
           <span style={{ fontSize: 11, color: saveState === "saved" ? "#7ed09a" : UI.muted, marginRight: 8, display: "inline-flex", alignItems: "center", gap: 5 }}
             title={saveState === "saved" ? "Saved to your account" : "Saving…"}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: saveState === "saved" ? "#7ed09a" : UI.muted }} />
-            {saveState === "saving" ? "Saving…" : "Saved to cloud"}
+            {saveState === "uploading" ? "Uploading images…" : saveState === "saving" ? "Saving…" : "Saved to cloud"}
           </span>
         ) : null}
         <span style={{ fontSize: 11, color: UI.muted, marginRight: 4 }}>
