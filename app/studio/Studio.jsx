@@ -413,17 +413,6 @@ export default function Studio() {
         </div>
       </header>
 
-      {/* Top contextual toolbar (Canva-style) — properties of the SELECTED element.
-          A selected text span still routes colour/weight through the FormatBar. */}
-      <Toolbar
-        el={selectedEl}
-        dispatch={dispatch}
-        textSel={textSel}
-        spanStyle={textSel ? textSel.style : null}
-        onStyleSpan={styleSpan}
-        onClearSpan={clearSpanStyle}
-      />
-
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
         {/* Left tool rail */}
         <nav style={{ width: 72, flexShrink: 0, display: "flex", flexDirection: "column", gap: 3, padding: "8px 7px", background: UI.rail, borderRight: "1px solid " + UI.border }}>
@@ -508,14 +497,26 @@ export default function Studio() {
           />
         )}
 
-        <Artboard
-          slide={slide}
-          selectedId={state.selectedId}
-          editingId={state.editingId}
-          dispatch={dispatch}
-          onTextSelect={setTextSel}
-          onEditApi={(api) => { editApiRef.current = api; }}
-        />
+        {/* Canvas column: the contextual toolbar sits directly above the
+            artboard/carousel, not across the rail + add-panels (Canva-style). */}
+        <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
+          <Toolbar
+            el={selectedEl}
+            dispatch={dispatch}
+            textSel={textSel}
+            spanStyle={textSel ? textSel.style : null}
+            onStyleSpan={styleSpan}
+            onClearSpan={clearSpanStyle}
+          />
+          <Artboard
+            slide={slide}
+            selectedId={state.selectedId}
+            editingId={state.editingId}
+            dispatch={dispatch}
+            onTextSelect={setTextSel}
+            onEditApi={(api) => { editApiRef.current = api; }}
+          />
+        </div>
 
         {fc && (
           <FactCheckPanel
