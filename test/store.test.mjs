@@ -564,6 +564,18 @@ test("rethemeDoc recolors the deck frame to the new look — accent, but News De
   assert.equal(out2.slides[1].elements.find((e) => e.role === "frame").stroke, "#222233");
 });
 
+test("rethemeDoc recolours the feature colour-panel box on a bg swap", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "loadDoc", doc: slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }], "editorial") });
+  // put slide 1 on the side-by-side split so it carries a colour-panel box
+  s = reducer(s, { type: "setLayout", layout: "featureSplit", index: 1 });
+  const panelBefore = s.doc.slides[1].elements.find((e) => e.role === "panel");
+  assert.ok(panelBefore, "split slide has a panel box");
+  assert.equal(panelBefore.fill, s.doc.brand.bg, "panel filled with the deck bg");
+  const out = rethemeDoc(s.doc, s.doc.brand, Object.assign({}, s.doc.brand, { bg: "#101820" }));
+  assert.equal(out.slides[1].elements.find((e) => e.role === "panel").fill, "#101820", "panel follows the new bg");
+});
+
 test("setFamily switches the layout family + fonts but keeps the colour palette", () => {
   let s = initStudio();
   s = reducer(s, { type: "loadDoc", doc: slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }], "editorial") });

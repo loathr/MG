@@ -57,6 +57,29 @@ test("feature layout with no photo falls back to a solid accent block", () => {
   assert.ok(els.some((e) => e.type === "rect" && e.x === 0 && e.y === 0)); // the band block
 });
 
+test("every feature layout emits a selectable colour PANEL box behind the text", () => {
+  const st = STYLES.editorial;
+  for (const k of ["feature", "featureBottom", "featureSplit"]) {
+    const els = renderLayout(k, { heading: "H", body: "b", image: { url: "p.jpg" } }, "editorial", false);
+    const panel = els.find((e) => e.role === "panel");
+    assert.ok(panel, k + " has a panel element");
+    assert.equal(panel.type, "rect");
+    assert.ok(!panel.locked, k + " panel is movable (not locked chrome)");
+    assert.equal(panel.fill, st.bg, k + " panel is filled with the deck bg");
+    // The panel sits BEHIND the text (earlier in the array) so the copy stays on top.
+    const firstText = els.findIndex((e) => e.type === "text");
+    assert.ok(els.indexOf(panel) < firstText, k + " panel is behind the text");
+  }
+});
+
+test("featureSplit panel box covers the text side, beside the image box", () => {
+  const els = renderLayout("featureSplit", { heading: "H", body: "b", image: { url: "p.jpg" } }, "editorial", false);
+  const panel = els.find((e) => e.role === "panel");
+  const img = els.find((e) => e.type === "image");
+  assert.ok(panel.x >= img.x + img.w - 1, "panel starts where the image ends");
+  assert.ok(panel.w > 200 && panel.h > 1000, "panel fills the right column full-height");
+});
+
 test("renderLayout applies a body `highlight` to body-sized text only, never the headline", () => {
   const els = renderLayout(
     "classic",

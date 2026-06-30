@@ -95,7 +95,10 @@ export function rethemeDoc(doc, prev, next) {
   };
   const remapEl = (e) => {
     let n = e;
-    if (e.type === "rect" && b.accent && p.accent && e.fill === p.accent) n = Object.assign({}, n, { fill: b.accent });
+    // Recolour any rect fill that still matches an old-palette entry — the accent
+    // bars/blocks AND the feature colour PANEL (bg-filled), which the accent-only
+    // remap missed, so a palette swap left the panel on the old background colour.
+    if (e.type === "rect" && e.fill) { const v = remapColor(e.fill); if (v !== e.fill) n = Object.assign({}, n, { fill: v }); }
     if (e.type === "text") {
       for (const k of COLORS) {
         if (b[k] && p[k] && e.color === p[k]) { n = Object.assign({}, n, { color: b[k] }); break; }

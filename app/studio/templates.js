@@ -446,6 +446,15 @@ function isFeature(key) {
   return key === "feature" || key === "featureBottom" || key === "featureSplit";
 }
 
+// The solid colour PANEL behind a feature layout's text, emitted as a real,
+// selectable BOX element (role:"panel") rather than leaning on the slide
+// background — so it can be moved, resized and recoloured like the image box
+// beside it. Fill is the deck bg, so it looks identical to the old background
+// panel until the user recolours it; rethemeDoc carries it on a palette swap.
+function panelEl(st, rect) {
+  return makeElement("rect", { id: uid("panel"), role: "panel", x: rect.x, y: rect.y, w: rect.w, h: rect.h, fill: st.bg, radius: 0 });
+}
+
 // The photo element (or, with no photo, a solid accent block) filling a rect.
 // One decoded image, never a stacked layer — same crash profile as a bg photo.
 function featureImageEl(image, pal, rect) {
@@ -479,6 +488,7 @@ function featureText(c, st, pal, r) {
 
 function L_feature(c, st, pal) {
   return [
+    panelEl(st, { x: 0, y: FEATURE_BAND, w: ARTBOARD_W, h: ARTBOARD_H - FEATURE_BAND }),
     featureImageEl(c.image, pal, { x: 0, y: 0, w: ARTBOARD_W, h: FEATURE_BAND }),
     ...featureText(c, st, pal, { x: M, w: ARTBOARD_W - 2 * M, topY: FEATURE_BAND + 58, panelBottom: ARTBOARD_H - 30 }),
   ];
@@ -487,6 +497,7 @@ function L_feature(c, st, pal) {
 function L_featureBottom(c, st, pal) {
   const imgY = ARTBOARD_H - FEATURE_BAND;
   return [
+    panelEl(st, { x: 0, y: 0, w: ARTBOARD_W, h: imgY }),
     featureImageEl(c.image, pal, { x: 0, y: imgY, w: ARTBOARD_W, h: FEATURE_BAND }),
     ...featureText(c, st, pal, { x: M, w: ARTBOARD_W - 2 * M, topY: 150, panelBottom: imgY - 20 }),
   ];
@@ -498,6 +509,7 @@ function L_featureBottom(c, st, pal) {
 function L_featureSplit(c, st, pal) {
   const half = 540, padL = 52, padR = 48, tx = half + padL;
   return [
+    panelEl(st, { x: half, y: 0, w: ARTBOARD_W - half, h: ARTBOARD_H }),
     featureImageEl(c.image, pal, { x: 0, y: 0, w: half, h: ARTBOARD_H }),
     ...featureText(c, st, pal, { x: tx, w: ARTBOARD_W - tx - padR, topY: 250, panelBottom: ARTBOARD_H - 60, headSize: 40, bodySize: 24, bodyGap: 250 }),
   ];
