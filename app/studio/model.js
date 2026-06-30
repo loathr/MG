@@ -126,13 +126,19 @@ export function blankDoc() {
 // Deep-ish copy of a slide with fresh ids (slide + every element), for the
 // strip's "duplicate". Background is a shallow copy (its fields are primitives).
 export function cloneSlide(slide) {
-  return {
-    id: uid("slide"),
-    w: slide.w,
-    h: slide.h,
-    background: Object.assign({}, slide.background),
-    elements: (slide.elements || []).map((e) => Object.assign({}, e, { id: uid(e.type || "el") })),
-  };
+  // Fresh ids for every element, with a remap so intra-slide references survive
+  // the clone — notably B6 `tetherTo` (a child pinned to a parent). Without this,
+  // a duplicated child would keep pointing at the ORIGINAL slide's parent id and
+  // its tether would silently die (dragging the copy's parent leaves it behind).
+  const remap = new Map();
+  const src = slide.elements || [];
+  src.forEach((e) => remap.set(e.id, uid(e.type || "el")));
+  const elements = src.map((e) => {
+    const n = Object.assign({}, e, { id: remap.get(e.id) });
+    if (e.tetherTo) n.tetherTo = remap.get(e.tetherTo) || null; // re-point, or drop if the parent isn't on this slide
+    return n;
+  });
+  return { id: uid("slide"), w: slide.w, h: slide.h, background: Object.assign({}, slide.background), elements };
 }
 
 // Build a FLAT-LAYERS-safe image background from a Photos-panel search result.

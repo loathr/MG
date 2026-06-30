@@ -83,6 +83,20 @@ test("cloneSlide gives fresh ids and is independent of the source", () => {
   assert.notEqual(src.elements[0].x, 999); // mutation isolated
 });
 
+test("cloneSlide remaps tetherTo to the cloned element ids (B6)", () => {
+  const src = { id: "s1", w: 1080, h: 1350, background: { type: "color" }, elements: [
+    makeElement("image", { id: "PARENT", x: 0, y: 0 }),
+    makeElement("text", { id: "CHILD", x: 10, y: 10, content: "badge", tetherTo: "PARENT" }),
+  ] };
+  const dup = cloneSlide(src);
+  const newParent = dup.elements[0], newChild = dup.elements[1];
+  assert.notEqual(newParent.id, "PARENT");
+  assert.equal(newChild.tetherTo, newParent.id, "child re-points at the CLONED parent, not the original id");
+  // a dangling tether (parent not on the slide) is dropped, not carried stale
+  const orphan = { id: "s2", w: 1080, h: 1350, background: {}, elements: [makeElement("text", { id: "C", tetherTo: "GONE" })] };
+  assert.equal(cloneSlide(orphan).elements[0].tetherTo, null);
+});
+
 test("imageBackground is a single image + one scrim (FLAT-LAYERS §3)", () => {
   const bg = imageBackground({ url: "u", thumb: "t", credit: "c", source: "s" });
   assert.equal(bg.type, "image");
