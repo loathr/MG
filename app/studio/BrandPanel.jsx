@@ -25,6 +25,7 @@ const lbl = { fontSize: 11, color: "#9a9a9a", marginBottom: 6, display: "block" 
 const sel = { width: "100%", height: 32, background: "#26262b", color: "#e8e8e8", border: "1px solid #36363c", borderRadius: 6, fontSize: 12.5, padding: "0 8px" };
 const inp = { width: "100%", height: 34, background: "#26262b", color: "#fff", border: "1px solid #36363c", borderRadius: 6, fontSize: 13, padding: "0 10px" };
 const miniBtn = { height: 30, padding: "0 10px", background: "#26262b", color: "#e8e8e8", border: "1px solid #36363c", borderRadius: 6, fontSize: 12, cursor: "pointer" };
+const resetLookBtn = { width: "100%", height: 32, marginTop: 10, background: "#201a1a", color: "#e6a6a0", border: "1px solid #43302f", borderRadius: 7, fontSize: 12, cursor: "pointer" };
 const uploadBtn = { width: "100%", height: 40, background: "#26262b", color: "#cfcfcf", border: "1px dashed #45454c", borderRadius: 6, fontSize: 13, cursor: "pointer" };
 const disc = { width: "100%", display: "flex", alignItems: "center", gap: 8, height: 36, background: "#26262b", border: "1px solid #36363c", borderRadius: 6, color: "#e8e8e8", fontSize: 12.5, padding: "0 10px", cursor: "pointer" };
 const frow = { display: "flex", alignItems: "center", gap: 9, marginBottom: 8 };
@@ -92,6 +93,19 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
 
   const curLook = EDITORIAL_PALETTES.find((p) => cur.accent === p.accent && cur.bg === p.bg);
   const preset = activePresetId(cur);
+  // Reset the LOOK (palette + fonts + frame) to the desk's default, keeping the
+  // brand marks (wordmark / logo / caution) and white-label. Shown only once the
+  // look has drifted from default. Undoable.
+  const dflt = brandFromStyle(family);
+  const LOOK_KEYS = ["accent", "bg", "ink", "sub", "muted", "labelFont", "headFont", "bodyFont"];
+  const lookDrifted = LOOK_KEYS.some((k) => (cur[k] || null) !== (dflt[k] || null)) || !!cur.frameColor || (slideFrame && slideFrame !== "off");
+  const resetLook = () => {
+    const next = Object.assign({}, cur);
+    for (const k of LOOK_KEYS) next[k] = dflt[k];
+    next.frameColor = null;
+    onApply(cur, next);
+    if (slideFrame && slideFrame !== "off") onFrame("off", true); // clear per-slide frames too
+  };
   const applyPreset = (id) => {
     const p = FONT_PRESETS.find((x) => x.id === id);
     if (p) set({ labelFont: p.labelFont, headFont: p.headFont, bodyFont: p.bodyFont });
@@ -155,6 +169,11 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
               style={{ ...miniBtn, width: "100%", height: 32, marginTop: 10 }}>↺ Re-apply this look to all slides</button>
           </>
         ) : null}
+        {lookDrifted && (
+          <button type="button" onClick={resetLook}
+            title="Revert palette, fonts & frame to this desk's default — keeps your wordmark, logo & caution. Undoable."
+            style={resetLookBtn}>↺ Reset to default look</button>
+        )}
         <div style={{ ...frow, marginTop: 11 }}>
           <span style={frowK}>Accent</span>
           <label style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, position: "relative", height: 32, padding: "0 9px", background: "#26262b", border: "1px solid #36363c", borderRadius: 6, cursor: "pointer" }}>
