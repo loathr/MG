@@ -145,24 +145,23 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
       <div style={col}>
         <div style={brand}>loathrdotcom</div>
 
-        <div style={label}>Pick a desk</div>
+        <div style={label}>Desk</div>
         <div style={gallery}>
           {STYLE_LIST.map((s) => {
             const on = desk === s.key;
             return (
-              <button key={s.key} type="button" onClick={() => pickDesk(s.key)} style={card(on)}>
-                <div style={{ borderRadius: 6, overflow: "hidden", lineHeight: 0, boxShadow: "0 6px 18px rgba(0,0,0,0.45)" }}>
-                  <StylePreview style={s} width={170} />
+              <button key={s.key} type="button" onClick={() => pickDesk(s.key)} style={card(on)} title={s.blurb}>
+                <div style={{ borderRadius: 5, overflow: "hidden", lineHeight: 0, width: 150, height: 92 }}>
+                  <StylePreview style={s} width={150} />
                 </div>
                 <div style={cardLabel(on)}>{s.label}</div>
-                <div style={cardBlurb}>{s.blurb}</div>
-                <div style={voiceLine(on)}>Voice · {getCategory(DESK_VOICE[s.key]).label}</div>
+                <div style={voiceLine(on)}>{getCategory(DESK_VOICE[s.key]).label}</div>
               </button>
             );
           })}
         </div>
 
-        <div style={{ ...label, marginTop: 26 }}>What&apos;s it about?</div>
+        <div style={{ ...label, marginTop: 18 }}>What&apos;s it about?</div>
         <input
           value={topic}
           onChange={(e) => { setTopic(e.target.value); setSeed(null); }}
@@ -171,8 +170,23 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
           autoFocus
           style={topicInput}
         />
-        <div style={{ width: "100%", marginTop: 16 }}>
-          <RouteSelect desk={desk} value={beat} onChange={setBeat} />
+        {/* Scope (all desks): sector + region + country on ONE line — scope the
+            live pull AND frame generation, paired with the sector. Urgency is
+            News-only. */}
+        <div style={{ width: "100%", marginTop: 14, textAlign: "left" }}>
+          <div style={scopeLab}>Scope <span style={opt}>— optional · sector · region · country</span></div>
+          <div style={scopeRow}>
+            <div style={{ flex: 1.2, minWidth: 0 }}><RouteSelect desk={desk} value={beat} onChange={setBeat} hideLabel /></div>
+            <select value={region || "global"} onChange={(e) => pickRegion(e.target.value)} style={scopeSel(false)} title="Region">
+              {REGIONS.map((r) => <option key={r.id} value={r.id}>{r.id === "global" ? "🌍 Global" : r.label}</option>)}
+            </select>
+            {region && region !== "global" && (
+              <select value={country || ""} onChange={(e) => setCountry(e.target.value || null)} style={scopeSel(!!country)} title="Country (sub-region)">
+                <option value="">All of {(REGIONS.find((r) => r.id === region) || {}).label}</option>
+                {countriesForRegion(region).map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            )}
+          </div>
           {beat && getBeat(beat).seeds && getBeat(beat).seeds.length > 0 && (
             <div style={seedRow}>
               <span style={seedCue}>Try</span>
@@ -181,49 +195,36 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
               ))}
             </div>
           )}
-          {/* Region scope (all desks): region + optional country sub-region scope
-              the live pull AND frame generation, paired with the sector. Urgency
-              is News-only. */}
-          <div style={secBox}>
-            <div style={secLab}>Region &amp; country <span style={opt}>— optional · scopes topics + sources</span></div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <select value={region || "global"} onChange={(e) => pickRegion(e.target.value)} style={{ ...regionSelect, flex: 1, marginBottom: 0 }} title="Region">
-                {REGIONS.map((r) => <option key={r.id} value={r.id}>{r.id === "global" ? "🌍 Global" : r.label}</option>)}
-              </select>
-              {region && region !== "global" && (
-                <select value={country || ""} onChange={(e) => setCountry(e.target.value || null)} style={{ ...regionSelect, flex: 1, marginBottom: 0, borderColor: country ? UI.brand : "#36363c" }} title="Country (sub-region)">
-                  <option value="">All of {(REGIONS.find((r) => r.id === region) || {}).label}</option>
-                  {countriesForRegion(region).map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              )}
+          {desk === "newsdesk" && (
+            <div style={urgRow}>
+              {URGENCY.map((u) => (
+                <button key={u.id} type="button" onClick={() => pickUrgency(u.id)} style={urgChip(urgency === u.id, u.id)}>
+                  <span style={urgDot(u.id)} />{u.label}
+                </button>
+              ))}
             </div>
-            {desk === "newsdesk" && (
-              <div style={urgRow}>
-                {URGENCY.map((u) => (
-                  <button key={u.id} type="button" onClick={() => pickUrgency(u.id)} style={urgChip(urgency === u.id, u.id)}>
-                    <span style={urgDot(u.id)} />{u.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          {/* White-label: strip ALL LOATHR branding, including at generation time. */}
-          <button type="button" onClick={() => setUnbranded((v) => !v)} title="Remove all LOATHR branding from the generated deck"
-            style={wlRow(unbranded)}>
-            <span style={{ textAlign: "left" }}>Remove LOATHR branding
-              <small style={{ display: "block", fontSize: 10, color: unbranded ? "#b89a72" : "#7c7c84", fontWeight: 400, marginTop: 2 }}>White-label · also stops the generated “Follow @loathr…” sign-off</small></span>
-            <span style={wlTog(unbranded)}><span style={wlKnob(unbranded)} /></span>
-          </button>
+          )}
         </div>
         <TrendingPanel onPick={pickTrending} desk={desk} beat={beat} onBeat={setBeat} region={region} country={country} urgency={urgency} />
 
-        {/* Voice & tone — opt-in; the default path never opens it. Voice overrides
-            the desk's writing category; Tone is an optional second axis. */}
+        {/* Options — opt-in; the default path never opens it. Holds voice/tone (+
+            desk framing), the white-label toggle, and quick-draft. */}
         <button type="button" onClick={() => setAdvanced((v) => !v)} style={advToggle}>
-          {advanced ? "▾" : "▸"} Voice &amp; tone{(voiceOverridden || tone) ? " · " + getCategory(voice).label + (tone ? " · " + toneLabel(tone) : "") : ""}
+          {advanced ? "▾" : "▸"} Options{(unbranded ? " · white-label" : "") + ((voiceOverridden || tone) ? " · " + getCategory(voice).label + (tone ? " · " + toneLabel(tone) : "") : "") + (quickDraft ? " · quick draft" : "")}
         </button>
         {advanced && (
           <div style={vtBox}>
+            {/* White-label — strip ALL LOATHR branding, incl. at generation time. */}
+            <button type="button" onClick={() => setUnbranded((v) => !v)} title="Remove all LOATHR branding from the generated deck" style={wlRow(unbranded)}>
+              <span style={{ textAlign: "left" }}>Remove LOATHR branding
+                <small style={{ display: "block", fontSize: 10, color: unbranded ? "#b89a72" : "#7c7c84", fontWeight: 400, marginTop: 2 }}>White-label · also stops the generated “Follow @loathr…” sign-off</small></span>
+              <span style={wlTog(unbranded)}><span style={wlKnob(unbranded)} /></span>
+            </button>
+            <label style={quickRow} title="Skip the live web search — faster, but it won't pull in the very latest facts.">
+              <input type="checkbox" checked={quickDraft} disabled={generating} onChange={(e) => setQuickDraft(e.target.checked)} style={{ accentColor: UI.brand, width: 15, height: 15 }} />
+              <span>Quick draft — skip web search (faster, less current)</span>
+            </label>
+            <div style={{ height: 1, background: "#26262c" }} />
             <div style={vRow}>
               <span style={vKey}>Voice</span>
               <select value={voice} onChange={(e) => pickVoice(e.target.value)} style={vSelect} title="Writing voice">
@@ -300,11 +301,6 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
           </div>
         </div>
 
-        <label style={quickRow} title="Skip the live web search — faster, but it won't pull in the very latest facts.">
-          <input type="checkbox" checked={quickDraft} disabled={generating} onChange={(e) => setQuickDraft(e.target.checked)} style={{ accentColor: UI.brand, width: 15, height: 15 }} />
-          <span>Quick draft — skip web search (faster, less current)</span>
-        </label>
-
         {error && <div style={errBox}>{error}</div>}
 
         <button onClick={submit} disabled={generating || !topic.trim()} style={primary(generating || !topic.trim())}>
@@ -332,7 +328,7 @@ const col = { width: "100%", maxWidth: 660, display: "flex", flexDirection: "col
 // before the loathrdotcom rename), not Courier — reverted per design.
 const brand = { fontSize: 13, letterSpacing: 4, color: "#cfcfcf", fontWeight: 700, marginBottom: 36 };
 const label = { fontSize: 13, letterSpacing: 1, color: "#8f8f97", marginBottom: 14, textTransform: "uppercase" };
-const gallery = { display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" };
+const gallery = { display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" };
 // Length control (default-visible, dashed "NEW" box).
 const lenWrap = { width: "100%", maxWidth: 520, border: "1px dashed #3a3a42", borderRadius: 12, padding: 13, marginTop: 22, position: "relative" };
 const lenBadge = { position: "absolute", top: -9, left: 14, background: UI.brand, color: UI.onBrand, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, padding: "1px 7px", borderRadius: 5 };
@@ -363,19 +359,18 @@ const vHint = { fontSize: 11, color: "#7f7f87" };
 
 function card(on) {
   return {
-    display: "flex", flexDirection: "column", alignItems: "center", gap: 7,
-    padding: 10, width: 192, borderRadius: 10, cursor: "pointer",
+    display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+    padding: 7, width: 164, borderRadius: 9, cursor: "pointer",
     background: on ? "#222228" : "transparent",
     border: "1.5px solid " + (on ? UI.brand : "#2c2c32"),
     transition: "border-color 120ms, background 120ms",
   };
 }
 function cardLabel(on) {
-  return { fontSize: 14, fontWeight: 600, color: on ? "#fff" : "#d8d8d8", marginTop: 2 };
+  return { fontSize: 13, fontWeight: 600, color: on ? "#fff" : "#d8d8d8", marginTop: 1 };
 }
-const cardBlurb = { fontSize: 11, color: "#7f7f87", lineHeight: 1.3 };
 function voiceLine(on) {
-  return { fontSize: 10, letterSpacing: 0.4, fontWeight: 600, color: on ? UI.brandHi : "#6f6f78", marginTop: 3, textTransform: "uppercase" };
+  return { fontSize: 9.5, letterSpacing: 0.4, fontWeight: 600, color: on ? UI.brandHi : "#6f6f78", textTransform: "uppercase" };
 }
 
 const topicInput = {
@@ -399,6 +394,13 @@ const regionSelect = {
   width: "100%", height: 42, borderRadius: 9, background: "#161619", color: "#f0f0f2",
   border: "1px solid #2a2a31", fontSize: 13.5, padding: "0 12px", cursor: "pointer", marginBottom: 11,
 };
+// Compact one-line scope row: sector (RouteSelect) · region · country.
+const scopeLab = { fontSize: 10, letterSpacing: 1.2, color: "#6f6f78", textTransform: "uppercase", marginBottom: 9 };
+const scopeRow = { display: "flex", gap: 8, alignItems: "flex-start" };
+function scopeSel(active) {
+  return { flex: 1, minWidth: 0, height: 46, borderRadius: 10, background: UI.surface2,
+    border: "1px solid " + (active ? UI.brand : "#2c2c32"), color: "#f0f0f2", fontSize: 13, padding: "0 10px", cursor: "pointer" };
+}
 const urgRow = { display: "flex", gap: 8, marginTop: 9 };
 // White-label create-page toggle (mirrors the Brand-panel one).
 function wlRow(on) {

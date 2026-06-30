@@ -9,7 +9,7 @@ import { groupsForDesk, getBeat, deskKind } from "./trending";
 // are that desk's beats, clustered by `group`. "Any" (value = null) is always
 // first and means the deck stays sector-free (the prompt is unchanged). The
 // chosen beat is carried into generation as the route, never inserted as a topic.
-export default function RouteSelect({ desk, value, onChange }) {
+export default function RouteSelect({ desk, value, onChange, hideLabel }) {
   const [open, setOpen] = useState(false);
   const kind = deskKind(desk);
   const groups = groupsForDesk(desk);
@@ -18,7 +18,7 @@ export default function RouteSelect({ desk, value, onChange }) {
 
   return (
     <div style={{ width: "100%", position: "relative" }}>
-      <div style={lab}>{kind} <span style={opt}>— optional</span></div>
+      {!hideLabel && <div style={lab}>{kind} <span style={opt}>— optional</span></div>}
       <button type="button" onClick={() => setOpen((o) => !o)} style={sel(open)} title={kind + " route"}>
         <span style={pre}>{kind}</span>
         <span style={{ ...cur, color: value ? "#fff" : UI.muted }}>{current}</span>
