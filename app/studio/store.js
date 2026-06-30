@@ -77,6 +77,17 @@ function withDoc(state, slides, slideIndex) {
 export function rethemeDoc(doc, prev, next) {
   const b = next || {}, p = prev || {};
   const COLORS = ["ink", "sub", "muted", "accent"];
+  // Map any colour that still EXACTLY matches a previous-brand palette entry onto
+  // the new one (custom off-brand colours never match, so they're left alone).
+  // Used for the newer per-element / per-run styling (D3): textBg, textStroke, and
+  // runs[].{color,bg,stroke}, which the original remap missed — so a re-theme left
+  // stale highlight/outline colours behind.
+  const PAL = ["ink", "sub", "muted", "accent", "bg"];
+  const remapColor = (c) => {
+    if (!c) return c;
+    for (const k of PAL) { if (b[k] && p[k] && c === p[k]) return b[k]; }
+    return c;
+  };
   const remapEl = (e) => {
     let n = e;
     if (e.type === "rect" && b.accent && p.accent && e.fill === p.accent) n = Object.assign({}, n, { fill: b.accent });
@@ -106,6 +117,21 @@ export function rethemeDoc(doc, prev, next) {
       if (n.highlightText && b.bg) n = Object.assign({}, n, { highlightText: b.bg });
       // The cover wordmark's red strike is a derived accent — carry it on a swap.
       if (n.strikeColor && b.accent) n = Object.assign({}, n, { strikeColor: b.accent });
+      // D3 — element-wide text background / outline that matched the old palette.
+      if (n.textBg) { const v = remapColor(n.textBg); if (v !== n.textBg) n = Object.assign({}, n, { textBg: v }); }
+      if (n.textStroke) { const v = remapColor(n.textStroke); if (v !== n.textStroke) n = Object.assign({}, n, { textStroke: v }); }
+      // D3 — per-run colours (B2 text colour, the highlight picker bg, run outline).
+      if (Array.isArray(n.runs) && n.runs.length) {
+        let changed = false;
+        const runs = n.runs.map((r) => {
+          let rn = r;
+          for (const key of ["color", "bg", "stroke"]) {
+            if (r[key]) { const v = remapColor(r[key]); if (v !== r[key]) { rn = Object.assign({}, rn, { [key]: v }); changed = true; } }
+          }
+          return rn;
+        });
+        if (changed) n = Object.assign({}, n, { runs });
+      }
     }
     return n;
   };

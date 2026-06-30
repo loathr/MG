@@ -178,6 +178,35 @@ test("rethemeDoc remaps on-brand elements and leaves off-brand ones", () => {
   assert.equal(out.slides[0].background.color, "#111111");
 });
 
+test("D3 · rethemeDoc remaps element textBg/textStroke + per-run colours on a palette swap", () => {
+  const prev = brandFromStyle("editorial");                 // accent #e23744, ink, bg #0c0c0c
+  const next = Object.assign({}, prev, { accent: "#00ff00" });
+  const doc = {
+    brand: prev,
+    slides: [{
+      background: { type: "color", color: prev.bg },
+      elements: [
+        makeElement("text", {
+          content: "Hot take here", color: "#ffffff",
+          textBg: prev.accent,            // on-brand element highlight → remapped
+          textStroke: "#abcdef",          // off-brand outline → kept
+          runs: [
+            { start: 0, end: 3, bg: prev.accent },      // on-brand run highlight → remapped
+            { start: 4, end: 8, color: prev.ink },       // on-brand run colour → remapped
+            { start: 9, end: 13, color: "#123456" },     // off-brand → kept
+          ],
+        }),
+      ],
+    }],
+  };
+  const el = rethemeDoc(doc, prev, next).slides[0].elements[0];
+  assert.equal(el.textBg, "#00ff00", "element textBg follows the accent");
+  assert.equal(el.textStroke, "#abcdef", "off-brand outline untouched");
+  assert.equal(el.runs[0].bg, "#00ff00", "run highlight follows the accent");
+  assert.equal(el.runs[1].color, next.ink, "run colour follows ink");
+  assert.equal(el.runs[2].color, "#123456", "off-brand run colour untouched");
+});
+
 test("setShape wears a shape on a text element (accent fill, undoable)", () => {
   let s = initStudio();
   s = reducer(s, { type: "add", element: makeElement("text", { id: "T", content: "Hot take", color: "#ffffff" }) });
