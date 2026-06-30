@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getBeat, mostReadUrl, parseRss, parseMostRead, selectTrending, filterByRegion, filterByCountry, filterByRecency, urgencyById, regionById, geoHint, scopeQuery, googleNewsUrl, gdeltUrl, parseGdelt, mergeSources, backfillSeeds } from "../../studio/trending";
+import { getBeat, mostReadUrl, parseRss, parseMostRead, selectTrending, filterByRegion, filterByCountry, filterByRecency, urgencyById, regionById, scopedPlan, googleNewsUrl, gdeltUrl, parseGdelt, mergeSources, backfillSeeds } from "../../studio/trending";
 
 // Live "Trending" for a beat, from FREE keyless feeds only — per-beat RSS
 // (recency) + Wikipedia most-read (popularity + photos + a never-empty fallback).
@@ -109,22 +109,21 @@ export async function GET(request) {
     // Base (Guardian + Wikipedia) pull — the default/unscoped path & fallback.
     const baseRanked = selectTrending(rssItems, wikiPool, beat.terms, pool, hasFeeds, filterFeed);
 
-    // Scoped sources (GDELT + Google News), paired — fired whenever a place
-    // (country/region) is set OR the beat has terms, so a narrow combo is scoped
-    // AT THE SOURCE instead of post-filtering sparse generic feeds. GDELT carries
-    // images; Google News carries fresh in-region coverage; merged + deduped.
+    // Scoped sources (GDELT + Google News), paired — scoped AT THE SOURCE instead
+    // of post-filtering sparse generic feeds. scopedPlan turns beat + region +
+    // country into one or more geo-scoped pulls: a country → its hub; a region →
+    // a FAN-OUT across its top member-country hubs (real in-region depth); terms
+    // only → a single query. GDELT carries images; Google News carries fresh
+    // coverage; all pulls merged + deduped.
     const regionLabel = region && region !== "global" ? regionById(region).label : null;
-    const place = country || regionLabel || "";
-    const hasTerms = !!(beat.terms && beat.terms.length);
+    const plan = scopedPlan(beat, region, country, 3);
     let scopedItems = [];
-    if (place || hasTerms) {
-      const hint = geoHint(country);
-      const q = scopeQuery(beat.terms, beat.label, place);
-      const [gnText, gdJson] = await Promise.all([
-        getText(googleNewsUrl(q, hint), fresh, diag),
-        getJson(gdeltUrl(q, hint), fresh, diag),
-      ]);
-      scopedItems = mergeSources([parseGdelt(gdJson, 20), parseRss(gnText, 20)], 30);
+    if (plan.length) {
+      const lists = await Promise.all(plan.flatMap((pl) => [
+        getText(googleNewsUrl(pl.query, pl.hint), fresh, diag).then((t) => parseRss(t, 12)),
+        getJson(gdeltUrl(pl.query, pl.hint), fresh, diag).then((j) => parseGdelt(j, 12)),
+      ]));
+      scopedItems = mergeSources(lists, 40);
     }
 
     // Compose: scoped items lead (on-topic, in-region, often pictured), then the
@@ -143,7 +142,8 @@ export async function GET(request) {
     const payload = { beat: beat.key, voice: beat.voice, items, scope };
     if (debug) {
       payload.debug = {
-        hasFeeds, terms: beat.terms, configuredFeeds: beat.rss || [], place, scope,
+        hasFeeds, terms: beat.terms, configuredFeeds: beat.rss || [], scope,
+        plan: plan.map((pl) => ({ label: pl.label, query: pl.query, gdelt: pl.hint && pl.hint.gdelt })),
         scopedCount: scopedItems.length, baseCount: baseRanked.length,
         rssParsed: rssItems.length, wikiParsed: wikiAll.length, returned: items.length,
         sources: diag,

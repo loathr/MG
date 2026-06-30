@@ -463,6 +463,31 @@ export function scopeQuery(terms, label, place) {
   return [q, place ? "\"" + place + "\"" : ""].filter(Boolean).join(" ").trim();
 }
 
+// Build the scoped-fetch PLAN for the paired sources (GDELT + Google News): a
+// list of { label, query, hint } pulls. A COUNTRY → one geo-scoped pull with
+// the country's hint and TERMS ONLY (the hint already scopes the place, so we
+// don't also AND the country keyword and over-narrow). A REGION → fan OUT across
+// its top hinted member-country hubs for genuine in-region depth (capped to
+// `max`, default 3). Unknown region / no hinted country → keyword-scope the
+// region label. Neither place → a single terms/label query. Pure/testable.
+export function scopedPlan(beat, regionId, country, max) {
+  const terms = (beat && beat.terms) || [];
+  const label = (beat && beat.label) || "";
+  const core = terms.length ? "(" + terms.slice(0, 6).join(" OR ") + ")" : label;
+  const withPlace = (place) => [core, place ? "\"" + place + "\"" : ""].filter(Boolean).join(" ").trim();
+  if (country) {
+    const hint = geoHint(country);
+    return [{ label: country, query: hint ? core : withPlace(country), hint }];
+  }
+  if (regionId && regionId !== "global") {
+    const hubs = countriesForRegion(regionId).filter((c) => GEO_HINTS[c]).slice(0, max || 3);
+    if (hubs.length) return hubs.map((c) => ({ label: c, query: core, hint: GEO_HINTS[c] }));
+    const r = regionById(regionId);
+    return [{ label: r.label, query: withPlace(r.label), hint: null }];
+  }
+  return core ? [{ label: "", query: core, hint: null }] : [];
+}
+
 export function googleNewsUrl(query, hint) {
   const gl = (hint && hint.gl) || "US";
   const lang = (hint && hint.lang) || "en";

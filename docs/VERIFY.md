@@ -16,6 +16,11 @@ PR: `https://github.com/loathr/MG/pull/9`
     → items skew European + recent; `debug.sources` show which feeds returned.
   - Try `region=asia`, `urgency=trending` (wider recency). Confirm it never
     returns an empty rail (it broadens rather than gutting).
+  - **Depth (scopedPlan fan-out):** for a region, `debug.plan` should list the
+    fanned-out member-country hubs (e.g. `europe` → UK/FR/GM) each with a `gdelt`
+    code; for a subregion (e.g. `&country=France`) `plan` is a single France pull
+    with terms only (no `"France"` keyword) and `scopedCount` should be healthy
+    (not 1–2). Confirms region/subregion pulls are now genuinely in-depth.
 - [ ] **A routed generation** (needs Anthropic credit). Pick a Sector/Section,
   set Region/Urgency and an Angle/Emphasis/Mode, generate — confirm the deck is
   scoped to the beat + framed (breaking lead, region focus, etc.). `Any` with no

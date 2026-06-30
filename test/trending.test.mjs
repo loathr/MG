@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import {
   BEATS, getBeat, beatVoice, beatsForDesk, defaultBeat, groupsForDesk, routeFraming, mostReadUrl, cleanTitle, parseRss, parseMostRead,
   filterByTerms, rankItems, selectTrending, backfillSeeds, filterByRegion, filterByCountry, countriesForRegion, filterByRecency,
-  geoHint, scopeQuery, googleNewsUrl, gdeltUrl, parseGdelt, mergeSources,
+  geoHint, scopeQuery, scopedPlan, googleNewsUrl, gdeltUrl, parseGdelt, mergeSources,
 } from "../app/studio/trending.js";
 
 test("BEATS feed config: dedicated vs shared/sub-topic vs the lone feed-less beat", () => {
@@ -282,6 +282,34 @@ test("geoHint: maps a known country, null for unmapped (keyword-only scoping)", 
   assert.deepEqual(geoHint("United States"), { gl: "US", lang: "en", gdelt: "US" });
   assert.equal(geoHint("Atlantis"), null);
   assert.equal(geoHint(null), null);
+});
+
+test("scopedPlan: country with a hint → ONE terms-only geo-scoped pull (no over-narrowing keyword)", () => {
+  const beat = { terms: ["crime", "justice"], label: "Crime" };
+  const plan = scopedPlan(beat, "europe", "France", 3);
+  assert.equal(plan.length, 1);
+  assert.equal(plan[0].query, "(crime OR justice)");          // terms only — no "France" keyword
+  assert.equal(plan[0].hint.gdelt, "FR");                      // geo hint does the scoping
+});
+
+test("scopedPlan: country WITHOUT a hint → keyword-scope it (fallback)", () => {
+  const plan = scopedPlan({ terms: ["aid"], label: "Aid" }, "africa", "Ghana", 3); // Ghana not in GEO_HINTS
+  assert.equal(plan.length, 1);
+  assert.equal(plan[0].hint, null);
+  assert.equal(plan[0].query, '(aid) "Ghana"');
+});
+
+test("scopedPlan: region → FANS OUT across its top hinted member-country hubs", () => {
+  const plan = scopedPlan({ terms: ["crime"], label: "Crime" }, "europe", "", 3);
+  assert.equal(plan.length, 3);                               // capped to 3 hubs
+  const gdelts = plan.map((p) => p.hint.gdelt);
+  assert.deepEqual(gdelts, ["UK", "FR", "GM"]);               // UK/France/Germany — Europe's first hinted hubs
+  assert.ok(plan.every((p) => p.query === "(crime)"));        // terms only per hub
+});
+
+test("scopedPlan: no place + terms → one query; nothing at all → empty plan", () => {
+  assert.deepEqual(scopedPlan({ terms: ["film"], label: "Film" }, "global", "", 3), [{ label: "", query: "(film)", hint: null }]);
+  assert.deepEqual(scopedPlan({ terms: [], label: "" }, "global", "", 3), []);
 });
 
 test("googleNewsUrl / gdeltUrl: build keyless scoped URLs (gl/ceid · sourcecountry)", () => {
