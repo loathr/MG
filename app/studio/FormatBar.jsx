@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { UI } from "./theme";
+import { barTop } from "./barlayout";
 
 const RECENT_KEY = "loathr.recentColors";
 
@@ -34,20 +35,40 @@ export default function FormatBar({ style, accent, rect, onStyle, onClear, onSiz
   const [open, setOpen] = useState(false);
   const [hex, setHex] = useState("");
   const [recents, setRecents] = useState([]);
+  const [off, setOff] = useState({ x: 0, y: 0 }); // manual drag offset (grip)
   const colorRef = useRef(null);
+  const dragRef = useRef(null);
 
   useEffect(() => { setRecents(readRecents()); }, [open]);
   // Seed the hex field from the selection's current colour when the popover opens.
   useEffect(() => { if (open) setHex((style && style.color) || accent || "#ffffff"); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A new selection re-homes the bar (drop any manual drag offset).
+  const anchorKey = rect ? Math.round(rect.top) + ":" + Math.round(rect.left) : "";
+  useEffect(() => { setOff({ x: 0, y: 0 }); }, [anchorKey]);
 
   if (!rect) return null;
   const s = style || {};
   const bold = (s.fontWeight || 400) >= 700;
   const swatches = [accent || "#ffffff", "#ffffff", "#111111", "#e2473e", "#ffd34e", "#56b3ff"];
-  const W = 372, H = 42;
-  const cx = Math.max(W / 2 + 8, Math.min((rect.left + rect.right) / 2, (typeof window !== "undefined" ? window.innerWidth : 1200) - W / 2 - 8));
-  const top = Math.max(8, rect.top - H - 12);
+  const W = 396, H = 42;
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+  const cx = Math.max(W / 2 + 8, Math.min((rect.left + rect.right) / 2, vw - W / 2 - 8)) + off.x;
+  const place = barTop(rect, H, vh);
+  const top = place.top + off.y; // nudged by any manual drag offset
   const hold = (e) => e.preventDefault(); // keep the editor's live selection
+
+  // Drag the whole bar by its grip (pointer events; keeps the editor selection
+  // because textSel is stored in Studio state and styling targets stored offsets).
+  const onGripDown = (e) => {
+    e.preventDefault();
+    const start = { sx: e.clientX, sy: e.clientY, ox: off.x, oy: off.y };
+    dragRef.current = start;
+    const move = (ev) => { const d = dragRef.current; if (d) setOff({ x: d.ox + (ev.clientX - d.sx), y: d.oy + (ev.clientY - d.sy) }); };
+    const up = () => { dragRef.current = null; window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
 
   const apply = (c) => { const n = normalizeHex(c); if (!n) return; onStyle({ color: n }); setRecents(pushRecent(n)); };
   const onHexChange = (v) => { setHex(v); const n = normalizeHex(v); if (n) onStyle({ color: n }); };
@@ -55,6 +76,9 @@ export default function FormatBar({ style, accent, rect, onStyle, onClear, onSiz
 
   return (
     <div data-formatbar style={{ ...wrap, left: cx, top, width: W }} onMouseDown={(e) => { if (e.target.tagName !== "INPUT") hold(e); }}>
+      {/* drag grip — reposition the whole bar */}
+      <button onPointerDown={onGripDown} onMouseDown={hold} title="Drag to move" style={grip}>⠿</button>
+      <span style={sep} />
       {/* preset text colours */}
       {swatches.map((c, i) => (
         <button key={i} onMouseDown={hold} onClick={() => { setOpen(false); onStyle({ color: c }); }}
@@ -140,6 +164,7 @@ const tog = {
   height: 30, minWidth: 30, padding: "0 8px", borderRadius: 8, border: "none",
   cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center",
 };
+const grip = { height: 30, width: 18, padding: 0, border: "none", background: "transparent", color: "#6a6a72", cursor: "grab", fontSize: 14, lineHeight: "30px", letterSpacing: "-3px", flexShrink: 0, touchAction: "none" };
 const sw = { width: 18, height: 18, borderRadius: 5, border: "1px solid #00000055", cursor: "pointer", padding: 0, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" };
 const rainbow = { background: "conic-gradient(#ff4d4d,#ffd34e,#56e07a,#56b3ff,#b07cff,#ff4d4d)" };
 const sep = { width: 1, height: 20, background: "#33333c", margin: "0 4px", flexShrink: 0 };

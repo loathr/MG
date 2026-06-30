@@ -1,7 +1,8 @@
 "use client";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ARTBOARD_W, ARTBOARD_H } from "./model";
+import { ARTBOARD_W, ARTBOARD_H, makeElement } from "./model";
 import { resize as geoResize, rotate as geoRotate, snapMove, handlePoint, axes } from "./geometry";
+import { readImageFile, isImageFile, fitDroppedImage } from "./imageFile";
 import ElementView from "./Element";
 import { UI } from "./theme";
 
@@ -16,6 +17,7 @@ export default function Artboard({ slide, selectedId, editingId, dispatch, onTex
   const artRef = useRef(null);
   const [scale, setScale] = useState(0.4);
   const [guides, setGuides] = useState([]);
+  const [dropping, setDropping] = useState(false); // a file is being dragged over
   const drag = useRef(null);
 
   // Fit the artboard into the available space.
@@ -112,15 +114,51 @@ export default function Artboard({ slide, selectedId, editingId, dispatch, onTex
 
   useEffect(() => () => endDrag(), [endDrag]);
 
+  // Drag an image file straight onto the canvas → place it as a movable, resizable
+  // element at the drop point. PNG alpha is preserved (readImageFile), large files
+  // are downscaled, and the box fits within half the board centred on the drop.
+  const dragHasImage = (e) => {
+    const dt = e.dataTransfer;
+    if (!dt) return false;
+    if (dt.items && dt.items.length) return Array.from(dt.items).some((it) => it.kind === "file" && /^image\//.test(it.type || ""));
+    return Array.from(dt.types || []).includes("Files");
+  };
+  const onCanvasDragOver = useCallback((e) => {
+    if (!dragHasImage(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setDropping(true);
+  }, []);
+  const onCanvasDragLeave = useCallback((e) => {
+    if (e.currentTarget === e.target) setDropping(false);
+  }, []);
+  const onCanvasDrop = useCallback((e) => {
+    if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+    e.preventDefault();
+    setDropping(false);
+    const file = Array.from(e.dataTransfer.files).find(isImageFile);
+    if (!file) return;
+    const p = toArtboard(e.clientX, e.clientY);
+    readImageFile(file, (img) => {
+      if (!img) return;
+      const box = fitDroppedImage(img.w, img.h, p.x, p.y, ARTBOARD_W, ARTBOARD_H);
+      dispatch({ type: "add", element: makeElement("image", {
+        x: box.x, y: box.y, w: box.w, h: box.h, src: img.src, thumb: img.thumb, fit: "contain",
+      }) });
+    });
+  }, [toArtboard, dispatch]);
+
   const selected = selectedId ? slide.elements.find((e) => e.id === selectedId) : null;
   const bg = slide.background || {};
 
   return (
-    <div ref={containerRef} style={{ flex: 1, minWidth: 0, minHeight: 0, display: "grid", placeItems: "center", overflow: "hidden", background: UI.bg, position: "relative" }}>
+    <div ref={containerRef} style={{ flex: 1, minWidth: 0, minHeight: 0, display: "grid", placeItems: "center", overflow: "hidden", background: UI.bg, position: "relative" }}
+      onDragOver={onCanvasDragOver} onDragLeave={onCanvasDragLeave} onDrop={onCanvasDrop}>
       <div style={{ position: "relative", width: ARTBOARD_W * scale, height: ARTBOARD_H * scale, boxShadow: "0 10px 40px rgba(0,0,0,0.5)" }}>
         {/* scaled artboard in artboard coordinates */}
         <div
           ref={artRef}
+          data-artboard
           style={{ position: "absolute", top: 0, left: 0, width: ARTBOARD_W, height: ARTBOARD_H, transform: "scale(" + scale + ")", transformOrigin: "top left", overflow: "hidden", background: bg.color || "#0c0c0c" }}
           onPointerDown={() => dispatch({ type: "deselect" })}
         >
@@ -183,6 +221,19 @@ export default function Artboard({ slide, selectedId, editingId, dispatch, onTex
             floating toolbar — the canvas stays unobstructed.) */}
         {selected && !editingId && (
           <SelectionOverlay el={selected} scale={scale} onHandleDown={beginDrag} />
+        )}
+
+        {/* drop-to-place highlight while an image file is dragged over the canvas */}
+        {dropping && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 30, pointerEvents: "none",
+            border: "2px dashed " + UI.select, borderRadius: 4, background: "rgba(45,140,255,0.07)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <span style={{ background: "rgba(20,20,24,0.85)", color: "#cfe2ff", fontSize: 13, fontWeight: 600, padding: "8px 14px", borderRadius: 16, fontFamily: "Helvetica, Arial, sans-serif" }}>
+              Drop image to place · PNG transparency kept
+            </span>
+          </div>
         )}
       </div>
     </div>
