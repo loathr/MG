@@ -71,6 +71,14 @@ PR: `https://github.com/loathr/MG/pull/9`
   edits within ~4s; "Reset link" makes the old URL 403; "Off" revokes it. The
   resolver is `/api/shared` (server-side token check) — `shares/{deckId}` index
   must exist and the deck under `users/{owner}/decks/{id}`. Needs admin creds.
+- [ ] **✨ Inline AI text** (Anthropic credit) — select a text box → the toolbar
+  shows a purple **✨ Write** pill → open it, pick a chip (Headline / Subheading /
+  Body / Caption / Shorten / Rewrite) and/or type an instruction → **Generate**
+  replaces the box's copy (undo with ⌘Z). Works on a **blank** deck too. The UI,
+  the scoped prompt builder, and the wiring are unit-tested + live-verified
+  in-sandbox; only the final model round-trip needs credit (cheap Haiku lane, no
+  web search). Confirm a signed-out call is open and a signed-in one rides the
+  token-gate like `/api/generate`.
 - [ ] **End-to-end generation** of any deck (Anthropic credit) — the core path
   the sandbox can't exercise.
 - [ ] **D1 (carryover)** — re-confirm trending beats on the deploy via `?debug=1`

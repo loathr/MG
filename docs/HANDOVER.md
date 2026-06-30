@@ -306,6 +306,16 @@ export.js (canvas PNG) must stay in sync** for any text/shape change.
 ---
 
 ## ✅ Shipped this session (newest first — all on PR #9, gated, pushed)
+**✨ Inline AI text** — a purple **✨ Write** pill on any selected text box opens a
+popover (free-text instruction + preset chips: Headline / Subheading / Body /
+Caption / Shorten / Rewrite) that writes/replaces that ONE box's copy, seeded
+with the deck topic + white-label flag, landed as a single undoable `update`.
+Pure core `app/studio/aitext.js` (`buildWritePrompt`/`cleanWritten`, unit-tested);
+runs the cheap Haiku lane via `generate.js` `runPrompt` (no web search). This is
+the bridge that lets a **blank** deck get AI copy without the Create screen. The
+model round-trip needs Anthropic credit (VERIFY); everything else is in-sandbox
+verified.
+
 Editor: **top contextual Toolbar** (replaced the right Inspector) · **free-form
 crop** (drag-pan + scroll-zoom + rule-of-thirds + **edge resize handles**) ·
 **background remover** · image **replace / set-as-background** · **underline** +
