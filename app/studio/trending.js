@@ -62,7 +62,7 @@ export const BEATS = [
   // are focused by terms (filterFeed).
   { key: "news_politics",    desk: "newsdesk", group: "World & Politics", label: "Politics",          voice: "news", rss: [G("politics")],   terms: [] },
   { key: "news_conflict",    desk: "newsdesk", group: "World & Politics", label: "Conflict & Defense", voice: "news", rss: [G("world")], filterFeed: true, terms: ["war", "military", "conflict", "troops", "refugee", "ceasefire", "missile", "invasion", "strike"] },
-  { key: "news_crime",       desk: "newsdesk", group: "Law & Society",    label: "Crime & Justice",   voice: "news", rss: [G("law")], filterFeed: true, terms: ["crime", "police", "court", "trial", "prison", "justice", "investigation", "charges"] },
+  { key: "news_crime",       desk: "newsdesk", group: "Law & Society",    label: "Crime & Justice",   voice: "news", rss: [G("law"), G("uk-news"), G("us-news")], filterFeed: true, terms: ["crime", "police", "court", "trial", "prison", "justice", "investigation", "charges", "murder", "homicide", "shooting", "assault", "fraud", "arrest", "verdict", "sentencing", "lawsuit", "gang", "trafficking", "corruption", "prosecutor", "convicted", "indictment"] },
   { key: "news_education",   desk: "newsdesk", group: "Law & Society",    label: "Education",         voice: "news", rss: [G("education")],  terms: [] },
   { key: "news_business",    desk: "newsdesk", group: "Business & Tech",  label: "Business",          voice: "news", rss: [G("business")],   terms: [] },
   { key: "news_tech",        desk: "newsdesk", group: "Business & Tech",  label: "Technology",        voice: "news", rss: [G("technology")], terms: [] },
@@ -342,37 +342,55 @@ export function rankItems(rssItems, wikiItems, max) {
 // indistinguishable from a genuinely feed-less curiosity beat.
 const ENOUGH = 6; // a feed at least this rich stands alone — no most-read mixed in
 
-export function selectTrending(rssItems, wikiItems, terms, max, hasFeeds, filterFeed) {
+// Curated seeds (Enterprise sectors carry a `seeds: [...]` list) backfill a thin
+// pull so a sector rail is never near-empty and generation always has concrete,
+// on-sector topics to ground on. Seed cards carry no photo (source "seed") and are
+// appended only to reach `max` after the live pull, deduped by title. Pure.
+export function backfillSeeds(items, seeds, max) {
+  const out = (items || []).slice();
+  if (!seeds || !seeds.length) return out;
+  const seen = new Set(out.map((it) => String(it.title || "").toLowerCase()));
+  for (const s of seeds) {
+    if (out.length >= (max || 6)) break;
+    const k = String(s || "").toLowerCase();
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push({ title: s, thumb: null, extract: "", source: "seed" });
+  }
+  return out;
+}
+
+export function selectTrending(rssItems, wikiItems, terms, max, hasFeeds, filterFeed, seeds) {
   const rss = rssItems || [], wiki = wikiItems || [];
   const hasTerms = !!(terms && terms.length);
+  let out;
   if (rss.length) {
     // Shared / sub-topic feeds (Enterprise sectors, Photography, Nightlife) are
     // term-FILTERED down to the beat; dedicated single-section feeds use the whole
     // feed (every item is already on-topic).
     const base = (filterFeed && hasTerms) ? filterByTerms(rss, terms) : rss;
-    // A rich feed is the on-topic source on its own — do NOT mix general most-read
-    // in, even term-matched. That mix is how 2026 films matching gossip terms
-    // ("star"/"drama"/"romance") leaked into The Tea. Only a THIN feed borrows
-    // term-matched most-read, then broadens to the full feed before giving up.
-    if (base.length >= ENOUGH) return rankItems(base, [], max);
-    const wikiF = hasTerms ? filterByTerms(wiki, terms) : [];
-    let ranked = rankItems(base, wikiF, max);
-    // Thin pull → broaden to the FULL feed, but only for a DEDICATED feed (every
-    // item on-topic). A shared/filtered feed must NOT broaden back to the whole
-    // section — that would re-admit the off-sector items the filter removed.
-    if (ranked.length < 4 && !filterFeed) ranked = rankItems(rss, wikiF, max);
-    return ranked;
-  }
-  // No feed items came back.
-  if (hasFeeds) {
+    if (base.length >= ENOUGH) {
+      // A rich feed is the on-topic source on its own — do NOT mix general most-read
+      // in, even term-matched (that mix leaked gossip-term films into The Tea).
+      out = rankItems(base, [], max);
+    } else {
+      const wikiF = hasTerms ? filterByTerms(wiki, terms) : [];
+      out = rankItems(base, wikiF, max);
+      // Thin pull → broaden to the FULL feed, but only for a DEDICATED feed (every
+      // item on-topic). A shared/filtered feed must NOT broaden back to the whole
+      // section — that would re-admit the off-sector items the filter removed.
+      if (out.length < 4 && !filterFeed) out = rankItems(rss, wikiF, max);
+    }
+  } else if (hasFeeds) {
     // A SECTION beat whose feed failed or returned empty: stay on-topic via
-    // term-matched most-read ONLY; NEVER leak unfiltered viral most-read. A
-    // no-terms section beat returns empty (honest) rather than wrong — the panel
-    // shows "type your own topic", and debug=1 surfaces the dead feed to fix.
-    return hasTerms ? rankItems([], filterByTerms(wiki, terms), max) : [];
+    // term-matched most-read ONLY; NEVER leak unfiltered viral most-read.
+    out = hasTerms ? rankItems([], filterByTerms(wiki, terms), max) : [];
+  } else {
+    // A genuinely feed-less beat (Photography / Nightlife / Did You Know?):
+    // most-read is the intended source — term-matched for the focused ones,
+    // general curiosities for trivia (empty terms).
+    out = rankItems([], hasTerms ? filterByTerms(wiki, terms) : wiki, max);
   }
-  // A genuinely feed-less beat (Photography / Nightlife / Did You Know?):
-  // most-read is the intended source — term-matched for the focused ones,
-  // general curiosities for trivia (empty terms).
-  return rankItems([], hasTerms ? filterByTerms(wiki, terms) : wiki, max);
+  // Backfill from the beat's curated seeds when the live pull is thin (Enterprise).
+  return backfillSeeds(out, seeds, max);
 }

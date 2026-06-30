@@ -101,7 +101,11 @@ export async function GET(request) {
     // sector beat stays on-topic but never returns a near-empty rail. hasFeeds
     // keeps a feed-down section beat from leaking unfiltered general most-read.
     const pool = fresh ? 30 : 6;
-    const ranked = selectTrending(rssItems, wikiPool, beat.terms, pool, hasFeeds, beat.filterFeed);
+    // Enterprise sectors share broad section feeds, so always term-FILTER them to
+    // the sector (then seed-backfill keeps the rail full); News/editorial keep
+    // their own per-beat filterFeed flag.
+    const filterFeed = !!beat.filterFeed || beat.desk === "enterprise";
+    const ranked = selectTrending(rssItems, wikiPool, beat.terms, pool, hasFeeds, filterFeed, beat.seeds);
     const items = (fresh ? shuffle(ranked) : ranked).slice(0, 6);
 
     const payload = { beat: beat.key, voice: beat.voice, items };

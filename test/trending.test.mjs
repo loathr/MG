@@ -5,7 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   BEATS, getBeat, beatVoice, beatsForDesk, defaultBeat, groupsForDesk, routeFraming, mostReadUrl, cleanTitle, parseRss, parseMostRead,
-  filterByTerms, rankItems, selectTrending, filterByRegion, filterByRecency,
+  filterByTerms, rankItems, selectTrending, backfillSeeds, filterByRegion, filterByRecency,
 } from "../app/studio/trending.js";
 
 test("BEATS feed config: dedicated vs shared/sub-topic vs the lone feed-less beat", () => {
@@ -245,6 +245,34 @@ test("selectTrending: a THIN feed borrows term-matched most-read, then broadens"
   const out = selectTrending(feed, wiki, ["film"], 6, true, false);
   assert.ok(out.some((i) => /Lone music story/.test(i.title)), "keeps the feed item");
   assert.ok(out.some((i) => /Dune/.test(i.title)), "supplements with term-matched most-read when thin");
+});
+
+test("backfillSeeds: fills a thin pull up to max, deduped, only when seeds exist", () => {
+  const seeds = ["Telehealth adoption", "GLP-1 drug market", "Hospital staffing crisis"];
+  // empty live pull → seed cards (no photo, source 'seed')
+  const filled = backfillSeeds([], seeds, 6);
+  assert.equal(filled.length, 3);
+  assert.equal(filled[0].title, "Telehealth adoption");
+  assert.equal(filled[0].source, "seed");
+  assert.equal(filled[0].thumb, null);
+  // already-full pull is untouched
+  const live = Array.from({ length: 6 }, (_, i) => ({ title: "L" + i }));
+  assert.equal(backfillSeeds(live, seeds, 6).length, 6);
+  // dedupe by title (case-insensitive) against the live pull
+  const dd = backfillSeeds([{ title: "telehealth adoption" }], seeds, 6);
+  assert.equal(dd.filter((i) => /telehealth/i.test(i.title)).length, 1);
+  // no seeds → unchanged
+  assert.deepEqual(backfillSeeds([{ title: "x" }], [], 6), [{ title: "x" }]);
+});
+
+test("selectTrending: an Enterprise sector backfills from seeds when the live pull is thin", () => {
+  const seeds = ["Open banking disruption", "Private credit boom"];
+  // feed down + no matching most-read → live pull empty, seeds fill it (so the
+  // sector rail is never near-empty and generation has concrete topics).
+  const out = selectTrending([], [], ["bank", "finance"], 6, true, true, seeds);
+  assert.ok(out.length >= 2, "seed backfill keeps the rail populated");
+  assert.ok(out.some((i) => /Open banking disruption/.test(i.title)));
+  assert.ok(out.every((i) => i.source === "seed"));
 });
 
 test("selectTrending: a SHARED feed (filterFeed) is term-filtered down to the beat", () => {
