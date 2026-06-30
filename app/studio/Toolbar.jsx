@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { UI } from "./theme";
 import FontSelect from "./FontSelect";
 import { FONT_OPTIONS } from "./styles";
@@ -15,17 +15,33 @@ import { removeBackground } from "./bgRemove";
 // anchored to the bar. Wired to the same reducer actions the Inspector used; a
 // selected text SPAN still routes colour/weight through the floating FormatBar.
 export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan }) {
-  const [pop, setPop] = useState(null); // open popover: "position" | "effects" | "shape" | null
+  const [pop, setPop] = useState(null); // open popover: "position" | "effects" | "shape" | "crop" | "more" | null
   const [bgBusy, setBgBusy] = useState(false);
+  const [barW, setBarW] = useState(9999); // measured width → responsive overflow
   const fileRef = useRef(null);
+  const barRef = useRef(null);
+  // Collapse low-priority pills into the ⋯ menu as the canvas narrows (Canva-style)
+  // so the bar never wraps. High-frequency controls always stay inline.
+  useEffect(() => {
+    const node = barRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return undefined;
+    const ro = new ResizeObserver((entries) => { for (const e of entries) setBarW(e.contentRect.width); });
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, []);
   const up = (patch) => el && dispatch({ type: "update", id: el.id, patch });
   const sel = (el && el.type === "text" && textSel && textSel.id === el.id && textSel.end > textSel.start) ? textSel : null;
   const setStyle = (patch) => { if (sel && onStyleSpan) onStyleSpan(patch); else up(patch); };
   const toggle = (name) => setPop((p) => (p === name ? null : name));
 
   if (!el) {
-    return <div style={bar}><span style={hint}>Select an element to edit — or add one from the left rail.</span></div>;
+    return <div ref={barRef} style={bar}><span style={hint}>Select an element to edit — or add one from the left rail.</span></div>;
   }
+
+  // Responsive collapse — drop the rightmost optional groups into ⋯ as width shrinks.
+  const showShape = barW >= 1080;    // text: Shape popover (first to go)
+  const showEffects = barW >= 1000;  // text: Effects popover
+  const showImgExtra = barW >= 620;  // image: Replace + Background
 
   const s = el.type === "text" ? (sel ? spanStyle || {} : el) : {};
   const bold = el.type === "text" ? ((sel ? (spanStyle && spanStyle.fontWeight) : el.fontWeight) >= 700) : false;
@@ -35,7 +51,7 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
   const hl = el.type === "text" ? (sel ? (spanStyle && spanStyle.bg) : el.textBg) : null;
 
   return (
-    <div style={bar}>
+    <div ref={barRef} style={bar}>
       <span style={kind}>{KIND_GLYPH[el.type] || "▦"}</span>
       <Sep />
 
@@ -59,8 +75,8 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
           <ColorBtn title="Highlight" value={hl || "#ffd34e"} dim={!hl} onChange={(v) => setStyle({ bg: v })}
             glyph={<span style={{ background: hl || "#ffd34e", color: "#101010", borderRadius: 3, padding: "0 3px", fontSize: 11, fontWeight: 700 }}>H</span>}
             extra={<button style={miniClear} onMouseDown={sel ? hold : undefined} onClick={() => setStyle({ bg: null })} title="No highlight">⊘</button>} />
-          <PopBtn label="Effects" open={pop === "effects"} onClick={() => toggle("effects")} />
-          <PopBtn label="Shape" open={pop === "shape"} onClick={() => toggle("shape")} />
+          {showEffects && <PopBtn label="Effects" open={pop === "effects"} onClick={() => toggle("effects")} />}
+          {showShape && <PopBtn label="Shape" open={pop === "shape"} onClick={() => toggle("shape")} />}
         </>
       )}
 
@@ -85,9 +101,9 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
             <SegBtn on={!!el.flipY} onClick={() => up({ flipY: !el.flipY })} title="Flip vertical">⥯</SegBtn>
             <SegBtn on={!!el.mono} onClick={() => up({ mono: !el.mono })} title="Black & white">◑</SegBtn>
           </Seg>
-          <Sep />
-          <TextBtn onClick={() => fileRef.current && fileRef.current.click()} title="Replace with another image">⧉ Replace</TextBtn>
-          <TextBtn onClick={() => dispatch({ type: "imageToBackground", id: el.id })} title="Set as slide background">⤓ Background</TextBtn>
+          {showImgExtra && <Sep />}
+          {showImgExtra && <TextBtn onClick={() => fileRef.current && fileRef.current.click()} title="Replace with another image">⧉ Replace</TextBtn>}
+          {showImgExtra && <TextBtn onClick={() => dispatch({ type: "imageToBackground", id: el.id })} title="Set as slide background">⤓ Background</TextBtn>}
           <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
             onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) readImageFile(f, (img) => { if (img) up({ src: img.src, thumb: img.thumb, crop: null }); }); e.target.value = ""; }} />
         </>
@@ -127,6 +143,10 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
       </Popover>}
 
       {pop === "more" && <Popover onClose={() => setPop(null)} right>
+        {/* Collapsed-from-the-bar controls appear here on a narrow canvas. */}
+        {el.type === "text" && !showEffects && <><WBtn onClick={() => setPop("effects")}>Effects…</WBtn><div style={{ height: 6 }} /></>}
+        {el.type === "text" && !showShape && <><WBtn onClick={() => setPop("shape")}>Shape…</WBtn><div style={{ height: 6 }} /></>}
+        {el.type === "image" && !showImgExtra && <><WBtn onClick={() => { fileRef.current && fileRef.current.click(); setPop(null); }}>⧉ Replace image</WBtn><div style={{ height: 6 }} /><WBtn onClick={() => { dispatch({ type: "imageToBackground", id: el.id }); setPop(null); }}>⤓ Set as background</WBtn><div style={{ height: 6 }} /></>}
         <WBtn onClick={() => { dispatch({ type: "duplicate", id: el.id }); setPop(null); }}>⧉ Duplicate</WBtn>
         <div style={{ height: 6 }} />
         <WBtn danger onClick={() => { dispatch({ type: "delete", id: el.id }); setPop(null); }}>🗑 Delete</WBtn>
