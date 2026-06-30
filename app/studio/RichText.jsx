@@ -27,8 +27,8 @@ export function spanStyle(s) {
   };
   // Per-span size (B3): inline fontSize overrides the container when a run set it.
   if (s.fontSize) st.fontSize = s.fontSize;
-  if (s.strike) {
-    st.textDecorationLine = "line-through";
+  if (s.strike || s.underline) {
+    st.textDecorationLine = [s.underline ? "underline" : "", s.strike ? "line-through" : ""].filter(Boolean).join(" ");
     st.textDecorationColor = s.strikeColor || s.color;
     st.textDecorationThickness = "0.09em";
   }

@@ -150,6 +150,19 @@ test("styledRuns: a run recolours/bolds just its range, rest inherits base", () 
   assert.equal(isUniformText(el), false);
 });
 
+test("underline: element-wide and per-run, independent of strike", () => {
+  // whole-box underline
+  const el = makeElement("text", { content: "abc", underline: true });
+  assert.equal(styledRuns(el)[0].underline, true);
+  assert.equal(styledRuns(el)[0].strike, false);
+  // a run underlines just its range
+  const r = makeElement("text", { content: "One two", underline: false,
+    runs: [{ start: 4, end: 7, underline: true }] });
+  const spans = styledRuns(r);
+  assert.equal(spans.find((s) => s.text === "two").underline, true);
+  assert.equal(spans.find((s) => s.text === "One ").underline, false);
+});
+
 test("styledRuns: a per-span SIZE run resizes just its range; rest keeps the element size", () => {
   const el = makeElement("text", { content: "big small", fontSize: 40, runs: [{ start: 0, end: 3, size: 96 }] });
   const spans = styledRuns(el);

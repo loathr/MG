@@ -373,6 +373,7 @@ export default function Studio() {
         />
         <button style={iconBtn(state.past.length > 0)} disabled={state.past.length === 0} onClick={() => dispatch({ type: "undo" })} title="Undo (Ctrl/Cmd+Z)">↶</button>
         <button style={iconBtn(state.future.length > 0)} disabled={state.future.length === 0} onClick={() => dispatch({ type: "redo" })} title="Redo (Ctrl/Cmd+Shift+Z)">↷</button>
+        <button style={iconBtn(true)} onClick={() => dispatch({ type: "resetSlideToBrand" })} title="Reset this slide to the brand look (undoable)">↺</button>
         <div style={{ flex: 1 }} />
         {cloud ? (
           <span style={{ fontSize: 11, color: saveState === "saved" ? "#7ed09a" : UI.muted, marginRight: 8, display: "inline-flex", alignItems: "center", gap: 5 }}
@@ -449,17 +450,20 @@ export default function Studio() {
         )}
         {activePanel === "elements" && (
           <SidePanel title="Elements" onClose={() => setActivePanel(null)}>
-            <PanelButton onClick={addRect}>Rectangle</PanelButton>
-            <PanelButton onClick={addLine}>Line / divider</PanelButton>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: UI.muted, textTransform: "uppercase", margin: "16px 0 8px", borderTop: "1px solid " + UI.soft, paddingTop: 13 }}>Bubbles &amp; shapes</div>
-            <div style={{ fontSize: 11, color: selectedIsText ? UI.brand : UI.muted, lineHeight: 1.45, marginBottom: 10 }}>
-              {selectedIsText ? "↩ Wraps the selected text." : "Tap to drop editable text, or select text first to wrap it."}
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
-              {SHAPE_VARIANTS.map((v) => (
-                <ShapeTile key={v.id} v={v} accent={(state.doc.brand && state.doc.brand.accent) || UI.brand} wrap={selectedIsText} onPick={wrapOrAddShape} />
-              ))}
-            </div>
+            <Collapsible title="Shapes">
+              <PanelButton onClick={addRect}>Rectangle</PanelButton>
+              <PanelButton onClick={addLine}>Line / divider</PanelButton>
+            </Collapsible>
+            <Collapsible title="Bubbles &amp; notes">
+              <div style={{ fontSize: 11, color: selectedIsText ? UI.brand : UI.muted, lineHeight: 1.45, marginBottom: 4 }}>
+                {selectedIsText ? "↩ Wraps the selected text." : "Tap to drop editable text, or select text first to wrap it."}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+                {SHAPE_VARIANTS.map((v) => (
+                  <ShapeTile key={v.id} v={v} accent={(state.doc.brand && state.doc.brand.accent) || UI.brand} wrap={selectedIsText} onPick={wrapOrAddShape} />
+                ))}
+              </div>
+            </Collapsible>
           </SidePanel>
         )}
         {activePanel === "templates" && (
@@ -616,6 +620,21 @@ function PanelButton({ onClick, children }) {
       style={{ height: 36, padding: "0 12px", textAlign: "left", background: UI.surface2, color: UI.text, border: "1px solid " + UI.border, borderRadius: 7, cursor: "pointer", fontSize: 13 }}>
       {children}
     </button>
+  );
+}
+
+// A collapsible panel section: an uppercase header with a ▾/▸ chevron that hides
+// its children when collapsed. Defaults to open; remembers its own state.
+function Collapsible({ title, defaultOpen = true, children }) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <button onClick={() => setOpen((o) => !o)} title={open ? "Collapse" : "Expand"}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "transparent", border: "none", borderTop: "1px solid " + UI.soft, color: UI.muted, cursor: "pointer", fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", padding: "11px 0 4px" }}>
+        <span>{title}</span><span style={{ fontSize: 11 }}>{open ? "▾" : "▸"}</span>
+      </button>
+      {open && children}
+    </div>
   );
 }
 

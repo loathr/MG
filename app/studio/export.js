@@ -98,13 +98,13 @@ function drawText(ctx, el) {
     ctx.fillText(line, x, y);
     // Strikethrough (e.g. the editorial cover wordmark): a manual rule through the
     // line's measured width, mirroring CSS line-through in the DOM renderers.
-    if (el.strike) {
+    if (el.strike || el.underline) {
       const tw = ctx.measureText(line).width;
       const sx = align === "center" ? (el.w - tw) / 2 : align === "right" ? el.w - tw : 0;
-      const th = Math.max(2, fs * 0.09);
       const prev = ctx.fillStyle;
       ctx.fillStyle = el.strikeColor || el.color || "#ffffff";
-      ctx.fillRect(sx, y + fs * 0.38 - th / 2, tw, th);
+      if (el.strike) { const th = Math.max(2, fs * 0.09); ctx.fillRect(sx, y + fs * 0.38 - th / 2, tw, th); }
+      if (el.underline) { const th = Math.max(2, fs * 0.07); ctx.fillRect(sx, y + fs * 0.16, tw, th); }
       ctx.fillStyle = prev;
     }
     y += lh;
@@ -193,6 +193,11 @@ function drawTokenLines(ctx, lines, fs, fontOf, lhFactor, align, boxLeft, boxW, 
         const th = Math.max(2, tokFs * 0.09);
         ctx.fillStyle = tok.strikeColor || tok.color || "#ffffff";
         ctx.fillRect(x, ty + tokFs * 0.38 - th / 2, w, th);
+      }
+      if (tok.underline) {
+        const th = Math.max(2, tokFs * 0.07);
+        ctx.fillStyle = tok.strikeColor || tok.color || "#ffffff";
+        ctx.fillRect(x, ty + tokFs * 0.16, w, th);
       }
       x += w;
     }

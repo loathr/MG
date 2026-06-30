@@ -237,7 +237,7 @@ export function highlightRuns(content, highlight) {
 
 // The style keys a run (or the element base) may carry. Booleans (bold/italic/
 // strike) are tri-state in a run: true / false / absent(inherit).
-export const RUN_STYLE_KEYS = ["color", "bold", "italic", "strike", "strikeColor", "bg", "stroke", "strokeWidth", "size"];
+export const RUN_STYLE_KEYS = ["color", "bold", "italic", "strike", "underline", "strikeColor", "bg", "stroke", "strokeWidth", "size"];
 
 // Offsets of the first case-insensitive occurrence of `hl` in `text`, or null.
 export function highlightOffsets(text, hl) {
@@ -256,6 +256,7 @@ export function elementBaseStyle(el) {
     fontWeight: e.fontWeight || 400,
     italic: !!e.italic,
     strike: !!e.strike,
+    underline: !!e.underline,
     strikeColor: e.strikeColor || null,
     bg: e.textBg || null,
     stroke: e.textStroke || null,
@@ -280,6 +281,7 @@ function resolveStyle(base, ov) {
     fontWeight: o.bold != null ? (o.bold ? 700 : 400) : base.fontWeight,
     italic: o.italic != null ? !!o.italic : base.italic,
     strike: o.strike != null ? !!o.strike : base.strike,
+    underline: o.underline != null ? !!o.underline : base.underline,
     strikeColor: o.strikeColor != null ? o.strikeColor : (base.strikeColor || color),
     bg: o.bg != null ? o.bg : base.bg,
     stroke: o.stroke != null ? o.stroke : base.stroke,
@@ -288,7 +290,7 @@ function resolveStyle(base, ov) {
   };
 }
 
-const styleKey = (s) => s.color + "|" + s.fontWeight + "|" + s.italic + "|" + s.strike + "|" + (s.strikeColor || "") + "|" + (s.bg || "") + "|" + (s.stroke || "") + "|" + s.strokeWidth + "|" + s.fontSize;
+const styleKey = (s) => s.color + "|" + s.fontWeight + "|" + s.italic + "|" + s.strike + "|" + s.underline + "|" + (s.strikeColor || "") + "|" + (s.bg || "") + "|" + (s.stroke || "") + "|" + s.strokeWidth + "|" + s.fontSize;
 
 // Build the per-character override overlay for a text element: an array (length
 // = content length) of override objects (or null). Folds in the back-compat

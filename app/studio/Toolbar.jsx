@@ -47,8 +47,13 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
   const bold = el.type === "text" ? ((sel ? (spanStyle && spanStyle.fontWeight) : el.fontWeight) >= 700) : false;
   const italic = el.type === "text" ? (sel ? !!(spanStyle && spanStyle.italic) : !!el.italic) : false;
   const strike = el.type === "text" ? (sel ? !!(spanStyle && spanStyle.strike) : !!el.strike) : false;
+  const underline = el.type === "text" ? (sel ? !!(spanStyle && spanStyle.underline) : !!el.underline) : false;
   const textColor = el.type === "text" ? (sel ? (spanStyle && spanStyle.color) : el.color) || "#ffffff" : "#fff";
   const hl = el.type === "text" ? (sel ? (spanStyle && spanStyle.bg) : el.textBg) : null;
+  // Highlight: a span keeps it on its run (`bg`); the whole text box keeps it on
+  // `textBg` (what the renderers read) — the old setStyle wrote `bg` element-wide,
+  // which nothing rendered, so the H button looked dead off a selection.
+  const setHl = (v) => { if (sel && onStyleSpan) onStyleSpan({ bg: v }); else up({ textBg: v }); };
 
   return (
     <div ref={barRef} style={bar}>
@@ -64,6 +69,7 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
           <Seg>
             <SegBtn on={bold} sel={!!sel} onMouseDown={sel ? hold : undefined} onClick={() => setStyle(sel ? { bold: !bold } : { fontWeight: bold ? 400 : 700 })}><b>B</b></SegBtn>
             <SegBtn on={italic} sel={!!sel} onMouseDown={sel ? hold : undefined} onClick={() => setStyle({ italic: !italic })}><i>I</i></SegBtn>
+            <SegBtn on={underline} sel={!!sel} onMouseDown={sel ? hold : undefined} onClick={() => setStyle({ underline: !underline })}><u>U</u></SegBtn>
             <SegBtn on={strike} sel={!!sel} onMouseDown={sel ? hold : undefined} onClick={() => setStyle({ strike: !strike })}><s>S</s></SegBtn>
           </Seg>
           <Seg>
@@ -72,9 +78,9 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
             <SegBtn on={el.align === "right"} onClick={() => up({ align: "right" })}>≖</SegBtn>
           </Seg>
           <Sep />
-          <ColorBtn title="Highlight" value={hl || "#ffd34e"} dim={!hl} onChange={(v) => setStyle({ bg: v })}
+          <ColorBtn title="Highlight" value={hl || "#ffd34e"} dim={!hl} onChange={(v) => setHl(v)}
             glyph={<span style={{ background: hl || "#ffd34e", color: "#101010", borderRadius: 3, padding: "0 3px", fontSize: 11, fontWeight: 700 }}>H</span>}
-            extra={<button style={miniClear} onMouseDown={sel ? hold : undefined} onClick={() => setStyle({ bg: null })} title="No highlight">⊘</button>} />
+            extra={<button style={miniClear} onMouseDown={sel ? hold : undefined} onClick={() => setHl(null)} title="No highlight">⊘</button>} />
           {showEffects && <PopBtn label="Effects" open={pop === "effects"} onClick={() => toggle("effects")} />}
           {showShape && <PopBtn label="Shape" open={pop === "shape"} onClick={() => toggle("shape")} />}
         </>
@@ -120,8 +126,9 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
 
       {(el.type === "rect" || el.type === "line") && (
         <>
-          <ColorBtn title={el.type === "line" ? "Colour" : "Fill"} value={el.fill && el.fill !== "none" ? el.fill : "#ffffff"} onChange={(v) => up({ fill: v })}
-            glyph={<span style={{ width: 16, height: 16, borderRadius: 4, background: el.fill && el.fill !== "none" ? el.fill : "#444", border: "1px solid #555" }} />} />
+          <ColorBtn title={el.type === "line" ? "Colour" : "Fill"} value={el.fill && el.fill !== "none" ? el.fill : "#ffffff"} dim={!el.fill || el.fill === "none"} onChange={(v) => up({ fill: v })}
+            glyph={<span style={{ width: 16, height: 16, borderRadius: 4, background: el.fill && el.fill !== "none" ? el.fill : "#444", border: "1px solid #555" }} />}
+            extra={el.type === "rect" ? <button style={miniClear} onClick={() => up({ fill: "none" })} title="No fill">⊘</button> : undefined} />
           {el.type === "rect" && (
             <>
               <ColorBtn title="Stroke" value={el.stroke && el.stroke !== "none" ? el.stroke : "#ffffff"} dim={!el.stroke || el.stroke === "none"}
@@ -146,8 +153,14 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
         <Title>Position &amp; size</Title>
         <P2><NumField label="X" value={Math.round(el.x)} onChange={(n) => up({ x: Math.round(n) })} /><NumField label="Y" value={Math.round(el.y)} onChange={(n) => up({ y: Math.round(n) })} /></P2>
         <P2><NumField label="W" value={Math.round(el.w)} onChange={(n) => up({ w: Math.max(1, Math.round(n)) })} /><NumField label="H" value={Math.round(el.h)} onChange={(n) => up({ h: Math.max(1, Math.round(n)) })} /></P2>
-        <P2><NumField label="Rotate" value={Math.round(el.rotation || 0)} onChange={(n) => up({ rotation: Math.round(n) })} />
-          <label style={pField}><span style={pLab}>Opacity</span><input type="range" min={0} max={100} value={Math.round((el.opacity == null ? 1 : el.opacity) * 100)} onChange={(e) => up({ opacity: (+e.target.value || 0) / 100 })} style={{ flex: 1, accentColor: UI.brand }} /></label></P2>
+        <P2><NumField label="Rotate" value={Math.round(el.rotation || 0)} onChange={(n) => up({ rotation: Math.round(n) })} /><div style={{ flex: 1 }} /></P2>
+        {/* Opacity gets its OWN full-width row so the range can shrink to fit
+            (minWidth:0) instead of overflowing the popover, with a % readout. */}
+        <label style={{ ...pField, marginBottom: 7 }}>
+          <span style={pLab}>Opacity</span>
+          <input type="range" min={0} max={100} value={Math.round((el.opacity == null ? 1 : el.opacity) * 100)} onChange={(e) => up({ opacity: (+e.target.value || 0) / 100 })} style={{ flex: 1, minWidth: 0, accentColor: UI.brand }} />
+          <span style={{ ...pLab, width: 30, textAlign: "right", color: UI.text }}>{Math.round((el.opacity == null ? 1 : el.opacity) * 100)}%</span>
+        </label>
         <P2><WBtn onClick={() => dispatch({ type: "raise", id: el.id })}>↑ Forward</WBtn><WBtn onClick={() => dispatch({ type: "lower", id: el.id })}>↓ Back</WBtn></P2>
       </Popover>}
 
@@ -195,7 +208,10 @@ function ShapePop({ el, up, dispatch, onClose }) {
       {el.shape && (
         <>
           <P2 style={{ marginTop: 8 }}>
-            <ColorField label="Fill" value={paint.bg === "transparent" ? UI.brand : paint.bg} onChange={(v) => up({ shapeBody: v })} />
+            <div style={{ flex: 1, display: "flex", gap: 4 }}>
+              <ColorField label="Fill" value={paint.bg === "transparent" ? UI.brand : paint.bg} onChange={(v) => up({ shapeBody: v })} />
+              <button style={miniClear} onClick={() => up({ shapeBody: "transparent" })} title="No fill">⊘</button>
+            </div>
             <EffectField label="Border" value={borderVal && borderVal !== "none" ? borderVal : null} fallback={UI.brand} onChange={(v) => up({ shapeBorderC: v })} />
           </P2>
           <P2><WBtn onClick={() => up(fitShapeBox(el, el.w))}>⤢ Fit to text</WBtn><WBtn danger onClick={() => { setShape(null); onClose(); }}>✕ Remove</WBtn></P2>
