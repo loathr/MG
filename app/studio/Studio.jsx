@@ -516,6 +516,32 @@ export default function Studio() {
             onTextSelect={setTextSel}
             onEditApi={(api) => { editApiRef.current = api; }}
           />
+
+          {/* Slide strip — under the canvas only, so the rail + panels run full
+              height beside it (FLAT-LAYERS §3 lightweight thumbnails). */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: UI.surface, borderTop: "1px solid " + UI.border, overflowX: "auto", flexShrink: 0 }}>
+            {state.doc.slides.map((s, i) => (
+              <SlideStripItem
+                key={s.id}
+                slide={s}
+                index={i}
+                active={i === state.slideIndex}
+                canDelete={state.doc.slides.length > 1}
+                dragFrom={dragFrom}
+                onSelect={() => dispatch({ type: "setSlide", index: i })}
+                onReorder={(from, to) => dispatch({ type: "moveSlide", from, to })}
+                onDuplicate={() => dispatch({ type: "duplicateSlide", index: i })}
+                onDelete={() => dispatch({ type: "deleteSlide", index: i })}
+              />
+            ))}
+            <button onClick={() => dispatch({ type: "addSlide" })} title="Add slide"
+              style={{ width: 60, height: 75, flexShrink: 0, borderRadius: 6, border: "1.5px dashed " + UI.border, background: "transparent", color: UI.muted, cursor: "pointer", fontSize: 22 }}>
+              +
+            </button>
+            <span style={{ marginLeft: 6, fontSize: 11, color: UI.muted, whiteSpace: "nowrap" }}>
+              drag thumbnails to reorder · hover for ⧉ duplicate / × delete · ⌘/Ctrl+Z undo
+            </span>
+          </div>
         </div>
 
         {fc && (
@@ -545,30 +571,6 @@ export default function Studio() {
         />
       )}
 
-      {/* Slide strip — lightweight thumbnails (FLAT-LAYERS §3) */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", background: UI.surface, borderTop: "1px solid " + UI.border, overflowX: "auto", flexShrink: 0 }}>
-        {state.doc.slides.map((s, i) => (
-          <SlideStripItem
-            key={s.id}
-            slide={s}
-            index={i}
-            active={i === state.slideIndex}
-            canDelete={state.doc.slides.length > 1}
-            dragFrom={dragFrom}
-            onSelect={() => dispatch({ type: "setSlide", index: i })}
-            onReorder={(from, to) => dispatch({ type: "moveSlide", from, to })}
-            onDuplicate={() => dispatch({ type: "duplicateSlide", index: i })}
-            onDelete={() => dispatch({ type: "deleteSlide", index: i })}
-          />
-        ))}
-        <button onClick={() => dispatch({ type: "addSlide" })} title="Add slide"
-          style={{ width: 60, height: 75, flexShrink: 0, borderRadius: 6, border: "1.5px dashed " + UI.border, background: "transparent", color: UI.muted, cursor: "pointer", fontSize: 22 }}>
-          +
-        </button>
-        <span style={{ marginLeft: 6, fontSize: 11, color: UI.muted, whiteSpace: "nowrap" }}>
-          drag thumbnails to reorder · hover for ⧉ duplicate / × delete · ⌘/Ctrl+Z undo
-        </span>
-      </div>
     </div>
   );
 }
