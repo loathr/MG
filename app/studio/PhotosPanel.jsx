@@ -43,10 +43,12 @@ const dropBig = { flexDirection: "column", height: 116, gap: 5 };
 const dropSm = { flexDirection: "row", height: 54 };
 const dropHi = { borderColor: UI.brand, background: "#1c2530" };
 const grid = {
-  columnCount: 2, columnGap: 8,
+  // A real 2-column grid (row by row, top-to-bottom) rather than a balanced CSS
+  // masonry — so results read in a predictable order and the panel scrolls down.
+  display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "start",
   padding: "0 12px 12px", overflowY: "auto", minHeight: 0,
 };
-const hint = { columnSpan: "all", color: "#7a7a7a", fontSize: 12, lineHeight: 1.5, padding: "16px 4px", textAlign: "center" };
+const hint = { gridColumn: "1 / -1", color: "#7a7a7a", fontSize: 12, lineHeight: 1.5, padding: "16px 4px", textAlign: "center" };
 
 // Read an uploaded image file -> a §3-safe { url, thumb } via canvas downscale:
 // the full image capped to <=1600px (the same ceiling /api/images enforces) plus
@@ -89,7 +91,7 @@ function PhotoCard({ img, onSetBackground, onAddImage }) {
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ position: "relative", borderRadius: 6, overflow: "hidden", background: "#26262b", breakInside: "avoid", marginBottom: 8 }}
+      style={{ position: "relative", borderRadius: 6, overflow: "hidden", background: "#26262b" }}
     >
       <img
         src={img.thumb}

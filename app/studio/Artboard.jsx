@@ -272,6 +272,11 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
             }}
           />
         )}
+        {/* Crop reframe: resize handles on the crop frame (above the pan layer) so
+            you can pull the edges in/out to reframe while the interior pans. */}
+        {cropEl && (
+          <SelectionOverlay el={cropEl} scale={scale} onHandleDown={beginDrag} cropMode />
+        )}
 
         {/* drop-to-place highlight while an image file is dragged over the canvas
             — a quiet outline, no prompt text (decluttered). */}
@@ -290,7 +295,7 @@ function roundBox(b) {
   return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.w), h: Math.round(b.h) };
 }
 
-function SelectionOverlay({ el, scale, onHandleDown }) {
+function SelectionOverlay({ el, scale, onHandleDown, cropMode }) {
   const HS = 11; // handle screen size px
   const box = {
     position: "absolute",
@@ -311,7 +316,9 @@ function SelectionOverlay({ el, scale, onHandleDown }) {
   const off = 26 / scale; // artboard units that render to ~26px
   const rot = { x: topCenter.x - uy.x * off, y: topCenter.y - uy.y * off };
   return (
-    <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+    // In crop mode the resize handles must sit ABOVE the pan capture layer (z22)
+    // so dragging an edge reframes (pull in/out) while the interior still pans.
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: cropMode ? 24 : undefined }}>
       <div style={box} />
       {/* resize handles */}
       {HANDLES.map((h, i) => {
@@ -331,8 +338,8 @@ function SelectionOverlay({ el, scale, onHandleDown }) {
           />
         );
       })}
-      {/* rotate handle */}
-      <div
+      {/* rotate handle — hidden in crop mode (reframing only) */}
+      {!cropMode && <div
         onPointerDown={(e) => { e.stopPropagation(); onHandleDown("rotate", el.id, e.clientX, e.clientY); }}
         style={{
           position: "absolute",
@@ -342,7 +349,7 @@ function SelectionOverlay({ el, scale, onHandleDown }) {
           background: "#fff", border: "1.5px solid " + UI.select,
           cursor: "grab", pointerEvents: "auto", boxSizing: "border-box",
         }}
-      />
+      />}
     </div>
   );
 }
