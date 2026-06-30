@@ -44,3 +44,31 @@ export function effectiveAccess(deck, viewer, presentedToken) {
 
 export function canView(access) { return RANK[normalizeShare(access)] >= 1; }
 export function canEdit(access) { return normalizeShare(access) === "edit"; }
+
+// --- share-config mutations + URL (pure; randomness injected by the caller) ---
+// Set the link level, optionally rotating the token. The caller owns the
+// randomness: pass a fresh `newToken` to mint/rotate (revoking old links); omit
+// it to keep the current token. Turning to "none" disables the link but KEEPS
+// the token, so re-enabling restores the same link unless the caller rotates.
+export function setShare(share, level, newToken) {
+  const cur = share || {};
+  const lvl = normalizeShare(level);
+  if (lvl === "none") return { link: "none", token: cur.token || null };
+  return { link: lvl, token: newToken || cur.token || null };
+}
+
+// The shareable URL for a deck, or null when the link is off / has no token.
+// `origin` is the deploy origin (e.g. https://app.example.com); the share token
+// rides as ?s= so the open route can resolve access before rendering.
+export function shareUrl(origin, deckId, share) {
+  const s = share || {};
+  if (!s.token || normalizeShare(s.link) === "none" || !deckId) return null;
+  return String(origin || "").replace(/\/+$/, "") + "/studio/" + encodeURIComponent(deckId) + "?s=" + encodeURIComponent(s.token);
+}
+
+// One-call resolution for the open route / UI: the effective access plus the
+// boolean gates. 403 when !canView; render read-only when canView && !canEdit.
+export function resolveAccess(deck, viewer, presentedToken) {
+  const access = effectiveAccess(deck, viewer, presentedToken);
+  return { access, canView: canView(access), canEdit: canEdit(access) };
+}

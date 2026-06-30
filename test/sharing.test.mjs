@@ -4,6 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   normalizeShare, linkAccess, memberAccess, effectiveAccess, canView, canEdit,
+  setShare, shareUrl, resolveAccess,
 } from "../app/studio/sharing.js";
 
 const deck = (share, ownerUid) => ({ ownerUid, share });
@@ -50,4 +51,33 @@ test("canView / canEdit gates", () => {
   assert.equal(canView("none"), false);
   assert.equal(canEdit("edit"), true);
   assert.equal(canEdit("view"), false);
+});
+
+test("setShare: enable mints/keeps a token; disable keeps it; rotate replaces it", () => {
+  const on = setShare(null, "view", "tok1");
+  assert.deepEqual(on, { link: "view", token: "tok1" });
+  const keep = setShare(on, "edit");                 // change level, keep token
+  assert.deepEqual(keep, { link: "edit", token: "tok1" });
+  const off = setShare(keep, "none");                // disable but keep token
+  assert.deepEqual(off, { link: "none", token: "tok1" });
+  const back = setShare(off, "view");                // re-enable → same link
+  assert.deepEqual(back, { link: "view", token: "tok1" });
+  const rotated = setShare(back, "view", "tok2");    // rotate → old links die
+  assert.equal(rotated.token, "tok2");
+  assert.equal(linkAccess(rotated, "tok1"), "none"); // the old token no longer works
+});
+
+test("shareUrl builds a link only when the link is live", () => {
+  assert.equal(shareUrl("https://app.x.com/", "DECK1", { link: "view", token: "t k/+" }),
+    "https://app.x.com/studio/DECK1?s=t%20k%2F%2B");   // origin trimmed, token encoded
+  assert.equal(shareUrl("https://app.x.com", "DECK1", { link: "none", token: "t" }), null);
+  assert.equal(shareUrl("https://app.x.com", "DECK1", { link: "view" }), null); // no token
+  assert.equal(shareUrl("https://app.x.com", "", { link: "view", token: "t" }), null); // no id
+});
+
+test("resolveAccess returns the access + both gates in one call", () => {
+  const d = { ownerUid: "o", share: { link: "view", token: "t" } };
+  assert.deepEqual(resolveAccess(d, null, "t"), { access: "view", canView: true, canEdit: false });
+  assert.deepEqual(resolveAccess(d, null, "x"), { access: "none", canView: false, canEdit: false });
+  assert.deepEqual(resolveAccess(d, { uid: "o", role: "viewer" }, undefined), { access: "edit", canView: true, canEdit: true });
 });
