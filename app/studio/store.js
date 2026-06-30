@@ -23,7 +23,12 @@ const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
 const CHROME_ROLES = { logo: 1, wordmark: 1, footer: 1, footrule: 1, pageno: 1, frame: 1 };
 function carryChrome(slide, patch) {
   const chrome = (slide.elements || []).filter((e) => CHROME_ROLES[e.role]);
-  return Object.assign({}, slide, patch, { elements: (patch.elements || []).concat(chrome) });
+  // The frame is a near-full-bleed (transparent-interior) rect, so it must sit at
+  // the BACK — same as setFrame places it — or it swallows every content click.
+  // The rest of the chrome (logo / wordmark / footer / page no.) stays on top.
+  const frame = chrome.filter((e) => e.role === "frame");
+  const fore = chrome.filter((e) => e.role !== "frame");
+  return Object.assign({}, slide, patch, { elements: frame.concat(patch.elements || [], fore) });
 }
 
 export function initStudio() {

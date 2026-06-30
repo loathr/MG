@@ -539,6 +539,11 @@ test("the deck frame survives reset + a layout change (carried chrome) (R4)", ()
   s = reducer(s, { type: "setFrame", frame: "inset", all: true });
   s = reducer(s, { type: "setLayout", layout: "classic", index: 1 });
   assert.ok(s.doc.slides[1].elements.some((e) => e.role === "frame"), "frame survives a layout change");
+  // The frame must stay at the BACK after a layout change — else the near-full-bleed
+  // frame rect lands on top and swallows every content click (selection bug).
+  const els = s.doc.slides[1].elements;
+  assert.equal(els.findIndex((e) => e.role === "frame"), 0, "frame stays at the back of the stack");
+  assert.ok(els[els.length - 1].role !== "frame", "frame is never the top layer");
   s = reducer(s, { type: "resetSlideToBrand", all: true });
   assert.ok(s.doc.slides.every((sl) => sl.elements.some((e) => e.role === "frame")), "frame survives reset");
 });
