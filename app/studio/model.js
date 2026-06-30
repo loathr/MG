@@ -192,8 +192,28 @@ export function imageTransform(el) {
   const fx = el.crop && el.crop.x != null ? el.crop.x : 0.5;
   const fy = el.crop && el.crop.y != null ? el.crop.y : 0.5;
   const out = {};
-  if (z !== 1 || el.flipX || el.flipY) {
-    out.transform = "scaleX(" + (el.flipX ? -z : z) + ") scaleY(" + (el.flipY ? -z : z) + ")";
+  if (el.flipX || el.flipY) {
+    if (el.crop) {
+      // A flip on a CROPPED photo mirrors the image about the BOX CENTRE, composed
+      // with the zoom-about-focal — so a flipped + zoomed + panned photo keeps the
+      // exact crop window, just mirrored, with no blank wedge, and matches the PNG
+      // export (which centre-mirrors the same crop window). A bare scaleX(-z) about
+      // the focal point would instead pivot the zoom on the focal and could expose
+      // an empty edge; so each axis is the explicit mirror∘zoom chain (origin 0 0).
+      const pct = (v) => (v * 100) + "%";
+      const axis = (T, flip, f) => {
+        const zoom = "translate" + T + "(" + pct(f) + ") scale" + T + "(" + z + ") translate" + T + "(" + pct(-f) + ")";
+        return flip ? "translate" + T + "(50%) scale" + T + "(-1) translate" + T + "(-50%) " + zoom : zoom;
+      };
+      out.transform = axis("X", el.flipX, fx) + " " + axis("Y", el.flipY, fy);
+      out.transformOrigin = "0 0";
+    } else {
+      // Plain flip (no crop) is a simple mirror about the box centre.
+      out.transform = "scaleX(" + (el.flipX ? -1 : 1) + ") scaleY(" + (el.flipY ? -1 : 1) + ")";
+      out.transformOrigin = "50% 50%";
+    }
+  } else if (z !== 1) {
+    out.transform = "scaleX(" + z + ") scaleY(" + z + ")";
     out.transformOrigin = (fx * 100) + "% " + (fy * 100) + "%";
   }
   if (el.crop) out.objectPosition = (fx * 100) + "% " + (fy * 100) + "%";

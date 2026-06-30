@@ -27,12 +27,36 @@ test("cropRect: no crop = centred cover band; zoom shrinks the source window", (
 
 test("imageTransform: crop focal + flip + mono compose into CSS", () => {
   assert.deepEqual(imageTransform({}), {});                              // plain image → no overrides
-  assert.equal(imageTransform({ flipX: true }).transform, "scaleX(-1) scaleY(1)");
+  assert.equal(imageTransform({ flipX: true }).transform, "scaleX(-1) scaleY(1)"); // plain flip = centre mirror
+  assert.equal(imageTransform({ flipX: true }).transformOrigin, "50% 50%");
   assert.equal(imageTransform({ mono: true }).filter, "grayscale(1)");
   const c = imageTransform({ crop: { zoom: 2, x: 0.25, y: 0.75 } });
   assert.equal(c.transform, "scaleX(2) scaleY(2)");
   assert.equal(c.transformOrigin, "25% 75%");
   assert.equal(c.objectPosition, "25% 75%");
+});
+
+test("imageTransform: a flipped + zoomed + panned crop mirrors about the box centre (export parity)", () => {
+  // The export canvas centre-mirrors the crop window; the live CSS must do the
+  // same. A bare scaleX(-z) about the focal point would diverge (and leave a blank
+  // wedge), so the cropped-flip path is the explicit mirror∘zoom chain at origin 0 0.
+  const f = imageTransform({ crop: { zoom: 2, x: 0.25, y: 0.4 }, flipX: true });
+  assert.equal(f.transformOrigin, "0 0");
+  assert.equal(f.objectPosition, "25% 40%");
+  // X axis: mirror-about-centre then zoom-about-focal; Y axis: zoom only (no flip).
+  assert.equal(
+    f.transform,
+    "translateX(50%) scaleX(-1) translateX(-50%) translateX(25%) scaleX(2) translateX(-25%) translateY(40%) scaleY(2) translateY(-40%)",
+  );
+  // flipY mirrors the Y axis instead.
+  const g = imageTransform({ crop: { zoom: 1, x: 0.5, y: 0.3 }, flipY: true });
+  assert.equal(g.transformOrigin, "0 0");
+  assert.equal(
+    g.transform,
+    "translateX(50%) scaleX(1) translateX(-50%) translateY(50%) scaleY(-1) translateY(-50%) translateY(30%) scaleY(1) translateY(-30%)",
+  );
+  // No-flip zoomed crop is unchanged (the simple scale about the focal point).
+  assert.equal(imageTransform({ crop: { zoom: 2, x: 0.25, y: 0.75 } }).transformOrigin, "25% 75%");
 });
 
 test("artboard is Instagram portrait 1080x1350", () => {

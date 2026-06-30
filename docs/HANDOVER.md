@@ -350,9 +350,13 @@ Topic Routes, D3) is **all shipped**. Current backlog:
 3. **Deploy-verification pass** — work `docs/VERIFY.md` on a real Firebase deploy
    (sign-in, autosave, per-user isolation, token-gate 401, Cloud 11c upload,
    roles/limits 429, share link live view, trending `?debug=1`, end-to-end gen).
-4. **Crop export↔canvas parity** (low) — confirm `cropRect` (export) and
-   `imageTransform` (CSS) agree for a zoomed+panned+**flipped** photo; add a
-   parity test/visual diff. Audit flagged as possible, not confirmed.
+4. ~~**Crop export↔canvas parity**~~ ✅ **SHIPPED** — confirmed real: a
+   flipped + zoomed + panned photo rendered differently in the live CSS vs the PNG
+   export (CSS pivoted the flip on the focal point, exposing a blank wedge; the
+   export centre-mirrored). Fixed `imageTransform` so a cropped flip is the explicit
+   mirror-about-centre ∘ zoom-about-focal chain — pixel-identical to the export
+   across flipX / flipY / both (browser-verified). Plain (uncropped) flips and all
+   no-flip paths are byte-unchanged. Parity test in `model.test.mjs`.
 5. **Deferred-by-design** (low) — more premium layouts, recent-projects shelf,
    grid snapping, News "breaking" deck mode.
 
