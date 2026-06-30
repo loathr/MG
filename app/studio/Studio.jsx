@@ -3,6 +3,7 @@ import React, { useEffect, useReducer, useRef, useState } from "react";
 import { reducer, initStudio, carryBrandKit } from "./store";
 import { makeElement, imageBackground, blankDoc, ARTBOARD_W, ARTBOARD_H } from "./model";
 import { generateCarousel, regenerateCaption } from "./generate";
+import { setShare as buildShare, shareUrl } from "./sharing";
 import { photosDemoDoc } from "./demo";
 import Artboard from "./Artboard";
 import Toolbar from "./Toolbar";
@@ -71,6 +72,7 @@ export default function Studio() {
   const [projects, setProjects] = useState([]);    // the user's saved decks (list meta)
   const [projectId, setProjectId] = useState(null);// current deck's Firestore id
   const [saveState, setSaveState] = useState("idle"); // "idle" | "saving" | "saved"
+  const [shareOpen, setShareOpen] = useState(false);  // Share-link popover (Tier A)
   const saveTimer = useRef(null);
   const genAbort = useRef(null); // AbortController for the in-flight generation
   const fcAbort = useRef(null);  // AbortController for the in-flight fact-check
@@ -393,6 +395,41 @@ export default function Studio() {
         >
           {fc && fc.loading ? "Checking…" : "✓ Check facts"}
         </button>
+        {cloud && user && (
+          <div style={{ position: "relative" }}>
+            <button style={hbtn} onClick={() => setShareOpen((o) => !o)} title="Share a live link">🔗 Share</button>
+            {shareOpen && (() => {
+              const sh = state.doc.share || { link: "none", token: null };
+              const url = typeof window !== "undefined" ? shareUrl(window.location.origin, projectId, sh) : null;
+              const newToken = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+              const setLevel = (level) => dispatch({ type: "setShare", share: buildShare(sh, level, sh.token ? undefined : newToken()) });
+              const rotate = () => dispatch({ type: "setShare", share: buildShare(sh, sh.link === "none" ? "view" : sh.link, newToken()) });
+              return (
+                <>
+                  <div onClick={() => setShareOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+                  <div style={{ position: "absolute", right: 0, top: 38, width: 268, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 8, padding: 11, zIndex: 50, boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}>
+                    <div style={{ fontSize: 11, color: UI.muted, marginBottom: 7 }}>Live link sharing</div>
+                    {[["none", "Off (only you / your team)"], ["view", "Anyone with the link can view, live"], ["edit", "Anyone with the link can edit"]].map(([lvl, label]) => (
+                      <label key={lvl} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, padding: "5px 2px", cursor: "pointer" }}>
+                        <input type="radio" name="sharelvl" checked={(sh.link || "none") === lvl} onChange={() => setLevel(lvl)} /> {label}
+                      </label>
+                    ))}
+                    {!projectId && <div style={{ fontSize: 11, color: UI.muted, marginTop: 6 }}>Edit anything to save the deck first — then a link appears.</div>}
+                    {url && (
+                      <>
+                        <div style={{ display: "flex", gap: 6, marginTop: 9 }}>
+                          <input readOnly value={url} onFocus={(e) => e.target.select()} style={{ flex: 1, minWidth: 0, height: 30, background: "#1d1d20", border: "1px solid " + UI.border, borderRadius: 6, color: "#ddd", fontSize: 11, padding: "0 8px" }} />
+                          <button style={hbtn} onClick={() => { try { navigator.clipboard.writeText(url); } catch (e) { /* ignore */ } }}>Copy</button>
+                        </div>
+                        <button style={{ ...hbtn, marginTop: 7, fontSize: 11 }} onClick={rotate} title="Invalidate the old link and make a new one">↻ Reset link</button>
+                      </>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
         <div style={{ position: "relative" }}>
           <button
             style={{ ...hbtn, background: UI.brand, color: UI.onBrand, border: "none", fontWeight: 700, boxShadow: "0 2px 10px " + UI.brand + "30" }}

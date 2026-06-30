@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { verifyRequest, unauthorized } from "../_auth";
+import { verifyRequest, unauthorized, quotaExceeded } from "../_auth";
+import { meterGenerate } from "../adminStore";
 
 // Vercel kills serverless functions after their maxDuration regardless of
 // streaming. Editorial generations with Claude Opus + web_search routinely take
@@ -71,6 +72,14 @@ export async function POST(request) {
   // open (the current behaviour). See CLOUD_SETUP.md.
   const auth = await verifyRequest(request);
   if (!auth.ok) return unauthorized();
+
+  // Usage limit (admin-set, server-enforced): when the gate is on, meter this
+  // account's monthly generations and refuse once it's at its cap. No limit set
+  // (or no admin store) → unlimited, as today.
+  if (auth.gated && auth.uid) {
+    const quota = await meterGenerate(auth.uid, Date.now());
+    if (!quota.allowed) return quotaExceeded(quota.remaining);
+  }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
 

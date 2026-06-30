@@ -60,6 +60,14 @@ PR: `https://github.com/loathr/MG/pull/9`
   Firestore doc holds Storage download URLs (not `data:` base64), the images
   live under `users/{uid}/decks/{id}/img_*`, reload restores them, and a
   photo-heavy deck (previously >1 MB) now saves. Sandbox blocks the bucket.
+- [ ] **Roles + usage limits** (needs admin creds + `BOOTSTRAP_ADMIN_UID`): set
+  your uid as bootstrap, `POST /api/admin/role {uid, role:"admin"}`, re-auth, then
+  set another account to `viewer`/`editor` and confirm UI + rules match. Set a
+  small `users/{uid}.limits.monthly`, generate past it → **429**; raise it → works.
+- [ ] **Share link / live view (Tier A)**: 🔗 Share → "Anyone with the link can
+  view" → open the `…/studio/<id>?s=<token>` link in another browser/account →
+  it loads read-only and updates live as the owner edits; "Reset link" makes the
+  old URL stop working; "Off" revokes it.
 - [ ] **End-to-end generation** of any deck (Anthropic credit) — the core path
   the sandbox can't exercise.
 - [ ] **D1 (carryover)** — re-confirm trending beats on the deploy via `?debug=1`

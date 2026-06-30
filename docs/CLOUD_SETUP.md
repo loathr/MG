@@ -27,17 +27,43 @@ The design + which keys are public vs secret is in `app/studio/cloud.js`.
 **Firestore Database → Create database → Production mode → pick a region.**
 
 ## 4. Security rules (per-user isolation)
-**Firestore → Rules** — a signed-in user may touch only their own decks:
+**Firestore → Rules** — a signed-in user may touch only their own decks; a deck
+shared by link is readable by anyone who knows it (the link token is the grant,
+checked app-side); admins may read everything; usage counters are server-write
+only:
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
+    function isAdmin() { return request.auth != null && request.auth.token.role == 'admin'; }
+
     match /users/{uid}/decks/{deckId} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      // owner full access; shared decks are readable by any signed-in user (the
+      // link token is verified in the app); admins read all.
+      allow read:  if isAdmin() || (request.auth != null &&
+                       (request.auth.uid == uid || resource.data.share.link in ['view','edit']));
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+    // Profile + admin-set role/limits: the user reads their own; only admins (or
+    // the Admin SDK, which bypasses rules) write role/limits.
+    match /users/{uid} {
+      allow read:  if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow write: if false; // role/limits are set server-side via the Admin SDK
+    }
+    // Usage counters are written ONLY by the server (Admin SDK bypasses rules);
+    // the owner and admins may read.
+    match /usage/{uid}/months/{period} {
+      allow read:  if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow write: if false;
     }
   }
 }
 ```
+Roles ride as a `role` custom claim (`viewer`/`editor`/`admin`) set via
+`POST /api/admin/role`; bootstrap the first admin by setting `BOOTSTRAP_ADMIN_UID`
+to your uid, then call that route once. Per-account monthly limits live at
+`users/{uid}.limits.monthly` (0/absent = unlimited) and are enforced server-side
+on `/api/generate` (429 when reached).
 **Storage → Rules** (for uploaded images, step 11b of the build):
 ```
 rules_version = '2';
