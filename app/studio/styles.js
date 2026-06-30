@@ -23,6 +23,7 @@ export const STYLES = {
     layouts: { cover: "cover", content: "classic" },
     bg: "#0c0c0c",
     accent: "#e23744",
+    secondary: "#e23744",                         // segment-header (kicker) colour; defaults to the accent
     ink: "#ffffff",
     sub: "#eaeaea",
     muted: "#9a9a9a",
@@ -34,7 +35,7 @@ export const STYLES = {
     kickerSpacing: 4,
     accentBar: true,
     // Over-photo palette: light, readable text on a darkened photo background.
-    onPhoto: { ink: "#ffffff", sub: "#f0f0f0", muted: "#d0d0d0", accent: "#e23744", scrim: 0.5 },
+    onPhoto: { ink: "#ffffff", sub: "#f0f0f0", muted: "#d0d0d0", accent: "#e23744", secondary: "#e23744", scrim: 0.5 },
   },
   enterprise: {
     key: "enterprise",
@@ -46,6 +47,7 @@ export const STYLES = {
     layouts: { cover: "dossier", content: "classic" },
     bg: "#0a0a0a",
     accent: "#ffffff",
+    secondary: "#ffffff",
     ink: "#ffffff",
     sub: "#c8c8c8",
     muted: "#888888",
@@ -56,7 +58,7 @@ export const STYLES = {
     kickerWeight: 700,
     kickerSpacing: 3,
     accentBar: true,
-    onPhoto: { ink: "#ffffff", sub: "#ededed", muted: "#cccccc", accent: "#ffffff", scrim: 0.55 },
+    onPhoto: { ink: "#ffffff", sub: "#ededed", muted: "#cccccc", accent: "#ffffff", secondary: "#ffffff", scrim: 0.55 },
   },
   newsdesk: {
     key: "newsdesk",
@@ -67,6 +69,7 @@ export const STYLES = {
     layouts: { cover: "masthead", content: "classic" },
     bg: "#f7f5f0",       // newsprint cream
     accent: "#c41e1e",   // newspaper red (section flags, "BREAKING")
+    secondary: "#c41e1e",
     ink: "#1a1a1a",
     sub: "#3a3a3a",
     muted: "#6a6a6a",
@@ -77,7 +80,7 @@ export const STYLES = {
     kickerWeight: 700,
     kickerSpacing: 2,
     accentBar: true,
-    onPhoto: { ink: "#ffffff", sub: "#f0f0f0", muted: "#d6d6d6", accent: "#e23744", scrim: 0.5 },
+    onPhoto: { ink: "#ffffff", sub: "#f0f0f0", muted: "#d6d6d6", accent: "#e23744", secondary: "#e23744", scrim: 0.5 },
   },
 };
 
@@ -94,7 +97,7 @@ export function getStyle(key) {
 export function brandFromStyle(key) {
   const st = getStyle(key);
   return {
-    accent: st.accent, bg: st.bg, ink: st.ink, sub: st.sub, muted: st.muted,
+    accent: st.accent, secondary: st.secondary, bg: st.bg, ink: st.ink, sub: st.sub, muted: st.muted,
     labelFont: st.kickerFont, headFont: st.headFont, bodyFont: st.bodyFont, wordmark: "LOATHR",
     frame: "off",
   };
@@ -113,6 +116,7 @@ export function effectiveStyle(key, brand) {
   if (!brand) return st;
   const out = Object.assign({}, st);
   if (brand.accent != null) out.accent = brand.accent;
+  if (brand.secondary != null) out.secondary = brand.secondary;
   if (brand.bg != null) out.bg = brand.bg;
   if (brand.ink != null) out.ink = brand.ink;
   if (brand.sub != null) out.sub = brand.sub;
@@ -120,8 +124,10 @@ export function effectiveStyle(key, brand) {
   if (brand.labelFont != null) out.kickerFont = brand.labelFont;
   if (brand.headFont != null) out.headFont = brand.headFont;
   if (brand.bodyFont != null) out.bodyFont = brand.bodyFont;
-  if (st.onPhoto && brand.accent != null && brand.accent !== st.accent) {
-    out.onPhoto = Object.assign({}, st.onPhoto, { accent: brand.accent });
+  if (st.onPhoto && ((brand.accent != null && brand.accent !== st.accent) || (brand.secondary != null && brand.secondary !== st.secondary))) {
+    out.onPhoto = Object.assign({}, st.onPhoto,
+      brand.accent != null && brand.accent !== st.accent ? { accent: brand.accent } : null,
+      brand.secondary != null && brand.secondary !== st.secondary ? { secondary: brand.secondary } : null);
   }
   return out;
 }

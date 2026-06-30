@@ -97,7 +97,7 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
   // brand marks (wordmark / logo / caution) and white-label. Shown only once the
   // look has drifted from default. Undoable.
   const dflt = brandFromStyle(family);
-  const LOOK_KEYS = ["accent", "bg", "ink", "sub", "muted", "labelFont", "headFont", "bodyFont"];
+  const LOOK_KEYS = ["accent", "secondary", "bg", "ink", "sub", "muted", "labelFont", "headFont", "bodyFont"];
   const lookDrifted = LOOK_KEYS.some((k) => (cur[k] || null) !== (dflt[k] || null)) || !!cur.frameColor || (slideFrame && slideFrame !== "off");
   const resetLook = () => {
     const next = Object.assign({}, cur);
@@ -180,6 +180,14 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
             <span style={{ width: 18, height: 18, borderRadius: 4, background: cur.accent, border: "1px solid #555" }} />
             <span style={{ fontSize: 12, color: "#bbb" }}>{cur.accent}</span>
             <input type="color" value={hex(cur.accent)} onChange={(e) => set({ accent: e.target.value })} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+          </label>
+        </div>
+        <div style={{ ...frow, marginTop: 6 }}>
+          <span style={frowK} title="Drives the segment-header (kicker) colour">Secondary</span>
+          <label style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, position: "relative", height: 32, padding: "0 9px", background: "#26262b", border: "1px solid #36363c", borderRadius: 6, cursor: "pointer" }}>
+            <span style={{ width: 18, height: 18, borderRadius: 4, background: cur.secondary || cur.accent, border: "1px solid #555" }} />
+            <span style={{ fontSize: 12, color: "#bbb" }}>{cur.secondary || cur.accent}</span>
+            <input type="color" value={hex(cur.secondary || cur.accent)} onChange={(e) => set({ secondary: e.target.value })} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
           </label>
         </div>
         <div style={{ ...frow, marginTop: 2 }}>

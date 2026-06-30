@@ -57,6 +57,17 @@ test("feature layout with no photo falls back to a solid accent block", () => {
   assert.ok(els.some((e) => e.type === "rect" && e.x === 0 && e.y === 0)); // the band block
 });
 
+test("the segment header (kicker) follows the brand's SECONDARY colour", () => {
+  const k = (els) => els.find((e) => e.tier === "label");
+  // default: secondary === accent, so the kicker is the accent (no visual change)
+  const base = renderLayout("classic", { kicker: "WAGE", heading: "H", body: "b" }, "editorial", false);
+  assert.equal(k(base).color, STYLES.editorial.accent);
+  // a distinct secondary recolours ONLY the kicker (accent bar / headline unaffected)
+  const branded = renderLayout("classic", { kicker: "WAGE", heading: "H", body: "b" }, "editorial", false, { secondary: "#00cc88", accent: STYLES.editorial.accent });
+  assert.equal(k(branded).color, "#00cc88");
+  assert.ok(branded.some((e) => e.type === "rect" && e.fill === STYLES.editorial.accent), "accent bar still uses the accent");
+});
+
 test("every feature layout emits a selectable colour PANEL box behind the text", () => {
   const st = STYLES.editorial;
   for (const k of ["feature", "featureBottom", "featureSplit"]) {

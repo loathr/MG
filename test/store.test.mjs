@@ -605,6 +605,14 @@ test("rethemeDoc recolors the deck frame to the new look — accent, but News De
   assert.equal(out2.slides[1].elements.find((e) => e.role === "frame").stroke, "#222233");
 });
 
+test("rethemeDoc remaps a kicker coloured with the old secondary to the new one", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "loadDoc", doc: slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "WAGE", heading: "H", body: "b" }], "editorial") });
+  const out = rethemeDoc(s.doc, s.doc.brand, Object.assign({}, s.doc.brand, { secondary: "#123456" }));
+  const kicker = out.slides.flatMap((sl) => sl.elements).find((e) => e.tier === "label" && e.color === "#123456");
+  assert.ok(kicker, "a segment header coloured with the old secondary moved to the new secondary");
+});
+
 test("rethemeDoc recolours the feature colour-panel box on a bg swap", () => {
   let s = initStudio();
   s = reducer(s, { type: "loadDoc", doc: slidesToDoc([{ role: "COVER", heading: "C" }, { kicker: "K", heading: "H", body: "b" }], "editorial") });

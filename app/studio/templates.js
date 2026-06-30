@@ -24,9 +24,9 @@ function makeText(font, props) {
 // `onPhoto` palette so any family stays readable on a darkened photo.
 function palette(st, hasImage) {
   if (hasImage && st.onPhoto) {
-    return { ink: st.onPhoto.ink, sub: st.onPhoto.sub, muted: st.onPhoto.muted, accent: st.onPhoto.accent, accentBar: st.accentBar };
+    return { ink: st.onPhoto.ink, sub: st.onPhoto.sub, muted: st.onPhoto.muted, accent: st.onPhoto.accent, secondary: st.onPhoto.secondary || st.onPhoto.accent, accentBar: st.accentBar };
   }
-  return { ink: st.ink, sub: st.sub, muted: st.muted, accent: st.accent, accentBar: st.accentBar };
+  return { ink: st.ink, sub: st.sub, muted: st.muted, accent: st.accent, secondary: st.secondary || st.accent, accentBar: st.accentBar };
 }
 
 // FLAT-LAYERS §3 background: one image (capped `src` + small `thumb`) plus one
@@ -50,7 +50,7 @@ function kickerEl(st, pal, content, y, size) {
   return makeText(st.kickerFont, { tier: "label",
     x: M, y, w: ARTBOARD_W - 2 * M, h: 40,
     content: (content || "").toUpperCase(), fontSize: size, fontWeight: st.kickerWeight,
-    color: pal.accent, letterSpacing: st.kickerSpacing, lineHeight: 1.2,
+    color: pal.secondary || pal.accent, letterSpacing: st.kickerSpacing, lineHeight: 1.2,
   });
 }
 
@@ -264,7 +264,7 @@ function norm(content) {
 }
 
 function centeredKicker(st, pal, content, y) {
-  return content ? makeText(st.kickerFont, { tier: "label", x: M, y, w: ARTBOARD_W - 2 * M, h: 40, content: content.toUpperCase(), fontSize: 24, fontWeight: st.kickerWeight, color: pal.accent, letterSpacing: st.kickerSpacing, align: "center", lineHeight: 1.2 }) : null;
+  return content ? makeText(st.kickerFont, { tier: "label", x: M, y, w: ARTBOARD_W - 2 * M, h: 40, content: content.toUpperCase(), fontSize: 24, fontWeight: st.kickerWeight, color: pal.secondary || pal.accent, letterSpacing: st.kickerSpacing, align: "center", lineHeight: 1.2 }) : null;
 }
 
 function L_classic(c, st, pal) {
@@ -321,7 +321,7 @@ function L_quote(c, st, pal) {
   return [
     makeText(st.headFont, { tier: "heading", x: M, y: 330, w: ARTBOARD_W - 2 * M, h: 160, content: "“", fontSize: 200, fontWeight: st.headWeight, color: pal.accent, align: "center", lineHeight: 1 }),
     makeText(st.headFont, { tier: "heading", x: M, y: 556, w: ARTBOARD_W - 2 * M, h: 470, content: c.heading, fontSize: 50, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.26, italic: true }),
-    c.kicker ? makeText(st.kickerFont, { tier: "label", x: M, y: 1086, w: ARTBOARD_W - 2 * M, h: 40, content: "— " + c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, align: "center", letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
+    c.kicker ? makeText(st.kickerFont, { tier: "label", x: M, y: 1086, w: ARTBOARD_W - 2 * M, h: 40, content: "— " + c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.secondary || pal.accent, align: "center", letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
   ];
 }
 
@@ -391,7 +391,7 @@ function L_versus(c, st, pal) {
   const colW = (ARTBOARD_W - 2 * M - gap) / 2;
   const rx = M + colW + gap;
   const mid = ARTBOARD_W / 2;
-  const colLabel = (txt, x) => txt ? makeText(st.kickerFont, { tier: "label", x, y: 452, w: colW, h: 40, content: txt.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, align: "center", letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null;
+  const colLabel = (txt, x) => txt ? makeText(st.kickerFont, { tier: "label", x, y: 452, w: colW, h: 40, content: txt.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.secondary || pal.accent, align: "center", letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null;
   const colValue = (txt, x) => makeText(st.headFont, { tier: "heading", x, y: 520, w: colW, h: 320, content: txt, fontSize: 52, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.12 });
   return [
     c.kicker ? centeredKicker(st, pal, c.kicker, 250) : null,
@@ -426,7 +426,7 @@ function L_masthead(c, st, pal) {
 function L_dossier(c, st, pal) {
   return [
     makeElement("rect", { id: uid("r"), x: M, y: 196, w: ARTBOARD_W - 2 * M, h: 2, fill: pal.accent }),
-    makeText(st.kickerFont, { tier: "label", x: M, y: 212, w: ARTBOARD_W - 2 * M, h: 36, content: String(c.kicker || "INTELLIGENCE BRIEF").toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, letterSpacing: 4, lineHeight: 1.2 }),
+    makeText(st.kickerFont, { tier: "label", x: M, y: 212, w: ARTBOARD_W - 2 * M, h: 36, content: String(c.kicker || "INTELLIGENCE BRIEF").toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.secondary || pal.accent, letterSpacing: 4, lineHeight: 1.2 }),
     makeText(st.headFont, { tier: "heading", x: M, y: 300, w: ARTBOARD_W - 2 * M, h: 600, content: c.heading, fontSize: 92, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.02 }),
     c.body ? makeText(st.bodyFont, { tier: "body", x: M, y: 1010, w: ARTBOARD_W - 2 * M, h: 150, content: c.body, fontSize: 31, fontWeight: 400, color: pal.sub, lineHeight: 1.4 }) : null,
     makeElement("rect", { id: uid("r"), x: M, y: 1186, w: ARTBOARD_W - 2 * M, h: 1, fill: pal.muted }),
@@ -479,7 +479,7 @@ function featureText(c, st, pal, r) {
   const bodyH = Math.max(70, r.panelBottom - 56 - bodyY);
   return [
     pal.accentBar ? makeElement("rect", { id: uid("r"), x: r.x, y: r.topY - 18, w: 48, h: 6, fill: pal.accent }) : null,
-    c.kicker ? makeText(st.kickerFont, { tier: "label", x: r.x, y: r.topY, w: r.w, h: 40, content: c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.accent, letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
+    c.kicker ? makeText(st.kickerFont, { tier: "label", x: r.x, y: r.topY, w: r.w, h: 40, content: c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.secondary || pal.accent, letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
     makeText(st.headFont, { tier: "heading", x: r.x, y: r.topY + 52, w: r.w, h: 230, content: c.heading, fontSize: headSize, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.08 }),
     c.body ? makeText(st.bodyFont, { tier: "body", x: r.x, y: bodyY, w: r.w, h: bodyH, content: c.body, fontSize: bodySize, fontWeight: 400, color: pal.sub, lineHeight: 1.42 }) : null,
     src ? makeText(st.bodyFont, { tier: "body", x: r.x, y: r.panelBottom - 40, w: r.w, h: 40, content: "Sources: " + src, fontSize: 19, fontWeight: 400, color: pal.muted, lineHeight: 1.2, letterSpacing: 0.5 }) : null,

@@ -83,13 +83,13 @@ function withDoc(state, slides, slideIndex) {
 // action and the regenerate brand-carry.
 export function rethemeDoc(doc, prev, next) {
   const b = next || {}, p = prev || {};
-  const COLORS = ["ink", "sub", "muted", "accent"];
+  const COLORS = ["ink", "sub", "muted", "accent", "secondary"];
   // Map any colour that still EXACTLY matches a previous-brand palette entry onto
   // the new one (custom off-brand colours never match, so they're left alone).
   // Used for the newer per-element / per-run styling (D3): textBg, textStroke, and
   // runs[].{color,bg,stroke}, which the original remap missed — so a re-theme left
   // stale highlight/outline colours behind.
-  const PAL = ["ink", "sub", "muted", "accent", "bg"];
+  const PAL = ["ink", "sub", "muted", "accent", "secondary", "bg"];
   const remapColor = (c) => {
     if (!c) return c;
     for (const k of PAL) { if (b[k] && p[k] && c === p[k]) return b[k]; }
@@ -105,6 +105,10 @@ export function rethemeDoc(doc, prev, next) {
       for (const k of COLORS) {
         if (b[k] && p[k] && e.color === p[k]) { n = Object.assign({}, n, { color: b[k] }); break; }
       }
+      // The segment header (kicker) is the SECONDARY colour by ROLE — remapped by
+      // tier like fonts, so it follows a secondary change even when secondary
+      // currently equals the accent (a value-only match couldn't tell them apart).
+      if (e.tier === "label" && b.secondary) n = Object.assign({}, n, { color: b.secondary });
       // A text-shape backing whose accent still matches the deck follows a palette
       // swap (paper/knockout shapes carry their own fixed colors, so they don't
       // match prev.accent and are left alone — same idea as the rect fills above).
@@ -205,7 +209,7 @@ export function carryBrandKit(newDoc, prevDoc) {
   if (!prevBrand) return newDoc;
   const prevStyle = (prevDoc.slides && prevDoc.slides[0] && prevDoc.slides[0].style) || "editorial";
   const defaults = brandFromStyle(prevStyle);
-  const FIELDS = ["accent", "bg", "ink", "sub", "muted", "labelFont", "headFont", "bodyFont", "wordmark"];
+  const FIELDS = ["accent", "secondary", "bg", "ink", "sub", "muted", "labelFont", "headFont", "bodyFont", "wordmark"];
   const custom = {};
   for (const k of FIELDS) {
     if (prevBrand[k] != null && prevBrand[k] !== defaults[k]) custom[k] = prevBrand[k];
