@@ -7,6 +7,7 @@ import {
   BEATS, getBeat, beatVoice, beatsForDesk, defaultBeat, groupsForDesk, routeFraming, mostReadUrl, cleanTitle, parseRss, parseMostRead,
   filterByTerms, rankItems, selectTrending, backfillSeeds, filterByRegion, filterByCountry, countriesForRegion, filterByRecency,
   geoHint, scopeQuery, scopedPlan, googleNewsUrl, gdeltUrl, parseGdelt, mergeSources,
+  rotateWindow, isJunkImage,
 } from "../app/studio/trending.js";
 
 test("BEATS feed config: dedicated vs shared/sub-topic vs the lone feed-less beat", () => {
@@ -293,10 +294,10 @@ test("scopedPlan: country with a hint → ONE terms-only geo-scoped pull (no ove
 });
 
 test("scopedPlan: country WITHOUT a hint → keyword-scope it (fallback)", () => {
-  const plan = scopedPlan({ terms: ["aid"], label: "Aid" }, "africa", "Ghana", 3); // Ghana not in GEO_HINTS
+  const plan = scopedPlan({ terms: ["aid"], label: "Aid" }, "africa", "Senegal", 3); // Senegal not in GEO_HINTS
   assert.equal(plan.length, 1);
   assert.equal(plan[0].hint, null);
-  assert.equal(plan[0].query, '(aid) "Ghana"');
+  assert.equal(plan[0].query, '(aid) "Senegal"');
 });
 
 test("scopedPlan: region → FANS OUT across its top hinted member-country hubs", () => {
@@ -305,6 +306,23 @@ test("scopedPlan: region → FANS OUT across its top hinted member-country hubs"
   const gdelts = plan.map((p) => p.hint.gdelt);
   assert.deepEqual(gdelts, ["UK", "FR", "GM"]);               // UK/France/Germany — Europe's first hinted hubs
   assert.ok(plan.every((p) => p.query === "(crime)"));        // terms only per hub
+});
+
+test("rotateWindow: whole array when it fits; wraps a rotating window when it doesn't", () => {
+  assert.deepEqual(rotateWindow(["a", "b"], 3, 0), ["a", "b"]);      // fits → whole, order kept
+  assert.deepEqual(rotateWindow(["a", "b", "c", "d"], 2, 0), ["a", "b"]); // offset 0 → head
+  assert.deepEqual(rotateWindow(["a", "b", "c", "d"], 2, 1), ["b", "c"]); // rotates by 1
+  assert.deepEqual(rotateWindow(["a", "b", "c", "d"], 2, 3), ["d", "a"]); // wraps around
+  assert.deepEqual(rotateWindow([], 3, 5), []);
+});
+
+test("scopedPlan #4: a rotating offset surfaces DIFFERENT in-region hubs across refreshes", () => {
+  const beat = { terms: ["crime"], label: "Crime" };
+  const at0 = scopedPlan(beat, "europe", "", 3, 0).map((p) => p.label);
+  const at1 = scopedPlan(beat, "europe", "", 3, 1).map((p) => p.label);
+  assert.deepEqual(at0, ["United Kingdom", "France", "Germany"]); // offset 0 unchanged (cache-stable)
+  assert.deepEqual(at1, ["France", "Germany", "Spain"]);          // rotated one hub along
+  assert.notDeepEqual(at0, at1);
 });
 
 test("scopedPlan: no place + terms → one query; nothing at all → empty plan", () => {
@@ -337,6 +355,27 @@ test("parseGdelt: maps ArtList JSON to items, keeps only http images + ISO date"
   assert.equal(out[0].thumb, "https://img/a.jpg");
   assert.equal(out[0].when, "2026-06-29T12:30:00Z");  // seendate → ISO
   assert.equal(out[1].thumb, null);                   // empty image → null
+});
+
+test("isJunkImage #6: rejects logos/placeholders/non-http, keeps real photos", () => {
+  assert.equal(isJunkImage("https://cdn.site.com/logo.png"), true);
+  assert.equal(isJunkImage("https://site.com/assets/placeholder-image.jpg"), true);
+  assert.equal(isJunkImage("https://site.com/favicon.ico"), true);
+  assert.equal(isJunkImage("https://site.com/default-thumb.png"), true);
+  assert.equal(isJunkImage("https://site.com/1x1.gif"), true);
+  assert.equal(isJunkImage(""), true);
+  assert.equal(isJunkImage("/relative/x.jpg"), true);               // non-http
+  assert.equal(isJunkImage("https://images.reuters.com/story/abc123.jpg"), false); // real photo
+});
+
+test("parseGdelt #6: drops a logo socialimage but keeps a real photo", () => {
+  const json = { articles: [
+    { title: "Real story - Reuters", socialimage: "https://img/photo.jpg", seendate: "20260629T120000Z", domain: "reuters.com" },
+    { title: "Logo story - AP", socialimage: "https://ap.org/logo.png", seendate: "20260629T120000Z", domain: "ap.org" },
+  ] };
+  const out = parseGdelt(json, 10);
+  assert.equal(out[0].thumb, "https://img/photo.jpg");
+  assert.equal(out[1].thumb, null); // logo dropped
 });
 
 test("mergeSources: dedupes by title, prefers a thumb, thumbed items lead", () => {

@@ -116,7 +116,10 @@ export async function GET(request) {
     // only → a single query. GDELT carries images; Google News carries fresh
     // coverage; all pulls merged + deduped.
     const regionLabel = region && region !== "global" ? regionById(region).label : null;
-    const plan = scopedPlan(beat, region, country, 3);
+    // Rotate the region hub window on a genuine refresh so a region isn't always
+    // the same three countries (#4); a normal cached load uses offset 0 (stable).
+    const rotOffset = fresh ? Math.floor(Math.random() * 997) : 0;
+    const plan = scopedPlan(beat, region, country, 3, rotOffset);
     let scopedItems = [];
     if (plan.length) {
       const lists = await Promise.all(plan.flatMap((pl) => [
@@ -132,11 +135,16 @@ export async function GET(request) {
     const composed = backfillSeeds(merged, beat.seeds, pool);
     const items = (fresh ? shuffle(composed) : composed).slice(0, 6);
 
-    // Honest scope label: say what actually produced the rail. If a place was
-    // requested but the scoped sources came back empty, flag that it broadened.
+    // Honest scope label (#5): say what actually produced the rail — the place, how
+    // many in-region hubs it fanned across, and, if the scoped sources came back
+    // empty, that it fell back to the global pool. hubs is 0 for a single-country
+    // pick (no fan-out) so the panel only shows a hub count for a real region fan.
     const requested = country || regionLabel || null;
+    const sourced = scopedItems.length > 0;
+    const hubs = !country && region && region !== "global" ? plan.filter((p) => p.hint).length : 0;
     const scope = requested
-      ? { requested, sourced: scopedItems.length > 0, label: scopedItems.length > 0 ? requested : requested + " — few live results, broadened" }
+      ? { requested, sourced, hubs, fallback: sourced ? null : "global",
+          label: sourced ? requested : requested + " — no live results, showing global" }
       : null;
 
     const payload = { beat: beat.key, voice: beat.voice, items, scope };

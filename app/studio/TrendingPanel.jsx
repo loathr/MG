@@ -85,7 +85,10 @@ export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, r
 
           {scope && scope.requested && !loading ? (
             <div style={scopeNote(scope.sourced)} title="What scope produced these results">
-              <MapPin size={13} style={{ flexShrink: 0 }} /> {scope.sourced ? "Scoped to " + scope.requested : "No live results for " + scope.requested + " — showing broader"}
+              <MapPin size={13} style={{ flexShrink: 0 }} />{" "}
+              {scope.sourced
+                ? "Scoped to " + scope.requested + (scope.hubs > 1 ? " · " + scope.hubs + " hubs" : "")
+                : "No live " + scope.requested + " results — showing global"}
             </div>
           ) : null}
 

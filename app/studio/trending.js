@@ -460,8 +460,54 @@ export const GEO_HINTS = {
   "United Arab Emirates": { gl: "AE", lang: "en", gdelt: "AE" },
   "UAE": { gl: "AE", lang: "en", gdelt: "AE" },
   "Israel": { gl: "IL", lang: "en", gdelt: "IS" },
+  // Widened so a region fan-out has more than three hinted hubs to rotate through
+  // (Tier 2b #4) — every REGIONS member that has a Google-News edition + a GDELT
+  // FIPS code. Unmapped countries still scope via the country-name keyword.
+  "Argentina": { gl: "AR", lang: "es", gdelt: "AR" },
+  "Colombia": { gl: "CO", lang: "es", gdelt: "CO" },
+  "Chile": { gl: "CL", lang: "es", gdelt: "CI" },
+  "Sweden": { gl: "SE", lang: "sv", gdelt: "SW" },
+  "Poland": { gl: "PL", lang: "pl", gdelt: "PL" },
+  "Ukraine": { gl: "UA", lang: "uk", gdelt: "UP" },
+  "Switzerland": { gl: "CH", lang: "de", gdelt: "SZ" },
+  "Belgium": { gl: "BE", lang: "nl", gdelt: "BE" },
+  "Portugal": { gl: "PT", lang: "pt", gdelt: "PO" },
+  "Greece": { gl: "GR", lang: "el", gdelt: "GR" },
+  "Turkey": { gl: "TR", lang: "tr", gdelt: "TU" },
+  "Ghana": { gl: "GH", lang: "en", gdelt: "GH" },
+  "Ethiopia": { gl: "ET", lang: "en", gdelt: "ET" },
+  "Morocco": { gl: "MA", lang: "fr", gdelt: "MO" },
+  "Tanzania": { gl: "TZ", lang: "en", gdelt: "TZ" },
+  "Indonesia": { gl: "ID", lang: "id", gdelt: "ID" },
+  "Philippines": { gl: "PH", lang: "en", gdelt: "RP" },
+  "Vietnam": { gl: "VN", lang: "vi", gdelt: "VM" },
+  "Thailand": { gl: "TH", lang: "th", gdelt: "TH" },
+  "Malaysia": { gl: "MY", lang: "en", gdelt: "MY" },
+  "Pakistan": { gl: "PK", lang: "en", gdelt: "PK" },
+  "Bangladesh": { gl: "BD", lang: "bn", gdelt: "BG" },
+  "Taiwan": { gl: "TW", lang: "zh", gdelt: "TW" },
+  "Hong Kong": { gl: "HK", lang: "zh", gdelt: "HK" },
+  "Iran": { gl: "IR", lang: "fa", gdelt: "IR" },
+  "Iraq": { gl: "IQ", lang: "ar", gdelt: "IZ" },
+  "Qatar": { gl: "QA", lang: "ar", gdelt: "QA" },
+  "Kuwait": { gl: "KW", lang: "ar", gdelt: "KU" },
+  "Jordan": { gl: "JO", lang: "ar", gdelt: "JO" },
+  "Lebanon": { gl: "LB", lang: "ar", gdelt: "LE" },
+  "Bahrain": { gl: "BH", lang: "ar", gdelt: "BA" },
+  "Oman": { gl: "OM", lang: "ar", gdelt: "MU" },
+  "Fiji": { gl: "FJ", lang: "en", gdelt: "FJ" },
+  "Papua New Guinea": { gl: "PG", lang: "en", gdelt: "PP" },
 };
 export function geoHint(country) { return (country && GEO_HINTS[country]) || null; }
+
+// Reject obvious NON-photo images — site logos, sprites, favicons, blank/1x1
+// placeholder OG images — so a card never shows a logo instead of a real photo
+// (Tier 2b #6). GDELT's socialimage is an og:image, which is often exactly that.
+// Heuristic on the URL; anything not clearly junk is kept. Pure.
+export function isJunkImage(url) {
+  if (!url || !/^https?:\/\//i.test(url)) return true;
+  return /(logo|sprite|favicon|placeholder|default[-_.]?(img|image|thumb|avatar)?|blank|no[-_]?(image|photo|thumb)|avatar|1x1|pixel|spacer|missing)/i.test(url);
+}
 
 // The search query for the scoped sources: the beat's terms (OR-joined) or its
 // label, plus the place (country or region name) as a keyword. Pure.
@@ -475,10 +521,12 @@ export function scopeQuery(terms, label, place) {
 // list of { label, query, hint } pulls. A COUNTRY → one geo-scoped pull with
 // the country's hint and TERMS ONLY (the hint already scopes the place, so we
 // don't also AND the country keyword and over-narrow). A REGION → fan OUT across
-// its top hinted member-country hubs for genuine in-region depth (capped to
-// `max`, default 3). Unknown region / no hinted country → keyword-scope the
-// region label. Neither place → a single terms/label query. Pure/testable.
-export function scopedPlan(beat, regionId, country, max) {
+// its hinted member-country hubs for genuine in-region depth (capped to `max`,
+// default 3). With more hinted hubs than the cap, a ROTATING window (offset)
+// surfaces different countries across refreshes so a region isn't always the
+// same three (Tier 2b #4). Unknown region / no hinted country → keyword-scope
+// the region label. Neither place → a single terms/label query. Pure/testable.
+export function scopedPlan(beat, regionId, country, max, offset) {
   const terms = (beat && beat.terms) || [];
   const label = (beat && beat.label) || "";
   const core = terms.length ? "(" + terms.slice(0, 6).join(" OR ") + ")" : label;
@@ -488,12 +536,28 @@ export function scopedPlan(beat, regionId, country, max) {
     return [{ label: country, query: hint ? core : withPlace(country), hint }];
   }
   if (regionId && regionId !== "global") {
-    const hubs = countriesForRegion(regionId).filter((c) => GEO_HINTS[c]).slice(0, max || 3);
+    const all = countriesForRegion(regionId).filter((c) => GEO_HINTS[c]);
+    const hubs = rotateWindow(all, max || 3, offset);
     if (hubs.length) return hubs.map((c) => ({ label: c, query: core, hint: GEO_HINTS[c] }));
     const r = regionById(regionId);
     return [{ label: r.label, query: withPlace(r.label), hint: null }];
   }
   return core ? [{ label: "", query: core, hint: null }] : [];
+}
+
+// A window of up to `size` items from `arr`, starting at `offset` and wrapping —
+// so successive offsets rotate which items are chosen. When the array fits in the
+// window it's returned whole (order preserved). offset defaults to 0 (stable, so
+// a normal cached load always picks the same hubs). Pure.
+export function rotateWindow(arr, size, offset) {
+  const a = arr || [];
+  const n = a.length;
+  const cap = Math.max(1, size | 0);
+  if (n <= cap) return a.slice();
+  const off = (((offset | 0) % n) + n) % n;
+  const out = [];
+  for (let i = 0; i < cap; i++) out.push(a[(off + i) % n]);
+  return out;
 }
 
 export function googleNewsUrl(query, hint) {
@@ -522,7 +586,8 @@ export function parseGdelt(json, max) {
   for (const a of arts) {
     const title = cleanTitle(a.title || "");
     if (!title) continue;
-    const thumb = a.socialimage && /^https?:\/\//i.test(a.socialimage) ? a.socialimage : null;
+    // Drop logo/placeholder og:images so a card shows a real photo or nothing (#6).
+    const thumb = a.socialimage && !isJunkImage(a.socialimage) ? a.socialimage : null;
     out.push({ title, thumb, when: gdeltDate(a.seendate), extract: "", source: a.domain || "GDELT" });
     if (max && out.length >= max) break;
   }
