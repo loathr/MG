@@ -9,6 +9,15 @@ import RouteSelect from "./RouteSelect";
 import { routeFraming, getBeat, REGIONS, URGENCY, ANGLES, EMPHASIS, MODES, framingPrompt, countriesForRegion } from "./trending";
 import { VOICES as PERSONAS, TONES as RICH_TONES } from "./voices";
 import { readDocFile } from "./docsource";
+import {
+  PenLine, FileText, X, ChevronDown, ChevronRight, Sparkles, Zap,
+  Scroll, Swords, KeyRound, Clapperboard, BarChart3, MessageCircle, Headphones, Shirt, Mic, Gem,
+} from "lucide-react";
+
+// Voice-id → lucide icon (voices.js stores the name; this maps it to a component
+// so the data module stays JSX-free). Rendered in the Voice picker.
+const VOICE_ICONS = { Sparkles, Scroll, Swords, KeyRound, Clapperboard, BarChart3, MessageCircle, Headphones, Shirt, Mic, Gem };
+function VoiceIcon({ name, size = 14 }) { const I = VOICE_ICONS[name] || Sparkles; return <I size={size} />; }
 
 // Screen 1 — Create (spec §4, Option C: "segment-first + voice override"). Pick a
 // DESK first — the look (Editorial / Enterprise / News Desk). Each desk implies a
@@ -190,8 +199,8 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
         <div style={{ ...label, marginTop: 18 }}>What&apos;s it about?</div>
         {/* Source mode — a short topic, or a full document the deck is built from */}
         <div style={modeRow}>
-          <button type="button" onClick={() => setSrcMode("topic")} style={modeBtn(srcMode === "topic")}>✍ Topic</button>
-          <button type="button" onClick={() => setSrcMode("doc")} style={modeBtn(srcMode === "doc")}>📄 From a document</button>
+          <button type="button" onClick={() => setSrcMode("topic")} style={modeBtn(srcMode === "topic")}><PenLine size={14} /> Topic</button>
+          <button type="button" onClick={() => setSrcMode("doc")} style={modeBtn(srcMode === "doc")}><FileText size={14} /> From a document</button>
         </div>
         {srcMode === "topic" ? (
           <input
@@ -214,8 +223,8 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             <textarea value={pasteText} onChange={(e) => { setPasteText(e.target.value); setDocSrc(null); }}
               placeholder="…or paste your script, article, transcript, or notes here" style={docPaste} />
             {docSrc ? (
-              <div style={docChip}>📄 {docSrc.name} · {docSrc.words.toLocaleString()} words · loaded
-                <button type="button" style={docX} onClick={() => setDocSrc(null)} title="Remove">✕</button></div>
+              <div style={docChip}><FileText size={13} />{docSrc.name} · {docSrc.words.toLocaleString()} words · loaded
+                <button type="button" style={docX} onClick={() => setDocSrc(null)} title="Remove"><X size={13} /></button></div>
             ) : null}
             {docErr ? <div style={docErrBox}>{docErr}</div> : null}
           </div>
@@ -224,14 +233,14 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
         <div style={vtRow}>
           <div style={{ position: "relative", flex: 1 }}>
             <button type="button" onClick={() => setDdOpen(ddOpen === "voice" ? null : "voice")} style={vtBtn(true)}>
-              <span style={vtL}><span style={vtK}>Voice</span><span style={vtV}>{personaObj.icon} {personaObj.label}</span></span>
-              <span style={vtCar}>▾</span>
+              <span style={vtL}><span style={vtK}>Voice</span><span style={vtV}><VoiceIcon name={personaObj.icon} /> {personaObj.label}</span></span>
+              <span style={vtCar}><ChevronDown size={14} /></span>
             </button>
             {ddOpen === "voice" && (
               <div style={vtMenu}>
                 {PERSONAS.map((p) => (
                   <button key={p.id} type="button" onClick={() => { setPersona(p.id); setDdOpen(null); }} style={vtOpt(p.id === persona)}>
-                    <span>{p.icon} {p.label}</span><span style={vtPhrase}>{p.phrase}</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><VoiceIcon name={p.icon} /> {p.label}</span><span style={vtPhrase}>{p.phrase}</span>
                   </button>
                 ))}
               </div>
@@ -240,7 +249,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
           <div style={{ position: "relative", flex: 1 }}>
             <button type="button" onClick={() => setDdOpen(ddOpen === "tone" ? null : "tone")} style={vtBtn(false)}>
               <span style={vtL}><span style={vtK}>Tone</span><span style={vtV}>{tone ? toneLabel(tone) : "Auto"}</span></span>
-              <span style={vtCar}>▾</span>
+              <span style={vtCar}><ChevronDown size={14} /></span>
             </button>
             {ddOpen === "tone" && (
               <div style={vtMenu}>
@@ -260,7 +269,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
           <div style={scopeRow}>
             <div style={{ flex: 1.2, minWidth: 0 }}><RouteSelect desk={desk} value={beat} onChange={setBeat} hideLabel /></div>
             <select value={region || "global"} onChange={(e) => pickRegion(e.target.value)} style={scopeSel(false)} title="Region">
-              {REGIONS.map((r) => <option key={r.id} value={r.id}>{r.id === "global" ? "🌍 Global" : r.label}</option>)}
+              {REGIONS.map((r) => <option key={r.id} value={r.id}>{r.id === "global" ? "Global" : r.label}</option>)}
             </select>
             {region && region !== "global" && (
               <select value={country || ""} onChange={(e) => setCountry(e.target.value || null)} style={scopeSel(!!country)} title="Country (sub-region)">
@@ -292,7 +301,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
         {/* Options — opt-in; the default path never opens it. Holds voice/tone (+
             desk framing), the white-label toggle, and quick-draft. */}
         <button type="button" onClick={() => setAdvanced((v) => !v)} style={advToggle}>
-          {advanced ? "▾" : "▸"} Options{(unbranded ? " · white-label" : "") + ((voiceOverridden || tone) ? " · " + getCategory(voice).label + (tone ? " · " + toneLabel(tone) : "") : "") + (quickDraft ? " · quick draft" : "")}
+          {advanced ? <ChevronDown size={14} style={{ verticalAlign: "-2px" }} /> : <ChevronRight size={14} style={{ verticalAlign: "-2px" }} />} Options{(unbranded ? " · white-label" : "") + ((voiceOverridden || tone) ? " · " + getCategory(voice).label + (tone ? " · " + toneLabel(tone) : "") : "") + (quickDraft ? " · quick draft" : "")}
         </button>
         {advanced && (
           <div style={vtBox}>
@@ -386,11 +395,11 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
         {error && <div style={errBox}>{error}</div>}
 
         <button onClick={submit} disabled={!canGenerate} style={primary(!canGenerate)}>
-          {generating ? genLabel : (srcMode === "doc" ? "✨  Make a carousel from this document" : (quickDraft ? "⚡  Make a quick draft" : "✨  Make my carousel"))}
+          {generating ? genLabel : (srcMode === "doc" ? <><Sparkles size={16} /> Make a carousel from this document</> : (quickDraft ? <><Zap size={16} /> Make a quick draft</> : <><Sparkles size={16} /> Make my carousel</>))}
         </button>
 
         {generating ? (
-          <button type="button" onClick={onCancel} style={cancelBtn}>✕&nbsp; Cancel generation</button>
+          <button type="button" onClick={onCancel} style={cancelBtn}><X size={14} /> Cancel generation</button>
         ) : (
           <button type="button" onClick={onBlank} style={blankLink}>Start from a blank canvas</button>
         )}
@@ -462,7 +471,7 @@ const topicInput = {
 };
 // --- source mode (Topic / Document) + Voice/Tone pickers ---
 const modeRow = { display: "flex", gap: 6, background: "#141417", border: "1px solid #26262c", borderRadius: 11, padding: 5, margin: "0 auto 12px", width: "max-content" };
-const modeBtn = (on) => ({ padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none", background: on ? "#26262e" : "transparent", color: on ? "#fff" : "#8a8a90" });
+const modeBtn = (on) => ({ padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none", background: on ? "#26262e" : "transparent", color: on ? "#fff" : "#8a8a90", display: "inline-flex", alignItems: "center", gap: 6 });
 const docZone = { width: "100%", background: "#141417", border: "1.5px dashed #3a3a44", borderRadius: 12, padding: 14, textAlign: "left" };
 const docTop = { display: "flex", alignItems: "center", gap: 10, marginBottom: 11 };
 const docBrowse = { background: "#26262b", border: "1px solid #36363c", color: "#dcdce2", borderRadius: 8, fontSize: 12, fontWeight: 600, padding: "8px 13px", cursor: "pointer", flexShrink: 0 };
@@ -474,8 +483,8 @@ const vtRow = { display: "flex", gap: 11, width: "100%", marginTop: 12, position
 const vtBtn = (accent) => ({ width: "100%", height: 54, background: accent ? "#16121f" : "#141417", border: "1px solid " + (accent ? "#3a2f5e" : "#26262c"), borderRadius: 11, display: "flex", alignItems: "center", padding: "0 15px", justifyContent: "space-between", cursor: "pointer" });
 const vtL = { display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-start", minWidth: 0 };
 const vtK = { fontSize: 9.5, color: "#7c7c84", letterSpacing: 1, textTransform: "uppercase" };
-const vtV = { fontSize: 14, color: "#eaeaea", fontWeight: 600, whiteSpace: "nowrap" };
-const vtCar = { color: "#7c7c84", fontSize: 11, flexShrink: 0, marginLeft: 8 };
+const vtV = { fontSize: 14, color: "#eaeaea", fontWeight: 600, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6 };
+const vtCar = { color: "#7c7c84", flexShrink: 0, marginLeft: 8, display: "inline-flex", alignItems: "center" };
 const vtMenu = { position: "absolute", top: 58, left: 0, right: 0, zIndex: 20, background: "#17131f", border: "1px solid #3a2f5e", borderRadius: 11, padding: 6, maxHeight: 300, overflowY: "auto", boxShadow: "0 16px 40px rgba(0,0,0,0.6)" };
 const vtOpt = (on) => ({ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 1, width: "100%", textAlign: "left", padding: "8px 11px", borderRadius: 7, border: "none", cursor: "pointer", background: on ? "#2a2150" : "transparent", color: on ? "#cdbcff" : "#dadade", fontSize: 13 });
 const vtPhrase = { fontSize: 10.5, color: "#7c7c84", fontStyle: "italic" };
@@ -546,6 +555,7 @@ function primary(disabled) {
     background: disabled ? (UI.brand + "55") : UI.brand, color: UI.onBrand,
     border: "none", borderRadius: 12, cursor: disabled ? "default" : "pointer",
     boxShadow: disabled ? "none" : "0 8px 24px rgba(255,255,255,0.12)",
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9,
   };
 }
 const blankLink = {
@@ -558,6 +568,7 @@ const cancelBtn = {
   marginTop: 14, padding: "11px 22px", borderRadius: 10,
   background: "rgba(255,80,80,0.12)", border: "1px solid rgba(255,120,120,0.55)",
   color: "#ff9a9a", fontSize: 14, fontWeight: 600, cursor: "pointer",
+  display: "inline-flex", alignItems: "center", gap: 7,
 };
 const quickRow = {
   display: "flex", alignItems: "center", gap: 8, marginTop: 20,
