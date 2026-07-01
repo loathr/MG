@@ -13,7 +13,7 @@
 // final text, surface progress, and honor an abort.
 import { slidesToDoc } from "./templates";
 import { getCategory, cautionFor } from "./categories";
-import { voicePrompt, tonePrompt } from "./voices";
+import { voicePrompt, tonePrompt, voiceShape } from "./voices";
 import { normalizeCaption, captionText, fallbackCaption } from "./captions";
 import { getIdToken } from "./firebaseClient";
 
@@ -84,6 +84,9 @@ export function buildPrompt(topic, categoryKey, opts) {
   // or none keeps the seeded voice so existing decks are unchanged.
   const chosenVoice = voicePrompt(o.voice);
   const voice = chosenVoice || VOICES[Math.floor(seed / ANGLES.length) % VOICES.length];
+  // Structural exemplar for the chosen persona — steers deck SHAPE (opening move +
+  // arc + favoured slide type), only when a named voice is picked. Empty for auto.
+  const chosenShape = voiceShape(o.voice);
   const research = o.webSearch
     ? "Research first: use web search to verify the key facts, figures, names, and recent developments before you write — ground every claim in what you find and cite the 1-2 strongest real, current outlets per slide. Never cite a source you did not find."
     : "Ground every claim in well-established, real facts, and name 1-2 credible outlets per slide in sources. Do not fabricate statistics or cite events you are unsure occurred; if a topic needs live data you don't have, pick a more evergreen angle.";
@@ -148,6 +151,7 @@ export function buildPrompt(topic, categoryKey, opts) {
     o.today ? "Today's date is " + o.today + ". Treat the topic as of now — prefer the most recent, verifiable facts and avoid stale or dated framing." : null,
     cat.brief,
     "Approach this through " + angle + ". Voice: " + voice + ".",
+    chosenShape ? "Structure — " + chosenShape : null,
     toneRich ? "Tone — " + toneRich : (toneLegacy ? "Tone: write it " + toneLegacy + " — let this colour the whole deck." : null),
     "",
     // Document source (overrides web research): build the whole deck FROM the material.

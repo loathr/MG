@@ -2,7 +2,7 @@
 // library ported from the monolith, and the resolvers buildPrompt uses.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { VOICES, TONES, voiceById, toneById, voicePrompt, tonePrompt } from "../app/studio/voices.js";
+import { VOICES, TONES, voiceById, toneById, voicePrompt, tonePrompt, voiceShape } from "../app/studio/voices.js";
 
 test("VOICES: Auto first + the 10 named personas, each with label/phrase/prompt", () => {
   assert.equal(VOICES[0].id, "auto");
@@ -30,6 +30,19 @@ test("tonePrompt: a tone id returns its prompt; unknown returns ''", () => {
   assert.match(tonePrompt("hype"), /energy/i);
   assert.equal(tonePrompt("nope"), "");
   assert.equal(tonePrompt(null), "");
+});
+
+test("every named persona carries a structural shape; auto does not", () => {
+  assert.equal(VOICES[0].shape, "");                 // auto: no shape
+  for (const v of VOICES.slice(1)) assert.ok(v.shape && v.shape.length > 30, v.id);
+});
+
+test("voiceShape: a named persona returns its shape; auto/unknown returns ''", () => {
+  assert.match(voiceShape("gossip"), /scene|whisper|reveal/i);
+  assert.match(voiceShape("researcher"), /number|stat/i);
+  assert.equal(voiceShape("auto"), "");
+  assert.equal(voiceShape("nope"), "");
+  assert.equal(voiceShape(null), "");
 });
 
 test("voiceById / toneById resolve or null", () => {
