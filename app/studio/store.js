@@ -419,6 +419,12 @@ function docReducer(state, a) {
       // The Instagram caption (doc-level post text). Deliberately NOT in MUTATES:
       // caption edits/regenerations shouldn't crowd the canvas undo history.
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { caption: a.text }) });
+    case "addFont":
+      // An uploaded font entry {id,name,family,dataUrl}, embedded in the deck so it
+      // persists + exports. Registered with the browser by the caller.
+      return a.font ? Object.assign({}, state, { doc: Object.assign({}, state.doc, { fonts: (state.doc.fonts || []).concat([a.font]) }) }) : state;
+    case "removeFont":
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { fonts: (state.doc.fonts || []).filter((f) => f.id !== a.id) }) });
     case "setChrome": {
       // Brand · Elements (R2): deck-wide show/hide for the auto brand chrome —
       // the cover wordmark, the running footer (LOATHR), and page numbers. Rebuilt
@@ -584,7 +590,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, duplicate: 1, update: 1, move: 1, setShare: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1 };
+const MUTATES = { add: 1, duplicate: 1, update: 1, move: 1, setShare: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1, addFont: 1, removeFont: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1, crop: 1 };
 
 function snap(state) {

@@ -1,7 +1,8 @@
 "use client";
 import React, { useEffect, useReducer, useRef, useState } from "react";
 import { reducer, initStudio, carryBrandKit } from "./store";
-import { makeElement, imageBackground, blankDoc, ARTBOARD_W, ARTBOARD_H } from "./model";
+import { makeElement, imageBackground, blankDoc, uid, ARTBOARD_W, ARTBOARD_H } from "./model";
+import { readFontFile, registerFont, registerDocFonts } from "./fonts";
 import { generateCarousel, regenerateCaption } from "./generate";
 import { writeElementText } from "./aitext";
 import { setShare as buildShare, shareUrl } from "./sharing";
@@ -268,6 +269,22 @@ export default function Studio() {
     } else {
       dispatch({ type: "update", id: textSel.id, patch: { fontSize: Math.max(6, (elx.fontSize || 0) + delta) } });
     }
+  };
+
+  // Register the deck's uploaded fonts with the browser whenever they change (deck
+  // load, upload, remove) so the faces render live, in thumbnails, and in export
+  // (which awaits document.fonts.ready). Idempotent per family.
+  useEffect(() => { registerDocFonts(state.doc.fonts); }, [state.doc.fonts]);
+
+  // Upload a custom font: validate + read the file → register it → embed it in the
+  // deck (doc.fonts, so it persists + exports). Returns an error message or null.
+  const handleUploadFont = async (file) => {
+    try {
+      const font = await readFontFile(file, uid("fnt"));
+      await registerFont(font);
+      dispatch({ type: "addFont", font });
+      return null;
+    } catch (e) { return (e && e.message) || "Couldn't add that font."; }
   };
 
   // ✨ Inline AI text — write/replace the SELECTED text box's copy from a preset
@@ -618,6 +635,9 @@ export default function Studio() {
             onLogo={(logo) => dispatch({ type: "setLogo", logo })}
             onCaution={(text) => dispatch({ type: "setCaution", text })}
             onFrame={(frame, all) => dispatch({ type: "setFrame", frame, all })}
+            fonts={state.doc.fonts}
+            onUploadFont={handleUploadFont}
+            onRemoveFont={(id) => dispatch({ type: "removeFont", id })}
             onChrome={(key, on) => dispatch({ type: "setChrome", key, on })}
             onResetAll={() => dispatch({ type: "resetSlideToBrand", all: true })}
             onClose={() => setActivePanel(null)}

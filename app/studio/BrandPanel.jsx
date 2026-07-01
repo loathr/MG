@@ -1,8 +1,9 @@
 "use client";
-import React from "react";
+import React, { useState, useRef } from "react";
 import { UI } from "./theme";
 import { brandFromStyle, EDITORIAL_PALETTES, paletteBrand, BRAND_FONT, FONT_OPTIONS, FONT_PRESETS, activePresetId, STYLE_LIST } from "./styles";
 import { cautionFor } from "./categories";
+import { uploadedFontGroup, fontFamilyValue } from "./fonts";
 import FontSelect from "./FontSelect";
 import StylePreview from "./StylePreview";
 
@@ -31,6 +32,13 @@ const disc = { width: "100%", display: "flex", alignItems: "center", gap: 8, hei
 const frow = { display: "flex", alignItems: "center", gap: 9, marginBottom: 8 };
 const frowK = { width: 56, flexShrink: 0, fontSize: 11, color: "#9a9a9a" };
 const lock = { fontSize: 10.5, color: "#b9b48a", background: "#22221b", border: "1px solid #3a3a2a", borderRadius: 6, padding: "7px 9px", lineHeight: 1.45, marginTop: 6 };
+const fontUpBtn = { width: "100%", height: 34, marginTop: 4, background: "#201a2e", color: "#cdbcff", border: "1px dashed #4a3a6e", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
+const fontHint = { fontSize: 10, color: "#6f6f77", marginTop: 6, lineHeight: 1.45 };
+const fontErrBox = { fontSize: 11, color: "#ffb3a6", background: "#2e1a1a", border: "1px solid #5a3030", borderRadius: 6, padding: "6px 8px", marginTop: 6, lineHeight: 1.4 };
+const fontList = { marginTop: 8, display: "flex", flexDirection: "column", gap: 4 };
+const fontRowItem = { display: "flex", alignItems: "center", gap: 8, background: "#26262b", border: "1px solid #34343c", borderRadius: 6, padding: "5px 6px 5px 9px" };
+const fontNameItem = { flex: 1, fontSize: 13, color: "#eaeaea", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+const fontDel = { background: "transparent", border: "none", color: "#9a9a9a", cursor: "pointer", fontSize: 12, padding: "0 4px" };
 
 function hex(c) {
   return typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? c : "#000000";
@@ -78,7 +86,22 @@ function readLogoFile(file, cb) {
   reader.readAsDataURL(file);
 }
 
-export default function BrandPanel({ brand, category, family, slideFrame, onFamily, onApply, onLogo, onCaution, onFrame, onChrome, onResetAll, onClose }) {
+export default function BrandPanel({ brand, category, family, slideFrame, onFamily, onApply, onLogo, onCaution, onFrame, onChrome, onResetAll, onClose, fonts, onUploadFont, onRemoveFont }) {
+  const [fontErr, setFontErr] = useState("");
+  const [fontBusy, setFontBusy] = useState(false);
+  const fontRef = useRef(null);
+  // Prepend the deck's uploaded fonts as a "Your fonts" group in every picker.
+  const upl = uploadedFontGroup(fonts);
+  const fontOptions = upl ? [upl].concat(FONT_OPTIONS) : FONT_OPTIONS;
+  const pickFont = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!f || !onUploadFont) return;
+    setFontErr(""); setFontBusy(true);
+    const err = await onUploadFont(f);
+    setFontBusy(false);
+    if (err) setFontErr(err);
+  };
   // Fill any missing fields from the editorial defaults so a swap always has a
   // known "previous" to remap from.
   const cur = Object.assign({}, brandFromStyle("editorial"), brand);
@@ -246,9 +269,31 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
 
         {/* ---------- TYPE (fine-tune; the Style preset above sets the fonts) ---- */}
         <div style={sec}>Type <span style={{ fontWeight: 400, color: "#5f5f66", letterSpacing: 0 }}>· fine-tune</span></div>
-        <div style={frow}><span style={frowK}>Label</span><FontSelect title="Label font" value={cur.labelFont} options={FONT_OPTIONS} onChange={(v) => set({ labelFont: v })} /></div>
-        <div style={frow}><span style={frowK}>Heading</span><FontSelect title="Heading font" value={cur.headFont} options={FONT_OPTIONS} onChange={(v) => set({ headFont: v })} /></div>
-        <div style={frow}><span style={frowK}>Body</span><FontSelect title="Body font" value={cur.bodyFont} options={FONT_OPTIONS} onChange={(v) => set({ bodyFont: v })} /></div>
+        <div style={frow}><span style={frowK}>Label</span><FontSelect title="Label font" value={cur.labelFont} options={fontOptions} onChange={(v) => set({ labelFont: v })} /></div>
+        <div style={frow}><span style={frowK}>Heading</span><FontSelect title="Heading font" value={cur.headFont} options={fontOptions} onChange={(v) => set({ headFont: v })} /></div>
+        <div style={frow}><span style={frowK}>Body</span><FontSelect title="Body font" value={cur.bodyFont} options={fontOptions} onChange={(v) => set({ bodyFont: v })} /></div>
+        {/* Upload a custom font — embedded in the deck (persists + exports); shows
+            up in all three pickers under "Your fonts". */}
+        {onUploadFont && (
+          <>
+            <button type="button" style={fontUpBtn} disabled={fontBusy} onClick={() => fontRef.current && fontRef.current.click()}>
+              {fontBusy ? "Adding…" : "⬆  Upload a font"}
+            </button>
+            <input ref={fontRef} type="file" accept=".ttf,.otf,.woff,.woff2,font/*" style={{ display: "none" }} onChange={pickFont} />
+            <div style={fontHint}>TTF · OTF · WOFF · WOFF2 · up to 600 KB. Stored with the deck; stamps into exports.</div>
+            {fontErr ? <div style={fontErrBox}>{fontErr}</div> : null}
+            {(fonts && fonts.length) ? (
+              <div style={fontList}>
+                {fonts.map((f) => (
+                  <div key={f.id} style={fontRowItem}>
+                    <span style={{ ...fontNameItem, fontFamily: fontFamilyValue(f.family) }}>{f.name}</span>
+                    <button type="button" style={fontDel} title={"Remove " + f.name} onClick={() => onRemoveFont && onRemoveFont(f.id)}>🗑</button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </>
+        )}
         <div style={lock}>🔒 LOATHR marks (wordmark · footer · sign-off) stay Courier — not affected by these.</div>
 
         {/* ---------- ELEMENTS ---------- */}
