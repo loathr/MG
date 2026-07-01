@@ -131,7 +131,12 @@ export async function GET(request) {
 
     // Compose: scoped items lead (on-topic, in-region, often pictured), then the
     // base pull fills, then curated seeds backfill so the rail is never empty.
-    const merged = mergeSources([scopedItems, baseRanked], pool);
+    // When a PLACE was chosen and scoped items came back, PRESERVE their order so
+    // the in-region items actually lead — Google News RSS carries no thumbnails, so
+    // the default thumb-first sort otherwise sank them beneath the fully-pictured
+    // global feed and a "Scoped to Africa" rail looked identical to Global.
+    const placeScoped = !!((country || (region && region !== "global")) && scopedItems.length);
+    const merged = mergeSources([scopedItems, baseRanked], pool, placeScoped);
     const composed = backfillSeeds(merged, beat.seeds, pool);
     const items = (fresh ? shuffle(composed) : composed).slice(0, 6);
 

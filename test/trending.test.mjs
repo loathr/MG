@@ -391,6 +391,17 @@ test("mergeSources: dedupes by title, prefers a thumb, thumbed items lead", () =
   assert.ok(merged.some((m) => m.title === "Budget vote today"));
 });
 
+test("mergeSources preserveOrder: in-region (thumbless) items LEAD instead of being sunk", () => {
+  const scoped = [{ title: "Lagos fashion week opens", thumb: null, source: "gnews" }]; // in-region, no image
+  const base = [{ title: "Global gala", thumb: "https://i/x.jpg", source: "feed" }];    // global, pictured
+  // default (thumb-first): the pictured global item leads — the bug the user saw
+  assert.equal(mergeSources([scoped, base], 6)[0].title, "Global gala");
+  // preserveOrder: the scoped in-region item leads despite having no thumbnail
+  const kept = mergeSources([scoped, base], 6, true);
+  assert.equal(kept[0].title, "Lagos fashion week opens");
+  assert.equal(kept[1].title, "Global gala");
+});
+
 test("backfillSeeds: fills a thin pull up to max, deduped, only when seeds exist", () => {
   const seeds = ["Telehealth adoption", "GLP-1 drug market", "Hospital staffing crisis"];
   // empty live pull → seed cards (no photo, source 'seed')

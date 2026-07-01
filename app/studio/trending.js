@@ -596,8 +596,12 @@ export function parseGdelt(json, max) {
 
 // Merge several item lists into one, deduped by normalized title, preferring the
 // variant that carries a thumbnail (it's a photo rail) and filling a missing
-// thumb from a duplicate that has one. Thumbed items lead. Pure.
-export function mergeSources(lists, max) {
+// thumb from a duplicate that has one. By default thumbed items lead. Pass
+// `preserveOrder` to KEEP insertion order instead — used when composing a
+// region/country pull so the in-region items (often thumbless, e.g. Google News
+// RSS has no images) LEAD rather than being sunk beneath the fully-pictured
+// global feed (which made a scoped rail look identical to Global). Pure.
+export function mergeSources(lists, max, preserveOrder) {
   const norm = (t) => String(t || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   const order = [];
   const byKey = new Map();
@@ -611,6 +615,6 @@ export function mergeSources(lists, max) {
     }
   }
   const arr = order.map((k) => byKey.get(k));
-  arr.sort((a, b) => (b.thumb ? 1 : 0) - (a.thumb ? 1 : 0));
+  if (!preserveOrder) arr.sort((a, b) => (b.thumb ? 1 : 0) - (a.thumb ? 1 : 0));
   return max ? arr.slice(0, max) : arr;
 }
