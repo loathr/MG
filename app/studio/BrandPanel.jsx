@@ -23,6 +23,27 @@ const xBtn = { width: 24, height: 24, lineHeight: "22px", textAlign: "center", b
 const body = { padding: "0 12px 14px", display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflowY: "auto" };
 const sec = { fontSize: 10, fontWeight: 700, letterSpacing: 1.2, color: "#7c7c84", textTransform: "uppercase", margin: "14px 0 10px", borderTop: "1px solid #2a2a2f", paddingTop: 12 };
 const secFirst = { ...sec, borderTop: "none", paddingTop: 4, marginTop: 6 };
+// Collapsible section header (accordion). The panel had five always-open sections
+// stacked into a long scroll; each is now a header you can fold.
+const accHead = { width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", background: "transparent", border: "none", borderTop: "1px solid #2a2a2f", cursor: "pointer", padding: "13px 2px 11px", textAlign: "left" };
+const accHeadFirst = { ...accHead, borderTop: "none", paddingTop: 6 };
+const accTitle = { fontSize: 10.5, fontWeight: 700, letterSpacing: 1.2, color: "#b7b7bf", textTransform: "uppercase", display: "inline-flex", alignItems: "baseline", gap: 6 };
+const accSub = { fontWeight: 400, letterSpacing: 0, color: "#5f5f66", textTransform: "none", fontSize: 9.5 };
+
+// One foldable Brand section. `first` drops the top divider; `defaultOpen` starts
+// it expanded (Look). Local open state — remembered while the panel stays mounted.
+function Section({ title, sub, first, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button type="button" onClick={() => setOpen((o) => !o)} style={first ? accHeadFirst : accHead} title={open ? "Collapse" : "Expand"}>
+        <span style={accTitle}>{title}{sub ? <span style={accSub}>· {sub}</span> : null}</span>
+        <span style={{ color: open ? "#c9c9d0" : "#8a8a92", display: "inline-flex" }}>{open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}</span>
+      </button>
+      {open ? <div style={{ paddingBottom: 6 }}>{children}</div> : null}
+    </div>
+  );
+}
 const lbl = { fontSize: 11, color: "#9a9a9a", marginBottom: 6, display: "block" };
 const sel = { width: "100%", height: 32, background: "#26262b", color: "#e8e8e8", border: "1px solid #36363c", borderRadius: 6, fontSize: 12.5, padding: "0 8px" };
 const inp = { width: "100%", height: 34, background: "#26262b", color: "#fff", border: "1px solid #36363c", borderRadius: 6, fontSize: 13, padding: "0 10px" };
@@ -142,8 +163,8 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
         <button style={xBtn} onClick={onClose} title="Close panel">×</button>
       </div>
       <div style={body}>
-        {/* ---------- LOOK (collapsible) ---------- */}
-        <div style={secFirst}>Look</div>
+        {/* ---------- LOOK ---------- */}
+        <Section title="Look" first defaultOpen>
         {/* Style preset — switches the deck's cover/content layout AND its unique
             per-desk fonts (one pick), keeping the current colour palette. */}
         <div style={{ fontSize: 10, color: "#7c7c84", letterSpacing: 0.5, marginBottom: 8 }}>Style preset <span style={{ color: "#5f5f66" }}>· layout + fonts</span></div>
@@ -268,8 +289,9 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
           </div>
         </div>
 
+        </Section>
         {/* ---------- TYPE (fine-tune; the Style preset above sets the fonts) ---- */}
-        <div style={sec}>Type <span style={{ fontWeight: 400, color: "#5f5f66", letterSpacing: 0 }}>· fine-tune</span></div>
+        <Section title="Type" sub="fine-tune">
         <div style={frow}><span style={frowK}>Label</span><FontSelect title="Label font" value={cur.labelFont} options={fontOptions} onChange={(v) => set({ labelFont: v })} /></div>
         <div style={frow}><span style={frowK}>Heading</span><FontSelect title="Heading font" value={cur.headFont} options={fontOptions} onChange={(v) => set({ headFont: v })} /></div>
         <div style={frow}><span style={frowK}>Body</span><FontSelect title="Body font" value={cur.bodyFont} options={fontOptions} onChange={(v) => set({ bodyFont: v })} /></div>
@@ -297,8 +319,9 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
         )}
         <div style={lock}>LOATHR marks (wordmark · footer · sign-off) stay Courier — not affected by these.</div>
 
+        </Section>
         {/* ---------- ELEMENTS ---------- */}
-        <div style={sec}>Elements</div>
+        <Section title="Elements">
         {/* White-label master toggle — removes every LOATHR mark (cover · footer ·
             closer lockup). Page numbers stay user-owned. */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: brandless ? "#241f1a" : "#211c2a", border: "1px solid " + (brandless ? "#4a3a28" : "#332a40"), borderRadius: 9, padding: "10px 12px", marginBottom: 8 }}>
@@ -328,8 +351,9 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
         })}
         <div style={{ fontSize: 10.5, color: "#7c7c84", lineHeight: 1.4, marginTop: 6 }}>Deck-wide. Frame is per-slide in Look; logo &amp; caution below.</div>
 
+        </Section>
         {/* ---------- BRAND MARKS ---------- */}
-        <div style={sec}>Brand marks</div>
+        <Section title="Brand marks">
         <label style={lbl}>Wordmark</label>
         <input value={cur.wordmark || ""} onChange={(e) => set({ wordmark: e.target.value })} style={{ ...inp, fontFamily: BRAND_FONT }} placeholder="LOATHR" />
         <label style={{ ...lbl, marginTop: 11 }}>Logo (cover &amp; closing)</label>
@@ -347,8 +371,9 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
         <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
           onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) readLogoFile(f, (L) => L && onLogo(L)); e.target.value = ""; }} />
 
+        </Section>
         {/* ---------- CLOSING ---------- */}
-        <div style={sec}>Closing</div>
+        <Section title="Closing">
         <label style={lbl}>Caution label</label>
         <textarea value={cur.caution || ""} onChange={(e) => onCaution(e.target.value)} rows={2} placeholder="No caution label"
           style={{ ...inp, height: "auto", minHeight: 52, padding: "8px 10px", resize: "vertical", lineHeight: 1.4, fontFamily: "inherit" }} />
@@ -361,6 +386,7 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
           </div>
         ) : null}
         {cur.caution ? <button style={{ ...miniBtn, marginTop: 6 }} onClick={() => onCaution("")}>Remove</button> : null}
+        </Section>
       </div>
     </div>
   );
