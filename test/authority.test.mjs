@@ -4,8 +4,31 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   ROLES, DEFAULT_ROLE, CAPABILITIES, normalizeRole, can, isAdmin, roleFromClaims,
-  usagePeriodKey, quotaCheck,
+  usagePeriodKey, quotaCheck, DEFAULT_MONTHLY_LIMIT, effectiveMonthlyLimit,
 } from "../app/studio/authority.js";
+
+test("effectiveMonthlyLimit: non-admins default to the preset (75); admins unlimited", () => {
+  assert.equal(DEFAULT_MONTHLY_LIMIT, 75);
+  // non-admin, no stored limit → the preset default
+  assert.equal(effectiveMonthlyLimit("editor", null), 75);
+  assert.equal(effectiveMonthlyLimit("editor", undefined), 75);
+  assert.equal(effectiveMonthlyLimit("viewer", null), 75);
+  // non-admin, explicit values honored (0 = an admin granting unlimited)
+  assert.equal(effectiveMonthlyLimit("editor", 120), 120);
+  assert.equal(effectiveMonthlyLimit("editor", 0), 0);
+  // admin → always unlimited, even with a stored number
+  assert.equal(effectiveMonthlyLimit("admin", null), 0);
+  assert.equal(effectiveMonthlyLimit("admin", 10), 0);
+  // junk stored value falls back to the default for a non-admin
+  assert.equal(effectiveMonthlyLimit("editor", "abc"), 75);
+});
+
+test("effectiveMonthlyLimit feeds quotaCheck: a fresh non-admin gets 75 generations", () => {
+  const q = quotaCheck(0, effectiveMonthlyLimit("editor", null));
+  assert.equal(q.limit, 75);
+  assert.equal(q.remaining, 75);
+  assert.equal(quotaCheck(75, 75).allowed, false); // the 76th is blocked
+});
 
 test("normalizeRole: known roles pass; anything else falls to the default (editor)", () => {
   for (const r of ROLES) assert.equal(normalizeRole(r), r);

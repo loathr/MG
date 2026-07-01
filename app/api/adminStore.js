@@ -6,7 +6,7 @@
 // fails OPEN on any error so a metering blip can never block generation.
 
 import { adminCredentials } from "./authCore";
-import { quotaCheck, usagePeriodKey, normalizeRole } from "../studio/authority";
+import { quotaCheck, usagePeriodKey, normalizeRole, effectiveMonthlyLimit } from "../studio/authority";
 import { resolveShared } from "../studio/sharing";
 
 let _db = null;
@@ -22,24 +22,27 @@ async function db() {
   return _db;
 }
 
-// The account's monthly generation limit (0 / absent = unlimited), from
-// users/{uid}.limits.monthly — the value an admin sets.
+// The RAW stored monthly limit from users/{uid}.limits.monthly, or null when unset
+// (so the caller can apply the policy default via effectiveMonthlyLimit).
 async function accountLimit(d, uid) {
   try {
     const snap = await d.doc("users/" + uid).get();
     const data = snap.exists ? snap.data() : null;
-    return (data && data.limits && data.limits.monthly) || 0;
-  } catch (e) { return 0; }
+    const v = data && data.limits ? data.limits.monthly : null;
+    return v == null ? null : v;
+  } catch (e) { return null; }
 }
 
 // Meter ONE generation: read the account's monthly quota, and on allow, atomically
 // increment the usage counter at usage/{uid}/months/{period}. Returns the
 // quotaCheck result ({ allowed, remaining, … }). Fail-open on any Firestore error.
-export async function meterGenerate(uid, nowMs) {
+// `role` folds in the policy default: non-admins with no explicit limit get the
+// preset (DEFAULT_MONTHLY_LIMIT); admins are unlimited.
+export async function meterGenerate(uid, nowMs, role) {
   const d = await db();
   if (!d || !uid) return { allowed: true, unlimited: true };
   try {
-    const limit = await accountLimit(d, uid);
+    const limit = effectiveMonthlyLimit(role, await accountLimit(d, uid));
     const period = usagePeriodKey(nowMs);
     const ref = d.doc("usage/" + uid + "/months/" + period);
     const snap = await ref.get();
@@ -95,24 +98,28 @@ export async function listAccounts(nowMs) {
     const res = await getAuth(app).listUsers(1000);
     const rows = [];
     for (const u of res.users) {
-      let limit = 0, used = 0;
+      let stored = null, used = 0;
       if (d) {
         try {
           const uSnap = await d.doc("users/" + u.uid).get();
           const ud = uSnap.exists ? uSnap.data() : null;
-          limit = (ud && ud.limits && ud.limits.monthly) || 0;
-        } catch (e) { /* default 0 */ }
+          stored = ud && ud.limits ? ud.limits.monthly : null;
+        } catch (e) { /* unset → policy default below */ }
         try {
           const gSnap = await d.doc("usage/" + u.uid + "/months/" + period).get();
           used = (gSnap.exists && gSnap.data() && gSnap.data().count) || 0;
         } catch (e) { /* default 0 */ }
       }
+      const role = normalizeRole(u.customClaims && u.customClaims.role);
       rows.push({
         uid: u.uid,
         email: u.email || "",
         name: u.displayName || (u.email ? u.email.split("@")[0] : "Account"),
-        role: normalizeRole(u.customClaims && u.customClaims.role),
-        limit, used,
+        role,
+        // The EFFECTIVE cap the console shows + enforces: policy default (75) for a
+        // non-admin with no explicit limit, unlimited for admins, else the set value.
+        limit: effectiveMonthlyLimit(role, stored),
+        used,
         lastActive: (u.metadata && (u.metadata.lastSignInTime || u.metadata.lastRefreshTime)) || null,
       });
     }

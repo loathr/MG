@@ -74,9 +74,12 @@ pings `POST /api/admin/bootstrap` once after sign-in; the server promotes ONLY t
 account whose verified uid matches `BOOTSTRAP_ADMIN_UID` (a no-op for everyone
 else), then refreshes your token so **⚙ Admin** appears — no console snippet, no
 manual sign-out/in. Once you're set, **remove `BOOTSTRAP_ADMIN_UID`** to close the
-escape (all further admins are assigned from the console UI). Per-account monthly
-limits live at `users/{uid}.limits.monthly` (0/absent = unlimited) and are enforced
-server-side on `/api/generate` (429 when reached).
+escape (all further admins are assigned from the console UI). **Every non-admin
+account is capped at a preset default of `DEFAULT_MONTHLY_LIMIT` = 75 generations
+per month** unless an admin sets a per-account value at `users/{uid}.limits.monthly`
+(an explicit `0` = unlimited; admins are always unlimited). Enforced server-side on
+`/api/generate` (429 when reached); the admin console shows each account's effective
+cap.
 
 **Admin console.** Once you're an admin, the Projects screen shows a **⚙ Admin**
 entry (hidden from editors/viewers). It reads `GET /api/admin/accounts` (admin-gated;

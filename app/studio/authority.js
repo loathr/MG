@@ -50,6 +50,23 @@ export function roleFromClaims(claims) {
 }
 
 // --- usage / quota ----------------------------------------------------------
+// The default monthly generation cap applied to every NON-admin account that an
+// admin hasn't given an explicit limit. Admins are always unlimited.
+export const DEFAULT_MONTHLY_LIMIT = 75;
+
+// The limit actually enforced for an account, folding in the policy default:
+//   • admin                      → 0 (unlimited)
+//   • non-admin, no stored limit → DEFAULT_MONTHLY_LIMIT (the preset)
+//   • non-admin, stored 0        → 0 (an admin explicitly granted unlimited)
+//   • non-admin, stored N>0      → N (an admin's explicit cap)
+// `stored` is the raw users/{uid}.limits.monthly (null/undefined when unset). Pure.
+export function effectiveMonthlyLimit(role, stored) {
+  if (isAdmin(role)) return 0;
+  if (stored == null) return DEFAULT_MONTHLY_LIMIT;
+  const n = Number(stored);
+  return Number.isFinite(n) && n >= 0 ? n : DEFAULT_MONTHLY_LIMIT;
+}
+
 // The metering bucket key for a timestamp (monthly, UTC). Pass the time in so
 // this stays pure/deterministic and testable.
 export function usagePeriodKey(ms) {
