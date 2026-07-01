@@ -7,6 +7,7 @@ import {
   blankSlide, sampleSlide, cloneSlide, imageBackground,
   findElement, highlightRuns, uploadResult,
   styledRuns, applyRunStyle, clearRunStyle, remapRuns, isUniformText, elementBaseStyle, highlightOffsets,
+  bakeHighlight, bakeDocHighlights,
   cropRect, imageTransform, cropAnchor, reframeCrop,
 } from "../app/studio/model.js";
 
@@ -251,6 +252,48 @@ test("styledRuns: the back-compat highlight marker becomes a bg run", () => {
   const mark = spans.find((s) => s.text === "big");
   assert.equal(mark.bg, "#e23744");
   assert.equal(mark.color, "#000");
+});
+
+test("bakeHighlight: folds the marker into a real run and drops the marker fields", () => {
+  const el = makeElement("text", { content: "the big win", color: "#fff", highlight: "big", highlightColor: "#e23744", highlightText: "#000" });
+  const baked = bakeHighlight(el);
+  assert.equal(baked.highlight, undefined);
+  assert.equal(baked.highlightColor, undefined);
+  assert.equal(baked.highlightText, undefined);
+  assert.deepEqual(baked.runs, [{ start: 4, end: 7, bg: "#e23744", color: "#000" }]);
+  // and it renders identically to the pre-bake derived marker
+  const mark = styledRuns(baked).find((s) => s.text === "big");
+  assert.equal(mark.bg, "#e23744");
+  assert.equal(mark.color, "#000");
+});
+
+test("bakeHighlight: no marker is a no-op (same reference); dead phrase just drops the marker", () => {
+  const plain = makeElement("text", { content: "hello", color: "#fff" });
+  assert.equal(bakeHighlight(plain), plain);
+  const dead = makeElement("text", { content: "hello", highlight: "zzz", highlightColor: "#e23744" });
+  const baked = bakeHighlight(dead);
+  assert.equal(baked.highlight, undefined);
+  assert.equal(baked.runs, undefined); // phrase absent → no run, marker cleared
+});
+
+test("bakeHighlight: an explicit run wins over the marker on overlap (precedence preserved)", () => {
+  const el = makeElement("text", { content: "the big win", highlight: "big", highlightColor: "#e23744", runs: [{ start: 4, end: 7, bg: "#00ff00" }] });
+  const baked = bakeHighlight(el);
+  const mark = styledRuns(baked).find((s) => s.text === "big");
+  assert.equal(mark.bg, "#00ff00"); // explicit run's bg, not the marker's
+});
+
+test("bakeDocHighlights: bakes every text element and no-ops an already-clean doc", () => {
+  const doc = { slides: [{ elements: [
+    makeElement("text", { content: "the big win", highlight: "big", highlightColor: "#e23744" }),
+    makeElement("text", { content: "plain", color: "#fff" }),
+  ] }] };
+  const out = bakeDocHighlights(doc);
+  assert.notEqual(out, doc); // changed → new ref
+  assert.deepEqual(out.slides[0].elements[0].runs, [{ start: 4, end: 7, bg: "#e23744" }]);
+  assert.equal(out.slides[0].elements[0].highlight, undefined);
+  // a clean doc round-trips to the SAME reference (no needless state update)
+  assert.equal(bakeDocHighlights(out), out);
 });
 
 test("applyRunStyle: sets a key over a range and merges adjacent equal runs", () => {

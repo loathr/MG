@@ -455,6 +455,47 @@ export function runSegments(content, runs) {
 // {start,end,...style} runs — exposed so the DOM reader can rebuild clean runs.
 export function overlayToRunsPublic(ov) { return overlayToRuns(ov); }
 
+// Bake the back-compat `highlight`/`highlightColor` marker into real `el.runs` so
+// a generated highlight is a FIRST-CLASS span — editable, colour-adjustable, AND
+// removable. The marker was element-level state re-derived into a bg on every
+// render, so contentEditable (which serialises `runs`) never saw it and the
+// FormatBar's `bg:null` could never clear it (the marker just re-painted). Baking
+// folds the marker through the SAME overlay the renderers already use, so the
+// resulting runs render pixel-identically across the live canvas, the thumbnail,
+// and the PNG export. No-op when there's no marker; drops a marker whose phrase is
+// no longer present. Pure.
+export function bakeHighlight(el) {
+  if (!el || !el.highlight || !el.highlightColor) return el;
+  const { ov } = charOverrides(el);      // marker (low precedence) + existing runs
+  const runs = overlayToRuns(ov);
+  const out = Object.assign({}, el);
+  delete out.highlight; delete out.highlightColor; delete out.highlightText;
+  if (runs.length) out.runs = runs; else delete out.runs;
+  return out;
+}
+
+// Bake every text element's highlight marker across a whole doc — used on load so
+// decks saved with the old marker fields migrate to real runs once. Pure; returns
+// a new doc only when something changed (else the same reference, so callers can
+// skip a needless state update).
+export function bakeDocHighlights(doc) {
+  if (!doc || !Array.isArray(doc.slides)) return doc;
+  let changed = false;
+  const slides = doc.slides.map((sl) => {
+    if (!sl || !Array.isArray(sl.elements)) return sl;
+    let slChanged = false;
+    const elements = sl.elements.map((el) => {
+      const baked = bakeHighlight(el);
+      if (baked !== el) slChanged = true;
+      return baked;
+    });
+    if (!slChanged) return sl;
+    changed = true;
+    return Object.assign({}, sl, { elements });
+  });
+  return changed ? Object.assign({}, doc, { slides }) : doc;
+}
+
 // True when the element renders as one uniform span carrying no inline-only
 // decoration (background / outline) — i.e. the container's own CSS fully covers
 // it, so the renderer can fast-path to the raw string (current behaviour).

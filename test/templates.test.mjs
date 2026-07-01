@@ -99,8 +99,14 @@ test("renderLayout applies a body `highlight` to body-sized text only, never the
   );
   const body = els.find((e) => e.type === "text" && e.content === "the quick brown fox");
   const head = els.find((e) => e.type === "text" && e.content === "Big headline");
-  assert.equal(body.highlight, "quick brown");
-  assert.equal(head.highlight, undefined);
+  // The highlight is baked straight into a real run (editable + removable), not the
+  // legacy marker fields, so the body carries a bg run and the headline stays plain.
+  assert.equal(body.highlight, undefined);
+  assert.equal(body.runs.length, 1);
+  assert.equal(body.runs[0].start, 4);        // "quick brown" at 4..15
+  assert.equal(body.runs[0].end, 15);
+  assert.equal(body.runs[0].bg, "#e23744");   // editorial accent
+  assert.ok(!head.runs || !head.runs.length);
 });
 
 test("reflowSlide moves the photo bg -> feature element and back, preserving it", () => {

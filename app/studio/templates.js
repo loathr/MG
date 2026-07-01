@@ -11,7 +11,7 @@
 // readable over a darkened photo) so even a light family (News Desk's newsprint
 // cream) stays legible.
 // ============================================================================
-import { ARTBOARD_W, ARTBOARD_H, uid, makeElement } from "./model";
+import { ARTBOARD_W, ARTBOARD_H, uid, makeElement, bakeHighlight } from "./model";
 import { getStyle, brandFromStyle, effectiveStyle, BRAND_FONT } from "./styles";
 
 const M = 80; // side margin
@@ -585,7 +585,10 @@ function applyHighlight(els, highlight, color, knockout) {
     const fs = e.fontSize || 0;
     if (fs < HL_MIN || fs > HL_MAX) return e;
     if (!e.content || String(e.content).toLowerCase().indexOf(needle) < 0) return e;
-    return Object.assign({}, e, { highlight: hl, highlightColor: color, highlightText: knockout });
+    // Bake straight into a real run (not the back-compat marker fields) so the
+    // generated highlight is editable + removable from birth — same overlay the
+    // renderers use, so it looks identical.
+    return bakeHighlight(Object.assign({}, e, { highlight: hl, highlightColor: color, highlightText: knockout }));
   });
 }
 

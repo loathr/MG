@@ -9,7 +9,7 @@
 // — those coalesce into ONE undo step via `lastTag` + a `commit` boundary the
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
-import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H, applyRunStyle, clearRunStyle, remapRuns } from "./model";
+import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H, applyRunStyle, clearRunStyle, remapRuns, bakeDocHighlights } from "./model";
 import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements, closerMarksFor } from "./templates";
 import { brandFromStyle, getStyle, FONT_PRESETS } from "./styles";
 import { shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
@@ -666,8 +666,9 @@ export function reducer(state, a) {
     }
     case "loadDoc":
       // A new document is a fresh history. Keep the clipboard so you can paste an
-      // element from one deck into another.
-      return { doc: a.doc, slideIndex: 0, selectedId: null, editingId: null, past: [], future: [], lastTag: null, clipboard: state.clipboard || null, clipboardFrom: null };
+      // element from one deck into another. Bake any legacy highlight markers into
+      // real runs on the way in, so decks saved before the fix become editable.
+      return { doc: bakeDocHighlights(a.doc), slideIndex: 0, selectedId: null, editingId: null, past: [], future: [], lastTag: null, clipboard: state.clipboard || null, clipboardFrom: null };
     case "commit":
       return state.lastTag == null ? state : Object.assign({}, state, { lastTag: null });
     default:

@@ -451,22 +451,25 @@ test("applyBrand re-themes the live document", () => {
   assert.ok(cur(s).elements.some((e) => e.type === "rect" && e.fill === "#00ff00"));
 });
 
-test("rethemeDoc carries the inline highlight marker to the new accent + bg", () => {
+test("rethemeDoc carries the baked highlight run to the new accent + bg", () => {
   const doc = slidesToDoc(
     [{ role: "COVER", heading: "A" },
      { heading: "H", body: "the quick brown fox", highlight: "quick brown" },
      { role: "CLOSER", heading: "Z" }],
     "editorial",
   );
-  const findHL = (d) => d.slides.flatMap((s) => s.elements).find((e) => e.highlightColor);
+  // The highlight is now a real bg run (bakeHighlight), not the legacy marker — so
+  // a palette swap must recolour the RUN (store.js remaps runs[].{color,bg}).
+  const findHL = (d) => d.slides.flatMap((s) => s.elements).find((e) => Array.isArray(e.runs) && e.runs.some((r) => r.bg));
   const before = findHL(doc);
   assert.ok(before, "expected a highlighted element from generation");
-  assert.equal(before.highlightColor, "#e23744"); // editorial accent
+  const beforeRun = before.runs.find((r) => r.bg);
+  assert.equal(beforeRun.bg, "#e23744"); // editorial accent
   const prev = doc.brand;
   const next = Object.assign({}, prev, { accent: "#00ff00", bg: "#111111" });
-  const after = findHL(rethemeDoc(doc, prev, next));
-  assert.equal(after.highlightColor, "#00ff00"); // marker background follows the new accent
-  assert.equal(after.highlightText, "#111111");  // knockout text follows the new deck bg
+  const afterRun = findHL(rethemeDoc(doc, prev, next)).runs.find((r) => r.bg);
+  assert.equal(afterRun.bg, "#00ff00");   // run background follows the new accent
+  assert.equal(afterRun.color, "#111111"); // knockout text follows the new deck bg
 });
 
 test("rethemeDoc swaps fonts by TIER; other tiers + LOATHR marks stay put", () => {
