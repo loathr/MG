@@ -7,7 +7,7 @@ import {
   summaryUrl, wikidataSearchUrl, wikidataClaimsUrl, upsizeWikiThumb,
   commonsFilePathUrl, imageFromSummary, wikidataId, imageFromClaims, slideEntity,
   commonsCategoryFromClaims, commonsCategoryMembersUrl, parseCommonsCategoryMembers,
-  sourceKind, looksLikeProperNoun,
+  sourceKind, looksLikeProperNoun, mediaListUrl, parseMediaList,
 } from "../app/studio/entity.js";
 
 test("summaryUrl encodes the title", () => {
@@ -87,6 +87,22 @@ test("parseCommonsCategoryMembers keeps real photos, drops SVG/PDF, upsizes the 
   assert.equal(out[0].url, "https://upload.wikimedia.org/commons/thumb/a/serena/1280px-Serena_2019.jpg"); // upsized 400→1280
   assert.equal(out[0].thumb, "https://upload.wikimedia.org/commons/thumb/a/serena/400px-Serena_2019.jpg");
   assert.equal(out[0].credit, "Jane"); // HTML stripped
+});
+
+test("mediaListUrl / parseMediaList: article's own photos, largest srcset, raster only", () => {
+  assert.match(mediaListUrl("Serena Williams"), /page\/media-list\/Serena%20Williams$/);
+  const json = { items: [
+    { title: "File:Serena at RG.jpg", type: "image", srcset: [{ src: "//upload.wikimedia.org/x/220px-Serena.jpg", scale: "1x" }, { src: "//upload.wikimedia.org/x/440px-Serena.jpg", scale: "2x" }] },
+    { title: "File:Signature.svg", type: "image", srcset: [{ src: "//upload.wikimedia.org/x/Signature.svg" }] }, // svg → dropped
+    { title: "File:Clip.webm", type: "video", srcset: [{ src: "//x/Clip.webm" }] },                              // video → dropped
+    { title: "File:NoSrc.jpg", type: "image", srcset: [] },                                                       // no src → dropped
+  ] };
+  const out = parseMediaList(json, 10);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].source, "Commons");
+  assert.equal(out[0].thumb, "https://upload.wikimedia.org/x/440px-Serena.jpg"); // largest srcset, https-normalised
+  assert.equal(out[0].url, "https://upload.wikimedia.org/x/1280px-Serena.jpg");  // upsized
+  assert.equal(out[0].alt, "Serena at RG");
 });
 
 test("sourceKind: Wikipedia/Wikidata=wiki, Commons=commons, stock providers=stock", () => {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { summaryUrl, wikidataSearchUrl, wikidataClaimsUrl, imageFromSummary, wikidataId, imageFromClaims, slideEntity, commonsCategoryFromClaims, commonsCategoryMembersUrl, parseCommonsCategoryMembers, looksLikeProperNoun } from "../../studio/entity";
+import { summaryUrl, wikidataSearchUrl, wikidataClaimsUrl, imageFromSummary, wikidataId, imageFromClaims, slideEntity, commonsCategoryFromClaims, commonsCategoryMembersUrl, parseCommonsCategoryMembers, looksLikeProperNoun, mediaListUrl, parseMediaList } from "../../studio/entity";
+import { rankStock, interleave } from "../../studio/imagesearch";
 
 // Image search runs server-side because doing 10-30 sequential Unsplash/Pexels
 // calls from the browser kept killing the renderer process on flaky networks —
@@ -155,11 +156,11 @@ const resolveEntity = async (name) => {
   return null;
 };
 
-const searchPixabay = async (query) => {
+const searchPixabay = async (query, page) => {
   if (!PIXABAY_KEY) return [];
   try {
     const r = await fetchWithTimeout(
-      "https://pixabay.com/api/?key=" + PIXABAY_KEY + "&q=" + encodeURIComponent(query) + "&image_type=photo&orientation=vertical&per_page=8&safesearch=true",
+      "https://pixabay.com/api/?key=" + PIXABAY_KEY + "&q=" + encodeURIComponent(query) + "&image_type=photo&orientation=vertical&per_page=10&page=" + (page || 1) + "&safesearch=true",
       5000,
     );
     if (!r.ok) return [];
@@ -448,9 +449,15 @@ async function runImagePipeline(body) {
 // first, then the gallery.
 async function resolveEntityGallery(name) {
   const out = [];
+  let title = name; // canonical article title (summary redirects a bare name to it)
   try {
     const r = await fetchWithTimeout(summaryUrl(name), { headers: { Accept: "application/json" } }, 6000);
-    if (r.ok) { const url = imageFromSummary(await r.json()); if (url) out.push({ url, thumb: url, alt: name, credit: "Wikipedia", source: "Wikipedia" }); }
+    if (r.ok) {
+      const j = await r.json();
+      if (j && j.title) title = j.title;
+      const url = imageFromSummary(j);
+      if (url) out.push({ url, thumb: url, alt: name, credit: "Wikipedia", source: "Wikipedia" });
+    }
   } catch (e) { /* fall through */ }
   try {
     const sr = await fetchWithTimeout(wikidataSearchUrl(name), 6000);
@@ -464,13 +471,20 @@ async function resolveEntityGallery(name) {
           if (p18) out.push({ url: p18, thumb: p18, alt: name, credit: "Wikimedia Commons", source: "Wikidata" });
           const cat = commonsCategoryFromClaims(cj);
           if (cat) {
-            const mr = await fetchWithTimeout(commonsCategoryMembersUrl(cat, 24), 6000);
-            if (mr.ok) out.push(...parseCommonsCategoryMembers(await mr.json(), 18));
+            const mr = await fetchWithTimeout(commonsCategoryMembersUrl(cat, 30), 6000);
+            if (mr.ok) out.push(...parseCommonsCategoryMembers(await mr.json(), 24));
           }
         }
       }
     }
   } catch (e) { /* give up; stock covers it */ }
+  // Fuller gallery + name fallback: the Wikipedia article's OWN photos (media-list)
+  // — extra genuine images beyond the lead portrait, and a real-photo source even
+  // when the subject has no Wikidata Commons category. Deduped downstream by URL.
+  try {
+    const ml = await fetchWithTimeout(mediaListUrl(title), { headers: { Accept: "application/json" } }, 6000);
+    if (ml.ok) out.push(...parseMediaList(await ml.json(), 18));
+  } catch (e) { /* media-list is best-effort */ }
   return out;
 }
 
@@ -492,18 +506,19 @@ async function runSearch(rawQuery) {
   if (looksLikeProperNoun(query)) {
     (await resolveEntityGallery(query)).forEach(push);
   }
+  // Deeper pull: fetch TWO pages per keyed provider (~2× the pool) so there's more
+  // to rank from and the grid fills. WikiCommons is a single keyless search.
+  const paged = (fn) => Promise.all([fn(query, 1), fn(query, 2)]).then((ps) => ps.flat());
   const groups = await Promise.all([
-    searchUnsplash(query),
-    searchPexels(query),
-    searchPixabay(query),
+    paged(searchUnsplash),
+    paged(searchPexels),
+    paged(searchPixabay),
     searchWikiCommons(query),
   ]);
-  const maxLen = groups.reduce((m, g) => Math.max(m, g.length), 0);
-  // Round-robin interleave so the grid mixes providers rather than showing all
-  // of one source before the next.
-  for (let i = 0; i < maxLen && out.length < 30; i++) {
-    for (let g = 0; g < groups.length; g++) push(groups[g][i]);
-  }
+  // Interleave the providers into one pool, then RANK by relevance to the query
+  // (on-topic first; the zero-match noise drops when there are enough good hits),
+  // and push the ranked stock below any real-photo results.
+  rankStock(interleave(groups), query).forEach(push);
   return out;
 }
 

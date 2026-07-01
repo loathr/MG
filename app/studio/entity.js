@@ -75,6 +75,39 @@ export function parseCommonsCategoryMembers(json, max) {
   return out;
 }
 
+// The Wikipedia REST media-list for an article title — every image used ON the
+// page (beyond the single lead portrait), so a person returns a fuller gallery of
+// genuine photos. Keyless.
+export function mediaListUrl(title) {
+  return "https://en.wikipedia.org/api/rest_v1/page/media-list/" +
+    encodeURIComponent(String(title == null ? "" : title).trim());
+}
+
+// Parse a media-list response into gallery items {url, thumb, alt, credit,
+// source:"Commons"}. Keeps only raster IMAGE items (drops icons/audio/video/svg),
+// takes the largest srcset entry, and normalises the protocol-relative URL. Pure.
+export function parseMediaList(json, max) {
+  const items = (json && json.items) || [];
+  const out = [];
+  for (const it of items) {
+    if (!it || it.type !== "image") continue;
+    const set = (it.srcset || []);
+    let src = set.length ? set[set.length - 1].src : null; // srcset ascends 1x→2x
+    if (!src) continue;
+    if (src.indexOf("//") === 0) src = "https:" + src;
+    if (!/\.(jpg|jpeg|png|webp)(\?|$)/i.test(src)) continue; // skip svg/icons
+    out.push({
+      url: upsizeWikiThumb(src, THUMB_W) || src,
+      thumb: src,
+      alt: String(it.title || "").replace(/^File:/i, "").replace(/\.[a-z]+$/i, ""),
+      credit: "Wikimedia Commons",
+      source: "Commons",
+    });
+    if (max && out.length >= max) break;
+  }
+  return out;
+}
+
 // Sources that are GENUINE photos of the subject (real people/places) vs generic
 // stock. Drives result ranking (real first) and the panel's source badge. Pure.
 const REAL_SOURCES = { Wikipedia: "wiki", Wikidata: "wiki", Commons: "commons" };
