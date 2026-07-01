@@ -261,6 +261,46 @@ export function parseCaption(text) {
   }
 }
 
+// The REVISE ("Polish") pass — a ruthless structural edit of an already-written
+// draft deck. `deckJson` is the cleaned draft JSON string; the editor returns the
+// SAME shape, keeping the facts/sources/slide-count and only tightening the spine,
+// arc, transitions, and prose. Pure (string assembly) → unit-tested.
+export function buildRevisePrompt(deckJson) {
+  return [
+    "You are a ruthless magazine editor doing a final STRUCTURAL pass on a draft Instagram carousel before it ships.",
+    "Here is the draft as JSON:",
+    deckJson,
+    "",
+    "Revise it so the deck reads as ONE piece, not a stack of cards. Hold to ALL of these:",
+    "- SPINE: there is a single through-line the whole deck advances; if a slide doesn't advance it, rewrite that slide so it does.",
+    "- ARC: the cover poses a tension, each middle slide escalates it ONE concrete step (raise the stakes or deepen the last point), the closer resolves it. No plateau in the middle.",
+    "- CONNECTIVE TISSUE: every slide picks up a thread from the one before — a consequence, a complication, a \"but then\", a zoom-in or zoom-out — so swiping reads continuous, not a list.",
+    "- CALLBACK: the closer pays off the cover's EXACT hook — answer the question it raised or land the turn it promised.",
+    "- EARN EVERY SLIDE: never make the same point twice; if two slides could swap order with no loss, fix it (merge, cut, or re-angle one).",
+    "- WRITE-UP: concrete nouns + strong verbs over adjectives, vary sentence length, cut filler and the banned lazy phrases (\"in today's world\", \"delve\", \"game-changer\", \"navigate the landscape\", etc.).",
+    "",
+    "HARD CONSTRAINTS: keep the deck's FACTS, figures, names, quotes, SOURCES, and the SLIDE COUNT and per-slide fields exactly — this is an edit for structure and prose, NOT a rewrite of the reporting. Do not invent facts, drop sources, or change the number of slides.",
+    "Return ONLY the revised JSON object in the EXACT same shape as the input (caption + slides with the same fields). No prose, no markdown fences.",
+  ].join("\n");
+}
+
+// Run the revise pass on a draft deck's text: extract the clean deck JSON, hand it
+// to the editor (Opus, HIGH effort, NO web search — it's restructuring existing
+// content, not looking anything up), and return the revised text. Validates the
+// result parses to slides; the caller keeps the draft on any failure. Cancellable
+// + progress via opts.
+export async function reviseDeck(draftText, opts) {
+  const o = opts || {};
+  let deckJson;
+  try { deckJson = JSON.stringify(parseDeckJSON(draftText)); } catch (e) { deckJson = String(draftText || ""); }
+  const prompt = buildRevisePrompt(deckJson);
+  const text = await runPrompt(prompt, {
+    model: o.model, webSearch: false, stream: o.stream, effort: o.effort || "high", signal: o.signal, onPhase: o.onPhase,
+  });
+  parseSlides(text); // throws if the revision is malformed → caller falls back to the draft
+  return text;
+}
+
 // Fold one parsed Anthropic SSE event into the accumulator. We only keep the
 // text deltas (the JSON) and the terminal stop reason; thinking deltas, the
 // web-search tool blocks, and everything else are ignored. Pure → unit-tested.
@@ -405,7 +445,16 @@ export async function generateCarousel(topic, opts) {
   const sourceDoc = o.sourceDoc ? String(o.sourceDoc) : "";
   const webSearch = sourceDoc ? false : (o.webSearch !== false);
   const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch, ground: o.ground, slides: o.slides, tone: o.tone, voice: o.voice, sourceDoc, route: o.route, unbranded: o.unbranded });
-  const text = await runPrompt(prompt, { model: o.model, webSearch, stream: o.stream, signal: o.signal, onPhase: o.onPhase });
+  let text = await runPrompt(prompt, { model: o.model, webSearch, stream: o.stream, signal: o.signal, onPhase: o.onPhase });
+  // Polish pass (opt-in): a second editor pass tightens the spine, arc, and
+  // transitions. Best-effort — any failure keeps the draft, so a flaky revise
+  // never fails the whole generation. Reports a "polishing" phase for the UI.
+  if (o.polish) {
+    try {
+      if (o.onPhase) o.onPhase("polishing");
+      text = await reviseDeck(text, { model: o.model, stream: o.stream, signal: o.signal });
+    } catch (e) { /* keep the draft */ }
+  }
   const slides = parseSlides(text);
   const wantPhotos = o.photos !== false;
   const imgMap = wantPhotos ? await fetchSlideImages(slides, topic) : {};

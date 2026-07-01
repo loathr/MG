@@ -29,10 +29,12 @@ import { exportSlide, exportSlides } from "./export";
 import { exportDeckToDrive } from "./driveExport";
 import { verifyDeck } from "./verify";
 import FactCheckPanel from "./FactCheckPanel";
+import CoherencePanel from "./CoherencePanel";
+import { checkCoherence } from "./coherence";
 import {
   Type, Shapes, Image as ImageIcon, LayoutTemplate, Palette, Captions,
   Undo2, Redo2, RotateCcw, RotateCw, ShieldCheck, Share2, Download,
-  ChevronDown, ChevronRight, CornerDownLeft, Eye,
+  ChevronDown, ChevronRight, CornerDownLeft, Eye, Workflow,
 } from "lucide-react";
 
 const hbtn = {
@@ -73,7 +75,8 @@ export default function Studio() {
   const [dlOpen, setDlOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [fc, setFc] = useState(null); // fact check: null | { loading, error, result, phase }
-  const [genPhase, setGenPhase] = useState(null); // generation progress: null | "searching" | "writing"
+  const [co, setCo] = useState(null); // coherence check: null | { loading, error, result }
+  const [genPhase, setGenPhase] = useState(null); // generation progress: null | "searching" | "writing" | "polishing"
   const [textSel, setTextSel] = useState(null); // active text-span selection for per-run styling
   const editApiRef = useRef(null); // imperative style API from the element being edited
   const booted = useRef(false);
@@ -90,6 +93,7 @@ export default function Studio() {
   const saveTimer = useRef(null);
   const genAbort = useRef(null); // AbortController for the in-flight generation
   const fcAbort = useRef(null);  // AbortController for the in-flight fact-check
+  const coAbort = useRef(null);  // AbortController for the in-flight coherence check
   const dragFrom = useRef(null); // slide index being drag-reordered in the strip
   const slide = state.doc.slides[state.slideIndex];
   const selectedEl = slide && (slide.elements || []).find((e) => e.id === state.selectedId);
@@ -339,7 +343,7 @@ export default function Studio() {
   // fonts / wordmark + logo) carries onto the freshly generated deck (§5).
   // The call is cancellable (AbortController) and reports coarse progress
   // (searching → writing); a "quick draft" skips the web search for speed.
-  const handleGenerate = async ({ style, category, topic, quickDraft, ground, slides, tone, voice, sourceDoc, route, unbranded }) => {
+  const handleGenerate = async ({ style, category, topic, quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded }) => {
     if (generating) return;
     const prevDoc = state.doc;
     const ac = new AbortController();
@@ -349,7 +353,7 @@ export default function Studio() {
     setGenerating(true); setGenError(""); setGenPhase((quickDraft || sourceDoc) ? "writing" : "searching");
     try {
       const doc = await generateCarousel(topic, {
-        style, category, webSearch: !quickDraft, ground, slides, tone, voice, sourceDoc, route, unbranded, signal: ac.signal, onPhase: setGenPhase,
+        style, category, webSearch: !quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded, signal: ac.signal, onPhase: setGenPhase,
       });
       dispatch({ type: "loadDoc", doc: carryBrandKit(doc, prevDoc) });
       // White-label: strip every LOATHR mark from the freshly generated deck so it
@@ -448,6 +452,7 @@ export default function Studio() {
   // show the per-claim verdict + score in the side panel. Cancellable, and it
   // reports the same searching → writing progress generation does.
   const runFactCheck = async () => {
+    setCo(null);
     const ac = new AbortController();
     fcAbort.current = ac;
     setFc({ loading: true, error: "", result: null, phase: "searching" });
@@ -470,6 +475,26 @@ export default function Studio() {
   };
 
   const cancelFactCheck = () => { if (fcAbort.current) fcAbort.current.abort(); };
+
+  // Coherence check: judge the deck's spine / arc / flow (structure, no web search)
+  // and show the score + detected spine + per-slide issues. Mutually exclusive with
+  // the fact-check panel so the right side never stacks two panels.
+  const runCoherence = async () => {
+    setFc(null);
+    const ac = new AbortController();
+    coAbort.current = ac;
+    setCo({ loading: true, error: "", result: null });
+    try {
+      const result = await checkCoherence(state.doc, { signal: ac.signal });
+      setCo({ loading: false, error: "", result });
+    } catch (e) {
+      if (e && (e.name === "AbortError" || /abort/i.test(e.message || ""))) setCo(null);
+      else setCo({ loading: false, error: (e && e.message) || "Coherence check failed", result: null });
+    } finally {
+      coAbort.current = null;
+    }
+  };
+  const cancelCoherence = () => { if (coAbort.current) coAbort.current.abort(); };
 
   // Apply a verified fact-check correction: patch the deck (undoable) and mark the
   // claim resolved, nudging the estimated score up (a real re-score needs Re-check).
@@ -562,6 +587,14 @@ export default function Studio() {
           title="Fact-check the deck against a live web search"
         >
           {fc && fc.loading ? "Checking…" : <><ShieldCheck size={14} /> Check facts</>}
+        </button>
+        <button
+          style={{ ...hbtn, opacity: co && co.loading ? 0.6 : 1 }}
+          disabled={!!(co && co.loading)}
+          onClick={runCoherence}
+          title="Check the deck's spine, arc, and flow"
+        >
+          {co && co.loading ? "Reading…" : <><Workflow size={14} /> Check flow</>}
         </button>
         {cloud && user && (
           <div style={{ position: "relative" }}>
@@ -781,6 +814,18 @@ export default function Studio() {
             onRetry={runFactCheck}
             onApply={applyCorrection}
             onApplyAll={applyAllCorrections}
+          />
+        )}
+
+        {co && (
+          <CoherencePanel
+            loading={co.loading}
+            error={co.error}
+            result={co.result}
+            onJump={(i) => dispatch({ type: "setSlide", index: i })}
+            onClose={() => setCo(null)}
+            onCancel={cancelCoherence}
+            onRetry={runCoherence}
           />
         )}
 

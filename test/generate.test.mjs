@@ -4,7 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  buildPrompt, hashStr, stripCites, foldStreamEvent, parseSlides, parseCaption,
+  buildPrompt, hashStr, stripCites, foldStreamEvent, parseSlides, parseCaption, buildRevisePrompt,
 } from "../app/studio/generate.js";
 
 test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabled", () => {
@@ -66,6 +66,17 @@ test("buildPrompt: a named voice + rich tone + document source thread in", () =>
   // auto voice / no tone / no doc → unchanged (seeded voice, no source block)
   const plain = buildPrompt("x", "editorial", base);
   assert.equal(buildPrompt("x", "editorial", Object.assign({}, base, { voice: "auto", sourceDoc: "" })), plain);
+});
+
+test("buildRevisePrompt: embeds the draft + the spine/arc rules + the same-shape constraint", () => {
+  const draft = '{"caption":{"hook":"h"},"slides":[{"role":"COVER","heading":"A"}]}';
+  const p = buildRevisePrompt(draft);
+  assert.match(p, /ruthless magazine editor/i);
+  assert.ok(p.includes(draft));                       // the draft JSON is embedded verbatim
+  assert.match(p, /SPINE/); assert.match(p, /ARC/); assert.match(p, /CALLBACK/);
+  assert.match(p, /keep the deck's FACTS[\s\S]*SOURCES[\s\S]*SLIDE COUNT/i); // facts/sources/count kept
+  assert.match(p, /EXACT same shape/i);               // must return the same JSON shape
+  assert.match(p, /No prose, no markdown fences/i);
 });
 
 test("buildPrompt: an optional route scopes the deck; an absent route is byte-identical", () => {

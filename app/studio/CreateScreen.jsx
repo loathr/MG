@@ -62,6 +62,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   const [voiceTouched, setVoiceTouched] = useState(false);
   const [topic, setTopic] = useState("");
   const [quickDraft, setQuickDraft] = useState(false);
+  const [polish, setPolish] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const [length, setLength] = useState("standard"); // deck length (default Standard)
   const [tone, setTone] = useState(null);           // optional tone overlay (6 rich tones)
@@ -164,7 +165,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     const t = srcMode === "doc"
       ? ((docSrc && docSrc.name.replace(/\.[^.]+$/, "")) || "Your document")
       : topic.trim();
-    onGenerate({ style: desk, category: voice, topic: t, quickDraft, ground: seed, slides, tone, voice: persona, sourceDoc, route: buildRoute(), unbranded });
+    onGenerate({ style: desk, category: voice, topic: t, quickDraft, polish, ground: seed, slides, tone, voice: persona, sourceDoc, route: buildRoute(), unbranded });
   };
 
   // Load a dropped/picked document → extract its text (txt/md/pdf).
@@ -176,9 +177,11 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     finally { setDocBusy(false); }
   };
 
-  // Coarse progress label while generating (the call streams searching -> writing).
+  // Coarse progress label while generating (the call streams searching -> writing
+  // -> polishing when the Polish pass is on).
   const genLabel = phase === "searching" ? "Researching the web…"
     : phase === "writing" ? "Writing your carousel…"
+    : phase === "polishing" ? "Polishing the arc & flow…"
     : quickDraft ? "Drafting…" : "Starting…";
 
   const voiceOverridden = voice !== DESK_VOICE[desk];
@@ -386,7 +389,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
         {/* Options — opt-in; the default path never opens it. Holds voice/tone (+
             desk framing), the white-label toggle, and quick-draft. */}
         <button type="button" onClick={() => setAdvanced((v) => !v)} style={advToggle}>
-          {advanced ? <ChevronDown size={14} style={{ verticalAlign: "-2px" }} /> : <ChevronRight size={14} style={{ verticalAlign: "-2px" }} />} Options{(unbranded ? " · white-label" : "") + (quickDraft ? " · quick draft" : "")}
+          {advanced ? <ChevronDown size={14} style={{ verticalAlign: "-2px" }} /> : <ChevronRight size={14} style={{ verticalAlign: "-2px" }} />} Options{(unbranded ? " · white-label" : "") + (quickDraft ? " · quick draft" : "") + (polish ? " · polish" : "")}
         </button>
         {advanced && (
           <div style={vtBox}>
@@ -399,6 +402,10 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             <label style={quickRow} title="Skip the live web search — faster, but it won't pull in the very latest facts.">
               <input type="checkbox" checked={quickDraft} disabled={generating} onChange={(e) => setQuickDraft(e.target.checked)} style={{ accentColor: UI.brand, width: 15, height: 15 }} />
               <span>Quick draft — skip web search (faster, less current)</span>
+            </label>
+            <label style={quickRow} title="After the draft, a second editor pass tightens the spine, arc, and transitions. Adds ~15-30s.">
+              <input type="checkbox" checked={polish} disabled={generating} onChange={(e) => setPolish(e.target.checked)} style={{ accentColor: UI.brand, width: 15, height: 15 }} />
+              <span>Polish pass — a second editor tightens the spine &amp; flow (slower)</span>
             </label>
             {/* Voice + Tone live in the top compact pickers (and Quick start); they
                 used to be duplicated here — removed to end the double "Voice"/"Tone". */}
