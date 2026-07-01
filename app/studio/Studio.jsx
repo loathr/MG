@@ -293,7 +293,11 @@ export default function Studio() {
     const elx = slide && (slide.elements || []).find((e) => e.id === textSel.id);
     if (!elx) return;
     if (textSel.end > textSel.start) {
-      const cur = (textSel.style && textSel.style.size) || elx.fontSize || 64;
+      // The selection style is the RESOLVED span style, which exposes the effective
+      // size as `fontSize` (a raw run uses `size`). Reading `.size` alone always
+      // missed it and fell back to the element base, so every nudge jumped from the
+      // base instead of accumulating on the span. Prefer the resolved fontSize.
+      const cur = (textSel.style && (textSel.style.fontSize || textSel.style.size)) || elx.fontSize || 64;
       styleSpan({ size: Math.max(6, cur + delta) });
     } else {
       dispatch({ type: "update", id: textSel.id, patch: { fontSize: Math.max(6, (elx.fontSize || 0) + delta) } });
