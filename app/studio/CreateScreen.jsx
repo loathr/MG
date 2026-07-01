@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { UI } from "./theme";
 import { STYLE_LIST, DEFAULT_STYLE } from "./styles";
 import { getCategory } from "./categories";
@@ -10,7 +10,7 @@ import { routeFraming, getBeat, REGIONS, URGENCY, ANGLES, EMPHASIS, MODES, frami
 import { VOICES as PERSONAS, TONES as RICH_TONES } from "./voices";
 import { readDocFile } from "./docsource";
 import {
-  PenLine, FileText, X, ChevronDown, ChevronRight, Sparkles, Zap, ArrowLeft,
+  PenLine, FileText, X, ChevronDown, ChevronRight, Sparkles, Zap, ArrowLeft, RefreshCw,
   Scroll, Swords, KeyRound, Clapperboard, BarChart3, MessageCircle, Headphones, Shirt, Mic, Gem,
 } from "lucide-react";
 
@@ -77,6 +77,10 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   // Grounding seed (R5) from a picked Trending card: { extract, source }. Cleared
   // when the topic is edited by hand, so a typed-over topic isn't grounded stale.
   const [seed, setSeed] = useState(null);
+  // Rotating "Try" suggestions: an index into the beat's seed list; the shown trio
+  // window is (seedRot*3 .. +3) mod length, so it cycles through ALL of a beat's
+  // curated topics instead of always showing the first three.
+  const [seedRot, setSeedRot] = useState(0);
   // Topic route (TOPIC_ROUTES.md): the picked beat/sector/section, or null = Any
   // (sector-free — generation is unchanged). Beats are desk-specific, so it
   // resets when the desk changes.
@@ -174,6 +178,22 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
 
   const voiceOverridden = voice !== DESK_VOICE[desk];
   const personaObj = PERSONAS.find((p) => p.id === persona) || PERSONAS[0];
+
+  // The picked beat's curated topics, and the rotating window of three shown.
+  const allSeeds = beat ? (getBeat(beat).seeds || []) : [];
+  const shownSeeds = allSeeds.length <= 3
+    ? allSeeds
+    : [0, 1, 2].map((i) => allSeeds[(seedRot * 3 + i) % allSeeds.length]);
+  // Fresh beat → start its rotation from the top.
+  useEffect(() => { setSeedRot(0); }, [beat]);
+  // Auto-rotate the suggestions every 6s so they cycle through the beat's full
+  // list — paused once you've started typing a topic (so it never shifts under you)
+  // or when the beat has three or fewer seeds (nothing to rotate).
+  useEffect(() => {
+    if (allSeeds.length <= 3 || topic.trim()) return undefined;
+    const id = setInterval(() => setSeedRot((r) => r + 1), 6000);
+    return () => clearInterval(id);
+  }, [beat, topic, allSeeds.length]);
 
   return (
     <div style={screen}>
@@ -285,12 +305,17 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
               </select>
             )}
           </div>
-          {beat && getBeat(beat).seeds && getBeat(beat).seeds.length > 0 && (
+          {shownSeeds.length > 0 && (
             <div style={seedRow}>
               <span style={seedCue}>Try</span>
-              {getBeat(beat).seeds.slice(0, 3).map((s) => (
+              {shownSeeds.map((s) => (
                 <button key={s} type="button" onClick={() => { setTopic(s); setSeed(null); }} style={seedChip}>{s}</button>
               ))}
+              {allSeeds.length > 3 && (
+                <button type="button" onClick={() => setSeedRot((r) => r + 1)} style={seedRefresh} title="More suggestions">
+                  <RefreshCw size={12} />
+                </button>
+              )}
             </div>
           )}
           {desk === "newsdesk" && (
@@ -503,6 +528,11 @@ const seedRow = { display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap
 const seedCue = { fontSize: 11, color: "#6f6f78" };
 const seedChip = {
   fontSize: 12, color: "#c8c8ce", padding: "6px 11px", borderRadius: 7,
+  background: "#131316", border: "1px solid #232329", cursor: "pointer",
+};
+const seedRefresh = {
+  display: "inline-flex", alignItems: "center", justifyContent: "center",
+  width: 28, height: 28, borderRadius: 7, color: "#8a8a92",
   background: "#131316", border: "1px solid #232329", cursor: "pointer",
 };
 // News-desk secondary route (Region + Urgency).
