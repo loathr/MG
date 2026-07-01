@@ -9,6 +9,7 @@ import RouteSelect from "./RouteSelect";
 import { routeFraming, getBeat, REGIONS, URGENCY, ANGLES, EMPHASIS, MODES, framingPrompt, countriesForRegion } from "./trending";
 import { VOICES as PERSONAS, TONES as RICH_TONES } from "./voices";
 import { readDocFile } from "./docsource";
+import StickLoader from "./StickLoader";
 import {
   PenLine, FileText, X, ChevronDown, ChevronRight, Sparkles, Zap, ArrowLeft, RefreshCw,
   Scroll, Swords, KeyRound, Clapperboard, BarChart3, MessageCircle, Headphones, Shirt, Mic, Gem,
@@ -426,14 +427,19 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
 
         {error && <div style={errBox}>{error}</div>}
 
-        <button onClick={submit} disabled={!canGenerate} style={primary(!canGenerate)}>
-          {generating ? genLabel : (srcMode === "doc" ? <><Sparkles size={16} /> Make a carousel from this document</> : (quickDraft ? <><Zap size={16} /> Make a quick draft</> : <><Sparkles size={16} /> Make my carousel</>))}
-        </button>
-
         {generating ? (
-          <button type="button" onClick={onCancel} style={cancelBtn}><X size={14} /> Cancel generation</button>
+          <>
+            {/* The stick-man walk/run loader replaces the button while generating. */}
+            <StickLoader label={genLabel} />
+            <button type="button" onClick={onCancel} style={cancelBtn}><X size={14} /> Cancel generation</button>
+          </>
         ) : (
-          <button type="button" onClick={onBlank} style={blankLink}>Start from a blank canvas</button>
+          <>
+            <button onClick={submit} disabled={!canGenerate} style={primary(!canGenerate)}>
+              {srcMode === "doc" ? <><Sparkles size={16} /> Make a carousel from this document</> : (quickDraft ? <><Zap size={16} /> Make a quick draft</> : <><Sparkles size={16} /> Make my carousel</>)}
+            </button>
+            <button type="button" onClick={onBlank} style={blankLink}>Start from a blank canvas</button>
+          </>
         )}
       </div>
     </div>
