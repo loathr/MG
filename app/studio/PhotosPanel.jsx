@@ -2,6 +2,7 @@
 import React, { useCallback, useRef, useState } from "react";
 import { UI } from "./theme";
 import { uploadResult } from "./model";
+import { Upload } from "lucide-react";
 
 // Photos panel (spec §7). Search box -> masonry of results from /api/images, PLUS
 // "upload from device". Tap a result (searched or uploaded) to set it as the
@@ -208,7 +209,7 @@ export default function PhotosPanel({ onSetBackground, onAddImage, onClose }) {
         onClick={() => fileRef.current && fileRef.current.click()}
         title="Upload an image from your device"
       >
-        <span style={{ fontSize: hasItems ? 15 : 20, color: "#8a8a92" }}>⬆</span>
+        <Upload size={hasItems ? 15 : 20} style={{ color: "#8a8a92" }} />
         <span style={{ fontSize: hasItems ? 12 : 13, color: "#dcdcdc" }}>Upload from device</span>
         {!hasItems && <span style={{ fontSize: 10.5, color: "#80808a" }}>Drag &amp; drop, or click · JPG · PNG · WEBP</span>}
       </div>

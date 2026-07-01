@@ -5,6 +5,7 @@ import { resize as geoResize, rotate as geoRotate, snapMove, handlePoint, axes }
 import { readImageFile, isImageFile, fitDroppedImage } from "./imageFile";
 import ElementView from "./Element";
 import { UI } from "./theme";
+import { Pencil } from "lucide-react";
 
 const HANDLES = [
   { sx: -1, sy: -1 }, { sx: 0, sy: -1 }, { sx: 1, sy: -1 },
@@ -260,7 +261,7 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
               background: "rgba(20,20,24,0.82)", color: "#fff", border: "1px solid #ffffff33",
               borderRadius: 16, cursor: "pointer", fontSize: 12.5, fontFamily: "Helvetica, Arial, sans-serif",
             }}
-          >✎ Edit photo</button>
+          ><Pencil size={14} /> Edit photo</button>
         )}
 
         {/* selection overlay in SCREEN space so handles are a constant size.

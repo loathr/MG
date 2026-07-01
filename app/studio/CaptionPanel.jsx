@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { UI } from "./theme";
+import { Check, Copy, RefreshCw } from "lucide-react";
 
 // Caption panel — the ready-to-post Instagram caption for the deck. The caption
 // is generated WITH the deck (folded into the same Opus call, so it shares the
@@ -16,8 +17,8 @@ const wrap = {
 const head = { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 12px 8px" };
 const xBtn = { width: 24, height: 24, lineHeight: "22px", textAlign: "center", background: "transparent", color: "#999", border: "none", cursor: "pointer", fontSize: 18, borderRadius: 5 };
 const bar = { display: "flex", gap: 7, padding: "0 12px 10px" };
-const prime = { flex: 1, height: 32, background: UI.brand, color: UI.onBrand, border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 };
-const ghost = { height: 32, padding: "0 11px", background: "#26262b", color: "#dcdcdc", border: "1px solid #36363c", borderRadius: 6, cursor: "pointer", fontSize: 12 };
+const prime = { flex: 1, height: 32, background: UI.brand, color: UI.onBrand, border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 };
+const ghost = { height: 32, padding: "0 11px", background: "#26262b", color: "#dcdcdc", border: "1px solid #36363c", borderRadius: 6, cursor: "pointer", fontSize: 12, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 };
 const ta = { flex: 1, margin: "0 12px", minHeight: 0, background: "#202024", border: "1px solid #34343c", borderRadius: 8, padding: "11px 12px", color: "#e3e3e6", fontSize: 12.5, lineHeight: 1.5, resize: "none", fontFamily: "inherit", outline: "none" };
 const meta = { display: "flex", justifyContent: "space-between", padding: "9px 14px 13px", fontSize: 11, color: "#7a7a82" };
 const hint = { margin: "4px 12px", color: "#7a7a7a", fontSize: 12.5, lineHeight: 1.5, padding: "16px 4px", textAlign: "center" };
@@ -48,8 +49,8 @@ export default function CaptionPanel({ caption, onChange, onRegenerate, onClose 
       </div>
 
       <div style={bar}>
-        <button style={{ ...prime, opacity: text ? 1 : 0.5 }} onClick={copy} disabled={!text}>{copied ? "✓ Copied" : "📋 Copy caption"}</button>
-        <button style={ghost} onClick={regen} disabled={busy} title="Rewrite the caption with a fresh angle">{busy ? "…" : "↻ Regenerate"}</button>
+        <button style={{ ...prime, opacity: text ? 1 : 0.5 }} onClick={copy} disabled={!text}>{copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy caption</>}</button>
+        <button style={ghost} onClick={regen} disabled={busy} title="Rewrite the caption with a fresh angle">{busy ? "…" : <><RefreshCw size={13} /> Regenerate</>}</button>
       </div>
 
       {text || busy ? (
@@ -67,7 +68,7 @@ export default function CaptionPanel({ caption, onChange, onRegenerate, onClose 
           </div>
         </>
       ) : (
-        <div style={hint}>No caption yet. Generate a deck and one is written automatically — or tap <b style={{ color: "#cfcfcf" }}>↻ Regenerate</b> to write one from this deck.</div>
+        <div style={hint}>No caption yet. Generate a deck and one is written automatically — or tap <b style={{ color: "#cfcfcf" }}>Regenerate</b> to write one from this deck.</div>
       )}
     </div>
   );

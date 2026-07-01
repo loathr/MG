@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { UI } from "./theme";
 import { LAYOUT_LIST, LAYOUT_CATEGORIES, reflowSlide } from "./templates";
 import StaticSlide from "./StaticSlide";
+import { RotateCcw } from "lucide-react";
 
 // Templates panel (spec §7). Shows the current slide's content rendered through
 // each layout as a live preview; click to re-flow this slide (or the whole deck)
@@ -64,8 +65,8 @@ export default function TemplatesPanel({ slide, brand, onApply, onApplyAll, onRe
         type="button"
         onClick={onReset}
         title="Re-render this slide from its text in the deck's current look — discards manual tweaks on this slide. Undoable."
-        style={{ margin: "0 12px 8px", height: 32, flexShrink: 0, background: "#26262b", color: "#cfcfcf", border: "1px solid #36363c", borderRadius: 6, fontSize: 12, cursor: "pointer" }}
-      >↺ Reset this slide to the look</button>
+        style={{ margin: "0 12px 8px", height: 32, flexShrink: 0, background: "#26262b", color: "#cfcfcf", border: "1px solid #36363c", borderRadius: 6, fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+      ><RotateCcw size={14} /> Reset this slide to the look</button>
       <p style={{ fontSize: 11, color: "#777", margin: 0, padding: "0 12px 12px", lineHeight: 1.5 }}>
         Re-flows this slide&apos;s text into the chosen layout, in the deck&apos;s look. Undoable.
       </p>

@@ -4,7 +4,7 @@ import { UI } from "./theme";
 import { brandFromStyle, EDITORIAL_PALETTES, paletteBrand, BRAND_FONT, FONT_OPTIONS, FONT_PRESETS, activePresetId, STYLE_LIST } from "./styles";
 import { cautionFor } from "./categories";
 import { uploadedFontGroup, fontFamilyValue } from "./fonts";
-import { Link2 } from "lucide-react";
+import { Link2, ChevronDown, ChevronRight } from "lucide-react";
 import FontSelect from "./FontSelect";
 import StylePreview from "./StylePreview";
 
@@ -164,7 +164,7 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
         </div>
         <div style={{ fontSize: 10, color: "#7c7c84", letterSpacing: 0.5, marginBottom: 8 }}>Colour</div>
         <button type="button" style={disc} onClick={() => setLooksOpen((o) => !o)} title="Choose a look">
-          <span style={{ color: "#9a9a9a" }}>{looksOpen ? "▾" : "▸"}</span>
+          <span style={{ color: "#9a9a9a", display: "inline-flex", alignItems: "center" }}>{looksOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
           <span style={{ width: 22, height: 18, borderRadius: 4, background: cur.bg, position: "relative", boxShadow: "inset 0 0 0 1px #ffffff22", flexShrink: 0 }}>
             <span style={{ position: "absolute", left: 3, bottom: 3, width: 7, height: 7, borderRadius: 4, background: cur.accent }} />
           </span>

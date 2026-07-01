@@ -5,6 +5,7 @@ import RichEditable from "./RichEditable";
 import ShapeBacking from "./ShapeBacking";
 import { shapePad, shapeVAlign } from "./shapes";
 import { imageTransform } from "./model";
+import { Move } from "lucide-react";
 
 // One element. Wrapped in React.memo so it re-renders only when its own object
 // (or its editing flag) changes — the key to Canva-like drag performance.
@@ -149,7 +150,7 @@ function CropOverlay() {
       <div style={{ ...line, left: "66.66%", top: 0, bottom: 0, width: 1 }} />
       <div style={{ ...line, top: "33.33%", left: 0, right: 0, height: 1 }} />
       <div style={{ ...line, top: "66.66%", left: 0, right: 0, height: 1 }} />
-      <div style={{ ...badge, left: "50%", top: "50%", transform: "translate(-50%,-50%)" }}>✛ drag to reposition</div>
+      <div style={{ ...badge, left: "50%", top: "50%", transform: "translate(-50%,-50%)", display: "inline-flex", alignItems: "center", gap: 6 }}><Move size={12} /> drag to reposition</div>
       <div style={{ ...badge, right: 8, bottom: 8 }}>scroll = zoom</div>
     </div>
   );

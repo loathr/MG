@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { UI } from "./theme";
 import { barTop } from "./barlayout";
+import { X } from "lucide-react";
 
 const RECENT_KEY = "loathr.recentColors";
 
@@ -106,7 +107,7 @@ export default function FormatBar({ style, accent, rect, onStyle, onClear, onSiz
       <Tog onMouseDown={hold} onClick={() => onSize(-6)} title="Smaller (selection)">A−</Tog>
       <Tog onMouseDown={hold} onClick={() => onSize(6)} title="Larger (selection)">A+</Tog>
       <span style={sep} />
-      <Tog onMouseDown={hold} onClick={onClear} title="Clear styling on selection"><span style={{ color: UI.muted }}>✕</span></Tog>
+      <Tog onMouseDown={hold} onClick={onClear} title="Clear styling on selection"><X size={14} style={{ color: UI.muted }} /></Tog>
 
       {pop && (
         <div style={popStyle} onMouseDown={(e) => { if (e.target.tagName !== "INPUT") hold(e); }}>

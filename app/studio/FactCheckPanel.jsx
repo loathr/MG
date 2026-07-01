@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { ArrowRight } from "lucide-react";
 
 // Fact-check results (rank 2). Presentational: Studio runs verifyDeck and passes
 // the {loading, error, result} state in. Shows an overall score, a summary, and
@@ -84,8 +85,8 @@ export default function FactCheckPanel({ loading, error, result, phase, onJump, 
                     <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase", color: vi.color }}>{vi.label}</span>
                     {c.slide != null && (
                       <button onClick={() => onJump(c.slide)} title="Go to this slide"
-                        style={{ marginLeft: "auto", height: 20, padding: "0 7px", background: "#26262b", color: "#bdbdbd", border: "1px solid #36363c", borderRadius: 4, fontSize: 10.5, cursor: "pointer" }}>
-                        Slide {c.slide + 1} →
+                        style={{ marginLeft: "auto", height: 20, padding: "0 7px", background: "#26262b", color: "#bdbdbd", border: "1px solid #36363c", borderRadius: 4, fontSize: 10.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        Slide {c.slide + 1} <ArrowRight size={11} />
                       </button>
                     )}
                   </div>
