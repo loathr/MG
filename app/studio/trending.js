@@ -335,9 +335,12 @@ export function filterByTerms(items, terms) {
   return (items || []).filter((it) => rx.test(it.title) || rx.test(it.extract || ""));
 }
 
-// Merge feed items (recency) ahead of filtered most-read (popularity), dedupe by
-// a normalized title, prefer items that carry a thumbnail (it's a photo rail),
-// and return the top `max`.
+// Rank a beat's items by DEPTH & RICHNESS, not pictures: the freshest FEED items
+// (recency) lead, then Wikipedia most-read (popularity) — and within that, items
+// carrying a real summary/extract (richer, better generation grounding) come
+// before bare-title ones. A thumbnail is NOT a ranking factor anymore (it's shown
+// when present, but a placeholder-tile topic is no longer demoted below a thinner
+// pictured one). Dedupe by normalized title; return the top `max`.
 export function rankItems(rssItems, wikiItems, max) {
   const seen = {};
   const norm = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -348,10 +351,11 @@ export function rankItems(rssItems, wikiItems, max) {
     seen[k] = 1;
     pick.push(it);
   };
-  (rssItems || []).filter((it) => it.thumb).forEach(push); // feed items with art first
-  (wikiItems || []).filter((it) => it.thumb).forEach(push); // then most-read with photos
-  (rssItems || []).forEach(push);                            // then remaining feed items
-  (wikiItems || []).forEach(push);                           // then remaining most-read
+  const rich = (it) => it && it.extract && String(it.extract).trim().length > 0;
+  (rssItems || []).filter(rich).forEach(push);   // freshest feed, with a summary
+  (rssItems || []).forEach(push);                // remaining feed items
+  (wikiItems || []).filter(rich).forEach(push);  // most-read, with a summary
+  (wikiItems || []).forEach(push);               // remaining most-read
   return pick.slice(0, max || 6).map((it) => ({ title: it.title, thumb: it.thumb || null, extract: it.extract || "", source: it.source || "feed" }));
 }
 
@@ -594,14 +598,13 @@ export function parseGdelt(json, max) {
   return out;
 }
 
-// Merge several item lists into one, deduped by normalized title, preferring the
-// variant that carries a thumbnail (it's a photo rail) and filling a missing
-// thumb from a duplicate that has one. By default thumbed items lead. Pass
-// `preserveOrder` to KEEP insertion order instead — used when composing a
-// region/country pull so the in-region items (often thumbless, e.g. Google News
-// RSS has no images) LEAD rather than being sunk beneath the fully-pictured
-// global feed (which made a scoped rail look identical to Global). Pure.
-export function mergeSources(lists, max, preserveOrder) {
+// Merge several item lists into one, deduped by normalized title, filling a missing
+// thumb from a duplicate that has one. Depth/richness over pictures: INSERTION
+// ORDER is preserved (the caller passes lists in priority order — scoped/in-region
+// then base, feed-recency within each), so a thumbnail no longer reorders the rail.
+// This is why a scoped region rail now leads with its in-region items even though
+// Google News RSS carries no images. Pure.
+export function mergeSources(lists, max) {
   const norm = (t) => String(t || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   const order = [];
   const byKey = new Map();
@@ -614,7 +617,5 @@ export function mergeSources(lists, max, preserveOrder) {
       else if (!prev.thumb && it.thumb) prev.thumb = it.thumb;
     }
   }
-  const arr = order.map((k) => byKey.get(k));
-  if (!preserveOrder) arr.sort((a, b) => (b.thumb ? 1 : 0) - (a.thumb ? 1 : 0));
-  return max ? arr.slice(0, max) : arr;
+  return (max ? order.slice(0, max) : order).map((k) => byKey.get(k));
 }

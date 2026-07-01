@@ -378,7 +378,7 @@ test("parseGdelt #6: drops a logo socialimage but keeps a real photo", () => {
   assert.equal(out[1].thumb, null); // logo dropped
 });
 
-test("mergeSources: dedupes by title, prefers a thumb, thumbed items lead", () => {
+test("mergeSources: dedupes by title, fills a missing thumb, PRESERVES insertion order", () => {
   const gdelt = [{ title: "Rate cut looms", thumb: "https://i/x.jpg", source: "gdelt" }];
   const gnews = [
     { title: "Rate cut looms", thumb: null, source: "gnews" },     // dup → keeps gdelt thumb
@@ -386,20 +386,17 @@ test("mergeSources: dedupes by title, prefers a thumb, thumbed items lead", () =
   ];
   const merged = mergeSources([gdelt, gnews], 10);
   assert.equal(merged.length, 2);                                  // deduped
-  assert.equal(merged[0].title, "Rate cut looms");                 // thumbed leads
-  assert.equal(merged[0].thumb, "https://i/x.jpg");
-  assert.ok(merged.some((m) => m.title === "Budget vote today"));
+  assert.equal(merged[0].title, "Rate cut looms");                 // first-seen leads (order kept)
+  assert.equal(merged[0].thumb, "https://i/x.jpg");               // missing thumb filled from dup
+  assert.equal(merged[1].title, "Budget vote today");
 });
 
-test("mergeSources preserveOrder: in-region (thumbless) items LEAD instead of being sunk", () => {
+test("mergeSources: depth over pictures — a thumbless item passed first LEADS a pictured one", () => {
   const scoped = [{ title: "Lagos fashion week opens", thumb: null, source: "gnews" }]; // in-region, no image
   const base = [{ title: "Global gala", thumb: "https://i/x.jpg", source: "feed" }];    // global, pictured
-  // default (thumb-first): the pictured global item leads — the bug the user saw
-  assert.equal(mergeSources([scoped, base], 6)[0].title, "Global gala");
-  // preserveOrder: the scoped in-region item leads despite having no thumbnail
-  const kept = mergeSources([scoped, base], 6, true);
-  assert.equal(kept[0].title, "Lagos fashion week opens");
-  assert.equal(kept[1].title, "Global gala");
+  const merged = mergeSources([scoped, base], 6);
+  assert.equal(merged[0].title, "Lagos fashion week opens"); // insertion order wins, not the thumbnail
+  assert.equal(merged[1].title, "Global gala");
 });
 
 test("backfillSeeds: fills a thin pull up to max, deduped, only when seeds exist", () => {
@@ -440,14 +437,15 @@ test("selectTrending: a SHARED feed (filterFeed) is term-filtered down to the be
   assert.ok(!out.some((i) => /celebrity wedding/.test(i.title)), "off-sector feed item filtered out");
 });
 
-test("rankItems dedupes by title and floats thumbnail-bearing items first", () => {
-  const rss = [{ title: "Dune: Part Two", thumb: null, source: "feed" }];
-  const wiki = parseMostRead(FEATURED); // Dune has a thumb here
+test("rankItems: depth/richness first — feed recency leads, thumbnails are NOT a factor", () => {
+  // A thumbless BUT rich (has extract) feed item must beat a pictured most-read one.
+  const rss = [{ title: "Dune: Part Two", thumb: null, extract: "Denis Villeneuve returns", source: "feed" }];
+  const wiki = parseMostRead(FEATURED); // pictured most-read entries
   const ranked = rankItems(rss, wiki, 6);
-  // Dune appears once (deduped), and the thumbnail-bearing items lead
-  assert.equal(ranked.filter((r) => /Dune/.test(r.title)).length, 1);
-  assert.ok(ranked[0].thumb, "first item carries a photo");
+  assert.equal(ranked.filter((r) => /Dune/.test(r.title)).length, 1); // deduped
+  assert.equal(ranked[0].title, "Dune: Part Two"); // rich feed item leads despite no thumb
+  assert.equal(ranked[0].thumb, null);
   assert.ok(ranked.length <= 6);
   // R5: the extract carries through so generation can ground on it
-  assert.match(ranked.find((r) => /Dune/.test(r.title)).extract, /Villeneuve/);
+  assert.match(ranked[0].extract, /Villeneuve/);
 });
