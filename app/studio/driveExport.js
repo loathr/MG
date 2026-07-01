@@ -41,6 +41,38 @@ export function multipartHead(metadata, mimeType, boundary) {
 }
 export function multipartTail(boundary) { return "\r\n--" + boundary + "--"; }
 
+// Turn a failed Drive API response into an actionable message. The Drive REST API
+// returns { error: { message, errors:[{ reason }], status } }; a bare "HTTP 403"
+// hides the real cause, so decode it and, for the common deploy misconfigurations,
+// point at the fix (CLOUD_SETUP §8). Pure — unit-tested with real error shapes.
+export function driveErrorMessage(status, body, action) {
+  const err = body && body.error;
+  const reason = String((err && ((err.errors && err.errors[0] && err.errors[0].reason) || err.status)) || "");
+  const detail = String((err && err.message) || "");
+  const probe = reason + " " + detail;
+  let msg = (action || "Drive request") + " failed (HTTP " + status + ")";
+  if (detail) msg += ": " + detail;
+  if (status === 401 || /UNAUTHENTICATED|invalid credentials|expired/i.test(probe)) {
+    msg += " — the Drive sign-in expired; try Save to Google Drive again.";
+  } else if (status === 403) {
+    if (/accessNotConfigured|SERVICE_DISABLED|has not been used/i.test(probe)) {
+      msg += " — enable the Google Drive API for this project (CLOUD_SETUP §8, step 1), then retry.";
+    } else if (/insufficient|scope|ACCESS_TOKEN_SCOPE/i.test(probe)) {
+      msg += " — grant Drive access: add the drive.file scope to the OAuth consent screen (§8, step 2), then retry.";
+    } else {
+      msg += " — check the Drive API is enabled and the drive.file scope is consented (CLOUD_SETUP §8).";
+    }
+  }
+  return msg;
+}
+
+// Read a failed response body (best-effort) and build the decoded error.
+async function driveError(r, action) {
+  let body = null;
+  try { body = await r.json(); } catch (e) { /* non-JSON error body */ }
+  return new Error(driveErrorMessage(r.status, body, action));
+}
+
 // --- network (browser-only, live-Drive-only) ---
 function multipartBody(metadata, bytes, mimeType, boundary) {
   const enc = new TextEncoder();
@@ -54,7 +86,7 @@ async function driveCreateFolder(token, name) {
     headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
     body: JSON.stringify(driveFolderMetadata(name)),
   });
-  if (!r.ok) throw new Error("Couldn't create the Drive folder (HTTP " + r.status + ").");
+  if (!r.ok) throw await driveError(r, "Couldn't create the Drive folder");
   return (await r.json()).id;
 }
 
@@ -65,7 +97,7 @@ async function driveUpload(token, name, parentId, bytes, mimeType, boundary) {
     headers: { Authorization: "Bearer " + token, "Content-Type": "multipart/related; boundary=" + boundary },
     body,
   });
-  if (!r.ok) throw new Error("Drive upload failed for " + name + " (HTTP " + r.status + ").");
+  if (!r.ok) throw await driveError(r, "Drive upload failed for " + name);
   return (await r.json()).id;
 }
 

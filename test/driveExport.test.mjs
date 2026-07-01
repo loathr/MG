@@ -5,7 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   driveFolderMetadata, driveFileMetadata, driveFolderUrl, driveFolderName,
-  multipartHead, multipartTail,
+  multipartHead, multipartTail, driveErrorMessage,
 } from "../app/studio/driveExport.js";
 
 test("driveFolderMetadata: names the folder + the Drive folder mime", () => {
@@ -23,6 +23,21 @@ test("driveFolderUrl / driveFolderName", () => {
   assert.equal(driveFolderUrl(""), null);
   assert.equal(driveFolderName("Ozempic"), "Ozempic — LOATHR");
   assert.equal(driveFolderName("  "), "LOATHR carousel");
+});
+
+test("driveErrorMessage: decodes the Drive API error and points at the fix", () => {
+  // API disabled → the exact 403 the user hit; steer to enabling the Drive API
+  const disabled = { error: { status: "PERMISSION_DENIED", message: "Google Drive API has not been used in project 123 before or it is disabled.", errors: [{ reason: "accessNotConfigured" }] } };
+  const m = driveErrorMessage(403, disabled, "Couldn't create the Drive folder");
+  assert.match(m, /HTTP 403/);
+  assert.match(m, /enable the Google Drive API/i);
+  // missing scope → steer to the consent screen
+  const scope = { error: { status: "PERMISSION_DENIED", message: "Request had insufficient authentication scopes.", errors: [{ reason: "insufficientPermissions" }] } };
+  assert.match(driveErrorMessage(403, scope, "Drive upload failed"), /drive\.file scope/i);
+  // generic 403 with no decodable reason → the general hint
+  assert.match(driveErrorMessage(403, null, "x"), /Drive API is enabled/i);
+  // 401 → session expired
+  assert.match(driveErrorMessage(401, null, "x"), /sign-in expired/i);
 });
 
 test("multipartHead/Tail: frame a JSON metadata part + a binary part with the boundary", () => {
