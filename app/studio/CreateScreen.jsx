@@ -386,7 +386,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
         {/* Options — opt-in; the default path never opens it. Holds voice/tone (+
             desk framing), the white-label toggle, and quick-draft. */}
         <button type="button" onClick={() => setAdvanced((v) => !v)} style={advToggle}>
-          {advanced ? <ChevronDown size={14} style={{ verticalAlign: "-2px" }} /> : <ChevronRight size={14} style={{ verticalAlign: "-2px" }} />} Options{(unbranded ? " · white-label" : "") + ((voiceOverridden || tone) ? " · " + getCategory(voice).label + (tone ? " · " + toneLabel(tone) : "") : "") + (quickDraft ? " · quick draft" : "")}
+          {advanced ? <ChevronDown size={14} style={{ verticalAlign: "-2px" }} /> : <ChevronRight size={14} style={{ verticalAlign: "-2px" }} />} Options{(unbranded ? " · white-label" : "") + (quickDraft ? " · quick draft" : "")}
         </button>
         {advanced && (
           <div style={vtBox}>
@@ -400,27 +400,10 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
               <input type="checkbox" checked={quickDraft} disabled={generating} onChange={(e) => setQuickDraft(e.target.checked)} style={{ accentColor: UI.brand, width: 15, height: 15 }} />
               <span>Quick draft — skip web search (faster, less current)</span>
             </label>
-            <div style={{ height: 1, background: "#26262c" }} />
-            <div style={vRow}>
-              <span style={vKey}>Voice</span>
-              <select value={voice} onChange={(e) => pickVoice(e.target.value)} style={vSelect} title="Writing voice">
-                {VOICE_GROUPS.map((g) => (
-                  <optgroup key={g.label} label={g.label}>
-                    {g.keys.map((k) => <option key={k} value={k}>{getCategory(k).label}</option>)}
-                  </optgroup>
-                ))}
-              </select>
-              <span style={vFrom}>{voiceOverridden ? "your choice" : (<>from <b style={{ color: "#9ecbff" }}>desk</b></>)}</span>
-            </div>
-            <div style={vRow}>
-              <span style={vKey}>Tone</span>
-              <div style={tones}>
-                {TONES.map((tn) => (
-                  <button key={tn.id} type="button" onClick={() => setTone(tone === tn.id ? null : tn.id)} style={toneChip(tone === tn.id)}>{tn.label}</button>
-                ))}
-              </div>
-            </div>
-            {/* Advanced framing (Tier 3) — desk-specific: News Angle + Emphasis,
+            {/* Voice + Tone live in the top compact pickers (and Quick start); they
+                used to be duplicated here — removed to end the double "Voice"/"Tone". */}
+            {(desk === "newsdesk" || desk === "enterprise") && <div style={{ height: 1, background: "#26262c" }} />}
+            {/* Advanced framing (Tier 3) — desk-specific: News Emphasis,
                 Enterprise Mode. Optional; ported from the monolith configs. */}
             {desk === "newsdesk" && (
               <div style={vRow}>
