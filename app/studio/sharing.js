@@ -77,6 +77,18 @@ export function shareIndex(share, ownerUid, deckId) {
   return { ownerUid, deckId, link: normalizeShare(s.link), token: s.token };
 }
 
+// The TOKEN-LESS public "pulse" doc for real-time viewers: when a deck is shared,
+// its save bumps sharePulse/{deckId} = { updatedAt } — carrying only a timestamp,
+// NO token and NO deck content, so it's safe to make world-readable. A viewer
+// subscribes with onSnapshot and, on each bump, re-fetches the VALIDATED deck via
+// /api/shared (which still checks the token). Returns null when sharing is off →
+// the caller deletes the pulse. Pure; mirrors shareIndex's gating.
+export function sharePulse(share, updatedAt) {
+  const s = share || {};
+  if (normalizeShare(s.link) === "none" || !s.token) return null;
+  return { updatedAt: updatedAt || 0 };
+}
+
 // Resolve a presented token against a shares index doc → the granted level, or
 // "none" (wrong/absent token, missing/disabled index). The SERVER checks this
 // (Admin SDK), so a rotated token truly revokes old links and anonymous viewers

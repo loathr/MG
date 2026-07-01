@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   normalizeShare, linkAccess, memberAccess, effectiveAccess, canView, canEdit,
-  setShare, shareUrl, resolveAccess, shareIndex, resolveShared,
+  setShare, shareUrl, resolveAccess, shareIndex, resolveShared, sharePulse,
 } from "../app/studio/sharing.js";
 
 const deck = (share, ownerUid) => ({ ownerUid, share });
@@ -81,6 +81,16 @@ test("shareIndex: built when shared (carries the owner); null when off", () => {
   assert.equal(shareIndex({ link: "none", token: "tk" }, "ownerU", "DECK1"), null);
   assert.equal(shareIndex({ link: "view" }, "ownerU", "DECK1"), null);   // no token
   assert.equal(shareIndex({ link: "view", token: "tk" }, "", "DECK1"), null); // no owner
+});
+
+test("sharePulse: a token-less {updatedAt} when shared; null when off/tokenless", () => {
+  assert.deepEqual(sharePulse({ link: "view", token: "tk" }, 123), { updatedAt: 123 });
+  assert.deepEqual(sharePulse({ link: "edit", token: "tk" }), { updatedAt: 0 }); // no ts → 0
+  assert.equal(sharePulse({ link: "none", token: "tk" }, 123), null);
+  assert.equal(sharePulse({ link: "view" }, 123), null); // no token
+  assert.equal(sharePulse(null, 1), null);
+  // crucially carries NO token and NO deck content — safe to make world-readable
+  assert.equal(sharePulse({ link: "view", token: "tk" }, 9).token, undefined);
 });
 
 test("resolveShared: server-side token check → level or none (rotation revokes)", () => {

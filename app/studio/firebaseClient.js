@@ -31,6 +31,23 @@ export async function signInWithGoogle() {
   return res.user;
 }
 
+// Google OAuth access token for the Drive REST API. Re-runs the Google popup
+// requesting ONLY the minimal `drive.file` scope (the app sees just files it
+// creates, never the rest of the user's Drive), and reads the OAuth access token
+// off the credential. null when cloud is disabled. Throws on a real auth failure
+// (caller surfaces it). Deploy: enable the Drive API + add this scope to the OAuth
+// consent screen (CLOUD_SETUP.md).
+export async function getDriveAccessToken() {
+  const auth = await authInstance();
+  if (!auth) return null;
+  const { GoogleAuthProvider, signInWithPopup } = await import("firebase/auth");
+  const provider = new GoogleAuthProvider();
+  provider.addScope("https://www.googleapis.com/auth/drive.file");
+  const res = await signInWithPopup(auth, provider);
+  const cred = GoogleAuthProvider.credentialFromResult(res);
+  return cred && cred.accessToken ? cred.accessToken : null;
+}
+
 export async function signOutCloud() {
   const auth = await authInstance();
   if (!auth) return;

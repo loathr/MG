@@ -24,8 +24,9 @@ import ProjectsScreen from "./ProjectsScreen";
 import AdminConsole from "./AdminConsole";
 import { isCloudEnabled } from "./cloud";
 import { onAuthChange, signOutCloud, getUserRole, bootstrapAdmin } from "./firebaseClient";
-import { saveDeck, loadDeck, listDecks, deleteDeck } from "./firebaseStore";
+import { saveDeck, loadDeck, listDecks, deleteDeck, watchSharePulse } from "./firebaseStore";
 import { exportSlide, exportSlides } from "./export";
+import { exportDeckToDrive } from "./driveExport";
 import { verifyDeck } from "./verify";
 import FactCheckPanel from "./FactCheckPanel";
 import {
@@ -85,6 +86,7 @@ export default function Studio() {
   const [saveState, setSaveState] = useState("idle"); // "idle" | "saving" | "saved"
   const [shareOpen, setShareOpen] = useState(false);  // Share-link popover (Tier A)
   const [sharedView, setSharedView] = useState(null); // opened via a share link: { deck, s, access, name }
+  const [drive, setDrive] = useState(null);           // Drive export status: { phase:"working"|"done"|"error", done, total, folderUrl, count, msg }
   const saveTimer = useRef(null);
   const genAbort = useRef(null); // AbortController for the in-flight generation
   const fcAbort = useRef(null);  // AbortController for the in-flight fact-check
@@ -155,18 +157,22 @@ export default function Studio() {
     return () => { live = false; };
   }, [cloud, user]);
 
-  // Live view of a shared deck: re-pull every few seconds so a watcher sees the
-  // owner's edits land (Tier A "instant live view" via short poll — upgradeable
-  // to an onSnapshot listener for signed-in viewers later).
+  // Live view of a shared deck. REAL-TIME via onSnapshot on the token-less
+  // sharePulse/{deckId} doc the owner's save bumps: on each bump we re-fetch the
+  // VALIDATED deck through /api/shared (which still checks the token — the pulse
+  // itself carries no token or content). A slow interval stays as a fallback for
+  // when Firestore/onSnapshot isn't available (cloud off, rules, offline).
   useEffect(() => {
     if (!sharedView) return undefined;
-    const id = setInterval(() => {
+    const refetch = () => {
       fetch("/api/shared?deck=" + encodeURIComponent(sharedView.deck) + "&s=" + encodeURIComponent(sharedView.s))
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => { if (data && data.doc) dispatch({ type: "loadDoc", doc: data.doc }); })
         .catch(() => {});
-    }, 4000);
-    return () => clearInterval(id);
+    };
+    const unsub = watchSharePulse(sharedView.deck, refetch); // instant on owner save
+    const id = setInterval(refetch, 20000);                  // fallback safety-net
+    return () => { unsub(); clearInterval(id); };
   }, [sharedView]);
 
   // Load the user's deck list whenever the Projects screen is shown.
@@ -421,6 +427,22 @@ export default function Studio() {
     setDlOpen(false); setExporting(true);
     try { await exportSlides(state.doc.slides, projectName, state.doc.caption); } finally { setExporting(false); }
   };
+  // Export the deck to the signed-in user's Google Drive (deploy-only: needs the
+  // Drive API enabled + the drive.file scope on the OAuth consent screen). Renders
+  // each slide to PNG and uploads into a deck-named folder; reports progress and a
+  // folder link. Gated on cloud + a signed-in user in the menu below.
+  const exportToDrive = async () => {
+    setDlOpen(false);
+    setDrive({ phase: "working", done: 0, total: state.doc.slides.length });
+    try {
+      const res = await exportDeckToDrive(state.doc.slides, projectName, state.doc.caption, {
+        onProgress: (done, total) => setDrive({ phase: "working", done, total }),
+      });
+      setDrive({ phase: "done", folderUrl: res.folderUrl, count: res.count });
+    } catch (e) {
+      setDrive({ phase: "error", msg: (e && e.message) || "Google Drive export failed" });
+    }
+  };
 
   // Fact-check: send the deck's claims through a live web-search verify pass and
   // show the per-claim verdict + score in the side panel. Cancellable, and it
@@ -591,6 +613,12 @@ export default function Studio() {
               <div style={{ position: "absolute", right: 0, top: 38, minWidth: 176, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 8, padding: 4, zIndex: 50, boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}>
                 <button style={menuItem} onClick={exportCurrent}>This slide (PNG)</button>
                 <button style={menuItem} onClick={exportDeck}>All {state.doc.slides.length} slides (.zip)</button>
+                {cloud && user && (
+                  <>
+                    <div style={{ height: 1, background: UI.border, margin: "4px 2px" }} />
+                    <button style={menuItem} onClick={exportToDrive}>Save all to Google Drive</button>
+                  </>
+                )}
               </div>
             </>
           )}
@@ -770,6 +798,37 @@ export default function Studio() {
         />
       )}
 
+      {/* Google Drive export status toast (deploy-only feature). */}
+      {drive && (
+        <div style={driveToast}>
+          {drive.phase === "working" && (
+            <>
+              <div style={{ fontSize: 12.5, fontWeight: 650, marginBottom: 6 }}>Saving to Google Drive…</div>
+              <div style={{ height: 6, borderRadius: 3, background: "#26262b", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: (drive.total ? Math.round((drive.done / drive.total) * 100) : 0) + "%", background: "linear-gradient(90deg,#2684fc,#00ac47)", transition: "width .2s" }} />
+              </div>
+              <div style={{ fontSize: 11, color: "#9a9aa4", marginTop: 6 }}>Slide {Math.min(drive.done + 1, drive.total)} / {drive.total}</div>
+            </>
+          )}
+          {drive.phase === "done" && (
+            <>
+              <div style={{ fontSize: 12.5, fontWeight: 650, color: "#8fd3a8", marginBottom: 6 }}>✓ Saved {drive.count} slide{drive.count === 1 ? "" : "s"} to Drive</div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {drive.folderUrl && <a href={drive.folderUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#9fd0ea", textDecoration: "none" }}>↗ Open Drive folder</a>}
+                <button onClick={() => setDrive(null)} style={{ marginLeft: "auto", ...toastX }}>Dismiss</button>
+              </div>
+            </>
+          )}
+          {drive.phase === "error" && (
+            <>
+              <div style={{ fontSize: 12.5, fontWeight: 650, color: "#ff9a9a", marginBottom: 4 }}>Drive export failed</div>
+              <div style={{ fontSize: 11, color: "#cbb", lineHeight: 1.4 }}>{drive.msg}</div>
+              <button onClick={() => setDrive(null)} style={{ marginTop: 8, ...toastX }}>Dismiss</button>
+            </>
+          )}
+        </div>
+      )}
+
     </div>
   );
 }
@@ -793,6 +852,15 @@ const menuItem = {
   background: "transparent", color: UI.text, border: "none", borderRadius: 6,
   cursor: "pointer", fontSize: 13,
 };
+const driveToast = {
+  position: "fixed", right: 18, bottom: 18, zIndex: 70, width: 260,
+  background: "#161619", border: "1px solid #2f2f37", borderRadius: 11, padding: "12px 14px",
+  boxShadow: "0 14px 32px rgba(0,0,0,0.55)", fontFamily: "Helvetica, Arial, sans-serif",
+};
+const toastX = {
+  height: 26, padding: "0 10px", background: "#26262b", color: "#cfcfcf",
+  border: "1px solid #36363c", borderRadius: 6, fontSize: 11.5, cursor: "pointer",
+};
 
 // The read-only, live viewer shown when a deck is opened via a share link. Zero
 // editing surface: a banner + a large StaticSlide of the current slide + the
@@ -805,7 +873,11 @@ function SharedViewer({ doc, slideIndex, name, onNav, error }) {
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: UI.bg, color: UI.text, fontFamily: "Helvetica, Arial, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, height: 48, padding: "0 16px", borderBottom: "1px solid " + UI.border, flexShrink: 0 }}>
         <strong style={{ fontSize: 13 }}>{name || "Shared carousel"}</strong>
-        <span style={{ fontSize: 11, color: UI.muted, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 12, padding: "2px 9px", display: "inline-flex", alignItems: "center", gap: 5 }}><Eye size={12} /> View only · live</span>
+        <span style={{ fontSize: 11, color: "#8fd3a8", background: "#142019", border: "1px solid #264a36", borderRadius: 12, padding: "2px 9px", display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <style>{"@keyframes lv-pulse{0%{box-shadow:0 0 0 0 rgba(62,196,109,.5)}70%{box-shadow:0 0 0 5px rgba(62,196,109,0)}100%{box-shadow:0 0 0 0 rgba(62,196,109,0)}}"}</style>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#3ec46d", animation: "lv-pulse 1.6s infinite" }} />
+          <Eye size={12} /> View only · live
+        </span>
         <span style={{ marginLeft: "auto", fontSize: 11, color: UI.muted }}>{slides.length} slide{slides.length === 1 ? "" : "s"}</span>
       </div>
       {error ? (

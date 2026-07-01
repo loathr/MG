@@ -493,6 +493,14 @@ export async function exportSlide(slide, name, index) {
   return downloadCanvas(canvas, slug(name) + "-" + ((index || 0) + 1) + ".png");
 }
 
+// Render one slide to PNG bytes (Uint8Array), or null if the canvas is tainted /
+// encoding fails. Shared by the .zip export and the Google Drive upload so all
+// three renderers agree on the exact same bytes. The slug helper is exported too.
+export async function renderSlidePngBytes(slide) {
+  return canvasToPngBytes(await renderSlideToCanvas(slide));
+}
+export { slug };
+
 // Render every slide to a PNG and deliver them as ONE .zip — a single download
 // the browser won't throttle or drop (unlike N sequential saves). Tainted
 // slides are skipped; the rest still ship. Returns the count actually zipped.

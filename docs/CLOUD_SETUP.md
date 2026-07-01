@@ -64,6 +64,15 @@ service cloud.firestore {
       allow create, update: if request.auth != null && request.auth.uid == request.resource.data.ownerUid;
       allow delete: if request.auth != null && request.auth.uid == resource.data.ownerUid;
     }
+    // Real-time "live viewer" pulse. Token-LESS: this doc holds only { updatedAt },
+    // no token and no deck content, so it is safe to make world-readable — a viewer
+    // subscribes with onSnapshot and, on each bump, re-fetches the VALIDATED deck
+    // via /api/shared (which still checks the token). Writes come from the owner's
+    // save (their uid) only.
+    match /sharePulse/{deckId} {
+      allow read:   if true;
+      allow write:  if request.auth != null;
+    }
   }
 }
 ```
@@ -158,6 +167,24 @@ public auth first and add server gating once the service account is in.
    account's decks (confirms the security rules).
 5. `/api/generate` without a session should 401 (server gate on).
 
+## 8. Google Drive export (optional)
+The Download menu's **Save all to Google Drive** renders each slide to PNG and
+uploads them into a deck-named folder in the signed-in user's Drive. It reuses the
+existing Firebase Google sign-in (no server, no new API key) — it just needs the
+Drive API turned on and the scope consented:
+1. **Google Cloud console → APIs & Services → Library →** enable **Google Drive API**
+   for the same project backing Firebase.
+2. **OAuth consent screen → Scopes →** add `.../auth/drive.file` (the minimal
+   per-file scope — the app only ever sees files it creates, never the rest of the
+   user's Drive). While the consent screen is in *testing*, add the users who'll
+   export as test users.
+3. No env var. On first export the user gets a Google popup for the Drive scope;
+   after granting, the deck's PNGs upload and a **↗ Open Drive folder** link appears.
+
+The menu item is hidden unless cloud is configured and a user is signed in, so
+with Firebase disabled nothing changes.
+
 ## Rollback
 Remove the `NEXT_PUBLIC_FIREBASE_*` vars and redeploy — the gate and cloud calls
 go dormant and the app returns to the open, local-only flow. No data migration.
+The `sharePulse` rule and Drive scope are inert without the client config.

@@ -1,6 +1,6 @@
 "use client";
 import { cloudConfig, projectRecord, docFromRecord, collectImageData, imageKey, rewriteImages } from "./cloud";
-import { shareIndex } from "./sharing";
+import { shareIndex, sharePulse } from "./sharing";
 
 // Guarded Firestore adapter for deck storage. The firebase SDK loads LAZILY and
 // only when cloud is configured; every call is a safe no-op (null / []) when
@@ -82,8 +82,34 @@ export async function saveDeck(uid, id, doc, opts) {
     const sref = fs.doc(d, "shares", ref.id);
     if (idx) await fs.setDoc(sref, idx, { merge: true });
     else await fs.deleteDoc(sref);
-  } catch (e) { /* index is best-effort */ }
+    // Token-less public pulse for real-time viewers (onSnapshot): bump on every
+    // save while shared, remove when unshared. Carries only a timestamp.
+    const pulse = sharePulse(stored.share, rec.updatedAt);
+    const pref = fs.doc(d, "sharePulse", ref.id);
+    if (pulse) await fs.setDoc(pref, pulse, { merge: true });
+    else await fs.deleteDoc(pref);
+  } catch (e) { /* index + pulse are best-effort */ }
   return ref.id;
+}
+
+// Real-time subscription to a shared deck's token-less pulse doc: cb() fires on
+// every bump the owner's save makes, so the viewer can re-fetch the validated
+// deck. Returns an unsubscribe fn; a safe no-op when cloud is disabled or the
+// listener errors (the viewer keeps its fallback poll). Browser-only.
+export function watchSharePulse(deckId, cb) {
+  let unsub = () => {};
+  if (!deckId) return () => {};
+  db().then((d) => {
+    if (!d) return;
+    import("firebase/firestore").then(({ doc, onSnapshot }) => {
+      unsub = onSnapshot(
+        doc(d, "sharePulse", deckId),
+        () => { try { cb(); } catch (e) { /* ignore */ } },
+        () => { /* permission/other error → viewer keeps polling */ },
+      );
+    }).catch(() => {});
+  }).catch(() => {});
+  return () => unsub();
 }
 
 // The full deck doc for one project, or null.
