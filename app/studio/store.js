@@ -628,9 +628,15 @@ export function reducer(state, a) {
   if (next === state) return state;
 
   if (MUTATES[a.type]) {
-    const tag = a.type === "update" ? "update:" + a.id : null;
+    // Coalescing is OPT-IN: only a CONTINUOUS gesture (drag-move / resize / rotate /
+    // crop, which fire many actions per second) sets `a.coalesce`, so its stream of
+    // updates collapses into ONE undo frame (bounded by the `commit` the Artboard
+    // dispatches on pointer-up). Discrete edits — a toolbar tweak, an AI write, a
+    // colour change — leave it unset, so each is its own undo step. (Previously only
+    // `update` coalesced by id: drag-`move` made a frame PER pointer event, and a
+    // run of toolbar `update`s all merged into one — both wrong.)
+    const tag = a.coalesce ? a.type + ":" + (a.id == null ? "" : a.id) : null;
     if (tag && state.lastTag === tag) {
-      // coalesce a continuous drag/resize of one element into a single undo step
       return Object.assign({}, next, { future: [], lastTag: tag });
     }
     let past = state.past.concat([snap(state)]);

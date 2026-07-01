@@ -70,18 +70,36 @@ test("tether (B6): moving a parent drags its children by the same delta; delete 
   assert.equal(c2.tetherTo, undefined, "child is untethered");
 });
 
-test("a continuous drag (update same id) coalesces into one undo frame", () => {
+test("a continuous gesture (coalesce:true, same id) collapses into one undo frame", () => {
   let s = initStudio();
   s = reducer(s, { type: "add", element: makeElement("rect", { id: "R" }) });
   s = reducer(s, { type: "add", element: makeElement("rect", { id: "R2" }) });
   const afterAdds = s.past.length;
-  s = reducer(s, { type: "update", id: "R", patch: { x: 10 } });
+  s = reducer(s, { type: "update", id: "R", patch: { x: 10 }, coalesce: true });
   const afterFirstUpdate = s.past.length;
   assert.ok(afterFirstUpdate > afterAdds);
-  s = reducer(s, { type: "update", id: "R", patch: { x: 20 } });   // same id → coalesced
-  assert.equal(s.past.length, afterFirstUpdate);                   // no new frame
-  s = reducer(s, { type: "update", id: "R2", patch: { x: 5 } });   // different id → new frame
+  s = reducer(s, { type: "update", id: "R", patch: { x: 20 }, coalesce: true });   // same gesture → coalesced
+  assert.equal(s.past.length, afterFirstUpdate);                                   // no new frame
+  s = reducer(s, { type: "update", id: "R2", patch: { x: 5 }, coalesce: true });   // different id → new frame
   assert.equal(s.past.length, afterFirstUpdate + 1);
+});
+
+test("a drag-move (coalesce) collapses to one frame; plain toolbar updates do NOT coalesce", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("rect", { id: "R" }) });
+  const base = s.past.length;
+  // Simulate a drag: many `move`s with coalesce → a single frame (the pre-drag state).
+  s = reducer(s, { type: "move", id: "R", x: 10, y: 10, coalesce: true });
+  s = reducer(s, { type: "move", id: "R", x: 20, y: 20, coalesce: true });
+  s = reducer(s, { type: "move", id: "R", x: 30, y: 30, coalesce: true });
+  assert.equal(s.past.length, base + 1, "the whole drag is ONE undo frame");
+  // Discrete toolbar edits (no coalesce) each push their own frame, even same id.
+  s = reducer(s, { type: "update", id: "R", patch: { fill: "#111" } });
+  s = reducer(s, { type: "update", id: "R", patch: { fill: "#222" } });
+  assert.equal(s.past.length, base + 3, "two separate toolbar edits → two frames");
+  // And one undo steps back exactly one toolbar edit (not the whole batch).
+  s = reducer(s, { type: "undo" });
+  assert.equal(cur(s).elements.find((e) => e.id === "R").fill, "#111");
 });
 
 test("styleText applies per-run styling to a text element's range (undoable)", () => {

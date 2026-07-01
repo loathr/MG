@@ -65,6 +65,16 @@ test("paletteBrand passes bg/accent/ink through and tints sub/muted between them
   assert.notEqual(b.muted, p.bg);  // from both endpoints
 });
 
+test("paletteBrand tethers the secondary (kicker) colour to the palette", () => {
+  // No palette defines its own secondary → it follows the accent, so picking a
+  // palette moves the kicker colour with it (previously secondary was omitted).
+  for (const p of EDITORIAL_PALETTES) {
+    assert.equal(paletteBrand(p).secondary, p.secondary || p.accent);
+  }
+  // An explicit palette secondary wins over the accent.
+  assert.equal(paletteBrand({ bg: "#000", ink: "#fff", accent: "#f00", secondary: "#0f0" }).secondary, "#0f0");
+});
+
 test("effectiveStyle is a strict no-op for a family's own default brand", () => {
   const st = getStyle("editorial");
   const eff = effectiveStyle("editorial", brandFromStyle("editorial"));

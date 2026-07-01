@@ -162,10 +162,15 @@ export const EDITORIAL_PALETTES = [
 
 // Expand a palette into the brand color set the deck re-themes with. sub/muted
 // are tinted between ink and bg so body/source text stays readable on the new
-// background while keeping a step of hierarchy below the heading.
+// background while keeping a step of hierarchy below the heading. `secondary`
+// (the segment-header / kicker colour) is TETHERED to the palette — it follows the
+// palette's own `secondary` when set, else its accent — so picking a palette moves
+// the kicker colour with it (previously it was omitted, so the kicker stayed on the
+// old palette's colour while everything else changed).
 export function paletteBrand(p) {
   return {
     bg: p.bg, accent: p.accent, ink: p.ink,
+    secondary: p.secondary || p.accent,
     sub: mix(p.ink, p.bg, 0.14), muted: mix(p.ink, p.bg, 0.46),
   };
 }

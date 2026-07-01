@@ -308,7 +308,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
         </button>
 
         {generating ? (
-          <button type="button" onClick={onCancel} style={cancelLink}>Cancel</button>
+          <button type="button" onClick={onCancel} style={cancelBtn}>✕&nbsp; Cancel generation</button>
         ) : (
           <button type="button" onClick={onBlank} style={blankLink}>Start from a blank canvas</button>
         )}
@@ -451,9 +451,12 @@ const blankLink = {
   marginTop: 16, background: "transparent", border: "none", color: "#8f8f97",
   fontSize: 13, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3,
 };
-const cancelLink = {
-  marginTop: 16, background: "transparent", border: "none", color: "#ff9a9a",
-  fontSize: 13, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3,
+// A prominent, unmistakable cancel button while generating (was a faint red text
+// link that read as "no cancel button" against the big progress button above it).
+const cancelBtn = {
+  marginTop: 14, padding: "11px 22px", borderRadius: 10,
+  background: "rgba(255,80,80,0.12)", border: "1px solid rgba(255,120,120,0.55)",
+  color: "#ff9a9a", fontSize: 14, fontWeight: 600, cursor: "pointer",
 };
 const quickRow = {
   display: "flex", alignItems: "center", gap: 8, marginTop: 20,

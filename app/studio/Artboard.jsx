@@ -58,13 +58,13 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
       setGuides(snapped.guides);
       // "move" (not a plain x/y update) so any element tethered to this one (B6)
       // is dragged along by the same delta.
-      dispatch({ type: "move", id: d.id, x: Math.round(snapped.x), y: Math.round(snapped.y) });
+      dispatch({ type: "move", id: d.id, x: Math.round(snapped.x), y: Math.round(snapped.y), coalesce: true });
     } else if (d.mode === "resize") {
       const patch = geoResize(d.startEl, d.handle.sx, d.handle.sy, p, { min: 16 });
-      dispatch({ type: "update", id: d.id, patch: roundBox(patch) });
+      dispatch({ type: "update", id: d.id, patch: roundBox(patch), coalesce: true });
     } else if (d.mode === "rotate") {
       const deg = geoRotate(d.startEl, p, 3);
-      dispatch({ type: "update", id: d.id, patch: { rotation: Math.round(deg) } });
+      dispatch({ type: "update", id: d.id, patch: { rotation: Math.round(deg) }, coalesce: true });
     } else if (d.mode === "crop") {
       // Free-form crop: dragging the photo pans its focal point. Moving the photo
       // right reveals its left edge, so focal x DECREASES with a rightward drag.
@@ -74,7 +74,7 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
       const z = Math.max(1, c0.zoom || 1);
       const nx = clamp01((c0.x == null ? 0.5 : c0.x) - (p.x - d.start.x) / (el0.w * Math.max(z - 1, 0.6)));
       const ny = clamp01((c0.y == null ? 0.5 : c0.y) - (p.y - d.start.y) / (el0.h * Math.max(z - 1, 0.6)));
-      dispatch({ type: "update", id: d.id, patch: { crop: { zoom: z, x: nx, y: ny } } });
+      dispatch({ type: "update", id: d.id, patch: { crop: { zoom: z, x: nx, y: ny } }, coalesce: true });
     }
   }, [dispatch, toArtboard]);
 
@@ -140,7 +140,7 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
       e.preventDefault();
       const c0 = el.crop || { zoom: 1, x: 0.5, y: 0.5 };
       const z = Math.max(1, Math.min(4, (c0.zoom || 1) - e.deltaY * 0.0015));
-      dispatch({ type: "update", id: croppingId, patch: { crop: { zoom: z, x: c0.x == null ? 0.5 : c0.x, y: c0.y == null ? 0.5 : c0.y } } });
+      dispatch({ type: "update", id: croppingId, patch: { crop: { zoom: z, x: c0.x == null ? 0.5 : c0.x, y: c0.y == null ? 0.5 : c0.y } }, coalesce: true });
     };
     node.addEventListener("wheel", onWheel, { passive: false });
     return () => node.removeEventListener("wheel", onWheel);
