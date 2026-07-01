@@ -44,11 +44,10 @@ const dropBig = { flexDirection: "column", height: 116, gap: 5 };
 const dropSm = { flexDirection: "row", height: 54 };
 const dropHi = { borderColor: UI.brand, background: "#1c2530" };
 const grid = {
-  // A real 2-column grid (row by row, top-to-bottom) rather than a balanced CSS
-  // masonry — so results read in a predictable order and the panel scrolls down.
-  // alignItems:start is LOAD-BEARING: without it the row stretches the shorter
-  // tile, filling it with grey dead-space below the photo (the "smushed" look).
-  display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "start", alignItems: "start",
+  // A real 2-column grid (row by row, top-to-bottom). Every tile is a uniform
+  // square (PhotoCard sets aspectRatio + object-fit:cover), so the results read as
+  // an even gallery — no ragged masonry, no grey dead-space under short tiles.
+  display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "start",
   padding: "0 12px 12px", overflowY: "auto", minHeight: 0,
 };
 const hint = { gridColumn: "1 / -1", color: "#7a7a7a", fontSize: 12, lineHeight: 1.5, padding: "16px 4px", textAlign: "center" };
@@ -94,14 +93,17 @@ function PhotoCard({ img, onSetBackground, onAddImage }) {
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ position: "relative", borderRadius: 6, overflow: "hidden", background: "#26262b" }}
+      style={{ position: "relative", borderRadius: 6, overflow: "hidden", background: "#26262b", aspectRatio: "1 / 1" }}
     >
       <img
         src={img.thumb}
         alt={img.alt || ""}
         loading="lazy"
         draggable={false}
-        style={{ width: "100%", height: "auto", display: "block" }}
+        // Uniform square tiles (object-fit:cover) — every result is the SAME size
+        // regardless of its native aspect ratio, so the grid reads as a clean
+        // gallery instead of a ragged masonry.
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         onError={(e) => { e.currentTarget.style.opacity = "0.15"; }}
       />
       {img.uploaded ? (
