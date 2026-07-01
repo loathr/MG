@@ -8,6 +8,16 @@ import { fitShapeBox } from "./textfit";
 import { readImageFile } from "./imageFile";
 import { removeBackground } from "./bgRemove";
 import { WRITE_KINDS, WRITE_KIND_ORDER } from "./aitext";
+import {
+  Type, Image as ImageIcon, Square, Minus, AlignLeft, AlignCenter, AlignRight,
+  Ban, Sparkles, Crop, Check, RotateCcw, Eraser, FlipHorizontal2, FlipVertical2,
+  Contrast, Replace, ImageDown, MoreHorizontal, ChevronDown, ArrowUp, ArrowDown,
+  Copy, Trash2, Link2, X, Maximize2,
+} from "lucide-react";
+
+// The element-type badge glyph (top-left of the bar) as a line icon.
+const KIND_ICON = { text: Type, image: ImageIcon, rect: Square, line: Minus };
+function KindIcon({ type }) { const I = KIND_ICON[type] || Square; return <I size={15} strokeWidth={2} />; }
 
 // The top contextual toolbar (Canva-style, top-only). It replaces the right-hand
 // Inspector: one horizontal bar above the canvas whose controls reflect the
@@ -64,7 +74,7 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
 
   return (
     <div ref={barRef} style={bar}>
-      <span style={kind}>{KIND_GLYPH[el.type] || "▦"}</span>
+      <span style={kind}><KindIcon type={el.type} /></span>
       <Sep />
 
       {el.type === "text" && (
@@ -80,15 +90,15 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
             <SegBtn on={strike} sel={!!sel} onMouseDown={sel ? hold : undefined} onClick={() => setStyle({ strike: !strike })}><s>S</s></SegBtn>
           </Seg>
           <Seg>
-            <SegBtn on={el.align === "left" || !el.align} onClick={() => up({ align: "left" })}>≣</SegBtn>
-            <SegBtn on={el.align === "center"} onClick={() => up({ align: "center" })}>≡</SegBtn>
-            <SegBtn on={el.align === "right"} onClick={() => up({ align: "right" })}>≖</SegBtn>
+            <SegBtn on={el.align === "left" || !el.align} onClick={() => up({ align: "left" })} title="Align left"><AlignLeft size={15} /></SegBtn>
+            <SegBtn on={el.align === "center"} onClick={() => up({ align: "center" })} title="Align center"><AlignCenter size={15} /></SegBtn>
+            <SegBtn on={el.align === "right"} onClick={() => up({ align: "right" })} title="Align right"><AlignRight size={15} /></SegBtn>
           </Seg>
           <Sep />
           <ColorBtn title="Highlight" value={hl || "#ffd34e"} dim={!hl} onChange={(v) => setHl(v)}
             glyph={<span style={{ background: hl || "#ffd34e", color: "#101010", borderRadius: 3, padding: "0 3px", fontSize: 11, fontWeight: 700 }}>H</span>}
-            extra={<button style={miniClear} onMouseDown={sel ? hold : undefined} onClick={() => setHl(null)} title="No highlight">⊘</button>} />
-          {onAiWrite && <><Sep /><button style={{ ...aiPill, ...(pop === "ai" ? aiPillOn : null) }} onClick={() => toggle("ai")} title="Write this text with AI">✨ Write</button></>}
+            extra={<button style={miniClear} onMouseDown={sel ? hold : undefined} onClick={() => setHl(null)} title="No highlight"><Ban size={13} /></button>} />
+          {onAiWrite && <><Sep /><button style={{ ...aiPill, ...(pop === "ai" ? aiPillOn : null) }} onClick={() => toggle("ai")} title="Write this text with AI"><Sparkles size={14} /> Write</button></>}
           {showEffects && <PopBtn label="Effects" open={pop === "effects"} onClick={() => toggle("effects")} />}
           {showShape && <PopBtn label="Shape" open={pop === "shape"} onClick={() => toggle("shape")} />}
         </>
@@ -100,11 +110,11 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
               zoom — see Artboard). While active it swaps to Done + Reset. */}
           {cropping ? (
             <>
-              <TextBtn title="Finish cropping" onClick={() => dispatch({ type: "crop", id: el.id })} style={cropDone}>✓ Done</TextBtn>
-              <TextBtn title="Reset the crop" onClick={() => up({ crop: null })}>↺ Reset</TextBtn>
+              <TextBtn title="Finish cropping" onClick={() => dispatch({ type: "crop", id: el.id })} style={cropDone}><Check size={14} /> Done</TextBtn>
+              <TextBtn title="Reset the crop" onClick={() => up({ crop: null })}><RotateCcw size={14} /> Reset</TextBtn>
             </>
           ) : (
-            <PopBtn label="⌗ Crop" open={false} onClick={() => dispatch({ type: "crop", id: el.id })} />
+            <PopBtn label={<><Crop size={14} /> Crop</>} open={false} onClick={() => dispatch({ type: "crop", id: el.id })} noCaret />
           )}
           <TextBtn title="Remove background (in-browser, no key)"
             onClick={async () => {
@@ -114,26 +124,26 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
               const out = await removeBackground(el.src);
               setBgBusy(false);
               if (out) dispatch({ type: "update", id, patch: { origSrc: srcWas, src: out, thumb: out } });
-            }}>{bgBusy ? "… removing" : "✦ BG Remover"}</TextBtn>
-          {el.origSrc && <TextBtn title="Restore the original image" onClick={() => up({ src: el.origSrc, thumb: el.origSrc, origSrc: null })}>↺ Restore</TextBtn>}
+            }}><Eraser size={14} /> {bgBusy ? "Removing…" : "BG Remover"}</TextBtn>
+          {el.origSrc && <TextBtn title="Restore the original image" onClick={() => up({ src: el.origSrc, thumb: el.origSrc, origSrc: null })}><RotateCcw size={14} /> Restore</TextBtn>}
           <Sep />
           <SelectBtn value={el.fit || "cover"} onChange={(v) => up({ fit: v })} title="Fit" options={[["cover", "Fill"], ["contain", "Fit"]]} />
           <NumBtn label="Radius" value={el.radius || 0} onChange={(n) => up({ radius: Math.max(0, n) })} />
           <Seg>
-            <SegBtn on={!!el.flipX} onClick={() => up({ flipX: !el.flipX })} title="Flip horizontal">⇋</SegBtn>
-            <SegBtn on={!!el.flipY} onClick={() => up({ flipY: !el.flipY })} title="Flip vertical">⥯</SegBtn>
-            <SegBtn on={!!el.mono} onClick={() => up({ mono: !el.mono })} title="Black & white">◑</SegBtn>
+            <SegBtn on={!!el.flipX} onClick={() => up({ flipX: !el.flipX })} title="Flip horizontal"><FlipHorizontal2 size={15} /></SegBtn>
+            <SegBtn on={!!el.flipY} onClick={() => up({ flipY: !el.flipY })} title="Flip vertical"><FlipVertical2 size={15} /></SegBtn>
+            <SegBtn on={!!el.mono} onClick={() => up({ mono: !el.mono })} title="Black & white"><Contrast size={15} /></SegBtn>
           </Seg>
           {/* Photo-owned darkening overlay (the scrim) — fixed-width slider so it
               never overflows the bar; ⊘ clears it. */}
           <span style={{ ...pill, gap: 7 }} title="Darken this photo (overlay)">
             <span>Overlay</span>
             <input type="range" min={0} max={80} value={Math.round((el.scrim || 0) * 100)} onChange={(e) => up({ scrim: (+e.target.value || 0) / 100 })} style={{ width: 64, accentColor: UI.brand }} />
-            <button style={miniClear} onClick={() => up({ scrim: 0 })} title="No overlay">⊘</button>
+            <button style={miniClear} onClick={() => up({ scrim: 0 })} title="No overlay"><Ban size={13} /></button>
           </span>
           {showImgExtra && <Sep />}
-          {showImgExtra && <TextBtn onClick={() => fileRef.current && fileRef.current.click()} title="Replace with another image">⧉ Replace</TextBtn>}
-          {showImgExtra && <TextBtn onClick={() => dispatch({ type: "imageToBackground", id: el.id })} title="Set as slide background">⤓ Background</TextBtn>}
+          {showImgExtra && <TextBtn onClick={() => fileRef.current && fileRef.current.click()} title="Replace with another image"><Replace size={14} /> Replace</TextBtn>}
+          {showImgExtra && <TextBtn onClick={() => dispatch({ type: "imageToBackground", id: el.id })} title="Set as slide background"><ImageDown size={14} /> Background</TextBtn>}
           <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }}
             onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) readImageFile(f, (img) => { if (img) up({ src: img.src, thumb: img.thumb, crop: null }); }); e.target.value = ""; }} />
         </>
@@ -143,13 +153,13 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
         <>
           <ColorBtn title={el.type === "line" ? "Colour" : "Fill"} value={el.fill && el.fill !== "none" ? el.fill : "#ffffff"} dim={!el.fill || el.fill === "none"} onChange={(v) => up({ fill: v })}
             glyph={<span style={{ width: 16, height: 16, borderRadius: 4, background: el.fill && el.fill !== "none" ? el.fill : "#444", border: "1px solid #555" }} />}
-            extra={el.type === "rect" ? <button style={miniClear} onClick={() => up({ fill: "none" })} title="No fill">⊘</button> : undefined} />
+            extra={el.type === "rect" ? <button style={miniClear} onClick={() => up({ fill: "none" })} title="No fill"><Ban size={13} /></button> : undefined} />
           {el.type === "rect" && (
             <>
               <ColorBtn title="Stroke" value={el.stroke && el.stroke !== "none" ? el.stroke : "#ffffff"} dim={!el.stroke || el.stroke === "none"}
                 onChange={(v) => up({ stroke: v, strokeWidth: el.strokeWidth || 2 })}
                 glyph={<span style={{ width: 16, height: 16, borderRadius: 4, border: "2px solid " + (el.stroke && el.stroke !== "none" ? el.stroke : "#666"), boxSizing: "border-box" }} />}
-                extra={<button style={miniClear} onClick={() => up({ stroke: "none", strokeWidth: 0 })} title="No stroke">⊘</button>} />
+                extra={<button style={miniClear} onClick={() => up({ stroke: "none", strokeWidth: 0 })} title="No stroke"><Ban size={13} /></button>} />
               <NumBtn label="Width" value={el.strokeWidth || 0} onChange={(n) => up({ strokeWidth: Math.max(0, n), stroke: n > 0 ? (el.stroke && el.stroke !== "none" ? el.stroke : "#ffffff") : "none" })} />
               <NumBtn label="Radius" value={el.radius || 0} onChange={(n) => up({ radius: Math.max(0, n) })} />
             </>
@@ -161,7 +171,7 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
 
       <Spacer />
       <PopBtn label="Position" open={pop === "position"} onClick={() => toggle("position")} />
-      <IconBtn title="More" onClick={() => toggle("more")}>⋯</IconBtn>
+      <IconBtn title="More" onClick={() => toggle("more")}><MoreHorizontal size={16} /></IconBtn>
 
       {/* ---- popovers ---- */}
       {pop === "position" && <Popover onClose={() => setPop(null)} right>
@@ -176,21 +186,21 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
           <input type="range" min={0} max={100} value={Math.round((el.opacity == null ? 1 : el.opacity) * 100)} onChange={(e) => up({ opacity: (+e.target.value || 0) / 100 })} style={{ flex: 1, minWidth: 0, accentColor: UI.brand }} />
           <span style={{ ...pLab, width: 30, textAlign: "right", color: UI.text }}>{Math.round((el.opacity == null ? 1 : el.opacity) * 100)}%</span>
         </label>
-        <P2><WBtn onClick={() => dispatch({ type: "raise", id: el.id })}>↑ Forward</WBtn><WBtn onClick={() => dispatch({ type: "lower", id: el.id })}>↓ Back</WBtn></P2>
+        <P2><WBtn onClick={() => dispatch({ type: "raise", id: el.id })}><ArrowUp size={14} /> Forward</WBtn><WBtn onClick={() => dispatch({ type: "lower", id: el.id })}><ArrowDown size={14} /> Back</WBtn></P2>
       </Popover>}
 
       {pop === "more" && <Popover onClose={() => setPop(null)} right>
         {/* Collapsed-from-the-bar controls appear here on a narrow canvas. */}
         {el.type === "text" && !showEffects && <><WBtn onClick={() => setPop("effects")}>Effects…</WBtn><div style={{ height: 6 }} /></>}
         {el.type === "text" && !showShape && <><WBtn onClick={() => setPop("shape")}>Shape…</WBtn><div style={{ height: 6 }} /></>}
-        {el.type === "image" && !showImgExtra && <><WBtn onClick={() => { fileRef.current && fileRef.current.click(); setPop(null); }}>⧉ Replace image</WBtn><div style={{ height: 6 }} /><WBtn onClick={() => { dispatch({ type: "imageToBackground", id: el.id }); setPop(null); }}>⤓ Set as background</WBtn><div style={{ height: 6 }} /></>}
+        {el.type === "image" && !showImgExtra && <><WBtn onClick={() => { fileRef.current && fileRef.current.click(); setPop(null); }}><Replace size={14} /> Replace image</WBtn><div style={{ height: 6 }} /><WBtn onClick={() => { dispatch({ type: "imageToBackground", id: el.id }); setPop(null); }}><ImageDown size={14} /> Set as background</WBtn><div style={{ height: 6 }} /></>}
         {/* B6 tether: pin this element to a parent so it follows the parent's drag. */}
         {el.tetherTo
-          ? <><div style={tetherRow}><span style={{ color: "#bfe9bf" }}>🔗 Tethered to {tetherName(el.tetherTo, siblings)}</span><button style={miniClear} title="Untether" onClick={() => up({ tetherTo: null })}>✕</button></div><div style={{ height: 6 }} /></>
-          : ((siblings && siblings.length) ? <><div style={tetherRow}><span style={pLab}>🔗 Tether to…</span><select value="" onChange={(e) => { if (e.target.value) up({ tetherTo: e.target.value }); }} style={tetherSelect}><option value="">choose…</option>{siblings.map((s) => <option key={s.id} value={s.id}>{tetherLabel(s)}</option>)}</select></div><div style={{ height: 6 }} /></> : null)}
-        <WBtn onClick={() => { dispatch({ type: "duplicate", id: el.id }); setPop(null); }}>⧉ Duplicate</WBtn>
+          ? <><div style={tetherRow}><span style={{ color: "#bfe9bf", display: "inline-flex", alignItems: "center", gap: 6 }}><Link2 size={13} /> Tethered to {tetherName(el.tetherTo, siblings)}</span><button style={miniClear} title="Untether" onClick={() => up({ tetherTo: null })}><X size={13} /></button></div><div style={{ height: 6 }} /></>
+          : ((siblings && siblings.length) ? <><div style={tetherRow}><span style={{ ...pLab, display: "inline-flex", alignItems: "center", gap: 6 }}><Link2 size={13} /> Tether to…</span><select value="" onChange={(e) => { if (e.target.value) up({ tetherTo: e.target.value }); }} style={tetherSelect}><option value="">choose…</option>{siblings.map((s) => <option key={s.id} value={s.id}>{tetherLabel(s)}</option>)}</select></div><div style={{ height: 6 }} /></> : null)}
+        <WBtn onClick={() => { dispatch({ type: "duplicate", id: el.id }); setPop(null); }}><Copy size={14} /> Duplicate</WBtn>
         <div style={{ height: 6 }} />
-        <WBtn danger onClick={() => { dispatch({ type: "delete", id: el.id }); setPop(null); }}>🗑 Delete</WBtn>
+        <WBtn danger onClick={() => { dispatch({ type: "delete", id: el.id }); setPop(null); }}><Trash2 size={14} /> Delete</WBtn>
       </Popover>}
 
       {pop === "effects" && el.type === "text" && <Popover onClose={() => setPop(null)}>
@@ -232,7 +242,7 @@ function AiPop({ onWrite, onClose }) {
     <>
       <div onClick={busy ? undefined : onClose} style={backdrop} />
       <div style={aiPop} onMouseDown={(e) => { const t = e.target.tagName; if (t !== "INPUT" && t !== "SELECT" && t !== "TEXTAREA" && t !== "BUTTON") e.preventDefault(); }}>
-        <div style={aiHead}>✨ Write this for me</div>
+        <div style={aiHead}><Sparkles size={14} /> Write this for me</div>
         <div style={aiSub}>Generate copy into this text box, using the deck&rsquo;s topic for context.</div>
         <textarea
           value={text}
@@ -250,7 +260,7 @@ function AiPop({ onWrite, onClose }) {
         <div style={aiRow}>
           <span style={aiNote}>Replaces this text box · ⌘Z undoes it</span>
           <button onClick={busy ? undefined : onClose} style={aiCancel}>Cancel</button>
-          <button onClick={go} disabled={!canGo} style={{ ...aiGo, opacity: canGo ? 1 : 0.5, cursor: canGo ? "pointer" : "default" }}>{busy ? "✨ Writing…" : "✨ Generate"}</button>
+          <button onClick={go} disabled={!canGo} style={{ ...aiGo, opacity: canGo ? 1 : 0.5, cursor: canGo ? "pointer" : "default" }}><Sparkles size={13} /> {busy ? "Writing…" : "Generate"}</button>
         </div>
       </div>
     </>
@@ -276,11 +286,11 @@ function ShapePop({ el, up, dispatch, onClose }) {
           <P2 style={{ marginTop: 8 }}>
             <div style={{ flex: 1, display: "flex", gap: 4 }}>
               <ColorField label="Fill" value={paint.bg === "transparent" ? UI.brand : paint.bg} onChange={(v) => up({ shapeBody: v })} />
-              <button style={miniClear} onClick={() => up({ shapeBody: "transparent" })} title="No fill">⊘</button>
+              <button style={miniClear} onClick={() => up({ shapeBody: "transparent" })} title="No fill"><Ban size={13} /></button>
             </div>
             <EffectField label="Border" value={borderVal && borderVal !== "none" ? borderVal : null} fallback={UI.brand} onChange={(v) => up({ shapeBorderC: v })} />
           </P2>
-          <P2><WBtn onClick={() => up(fitShapeBox(el, el.w))}>⤢ Fit to text</WBtn><WBtn danger onClick={() => { setShape(null); onClose(); }}>✕ Remove</WBtn></P2>
+          <P2><WBtn onClick={() => up(fitShapeBox(el, el.w))}><Maximize2 size={14} /> Fit to text</WBtn><WBtn danger onClick={() => { setShape(null); onClose(); }}><X size={14} /> Remove</WBtn></P2>
         </>
       )}
     </Popover>
@@ -323,12 +333,12 @@ function SelectBtn({ value, onChange, options, title }) {
 }
 function DashSelect({ value, onChange }) {
   return <select value={value} onChange={(e) => onChange(e.target.value)} title="Line style" style={pillSelect}>
-    <option value="solid">—— Solid</option><option value="dashed">- - Dashed</option><option value="dotted">··· Dotted</option>
+    <option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option>
   </select>;
 }
 function TextBtn({ children, onClick, title, style }) { return <button style={style ? { ...pillBtn, ...style } : pillBtn} onClick={onClick} title={title}>{children}</button>; }
 function IconBtn({ children, onClick, title }) { return <button style={{ ...pillBtn, padding: "0 10px" }} onClick={onClick} title={title}>{children}</button>; }
-function PopBtn({ label, open, onClick }) { return <button style={{ ...pillBtn, background: open ? "#34343c" : pillBtn.background }} onClick={onClick}>{label} ▾</button>; }
+function PopBtn({ label, open, onClick, noCaret }) { return <button style={{ ...pillBtn, background: open ? "#34343c" : pillBtn.background }} onClick={onClick}>{label}{!noCaret && <ChevronDown size={14} style={{ opacity: 0.7, marginLeft: -1 }} />}</button>; }
 
 // ---- popover primitives ----
 function Popover({ children, onClose, right }) {
@@ -351,12 +361,11 @@ function EffectField({ label, value, fallback, onChange }) {
 }
 function WBtn({ children, onClick, danger }) { return <button onClick={onClick} style={{ ...wBtn, color: danger ? "#ff8a8a" : UI.text }}>{children}</button>; }
 
-const KIND_GLYPH = { text: "T", image: "▤", rect: "▢", line: "—" };
-// A short label for an element in the tether picker: its glyph + a content hint.
+// A short label for an element in the tether picker (native <option> text, so it's
+// a word not an icon): a content hint for text, a type name otherwise.
 function tetherLabel(e) {
-  const g = KIND_GLYPH[e.type] || "▦";
-  if (e.type === "text") { const t = (e.content || "").trim().replace(/\s+/g, " "); return g + " " + (t ? "“" + t.slice(0, 16) + (t.length > 16 ? "…" : "") + "”" : "Text"); }
-  return g + " " + ({ image: "Photo", rect: "Rectangle", line: "Line" }[e.type] || "Element");
+  if (e.type === "text") { const t = (e.content || "").trim().replace(/\s+/g, " "); return t ? "“" + t.slice(0, 16) + (t.length > 16 ? "…" : "") + "”" : "Text"; }
+  return { image: "Photo", rect: "Rectangle", line: "Line" }[e.type] || "Element";
 }
 function tetherName(id, siblings) { const m = (siblings || []).find((s) => s.id === id); return m ? tetherLabel(m) : "another element"; }
 function round2(n) { return Math.round(n * 100) / 100; }
@@ -371,7 +380,7 @@ const pill = { height: 32, display: "inline-flex", alignItems: "center", gap: 6,
 const pillLab = { color: "#8a8a90", fontSize: 10.5 };
 const pillNum = { width: 42, background: "transparent", border: "none", color: "#eaeaea", fontSize: 12.5, textAlign: "right", outline: "none" };
 const pillSelect = { height: 32, background: "#24242a", color: "#eaeaea", border: "1px solid #34343c", borderRadius: 9, fontSize: 12.5, padding: "0 8px", cursor: "pointer" };
-const pillBtn = { height: 32, padding: "0 11px", borderRadius: 9, background: "#24242a", border: "1px solid #34343c", color: "#eaeaea", fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" };
+const pillBtn = { height: 32, padding: "0 11px", borderRadius: 9, background: "#24242a", border: "1px solid #34343c", color: "#eaeaea", fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 };
 const cropDone = { background: "#1f7a3a", border: "1px solid #2a9a4a", color: "#eafff0", fontWeight: 700 };
 const tetherRow = { display: "flex", alignItems: "center", gap: 7, height: 32, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 7, padding: "0 9px", fontSize: 12 };
 const tetherSelect = { marginLeft: "auto", maxWidth: 130, background: "#2a2a30", color: "#eaeaea", border: "1px solid #3a3a42", borderRadius: 6, fontSize: 12, padding: "2px 4px", cursor: "pointer" };
@@ -384,10 +393,10 @@ const stepVal = { minWidth: 30, textAlign: "center", color: "#eaeaea", fontSize:
 const backdrop = { position: "fixed", inset: 0, zIndex: 70 };
 const popover = { position: "absolute", top: 54, zIndex: 71, width: 230, background: "#161619", border: "1px solid #34343c", borderRadius: 12, boxShadow: "0 18px 40px rgba(0,0,0,0.6)", padding: 12 };
 // ✨ inline-AI "Write" pill + its popover (gradient accent so it reads as the AI affordance)
-const aiPill = { height: 32, padding: "0 13px", borderRadius: 9, background: "linear-gradient(135deg,#3a2a6e,#6d3bd1)", border: "1px solid #7d54e0", color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, boxShadow: "0 0 0 1px rgba(125,84,224,0.2)" };
+const aiPill = { height: 32, padding: "0 13px", borderRadius: 9, background: "linear-gradient(135deg,#3a2a6e,#6d3bd1)", border: "1px solid #7d54e0", color: "#fff", fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, boxShadow: "0 0 0 1px rgba(125,84,224,0.2)", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 };
 const aiPillOn = { background: "linear-gradient(135deg,#4a3686,#7d4ae6)", boxShadow: "0 0 0 2px rgba(125,84,224,0.4)" };
 const aiPop = { position: "absolute", top: 54, left: 8, zIndex: 71, width: 340, maxWidth: "calc(100vw - 24px)", background: "#1a1a1d", border: "1px solid #34343c", borderRadius: 12, boxShadow: "0 18px 50px rgba(0,0,0,0.6)", padding: 14 };
-const aiHead = { fontSize: 13, fontWeight: 600, color: UI.text, marginBottom: 3 };
+const aiHead = { fontSize: 13, fontWeight: 600, color: UI.text, marginBottom: 3, display: "inline-flex", alignItems: "center", gap: 6 };
 const aiSub = { fontSize: 11.5, color: UI.muted, lineHeight: 1.45, marginBottom: 11 };
 const aiArea = { width: "100%", boxSizing: "border-box", background: "#111114", border: "1px solid #34343c", borderRadius: 8, padding: "9px 11px", fontSize: 13, color: UI.text, minHeight: 60, resize: "vertical", lineHeight: 1.4, outline: "none", fontFamily: "inherit" };
 const aiChips = { display: "flex", flexWrap: "wrap", gap: 6, margin: "10px 0 12px" };
@@ -397,11 +406,11 @@ const aiErrBox = { fontSize: 11.5, color: "#ff9a9a", marginBottom: 9, lineHeight
 const aiRow = { display: "flex", alignItems: "center", gap: 8 };
 const aiNote = { fontSize: 10.5, color: UI.muted, flex: 1, minWidth: 0 };
 const aiCancel = { fontSize: 12, fontWeight: 600, padding: "8px 13px", borderRadius: 8, background: "#232327", color: "#bcbcc2", border: "1px solid #34343c", cursor: "pointer" };
-const aiGo = { fontSize: 12, fontWeight: 600, padding: "8px 15px", borderRadius: 8, background: "linear-gradient(135deg,#6d3bd1,#8b5cf6)", color: "#fff", border: "none", whiteSpace: "nowrap" };
+const aiGo = { fontSize: 12, fontWeight: 600, padding: "8px 15px", borderRadius: 8, background: "linear-gradient(135deg,#6d3bd1,#8b5cf6)", color: "#fff", border: "none", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6 };
 const popTitle = { fontSize: 10, fontWeight: 700, letterSpacing: 1.1, color: "#7c7c84", textTransform: "uppercase", marginBottom: 10 };
 const popSelect = { width: "100%", height: 32, background: UI.surface2, color: UI.text, border: "1px solid " + UI.border, borderRadius: 7, fontSize: 12.5, padding: "0 8px" };
 const pField = { flex: 1, height: 32, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 7, display: "flex", alignItems: "center", padding: "0 9px", gap: 6, minWidth: 0 };
 const pLab = { color: UI.muted, fontSize: 10, flexShrink: 0 };
 const pNum = { flex: 1, minWidth: 0, width: "100%", background: "transparent", border: "none", color: UI.text, fontSize: 12, textAlign: "right", outline: "none" };
 const pHint = { fontSize: 11, color: UI.muted, lineHeight: 1.45 };
-const wBtn = { width: "100%", height: 32, borderRadius: 7, background: UI.surface2, border: "1px solid " + UI.border, color: UI.text, cursor: "pointer", fontSize: 12.5 };
+const wBtn = { width: "100%", height: 32, borderRadius: 7, background: UI.surface2, border: "1px solid " + UI.border, color: UI.text, cursor: "pointer", fontSize: 12.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 };
