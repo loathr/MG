@@ -54,7 +54,13 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
   // Highlight: a span keeps it on its run (`bg`); the whole text box keeps it on
   // `textBg` (what the renderers read) — the old setStyle wrote `bg` element-wide,
   // which nothing rendered, so the H button looked dead off a selection.
-  const setHl = (v) => { if (sel && onStyleSpan) onStyleSpan({ bg: v }); else up({ textBg: v }); };
+  // Whole-box highlight. Clearing it (v=null) also drops the GENERATION `highlight`
+  // phrase (el.highlight) — otherwise a generated highlight could only be removed by
+  // editing the word, since it folds into a bg run independently of textBg.
+  const setHl = (v) => {
+    if (sel && onStyleSpan) onStyleSpan({ bg: v });
+    else up(v ? { textBg: v } : { textBg: null, highlight: null });
+  };
 
   return (
     <div ref={barRef} style={bar}>
@@ -289,7 +295,11 @@ function Sect() { return null; }
 function Seg({ children }) { return <span style={segWrap}>{children}</span>; }
 function SegBtn({ on, sel, onClick, onMouseDown, title, children }) {
   const bg = sel ? UI.select : UI.brand;
-  return <button title={title} onMouseDown={onMouseDown} onClick={onClick} style={{ ...segBtn, background: on ? bg : "transparent", color: on ? "#fff" : "#dadade" }}>{children}</button>;
+  // The active brand background is WHITE, so a white glyph on it is invisible (the
+  // "alignment button disappears when selected" bug). Use near-black on the white
+  // brand fill; white only on the blue span-selection fill.
+  const fg = on ? (sel ? "#fff" : UI.onBrand) : "#dadade";
+  return <button title={title} onMouseDown={onMouseDown} onClick={onClick} style={{ ...segBtn, background: on ? bg : "transparent", color: fg }}>{children}</button>;
 }
 function Stepper({ value, onDelta }) {
   return <span style={stepper}><button style={stepBtn} onClick={() => onDelta(-2)}>−</button><span style={stepVal}>{value}</span><button style={stepBtn} onClick={() => onDelta(2)}>+</button></span>;

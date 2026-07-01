@@ -51,7 +51,7 @@ export default function FormatBar({ style, accent, rect, onStyle, onClear, onSiz
   const s = style || {};
   const bold = (s.fontWeight || 400) >= 700;
   const swatches = [accent || "#ffffff", "#ffffff", "#111111", "#e2473e", "#ffd34e", "#56b3ff"];
-  const W = 396, H = 42;
+  const W = 480, H = 42; // W = centering/edge-clamp estimate; the bar itself sizes to its content
   const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
   const vh = typeof window !== "undefined" ? window.innerHeight : 800;
   const cx = Math.max(W / 2 + 8, Math.min((rect.left + rect.right) / 2, vw - W / 2 - 8)) + off.x;
@@ -77,7 +77,7 @@ export default function FormatBar({ style, accent, rect, onStyle, onClear, onSiz
   const HL_SWATCHES = [accent || "#ffd34e", "#ffd34e", "#aef0c0", "#ffd0e0", "#bcdcff", "#e2473e"];
 
   return (
-    <div data-formatbar style={{ ...wrap, left: cx, top, width: W }} onMouseDown={(e) => { if (e.target.tagName !== "INPUT") hold(e); }}>
+    <div data-formatbar style={{ ...wrap, left: cx, top }} onMouseDown={(e) => { if (e.target.tagName !== "INPUT") hold(e); }}>
       {/* drag grip — reposition the whole bar */}
       <button onPointerDown={onGripDown} onMouseDown={hold} title="Drag to move" style={grip}>⠿</button>
       <span style={sep} />
@@ -167,6 +167,9 @@ function Tog({ on, children, onClick, onMouseDown, title }) {
 
 const wrap = {
   position: "fixed", zIndex: 60, transform: "translateX(-50%)", height: 42,
+  // Size to the controls (was a fixed 396 that clipped the last segments); never
+  // wider than the viewport so a narrow window scrolls the page, not the bar.
+  width: "max-content", maxWidth: "calc(100vw - 16px)",
   display: "flex", alignItems: "center", gap: 2, padding: "0 7px",
   background: "#101013", border: "1px solid #33333c", borderRadius: 11,
   boxShadow: "0 14px 32px rgba(0,0,0,0.55)", fontFamily: "Helvetica, Arial, sans-serif",
