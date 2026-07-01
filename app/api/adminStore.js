@@ -6,7 +6,7 @@
 // fails OPEN on any error so a metering blip can never block generation.
 
 import { adminCredentials } from "./authCore";
-import { quotaCheck, usagePeriodKey } from "../studio/authority";
+import { quotaCheck, usagePeriodKey, normalizeRole } from "../studio/authority";
 import { resolveShared } from "../studio/sharing";
 
 let _db = null;
@@ -75,6 +75,80 @@ export async function readShared(deckId, presentedToken) {
   } catch (e) {
     return { access: "none", error: true };
   }
+}
+
+// --- Admin console readers/writers (admin-only; the CALLER verifies admin) ----
+
+// Every account for the console: merges Firebase Auth (email, display name, the
+// `role` custom claim, last sign-in) with Firestore (monthly limit + this month's
+// generation count). Fail-open to [] so the console degrades gracefully. Reads are
+// bounded to 1000 accounts (a workspace, not a public app).
+export async function listAccounts(nowMs) {
+  const creds = adminCredentials();
+  if (!creds) return [];
+  try {
+    const { getApps, initializeApp, cert } = await import("firebase-admin/app");
+    const app = getApps().length ? getApps()[0] : initializeApp({ credential: cert(creds) });
+    const { getAuth } = await import("firebase-admin/auth");
+    const d = await db();
+    const period = usagePeriodKey(nowMs);
+    const res = await getAuth(app).listUsers(1000);
+    const rows = [];
+    for (const u of res.users) {
+      let limit = 0, used = 0;
+      if (d) {
+        try {
+          const uSnap = await d.doc("users/" + u.uid).get();
+          const ud = uSnap.exists ? uSnap.data() : null;
+          limit = (ud && ud.limits && ud.limits.monthly) || 0;
+        } catch (e) { /* default 0 */ }
+        try {
+          const gSnap = await d.doc("usage/" + u.uid + "/months/" + period).get();
+          used = (gSnap.exists && gSnap.data() && gSnap.data().count) || 0;
+        } catch (e) { /* default 0 */ }
+      }
+      rows.push({
+        uid: u.uid,
+        email: u.email || "",
+        name: u.displayName || (u.email ? u.email.split("@")[0] : "Account"),
+        role: normalizeRole(u.customClaims && u.customClaims.role),
+        limit, used,
+        lastActive: (u.metadata && (u.metadata.lastSignInTime || u.metadata.lastRefreshTime)) || null,
+      });
+    }
+    return rows;
+  } catch (e) { return []; }
+}
+
+// Every account's decks (metadata only) for the admin All-decks view, via a
+// collection-group query over all users' `decks` subcollections. The owner uid is
+// recovered from the doc path. Fail-open to []. Never returns the heavy `doc`.
+export async function listAllDecks() {
+  const d = await db();
+  if (!d) return [];
+  try {
+    const snap = await d.collectionGroup("decks").get();
+    const decks = [];
+    snap.forEach((doc) => {
+      const r = doc.data() || {};
+      const ownerUid = doc.ref.parent && doc.ref.parent.parent ? doc.ref.parent.parent.id : "";
+      decks.push({ id: doc.id, ownerUid, name: r.name || "Untitled carousel", slideCount: r.slideCount || 0, updatedAt: r.updatedAt || 0 });
+    });
+    decks.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    return decks;
+  } catch (e) { return []; }
+}
+
+// Admin only: set an account's monthly generation cap at users/{uid}.limits.monthly
+// (0 = unlimited). The caller MUST have already verified it is an admin.
+export async function setUserLimit(targetUid, monthly) {
+  const d = await db();
+  if (!d || !targetUid) return false;
+  try {
+    const n = Math.max(0, Math.floor(Number(monthly) || 0));
+    await d.doc("users/" + targetUid).set({ limits: { monthly: n } }, { merge: true });
+    return true;
+  } catch (e) { return false; }
 }
 
 // Admin only: set an account's `role` custom claim (the authority the token

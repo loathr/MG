@@ -20,8 +20,9 @@ import CaptionPanel from "./CaptionPanel";
 import TemplatesPanel from "./TemplatesPanel";
 import CreateScreen from "./CreateScreen";
 import ProjectsScreen from "./ProjectsScreen";
+import AdminConsole from "./AdminConsole";
 import { isCloudEnabled } from "./cloud";
-import { onAuthChange, signOutCloud } from "./firebaseClient";
+import { onAuthChange, signOutCloud, getUserRole } from "./firebaseClient";
 import { saveDeck, loadDeck, listDecks, deleteDeck } from "./firebaseStore";
 import { exportSlide, exportSlides } from "./export";
 import { verifyDeck } from "./verify";
@@ -71,6 +72,7 @@ export default function Studio() {
   // ---- Cloud (gated by isCloudEnabled; all no-ops when disabled = today's flow).
   const cloud = isCloudEnabled();
   const [user, setUser] = useState(null);          // signed-in Firebase user
+  const [role, setRole] = useState(null);          // signed-in user's role claim (admin gate)
   const [projects, setProjects] = useState([]);    // the user's saved decks (list meta)
   const [projectId, setProjectId] = useState(null);// current deck's Firestore id
   const [saveState, setSaveState] = useState("idle"); // "idle" | "saving" | "saved"
@@ -125,6 +127,15 @@ export default function Studio() {
     if (!cloud) return undefined;
     return onAuthChange(setUser);
   }, [cloud]);
+
+  // Resolve the signed-in user's role (drives the admin-console entry). Cleared on
+  // sign-out. The admin routes re-check this server-side, so this only gates the UI.
+  useEffect(() => {
+    if (!cloud || !user) { setRole(null); return; }
+    let live = true;
+    getUserRole().then((r) => { if (live) setRole(r); }).catch(() => {});
+    return () => { live = false; };
+  }, [cloud, user]);
 
   // Live view of a shared deck: re-pull every few seconds so a watcher sees the
   // owner's edits land (Tier A "instant live view" via short poll — upgradeable
@@ -398,6 +409,10 @@ export default function Studio() {
       onNav={(i) => dispatch({ type: "setSlide", index: i })} error={genError} />;
   }
 
+  if (cloud && screen === "admin") {
+    return <AdminConsole onBack={() => setScreen("projects")} selfUid={user && user.uid} nowMs={Date.now()} />;
+  }
+
   if (cloud && screen === "projects") {
     return (
       <ProjectsScreen
@@ -407,6 +422,8 @@ export default function Studio() {
         onDelete={removeProject}
         email={(user && (user.email || user.displayName)) || ""}
         onSignOut={() => signOutCloud()}
+        isAdmin={role === "admin"}
+        onAdmin={() => setScreen("admin")}
         nowMs={Date.now()}
       />
     );

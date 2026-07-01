@@ -64,6 +64,16 @@ PR: `https://github.com/loathr/MG/pull/9`
   your uid as bootstrap, `POST /api/admin/role {uid, role:"admin"}`, re-auth, then
   set another account to `viewer`/`editor` and confirm UI + rules match. Set a
   small `users/{uid}.limits.monthly`, generate past it → **429**; raise it → works.
+- [ ] **Admin console** (needs admin creds + you as an admin): as an admin, the
+  Projects header shows a **⚙ Admin** button (editors/viewers never see it, and
+  `/api/admin/accounts` returns **403** for them). Open it → **Accounts** tab lists
+  every signed-in account with a role dropdown (viewer/editor/admin) and a monthly
+  cap field — changing either saves via `/api/admin/role` / `/api/admin/limit` and
+  the member picks it up on their next token refresh. **Usage** tab shows per-account
+  generation bars for the month; **All decks** tab lists every account's carousels
+  (owner · slides · updated). The stat cards (accounts / admins / generations / over
+  limit) update live as you edit. If **All decks** is empty on a populated project,
+  enable the `decks` collection-group index in Firestore (the server read fails open).
 - [ ] **Share link / live view (Tier A)**: save a deck → 🔗 Share → "Anyone with
   the link can view" → copy the `…/studio?deck=<id>&s=<token>` URL → open it in
   another browser (even signed-out) → it loads in the **read-only live viewer**

@@ -58,3 +58,14 @@ export async function getIdToken() {
   if (!auth || !auth.currentUser) return null;
   return auth.currentUser.getIdToken();
 }
+
+// The signed-in user's role custom claim ("viewer" | "editor" | "admin"), read
+// from the ID-token result. Defaults to "editor" (DEFAULT_ROLE) when unset; null
+// when signed out / disabled. Pass true to force a token refresh (e.g. right after
+// an admin changed your role) so the new claim is picked up without re-signing-in.
+export async function getUserRole(forceRefresh) {
+  const auth = await authInstance();
+  if (!auth || !auth.currentUser) return null;
+  const res = await auth.currentUser.getIdTokenResult(!!forceRefresh);
+  return (res && res.claims && res.claims.role) || "editor";
+}

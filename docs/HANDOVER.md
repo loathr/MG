@@ -338,13 +338,15 @@ Fixes: cloneSlide tether remap; setChrome brandless hardening.
 The original BUILD QUEUE (B1–B6, Look & Frame, Cloud foundation/auth/storage,
 Topic Routes, D3) is **all shipped**. Current backlog:
 
-1. **Workspace track — deploy-only wiring left** (cores done in `authority.js` /
-   `sharing.js`, server wiring in `_auth`/`adminStore`/`/api/admin/role` + the
-   generate 429): the **share OPEN route** `/studio/<id>?s=` + a Firestore
-   `onSnapshot` **live-view** listener (Tier A), and the **admin console**
-   (all-decks list + usage dashboard + role/limit management UI). All deploy-only.
-   Decided defaults: team workspace · generations/month limit · Drive = PNGs+PDF ·
-   collaboration **Tier A** (share + live view; not Tier C CRDT).
+1. **Workspace track — deploy-only wiring left.** ✅ **Admin console SHIPPED** —
+   `AdminConsole.jsx` (Accounts role+limit management, Usage bars, All-decks list,
+   live stat cards), backed by `adminModel.js` (pure, tested) + `adminStore`
+   readers (`listAccounts`/`listAllDecks`/`setUserLimit`) + `/api/admin/accounts`
+   (GET, admin-gated) and `/api/admin/limit` (POST); a ⚙ Admin entry shows on the
+   Projects header for admins only. ✅ Tier A share link + live view already
+   shipped. **Left:** the `onSnapshot` upgrade (swap the 4s share-view poll for a
+   Firestore listener for signed-in viewers). Decided defaults: team workspace ·
+   generations/month limit · Drive = PNGs+PDF · collaboration **Tier A**.
 2. **Google Drive export** (P5) — `drive.file` OAuth scope + multipart upload of
    the export (PNGs + combined PDF). Deploy-only.
 3. **Deploy-verification pass** — work `docs/VERIFY.md` on a real Firebase deploy

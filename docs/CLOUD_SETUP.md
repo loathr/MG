@@ -72,6 +72,17 @@ Roles ride as a `role` custom claim (`viewer`/`editor`/`admin`) set via
 to your uid, then call that route once. Per-account monthly limits live at
 `users/{uid}.limits.monthly` (0/absent = unlimited) and are enforced server-side
 on `/api/generate` (429 when reached).
+
+**Admin console.** Once you're an admin, the Projects screen shows a **⚙ Admin**
+entry (hidden from editors/viewers). It reads `GET /api/admin/accounts` (admin-gated;
+every account with role + limit + this-month usage, plus every deck's metadata) and
+writes via `/api/admin/role` and `/api/admin/limit`. These run on the Admin SDK, which
+**bypasses** security rules — no extra rules needed. The **All decks** view uses a
+Firestore **collection-group query** over `decks`; if it's empty on a populated
+project, create the single-field **collection-group index** for `decks` (Firestore
+surfaces a one-click link, or Indexes → add). The read fails open, so a missing index
+just empties that tab rather than erroring.
+
 **Storage → Rules** (for uploaded images, step 11b of the build):
 ```
 rules_version = '2';
