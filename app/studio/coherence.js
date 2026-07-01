@@ -39,17 +39,39 @@ export function buildCoherencePrompt(doc) {
     ' "spine": "the deck\'s through-line in one sentence, as you actually read it",',
     ' "summary": "one sentence on how well it holds together",',
     ' "issues": [',
-    '   {"slide": <index or null>, "kind": "spine|transition|callback|repeat|arc|strength", "note": "the specific problem (or, for kind=strength, what works), one sentence"}',
+    '   {"slide": <index or null>, "kind": "spine|transition|callback|repeat|arc|strength", "note": "the specific problem (or, for kind=strength, what works), one sentence",',
+    '    "fix": {"action": "rewrite|cut|merge", "into": <MERGE ONLY: the index of the slide to KEEP>, "heading": "<rewritten heading for the kept slide — rewrite/merge only>", "body": "<rewritten body, 2-3 tight sentences — rewrite/merge only>"}}',
     " ]}",
     "",
     "Rules:",
     '- kind: "transition" (a slide doesn\'t connect to the previous), "callback" (closer misses the cover), "repeat" (two slides make the same point), "arc" (the escalation plateaus or dips), "spine" (a slide drifts off the through-line), "strength" (something that genuinely works).',
     "- List the PROBLEMS first, most damaging first; you may add one or two strengths at the end.",
-    "- Be specific and actionable — name the slide and what to do (merge, cut, re-angle, re-thread).",
+    "- Each PROBLEM should carry a concrete `fix`: REWRITE the flagged slide (give the new heading and/or body), CUT it when it adds nothing (repeat/off-spine — no heading/body needed), or MERGE it into another (set `into` to the slide to keep and give that slide's merged heading + body). Prefer the smallest fix that works; keep facts, figures and names. Omit `fix` only when you genuinely can't propose one, and never on a `strength`.",
+    "- A rewritten heading is Title Case and specific; a rewritten body is 2-3 tight sentences carrying one proof point. Do NOT invent new facts — restructure and re-thread the existing ones.",
   ].join("\n");
 }
 
 const KINDS = { spine: 1, transition: 1, callback: 1, repeat: 1, arc: 1, strength: 1 };
+const FIX_ACTIONS = { rewrite: 1, cut: 1, merge: 1 };
+
+// Normalise a raw fix onto the flagged slide, or null when it's not a usable fix
+// (unknown action; a rewrite/merge with no new text; a cut/merge missing an index).
+function parseFix(raw, slide) {
+  if (!raw || typeof raw !== "object" || !FIX_ACTIONS[raw.action]) return null;
+  const heading = String(raw.heading || "");
+  const body = String(raw.body || "");
+  if (raw.action === "rewrite") {
+    if (!Number.isInteger(slide) || (!heading && !body)) return null;
+    return { action: "rewrite", slide, heading, body };
+  }
+  if (raw.action === "cut") {
+    if (!Number.isInteger(slide)) return null;
+    return { action: "cut", slide };
+  }
+  // merge
+  if (!Number.isInteger(slide) || !Number.isInteger(raw.into) || raw.into === slide || (!heading && !body)) return null;
+  return { action: "merge", slide, into: raw.into, heading, body };
+}
 
 export function parseCoherence(text) {
   if (!text) throw new Error("Empty coherence response");
@@ -62,11 +84,14 @@ export function parseCoherence(text) {
   const obj = JSON.parse(cleaned);
   const issues = (Array.isArray(obj.issues) ? obj.issues : [])
     .filter((c) => c && typeof c === "object")
-    .map((c) => ({
-      slide: Number.isInteger(c.slide) ? c.slide : null,
-      kind: KINDS[c.kind] ? c.kind : "spine",
-      note: String(c.note || ""),
-    }));
+    .map((c) => {
+      const slide = Number.isInteger(c.slide) ? c.slide : null;
+      const kind = KINDS[c.kind] ? c.kind : "spine";
+      const issue = { slide, kind, note: String(c.note || "") };
+      const fix = kind === "strength" ? null : parseFix(c.fix, slide);
+      if (fix) issue.fix = fix;
+      return issue;
+    });
   const score = typeof obj.score === "number" ? Math.max(0, Math.min(10, obj.score)) : null;
   return { score, spine: String(obj.spine || ""), summary: String(obj.summary || ""), issues };
 }

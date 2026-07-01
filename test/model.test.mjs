@@ -8,6 +8,7 @@ import {
   findElement, highlightRuns, uploadResult,
   styledRuns, applyRunStyle, clearRunStyle, remapRuns, isUniformText, elementBaseStyle, highlightOffsets,
   bakeHighlight, bakeDocHighlights, clearHighlightRuns, correctionSite, applyCorrectionToDoc,
+  applyRewriteToDoc, applyCoherenceFix, coherenceFixApplicable,
   cropRect, imageTransform, cropAnchor, reframeCrop,
 } from "../app/studio/model.js";
 
@@ -337,6 +338,53 @@ test("applyCorrectionToDoc: a no-op (same ref) when the phrase isn't found or is
   assert.equal(applyCorrectionToDoc(doc, 0, "zzz", "yyy"), doc);   // absent
   assert.equal(applyCorrectionToDoc(doc, 0, "hello", "hello"), doc); // unchanged
   assert.equal(applyCorrectionToDoc(doc, 0, "", "x"), doc);        // empty wrong
+});
+
+// --- coherence fixes: rewrite / cut / merge -------------------------------
+const coDeck = () => ({ slides: [
+  { content: { heading: "Cover", subhead: "sub" }, elements: [makeElement("text", { tier: "heading", content: "Cover" })] },
+  { content: { heading: "Origin", body: "it began in 2017" }, elements: [
+    makeElement("text", { tier: "heading", content: "Origin" }),
+    makeElement("text", { tier: "body", content: "it began in 2017", runs: [{ start: 0, end: 2, bold: true }] }),
+  ] },
+  { content: { heading: "Turn", body: "then everything changed" }, elements: [makeElement("text", { tier: "body", content: "then everything changed" }) ] },
+  { content: { heading: "Closer", cta: "follow" }, elements: [makeElement("text", { tier: "heading", content: "Closer" })] },
+] });
+
+test("applyRewriteToDoc: swaps the heading/body element (by tier) + canonical content, resets runs", () => {
+  const out = applyRewriteToDoc(coDeck(), 1, { heading: "The Origin Story", body: "It actually began in 2016." });
+  const sl = out.slides[1];
+  assert.equal(sl.content.heading, "The Origin Story");
+  assert.equal(sl.content.body, "It actually began in 2016.");
+  assert.equal(sl.elements.find((e) => e.tier === "heading").content, "The Origin Story");
+  const bodyEl = sl.elements.find((e) => e.tier === "body");
+  assert.equal(bodyEl.content, "It actually began in 2016.");
+  assert.equal(bodyEl.runs, undefined); // stale runs reset on a full rewrite
+});
+
+test("applyCoherenceFix cut: removes the slide, but never below the floor", () => {
+  const out = applyCoherenceFix(coDeck(), { action: "cut", slide: 2 });
+  assert.equal(out.slides.length, 3);
+  assert.ok(!out.slides.some((s) => s.content.heading === "Turn"));
+  // at the 3-slide floor a further cut is a no-op (same ref)
+  assert.equal(applyCoherenceFix(out, { action: "cut", slide: 1 }), out);
+});
+
+test("applyCoherenceFix merge: rewrites the survivor `into` then drops the merged slide", () => {
+  const out = applyCoherenceFix(coDeck(), { action: "merge", slide: 2, into: 1, heading: "Origin & Turn", body: "Began in 2017, then surged." });
+  assert.equal(out.slides.length, 3);                       // one slide dropped
+  assert.equal(out.slides[1].content.heading, "Origin & Turn"); // survivor rewritten
+  assert.ok(!out.slides.some((s, i) => i !== 1 && s.content.heading === "Turn"));
+});
+
+test("coherenceFixApplicable: gates cut/merge on the floor + required fields", () => {
+  const doc = coDeck();
+  assert.equal(coherenceFixApplicable(doc, { action: "rewrite", slide: 1, heading: "X" }), true);
+  assert.equal(coherenceFixApplicable(doc, { action: "rewrite", slide: 1 }), false);         // no text
+  assert.equal(coherenceFixApplicable(doc, { action: "cut", slide: 2 }), true);              // 4 > floor
+  assert.equal(coherenceFixApplicable({ slides: doc.slides.slice(0, 3) }, { action: "cut", slide: 1 }), false); // at floor
+  assert.equal(coherenceFixApplicable(doc, { action: "merge", slide: 2, into: 1, body: "y" }), true);
+  assert.equal(coherenceFixApplicable(doc, { action: "merge", slide: 2, into: 2, body: "y" }), false); // same index
 });
 
 test("applyRunStyle: sets a key over a range and merges adjacent equal runs", () => {

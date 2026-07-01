@@ -1,11 +1,19 @@
 "use client";
 import React from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Check, Pencil, Scissors, Combine } from "lucide-react";
+import { coherenceFixApplicable } from "./model";
 
 // Coherence results (structure sibling of the Fact-check panel). Presentational:
-// Studio runs checkCoherence and passes {loading, error, result} in. Shows the
+// Studio runs checkCoherence and passes {loading, error, result, doc} in. Shows the
 // coherence score, the detected spine, and a per-slide issue list (problems first,
-// strengths last); clicking an issue jumps to its slide.
+// strengths last); clicking an issue jumps to its slide. Each problem that carries
+// an applyable fix (rewrite / cut / merge) gets a one-tap Apply, and "Apply all
+// fixes" clears the queue.
+const FIXUI = {
+  rewrite: { Icon: Pencil, label: "Rewrite" },
+  cut: { Icon: Scissors, label: "Cut slide" },
+  merge: { Icon: Combine, label: "Merge" },
+};
 
 const wrap = {
   width: 300, flexShrink: 0, display: "flex", flexDirection: "column",
@@ -15,6 +23,11 @@ const wrap = {
 const head = { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 12px 8px", flexShrink: 0 };
 const xBtn = { width: 24, height: 24, lineHeight: "22px", textAlign: "center", background: "transparent", color: "#999", border: "none", cursor: "pointer", fontSize: 18, borderRadius: 5 };
 const body = { padding: "0 12px 14px", overflowY: "auto", minHeight: 0 };
+const applyAllBtn = { width: "100%", height: 32, marginBottom: 12, background: "#173225", border: "1px solid #2a5a40", color: "#8fd3a8", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 };
+const applyBtn = { marginTop: 8, height: 28, padding: "0 12px", background: "#22303a", border: "1px solid #35586a", color: "#9fd0ea", borderRadius: 6, fontSize: 11.5, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 };
+const fixedTag = { marginTop: 8, fontSize: 11, color: "#8fd3a8", display: "inline-flex", alignItems: "center", gap: 5 };
+const fixPreview = { marginTop: 7, fontSize: 11.5, lineHeight: 1.4, background: "#0e1a12", border: "1px solid #1f3a28", borderRadius: 7, padding: "8px 10px" };
+const fixTag = { fontSize: 8.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, color: "#c9b3f0", marginBottom: 4 };
 
 // problems first (by severity), strengths last.
 const KIND = {
@@ -34,9 +47,11 @@ function scoreColor(s) {
   return "#ff6b6b";
 }
 
-export default function CoherencePanel({ loading, error, result, phase, onJump, onClose, onCancel, onRetry }) {
+export default function CoherencePanel({ loading, error, result, phase, doc, onJump, onClose, onCancel, onRetry, onApplyFix, onApplyAllFixes }) {
   const issues = (result && result.issues) ? result.issues.slice().sort((a, b) => kinfo(a.kind).rank - kinfo(b.kind).rank) : [];
   const problems = issues.filter((c) => c.kind !== "strength").length;
+  const canFix = (c) => !c.applied && c.fix && coherenceFixApplicable(doc, c.fix);
+  const ready = issues.filter(canFix);
   return (
     <div style={wrap}>
       <div style={head}>
@@ -79,12 +94,21 @@ export default function CoherencePanel({ loading, error, result, phase, onJump, 
               {problems ? problems + " thing" + (problems === 1 ? "" : "s") + " weaken the arc" : "The arc holds together"}
             </div>
 
+            {ready.length > 0 && (
+              <button onClick={() => onApplyAllFixes && onApplyAllFixes(ready)} style={applyAllBtn}
+                title="Apply every proposed fix (each is undoable)">
+                <Check size={13} /> Apply all fixes ({ready.length})
+              </button>
+            )}
+
             {issues.length === 0 && (
               <div style={{ color: "#7a7a7a", fontSize: 12 }}>No structural issues flagged.</div>
             )}
 
             {issues.map((c, i) => {
               const ki = kinfo(c.kind);
+              const fixable = canFix(c);
+              const fx = c.fix && FIXUI[c.fix.action];
               return (
                 <div key={i} style={{ borderTop: "1px solid #2a2a2f", padding: "10px 0" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -97,6 +121,21 @@ export default function CoherencePanel({ loading, error, result, phase, onJump, 
                     )}
                   </div>
                   <div style={{ fontSize: 12.5, color: "#eaeaea", lineHeight: 1.4 }}>{c.note}</div>
+                  {/* Proposed fix preview: the rewritten heading/body, or the cut/merge action. */}
+                  {c.fix && (c.fix.heading || c.fix.body) ? (
+                    <div style={fixPreview}>
+                      {c.fix.action === "merge" ? <div style={fixTag}>merged into slide {(c.fix.into ?? 0) + 1}</div> : null}
+                      {c.fix.heading ? <div style={{ color: "#cfe8d6", fontWeight: 600, marginBottom: c.fix.body ? 3 : 0 }}>{c.fix.heading}</div> : null}
+                      {c.fix.body ? <div style={{ color: "#a9c9b4" }}>{c.fix.body}</div> : null}
+                    </div>
+                  ) : null}
+                  {c.applied ? (
+                    <div style={fixedTag}><Check size={12} /> Applied · re-check to confirm</div>
+                  ) : fixable ? (
+                    <button onClick={() => onApplyFix && onApplyFix(c)} style={applyBtn} title="Apply this fix to the deck (undoable)">
+                      <fx.Icon size={12} /> {fx.label}
+                    </button>
+                  ) : null}
                 </div>
               );
             })}

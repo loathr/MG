@@ -565,6 +565,94 @@ export function applyCorrectionToDoc(doc, slideIndex, wrong, correction) {
   return Object.assign({}, doc, { slides });
 }
 
+// Replace the text of a slide's HEADING or BODY with a coherence rewrite: swap the
+// matching text element's content (by tier, or by exact old-content match as a
+// fallback) and reset its runs/highlight (new text), and mirror the change into the
+// canonical slide.content field. Returns a new doc when something changed, else the
+// same reference. Pure.
+function replaceTierText(elements, tier, oldVal, newVal) {
+  let done = false;
+  const out = (elements || []).map((e) => {
+    if (done || !e || e.type !== "text") return e;
+    if (!(e.tier === tier || (oldVal && e.content === oldVal))) return e;
+    done = true;
+    const n = Object.assign({}, e, { content: newVal });
+    delete n.runs; delete n.highlight; delete n.highlightColor; delete n.highlightText;
+    return n;
+  });
+  return { elements: out, done };
+}
+export function applyRewriteToDoc(doc, slideIndex, rewrite) {
+  if (!doc || !Array.isArray(doc.slides) || !rewrite) return doc;
+  const sl = doc.slides[slideIndex];
+  if (!sl) return doc;
+  let elements = Array.isArray(sl.elements) ? sl.elements : [];
+  const content = Object.assign({}, sl.content || {});
+  let changed = false;
+  if (typeof rewrite.heading === "string" && rewrite.heading.trim()) {
+    const r = replaceTierText(elements, "heading", content.heading, rewrite.heading);
+    if (r.done) elements = r.elements;
+    if (content.heading !== rewrite.heading) content.heading = rewrite.heading;
+    changed = changed || r.done || true;
+  }
+  if (typeof rewrite.body === "string" && rewrite.body.trim()) {
+    const key = content.body != null ? "body" : content.subhead != null ? "subhead" : content.cta != null ? "cta" : "body";
+    const r = replaceTierText(elements, "body", content[key], rewrite.body);
+    if (r.done) elements = r.elements;
+    if (content[key] !== rewrite.body) content[key] = rewrite.body;
+    changed = true;
+  }
+  if (!changed) return doc;
+  const slides = doc.slides.slice();
+  slides[slideIndex] = Object.assign({}, sl, { elements, content });
+  return Object.assign({}, doc, { slides });
+}
+
+// A deck must keep at least a cover + one content slide + a closer.
+const MIN_COHERENCE_SLIDES = 3;
+
+// Whether a coherence fix can be applied to this doc (drives the panel's button):
+// a rewrite/merge needs new heading|body; a cut/merge deletion needs the deck to
+// stay above the floor. Pure.
+export function coherenceFixApplicable(doc, fix) {
+  if (!doc || !Array.isArray(doc.slides) || !fix || !fix.action) return false;
+  const n = doc.slides.length;
+  if (fix.action === "rewrite") return Number.isInteger(fix.slide) && !!(fix.heading || fix.body);
+  if (fix.action === "cut") return Number.isInteger(fix.slide) && fix.slide >= 0 && fix.slide < n && n > MIN_COHERENCE_SLIDES;
+  if (fix.action === "merge") return Number.isInteger(fix.slide) && Number.isInteger(fix.into) && fix.slide !== fix.into && !!(fix.heading || fix.body);
+  return false;
+}
+
+// Apply one coherence fix — rewrite a slide, cut a redundant slide, or merge two
+// (rewrite the survivor `into`, then drop `slide`). A cut/merge deletion is skipped
+// when it would take the deck below the floor (the rewrite half of a merge still
+// lands). Returns a new doc, or the same reference when nothing changed. Pure.
+export function applyCoherenceFix(doc, fix) {
+  if (!doc || !Array.isArray(doc.slides) || !fix) return doc;
+  const n = doc.slides.length;
+  if (fix.action === "rewrite") {
+    return applyRewriteToDoc(doc, fix.slide, { heading: fix.heading, body: fix.body });
+  }
+  if (fix.action === "cut") {
+    if (n <= MIN_COHERENCE_SLIDES || !Number.isInteger(fix.slide) || fix.slide < 0 || fix.slide >= n) return doc;
+    const slides = doc.slides.slice();
+    slides.splice(fix.slide, 1);
+    return Object.assign({}, doc, { slides });
+  }
+  if (fix.action === "merge") {
+    if (!Number.isInteger(fix.slide) || !Number.isInteger(fix.into) || fix.slide === fix.into) return doc;
+    if (fix.slide < 0 || fix.slide >= n || fix.into < 0 || fix.into >= n) return doc;
+    let out = applyRewriteToDoc(doc, fix.into, { heading: fix.heading, body: fix.body });
+    if (out.slides.length > MIN_COHERENCE_SLIDES) {
+      const slides = out.slides.slice();
+      slides.splice(fix.slide, 1);
+      out = Object.assign({}, out, { slides });
+    }
+    return out;
+  }
+  return doc;
+}
+
 // True when the element renders as one uniform span carrying no inline-only
 // decoration (background / outline) — i.e. the container's own CSS fully covers
 // it, so the renderer can fast-path to the raw string (current behaviour).

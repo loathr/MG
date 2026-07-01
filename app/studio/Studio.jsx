@@ -496,6 +496,24 @@ export default function Studio() {
   };
   const cancelCoherence = () => { if (coAbort.current) coAbort.current.abort(); };
 
+  // Apply a coherence fix (rewrite / cut / merge): patch the deck (undoable) and
+  // mark the issue resolved, nudging the estimated score up (Re-check re-scores).
+  const applyFlowFix = (issue) => {
+    dispatch({ type: "applyCoherenceFix", fix: issue.fix });
+    setCo((c) => {
+      if (!c || !c.result) return c;
+      const same = (x) => x.slide === issue.slide && x.kind === issue.kind && x.note === issue.note;
+      const issues = c.result.issues.map((x) => (same(x) ? Object.assign({}, x, { applied: true }) : x));
+      const score = c.result.score == null ? null : Math.min(10, c.result.score + 1);
+      return Object.assign({}, c, { result: Object.assign({}, c.result, { issues, score }) });
+    });
+  };
+  // Apply-all: run cut/merge deletions HIGH-index-first so earlier indices stay
+  // valid as slides are removed across the batch.
+  const applyAllFlowFixes = (list) => {
+    (list || []).slice().sort((a, b) => ((b.fix && b.fix.slide) || 0) - ((a.fix && a.fix.slide) || 0)).forEach(applyFlowFix);
+  };
+
   // Apply a verified fact-check correction: patch the deck (undoable) and mark the
   // claim resolved, nudging the estimated score up (a real re-score needs Re-check).
   const applyCorrection = (claim) => {
@@ -822,10 +840,13 @@ export default function Studio() {
             loading={co.loading}
             error={co.error}
             result={co.result}
+            doc={state.doc}
             onJump={(i) => dispatch({ type: "setSlide", index: i })}
             onClose={() => setCo(null)}
             onCancel={cancelCoherence}
             onRetry={runCoherence}
+            onApplyFix={applyFlowFix}
+            onApplyAllFixes={applyAllFlowFixes}
           />
         )}
 

@@ -37,6 +37,21 @@ test("parseCoherence reads score/spine/issues, clamps the score, normalises unkn
   assert.equal(parseCoherence('{"issues":[]}').score, null);           // missing score
 });
 
+test("parseCoherence reads the fix (rewrite/cut/merge); drops malformed fixes + fixes on strengths", () => {
+  const v = parseCoherence(JSON.stringify({ score: 6, spine: "s", issues: [
+    { slide: 6, kind: "callback", note: "n", fix: { action: "rewrite", heading: "New closer", body: "pays off the hook" } },
+    { slide: 5, kind: "repeat", note: "n", fix: { action: "cut" } },
+    { slide: 4, kind: "arc", note: "n", fix: { action: "merge", into: 3, heading: "H", body: "B" } },
+    { slide: 2, kind: "transition", note: "n", fix: { action: "rewrite" } },   // no text → fix dropped
+    { slide: 1, kind: "strength", note: "works", fix: { action: "cut" } },      // strengths never get a fix
+  ] }));
+  assert.deepEqual(v.issues[0].fix, { action: "rewrite", slide: 6, heading: "New closer", body: "pays off the hook" });
+  assert.deepEqual(v.issues[1].fix, { action: "cut", slide: 5 });
+  assert.deepEqual(v.issues[2].fix, { action: "merge", slide: 4, into: 3, heading: "H", body: "B" });
+  assert.equal(v.issues[3].fix, undefined); // rewrite with no text → no fix
+  assert.equal(v.issues[4].fix, undefined); // strength → no fix
+});
+
 test("parseCoherence tolerates fences + trailing commas; throws on empty", () => {
   const v = parseCoherence('```json\n{"score":8,"spine":"s","issues":[{"slide":0,"kind":"repeat","note":"n"},]}\n```');
   assert.equal(v.score, 8);
