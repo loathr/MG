@@ -366,7 +366,12 @@ export async function runPrompt(prompt, opts) {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error((data && (data.error && (data.error.message || data.error))) || ("HTTP " + res.status));
+    let msg = (data && (data.error && (data.error.message || data.error))) || ("HTTP " + res.status);
+    // Surface the auth gate's reason ("no token" / "invalid token: …") so a
+    // signed-in user hitting a 401 sees WHY (token not sent vs verification failed,
+    // e.g. a service-account/web-config project mismatch) instead of a bare prompt.
+    if (data && data.reason) msg += " (" + data.reason + ")";
+    throw new Error(msg);
   }
   const ct = res.headers.get("content-type") || "";
   if (stream && res.body && ct.includes("text/event-stream")) return readSSEText(res.body, o.onPhase);

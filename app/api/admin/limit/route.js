@@ -7,7 +7,7 @@ import { setUserLimit } from "../../adminStore";
 // gate + BOOTSTRAP_ADMIN_UID escape as the role route.
 export async function POST(request) {
   const auth = await verifyRequest(request);
-  if (!auth.ok) return unauthorized();
+  if (!auth.ok) return unauthorized(auth.reason);
   const isBootstrap = !!(auth.uid && process.env.BOOTSTRAP_ADMIN_UID && auth.uid === process.env.BOOTSTRAP_ADMIN_UID);
   if (auth.gated && auth.role !== "admin" && !isBootstrap) return forbidden("Admin only.");
 

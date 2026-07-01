@@ -37,8 +37,12 @@ export async function verifyRequest(request) {
   }
 }
 
-export function unauthorized() {
-  return NextResponse.json({ error: "Please sign in to continue." }, { status: 401 });
+// 401. `reason` (from verifyRequest — "no token" / "invalid token: …") is echoed
+// back so the client can surface WHY the gate rejected the call (session not sent
+// vs token verification failed, e.g. a service-account/web-config project
+// mismatch). The reason carries no secrets — project ids are public config.
+export function unauthorized(reason) {
+  return NextResponse.json({ error: "Please sign in to continue.", reason: reason || undefined }, { status: 401 });
 }
 
 export function forbidden(msg) {

@@ -10,7 +10,7 @@ import { workspaceTotals } from "../../../studio/adminModel";
 // BOOTSTRAP_ADMIN_UID escape for the very first admin). Editors/viewers get 403.
 export async function GET(request) {
   const auth = await verifyRequest(request);
-  if (!auth.ok) return unauthorized();
+  if (!auth.ok) return unauthorized(auth.reason);
   const isBootstrap = !!(auth.uid && process.env.BOOTSTRAP_ADMIN_UID && auth.uid === process.env.BOOTSTRAP_ADMIN_UID);
   if (auth.gated && auth.role !== "admin" && !isBootstrap) return forbidden("Admin only.");
 
