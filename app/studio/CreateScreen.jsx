@@ -10,6 +10,7 @@ import { routeFraming, getBeat, REGIONS, URGENCY, ANGLES, EMPHASIS, MODES, frami
 import { VOICES as PERSONAS, TONES as RICH_TONES } from "./voices";
 import { readDocFile } from "./docsource";
 import StickLoader from "./StickLoader";
+import { PRESETS, activePreset } from "./presets";
 import {
   PenLine, FileText, X, ChevronDown, ChevronRight, Sparkles, Zap, ArrowLeft, RefreshCw,
   Scroll, Swords, KeyRound, Clapperboard, BarChart3, MessageCircle, Headphones, Shirt, Mic, Gem,
@@ -101,6 +102,9 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   const [angle, setAngle] = useState(null);
   const [emphasis, setEmphasis] = useState(null);
   const [mode, setMode] = useState(null);
+  // Quick-start: curated presets + the 8 angle-seeds, folded away by default so the
+  // create screen stays clean (opens on demand).
+  const [qsOpen, setQsOpen] = useState(false);
 
   const pickDesk = (key) => {
     setDesk(key);
@@ -180,6 +184,17 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   const voiceOverridden = voice !== DESK_VOICE[desk];
   const personaObj = PERSONAS.find((p) => p.id === persona) || PERSONAS[0];
 
+  // Quick-start presets: apply seeds the four controls; the active chip is DERIVED
+  // (matches all four), so tweaking any field un-lights it. Clear resets to defaults.
+  const curPreset = activePreset(persona, tone, angle, length);
+  const applyPreset = (p) => { setPersona(p.voice); setTone(p.tone); setAngle(p.angle); setLength(p.length); };
+  const clearQuickStart = () => { setPersona("auto"); setTone(null); setAngle(null); setLength("standard"); };
+  const lblV = (id) => (PERSONAS.find((v) => v.id === id) || {}).label || id;
+  const lblT = (id) => (TONES.find((t) => t.id === id) || {}).label || id;
+  const lblA = (id) => (ANGLES.find((a) => a.id === id) || {}).label || id;
+  const lblL = (id) => (LENGTHS.find((l) => l.id === id) || {}).label || id;
+  const presetSub = (p) => [lblV(p.voice), lblT(p.tone), lblA(p.angle), lblL(p.length)].join(" · ");
+
   // The picked beat's curated topics, and the rotating window of three shown.
   const allSeeds = beat ? (getBeat(beat).seeds || []) : [];
   const shownSeeds = allSeeds.length <= 3
@@ -257,6 +272,43 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             {docErr ? <div style={docErrBox}>{docErr}</div> : null}
           </div>
         )}
+        {/* Quick start — curated presets + the 8 angle-seeds, collapsed by default. */}
+        <button type="button" onClick={() => setQsOpen((v) => !v)} style={qsToggle}>
+          {qsOpen ? <ChevronDown size={14} style={{ verticalAlign: "-2px" }} /> : <ChevronRight size={14} style={{ verticalAlign: "-2px" }} />} Quick start
+          <span style={qsToggleSub}>{curPreset ? " · " + curPreset.name : " · presets & angle"}</span>
+        </button>
+        {qsOpen && (
+          <div style={qsBox}>
+            <div style={qsLab}>Presets <span style={qsOpt}>— one tap sets voice · tone · angle · length</span></div>
+            <div style={qsGrid}>
+              {PRESETS.map((p) => {
+                const on = curPreset && curPreset.id === p.id;
+                return (
+                  <button key={p.id} type="button" onClick={() => applyPreset(p)} style={qsChip(on)}>
+                    <span style={qsChipName}>{p.name}</span>
+                    <span style={qsChipSub(on)}>{presetSub(p)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {curPreset && (
+              <div style={qsApplied}>
+                <span style={{ color: "#8a8a92" }}>“{curPreset.name}” applied</span>
+                <button type="button" onClick={clearQuickStart} style={qsClear}>Clear</button>
+              </div>
+            )}
+            <div style={{ ...qsLab, marginTop: 14 }}>Angle <span style={qsOpt}>— the story&rsquo;s slant (any desk)</span></div>
+            <div style={qsAngles}>
+              {ANGLES.map((a) => (
+                <button key={a.id} type="button" title={a.prompt} onClick={() => setAngle(angle === a.id ? null : a.id)} style={qsChip(angle === a.id)}>
+                  <span style={qsChipName}>{a.label}</span>
+                  <span style={qsChipSub(angle === a.id)}>{a.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Voice (persona) + Tone — compact pickers, applied to BOTH modes */}
         <div style={vtRow}>
           <div style={{ position: "relative", flex: 1 }}>
@@ -371,24 +423,14 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             {/* Advanced framing (Tier 3) — desk-specific: News Angle + Emphasis,
                 Enterprise Mode. Optional; ported from the monolith configs. */}
             {desk === "newsdesk" && (
-              <>
-                <div style={vRow}>
-                  <span style={vKey}>Angle</span>
-                  <div style={tones}>
-                    {ANGLES.map((a) => (
-                      <button key={a.id} type="button" onClick={() => setAngle(angle === a.id ? null : a.id)} style={toneChip(angle === a.id)} title={a.prompt}>{a.label}</button>
-                    ))}
-                  </div>
+              <div style={vRow}>
+                <span style={vKey}>Emphasis</span>
+                <div style={tones}>
+                  {EMPHASIS.map((em) => (
+                    <button key={em.id} type="button" onClick={() => setEmphasis(emphasis === em.id ? null : em.id)} style={toneChip(emphasis === em.id)} title={em.prompt}>{em.label}</button>
+                  ))}
                 </div>
-                <div style={vRow}>
-                  <span style={vKey}>Emphasis</span>
-                  <div style={tones}>
-                    {EMPHASIS.map((em) => (
-                      <button key={em.id} type="button" onClick={() => setEmphasis(emphasis === em.id ? null : em.id)} style={toneChip(emphasis === em.id)} title={em.prompt}>{em.label}</button>
-                    ))}
-                  </div>
-                </div>
-              </>
+              </div>
             )}
             {desk === "enterprise" && (
               <div style={vRow}>
@@ -591,6 +633,26 @@ const advToggle = {
   marginTop: 22, background: "transparent", border: "none", color: "#8f8f97",
   fontSize: 12.5, cursor: "pointer", letterSpacing: 0.3,
 };
+// Quick-start (presets + angle) collapsible.
+const qsToggle = {
+  marginTop: 14, background: "transparent", border: "none", color: "#c8c8ce",
+  fontSize: 12.5, fontWeight: 600, cursor: "pointer", letterSpacing: 0.2, textAlign: "left", width: "100%",
+};
+const qsToggleSub = { color: "#7c7c84", fontWeight: 400 };
+const qsBox = { width: "100%", marginTop: 10, border: "1px solid #232329", background: "#131316", borderRadius: 12, padding: 14, textAlign: "left" };
+const qsLab = { fontSize: 10, letterSpacing: 1, textTransform: "uppercase", color: "#7c7c84", marginBottom: 9 };
+const qsOpt = { textTransform: "none", letterSpacing: 0, color: "#5f5f66" };
+const qsGrid = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 };
+const qsAngles = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 };
+const qsChip = (on) => ({
+  display: "flex", flexDirection: "column", gap: 3, textAlign: "left", cursor: "pointer",
+  background: on ? "#1c1630" : "#17171b", border: "1px solid " + (on ? "#7d54e0" : "#26262c"),
+  boxShadow: on ? "0 0 0 1px #7d54e0" : "none", borderRadius: 10, padding: "9px 11px",
+});
+const qsChipName = { fontSize: 12.5, fontWeight: 700, color: "#e8e8ee" };
+const qsChipSub = (on) => ({ fontSize: 9.5, lineHeight: 1.3, color: on ? "#b9a8e8" : "#8a8a92" });
+const qsApplied = { display: "flex", alignItems: "center", gap: 10, marginTop: 11, fontSize: 12 };
+const qsClear = { marginLeft: "auto", fontSize: 11, color: "#8a8a92", background: "transparent", border: "1px solid #2a2a30", borderRadius: 7, padding: "5px 10px", cursor: "pointer" };
 
 const errBox = { marginTop: 14, padding: "8px 12px", background: "#3a1f22", color: "#ff9a9a", fontSize: 13, borderRadius: 8 };
 function primary(disabled) {

@@ -149,10 +149,18 @@ export function urgencyById(id) { return URGENCY.find((u) => u.id === id) || nul
 // and Enterprise Mode (distilled from its three prompt builders). {id, label,
 // prompt}; the prompt is appended verbatim to the route block (generate.js).
 // Surfaced inside the create screen's Advanced disclosure — lowest priority.
+// The 8 angle-seeds — a story angle that steers generation, available for EVERY
+// desk (surfaced in the create screen's Quick-start section). Resolves to a prompt
+// string appended to the route block, same as Voice/Tone.
 export const ANGLES = [
-  { id: "neutral", label: "Neutral", prompt: "Report objectively — present all sides without editorial judgment." },
-  { id: "critical", label: "Critical", prompt: "Take a critical stance — question official narratives and examine the power dynamics." },
-  { id: "investigative", label: "Investigative", prompt: "Dig deeper — follow the money, the connections, and the motivations behind the story." },
+  { id: "neutral", label: "Neutral", hint: "report objectively, all sides", prompt: "Report objectively — present all sides without editorial judgment." },
+  { id: "critical", label: "Critical", hint: "question the official narrative", prompt: "Take a critical stance — question official narratives and examine the power dynamics." },
+  { id: "investigative", label: "Investigative", hint: "follow the money & motives", prompt: "Dig deeper — follow the money, the connections, and the motivations behind the story." },
+  { id: "contrarian", label: "Contrarian", hint: "argue against the consensus", prompt: "Argue against the consensus — take the position most people won't, and defend it with evidence." },
+  { id: "explainer", label: "Explainer", hint: "break it down, plainly", prompt: "Explain it plainly — break the topic into clear, simple steps a newcomer can follow." },
+  { id: "data", label: "Data-driven", hint: "lead every slide with numbers", prompt: "Lead every slide with a number or hard datapoint — let the evidence carry the argument." },
+  { id: "human", label: "Human story", hint: "through one person's eyes", prompt: "Tell it through one person's experience — a single human story that stands for the whole." },
+  { id: "future", label: "Future-forward", hint: "where this is heading next", prompt: "Look ahead — where this is going next, and what it means for what comes after." },
 ];
 export const EMPHASIS = [
   { id: "facts", label: "Facts-first", prompt: "Lead every slide with verified facts — maximise reporting, minimise analysis." },
