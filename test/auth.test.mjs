@@ -3,7 +3,16 @@
 // decision + header parsing.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseBearer, adminCredentials, authGateEnabled } from "../app/api/authCore.js";
+import { parseBearer, adminCredentials, authGateEnabled, isBootstrapAdmin } from "../app/api/authCore.js";
+
+test("isBootstrapAdmin: only the exact BOOTSTRAP_ADMIN_UID matches", () => {
+  const env = { BOOTSTRAP_ADMIN_UID: "uid-123" };
+  assert.equal(isBootstrapAdmin("uid-123", env), true);
+  assert.equal(isBootstrapAdmin("uid-999", env), false);   // wrong uid
+  assert.equal(isBootstrapAdmin("", env), false);          // no uid
+  assert.equal(isBootstrapAdmin(null, env), false);
+  assert.equal(isBootstrapAdmin("uid-123", {}), false);    // env var unset → nobody
+});
 
 test("parseBearer extracts the token (case/space tolerant); null otherwise", () => {
   assert.equal(parseBearer("Bearer abc.def.ghi"), "abc.def.ghi");

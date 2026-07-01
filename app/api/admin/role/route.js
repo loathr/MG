@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyRequest, unauthorized, forbidden } from "../../_auth";
+import { isBootstrapAdmin } from "../../authCore";
 import { setUserRole } from "../../adminStore";
 import { ROLES } from "../../../studio/authority";
 
@@ -12,8 +13,7 @@ export async function POST(request) {
   const auth = await verifyRequest(request);
   if (!auth.ok) return unauthorized(auth.reason);
 
-  const isBootstrap = !!(auth.uid && process.env.BOOTSTRAP_ADMIN_UID && auth.uid === process.env.BOOTSTRAP_ADMIN_UID);
-  if (auth.gated && auth.role !== "admin" && !isBootstrap) return forbidden("Admin only.");
+  if (auth.gated && auth.role !== "admin" && !isBootstrapAdmin(auth.uid)) return forbidden("Admin only.");
 
   let body = {};
   try { body = await request.json(); } catch (e) { /* fall through to validation */ }

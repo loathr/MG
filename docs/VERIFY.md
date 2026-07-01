@@ -60,10 +60,15 @@ PR: `https://github.com/loathr/MG/pull/9`
   Firestore doc holds Storage download URLs (not `data:` base64), the images
   live under `users/{uid}/decks/{id}/img_*`, reload restores them, and a
   photo-heavy deck (previously >1 MB) now saves. Sandbox blocks the bucket.
-- [ ] **Roles + usage limits** (needs admin creds + `BOOTSTRAP_ADMIN_UID`): set
-  your uid as bootstrap, `POST /api/admin/role {uid, role:"admin"}`, re-auth, then
-  set another account to `viewer`/`editor` and confirm UI + rules match. Set a
-  small `users/{uid}.limits.monthly`, generate past it → **429**; raise it → works.
+- [ ] **Roles + usage limits** (needs admin creds + `BOOTSTRAP_ADMIN_UID`):
+  **auto-bootstrap** — set your uid as `BOOTSTRAP_ADMIN_UID`, redeploy, sign in →
+  the **⚙ Admin** button appears on "Your projects" with NO console call (the app
+  pings `/api/admin/bootstrap`, the server self-promotes only that uid, token
+  refreshes). A second (non-bootstrap) account signing in stays an editor and gets
+  **403** from `/api/admin/*`. In the console, set another account to
+  `viewer`/`editor` and a small monthly limit; that account generating past it →
+  **429**; raise it → works. Then remove `BOOTSTRAP_ADMIN_UID` and confirm no one
+  new can self-promote.
 - [ ] **Admin console** (needs admin creds + you as an admin): as an admin, the
   Projects header shows a **⚙ Admin** button (editors/viewers never see it, and
   `/api/admin/accounts` returns **403** for them). Open it → **Accounts** tab lists

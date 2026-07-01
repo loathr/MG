@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyRequest, unauthorized, forbidden } from "../../_auth";
+import { isBootstrapAdmin } from "../../authCore";
 import { setUserLimit } from "../../adminStore";
 
 // Admin-only: set an account's monthly generation cap (0 = unlimited), stored at
@@ -8,8 +9,7 @@ import { setUserLimit } from "../../adminStore";
 export async function POST(request) {
   const auth = await verifyRequest(request);
   if (!auth.ok) return unauthorized(auth.reason);
-  const isBootstrap = !!(auth.uid && process.env.BOOTSTRAP_ADMIN_UID && auth.uid === process.env.BOOTSTRAP_ADMIN_UID);
-  if (auth.gated && auth.role !== "admin" && !isBootstrap) return forbidden("Admin only.");
+  if (auth.gated && auth.role !== "admin" && !isBootstrapAdmin(auth.uid)) return forbidden("Admin only.");
 
   let body = {};
   try { body = await request.json(); } catch (e) { /* fall through to validation */ }

@@ -22,7 +22,7 @@ import CreateScreen from "./CreateScreen";
 import ProjectsScreen from "./ProjectsScreen";
 import AdminConsole from "./AdminConsole";
 import { isCloudEnabled } from "./cloud";
-import { onAuthChange, signOutCloud, getUserRole } from "./firebaseClient";
+import { onAuthChange, signOutCloud, getUserRole, bootstrapAdmin } from "./firebaseClient";
 import { saveDeck, loadDeck, listDecks, deleteDeck } from "./firebaseStore";
 import { exportSlide, exportSlides } from "./export";
 import { verifyDeck } from "./verify";
@@ -130,10 +130,21 @@ export default function Studio() {
 
   // Resolve the signed-in user's role (drives the admin-console entry). Cleared on
   // sign-out. The admin routes re-check this server-side, so this only gates the UI.
+  // First-admin AUTO-BOOTSTRAP: a non-admin sign-in pings the gated
+  // /api/admin/bootstrap once — the server promotes only the BOOTSTRAP_ADMIN_UID
+  // account (a no-op for everyone else), and on success we force-refresh the token
+  // so the ⚙ Admin entry appears without a manual sign-out/in.
   useEffect(() => {
     if (!cloud || !user) { setRole(null); return; }
     let live = true;
-    getUserRole().then((r) => { if (live) setRole(r); }).catch(() => {});
+    (async () => {
+      let r = await getUserRole().catch(() => null);
+      if (r !== "admin") {
+        const promoted = await bootstrapAdmin().catch(() => false);
+        if (promoted) r = (await getUserRole(true).catch(() => null)) || "admin";
+      }
+      if (live) setRole(r);
+    })();
     return () => { live = false; };
   }, [cloud, user]);
 

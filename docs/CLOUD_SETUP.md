@@ -68,10 +68,15 @@ service cloud.firestore {
 }
 ```
 Roles ride as a `role` custom claim (`viewer`/`editor`/`admin`) set via
-`POST /api/admin/role`; bootstrap the first admin by setting `BOOTSTRAP_ADMIN_UID`
-to your uid, then call that route once. Per-account monthly limits live at
-`users/{uid}.limits.monthly` (0/absent = unlimited) and are enforced server-side
-on `/api/generate` (429 when reached).
+`POST /api/admin/role`. **Bootstrap the first admin is AUTOMATIC:** set
+`BOOTSTRAP_ADMIN_UID` to your uid (Production env) → redeploy → sign in. The app
+pings `POST /api/admin/bootstrap` once after sign-in; the server promotes ONLY the
+account whose verified uid matches `BOOTSTRAP_ADMIN_UID` (a no-op for everyone
+else), then refreshes your token so **⚙ Admin** appears — no console snippet, no
+manual sign-out/in. Once you're set, **remove `BOOTSTRAP_ADMIN_UID`** to close the
+escape (all further admins are assigned from the console UI). Per-account monthly
+limits live at `users/{uid}.limits.monthly` (0/absent = unlimited) and are enforced
+server-side on `/api/generate` (429 when reached).
 
 **Admin console.** Once you're an admin, the Projects screen shows a **⚙ Admin**
 entry (hidden from editors/viewers). It reads `GET /api/admin/accounts` (admin-gated;

@@ -69,3 +69,19 @@ export async function getUserRole(forceRefresh) {
   const res = await auth.currentUser.getIdTokenResult(!!forceRefresh);
   return (res && res.claims && res.claims.role) || "editor";
 }
+
+// One-time auto-bootstrap for the FIRST admin: POST /api/admin/bootstrap with the
+// current ID token. The SERVER promotes the caller to admin only if their verified
+// uid matches BOOTSTRAP_ADMIN_UID — so this is a safe no-op for everyone else.
+// Returns true when it actually promoted (the caller then force-refreshes its token
+// to pick up the new claim). Never throws.
+export async function bootstrapAdmin() {
+  const token = await getIdToken();
+  if (!token) return false;
+  try {
+    const res = await fetch("/api/admin/bootstrap", { method: "POST", headers: { Authorization: "Bearer " + token } });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return !!(data && data.promoted);
+  } catch (e) { return false; }
+}

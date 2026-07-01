@@ -3,6 +3,7 @@ import { verifyRequest, unauthorized, forbidden } from "../../_auth";
 import { listAccounts, listAllDecks } from "../../adminStore";
 import { usagePeriodKey } from "../../../studio/authority";
 import { workspaceTotals } from "../../../studio/adminModel";
+import { isBootstrapAdmin } from "../../authCore";
 
 // Admin-only: the whole admin-console payload — every account (role + monthly
 // limit + this-month usage), every deck's metadata, the current usage period, and
@@ -11,8 +12,7 @@ import { workspaceTotals } from "../../../studio/adminModel";
 export async function GET(request) {
   const auth = await verifyRequest(request);
   if (!auth.ok) return unauthorized(auth.reason);
-  const isBootstrap = !!(auth.uid && process.env.BOOTSTRAP_ADMIN_UID && auth.uid === process.env.BOOTSTRAP_ADMIN_UID);
-  if (auth.gated && auth.role !== "admin" && !isBootstrap) return forbidden("Admin only.");
+  if (auth.gated && auth.role !== "admin" && !isBootstrapAdmin(auth.uid)) return forbidden("Admin only.");
 
   const nowMs = Date.now();
   const [accounts, decks] = await Promise.all([listAccounts(nowMs), listAllDecks()]);

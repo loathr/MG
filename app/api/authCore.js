@@ -31,3 +31,12 @@ export function adminCredentials(env) {
 
 // Is the server-side auth gate active? (i.e. are admin creds configured?)
 export function authGateEnabled(env) { return !!adminCredentials(env); }
+
+// Is this (verified) uid the one-time bootstrap admin — the escape hatch that lets
+// the FIRST admin self-promote before any admin exists to assign roles? Gated only
+// by the server-only BOOTSTRAP_ADMIN_UID env var. Pure → unit-tested; shared by the
+// admin routes and the auto-bootstrap route so the rule can't drift.
+export function isBootstrapAdmin(uid, env) {
+  const e = env || (typeof process !== "undefined" ? process.env : {}) || {};
+  return !!(uid && e.BOOTSTRAP_ADMIN_UID && uid === e.BOOTSTRAP_ADMIN_UID);
+}
