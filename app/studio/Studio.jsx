@@ -28,25 +28,31 @@ import { saveDeck, loadDeck, listDecks, deleteDeck } from "./firebaseStore";
 import { exportSlide, exportSlides } from "./export";
 import { verifyDeck } from "./verify";
 import FactCheckPanel from "./FactCheckPanel";
+import {
+  Type, Shapes, Image as ImageIcon, LayoutTemplate, Palette, Captions,
+  Undo2, Redo2, RotateCcw, RotateCw, ShieldCheck, Share2, Download,
+  ChevronDown, ChevronRight, CornerDownLeft, Eye,
+} from "lucide-react";
 
 const hbtn = {
   height: 32, padding: "0 12px", background: UI.surface2, color: UI.text,
   border: "1px solid " + UI.border, borderRadius: 7, cursor: "pointer", fontSize: 12,
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
 };
 const iconBtn = (enabled) => ({
-  ...hbtn, minWidth: 34, padding: "0 9px", fontSize: 15, lineHeight: 1,
+  ...hbtn, minWidth: 34, padding: "0 9px", lineHeight: 1,
   opacity: enabled ? 1 : 0.4, cursor: enabled ? "pointer" : "default",
 });
 
 // Left tool rail (spec §5). Photos is wired; Text/Elements drop pre-styled
 // content; Templates/Brand are placeholders for later passes.
 const TOOLS = [
-  { key: "text", label: "Text", glyph: "T" },
-  { key: "elements", label: "Elements", glyph: "▢" },
-  { key: "photos", label: "Photos", glyph: "⛰" },
-  { key: "templates", label: "Templates", glyph: "▤" },
-  { key: "brand", label: "Brand", glyph: "✦" },
-  { key: "caption", label: "Caption", glyph: "✍" },
+  { key: "text", label: "Text", Icon: Type },
+  { key: "elements", label: "Elements", Icon: Shapes },
+  { key: "photos", label: "Photos", Icon: ImageIcon },
+  { key: "templates", label: "Templates", Icon: LayoutTemplate },
+  { key: "brand", label: "Brand", Icon: Palette },
+  { key: "caption", label: "Caption", Icon: Captions },
 ];
 
 // Pre-styled text presets for the Text panel (centered when dropped).
@@ -486,9 +492,9 @@ export default function Studio() {
           onFocus={(e) => { e.target.style.border = "1px solid " + UI.border; e.target.style.background = UI.surface2; }}
           onBlur={(e) => { e.target.style.border = "1px solid transparent"; e.target.style.background = "transparent"; }}
         />
-        <button style={iconBtn(state.past.length > 0)} disabled={state.past.length === 0} onClick={() => dispatch({ type: "undo" })} title="Undo (Ctrl/Cmd+Z)">↶</button>
-        <button style={iconBtn(state.future.length > 0)} disabled={state.future.length === 0} onClick={() => dispatch({ type: "redo" })} title="Redo (Ctrl/Cmd+Shift+Z)">↷</button>
-        <button style={iconBtn(true)} onClick={() => dispatch({ type: "resetSlideToBrand" })} title="Reset this slide to the brand look (undoable)">↺</button>
+        <button style={iconBtn(state.past.length > 0)} disabled={state.past.length === 0} onClick={() => dispatch({ type: "undo" })} title="Undo (Ctrl/Cmd+Z)"><Undo2 size={16} /></button>
+        <button style={iconBtn(state.future.length > 0)} disabled={state.future.length === 0} onClick={() => dispatch({ type: "redo" })} title="Redo (Ctrl/Cmd+Shift+Z)"><Redo2 size={16} /></button>
+        <button style={iconBtn(true)} onClick={() => dispatch({ type: "resetSlideToBrand" })} title="Reset this slide to the brand look (undoable)"><RotateCcw size={16} /></button>
         <div style={{ flex: 1 }} />
         {cloud ? (
           <span style={{ fontSize: 11, color: saveState === "saved" ? "#7ed09a" : UI.muted, marginRight: 8, display: "inline-flex", alignItems: "center", gap: 5 }}
@@ -506,11 +512,11 @@ export default function Studio() {
           onClick={runFactCheck}
           title="Fact-check the deck against a live web search"
         >
-          {fc && fc.loading ? "Checking…" : "✓ Check facts"}
+          {fc && fc.loading ? "Checking…" : <><ShieldCheck size={14} /> Check facts</>}
         </button>
         {cloud && user && (
           <div style={{ position: "relative" }}>
-            <button style={hbtn} onClick={() => setShareOpen((o) => !o)} title="Share a live link">🔗 Share</button>
+            <button style={hbtn} onClick={() => setShareOpen((o) => !o)} title="Share a live link"><Share2 size={14} /> Share</button>
             {shareOpen && (() => {
               const sh = state.doc.share || { link: "none", token: null };
               const url = typeof window !== "undefined" ? shareUrl(window.location.origin, projectId, sh) : null;
@@ -534,7 +540,7 @@ export default function Studio() {
                           <input readOnly value={url} onFocus={(e) => e.target.select()} style={{ flex: 1, minWidth: 0, height: 30, background: "#1d1d20", border: "1px solid " + UI.border, borderRadius: 6, color: "#ddd", fontSize: 11, padding: "0 8px" }} />
                           <button style={hbtn} onClick={() => { try { navigator.clipboard.writeText(url); } catch (e) { /* ignore */ } }}>Copy</button>
                         </div>
-                        <button style={{ ...hbtn, marginTop: 7, fontSize: 11 }} onClick={rotate} title="Invalidate the old link and make a new one">↻ Reset link</button>
+                        <button style={{ ...hbtn, marginTop: 7, fontSize: 11 }} onClick={rotate} title="Invalidate the old link and make a new one"><RotateCw size={13} /> Reset link</button>
                       </>
                     )}
                   </div>
@@ -550,7 +556,7 @@ export default function Studio() {
             onClick={() => setDlOpen((o) => !o)}
             title="Download as PNG"
           >
-            {exporting ? "Exporting…" : "⬇ Download ▾"}
+            {exporting ? "Exporting…" : <><Download size={14} /> Download <ChevronDown size={13} style={{ opacity: 0.8, marginLeft: -2 }} /></>}
           </button>
           {dlOpen && (
             <>
@@ -580,7 +586,7 @@ export default function Studio() {
                   border: "1px solid " + (active ? UI.border : "transparent"),
                 }}>
                 {active && <span style={{ position: "absolute", left: -7, top: 14, bottom: 14, width: 3, borderRadius: "0 3px 3px 0", background: UI.brand }} />}
-                <span style={{ fontSize: 18, lineHeight: 1 }}>{t.glyph}</span>
+                <t.Icon size={20} strokeWidth={1.75} />
                 <span>{t.label}</span>
               </button>
             );
@@ -606,7 +612,7 @@ export default function Studio() {
             </Collapsible>
             <Collapsible title="Bubbles &amp; notes" defaultOpen={false}>
               <div style={{ fontSize: 11, color: selectedIsText ? UI.brand : UI.muted, lineHeight: 1.45, marginBottom: 4 }}>
-                {selectedIsText ? "↩ Wraps the selected text." : "Tap to drop editable text, or select text first to wrap it."}
+                {selectedIsText ? <><CornerDownLeft size={12} style={{ verticalAlign: "-2px" }} /> Wraps the selected text.</> : "Tap to drop editable text, or select text first to wrap it."}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
                 {SHAPE_VARIANTS.map((v) => (
@@ -700,7 +706,7 @@ export default function Studio() {
               +
             </button>
             <span style={{ marginLeft: 6, fontSize: 11, color: UI.muted, whiteSpace: "nowrap" }}>
-              drag thumbnails to reorder · hover for ⧉ duplicate / × delete · ⌘/Ctrl+Z undo
+              drag thumbnails to reorder · hover a thumbnail to duplicate or delete · ⌘/Ctrl+Z undo
             </span>
           </div>
         </div>
@@ -767,7 +773,7 @@ function SharedViewer({ doc, slideIndex, name, onNav, error }) {
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: UI.bg, color: UI.text, fontFamily: "Helvetica, Arial, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, height: 48, padding: "0 16px", borderBottom: "1px solid " + UI.border, flexShrink: 0 }}>
         <strong style={{ fontSize: 13 }}>{name || "Shared carousel"}</strong>
-        <span style={{ fontSize: 11, color: UI.muted, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 12, padding: "2px 9px" }}>👁 View only · live</span>
+        <span style={{ fontSize: 11, color: UI.muted, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 12, padding: "2px 9px", display: "inline-flex", alignItems: "center", gap: 5 }}><Eye size={12} /> View only · live</span>
         <span style={{ marginLeft: "auto", fontSize: 11, color: UI.muted }}>{slides.length} slide{slides.length === 1 ? "" : "s"}</span>
       </div>
       {error ? (
@@ -820,7 +826,7 @@ function Collapsible({ title, defaultOpen = true, children }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <button onClick={() => setOpen((o) => !o)} title={open ? "Collapse" : "Expand"}
         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "transparent", border: "none", borderTop: "1px solid " + UI.soft, color: UI.muted, cursor: "pointer", fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", padding: "11px 0 4px" }}>
-        <span>{title}</span><span style={{ fontSize: 11 }}>{open ? "▾" : "▸"}</span>
+        <span>{title}</span>{open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
       </button>
       {open && children}
     </div>
