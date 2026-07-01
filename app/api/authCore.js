@@ -32,6 +32,29 @@ export function adminCredentials(env) {
 // Is the server-side auth gate active? (i.e. are admin creds configured?)
 export function authGateEnabled(env) { return !!adminCredentials(env); }
 
+// The email domains allowed to sign in. Comma-separated ALLOWED_EMAIL_DOMAINS (or
+// the single ALLOWED_EMAIL_DOMAIN), defaulting to "loathr.com" — so a configured
+// deploy is locked to @loathr.com out of the box. Lowercased, leading "@" stripped.
+// Pure.
+export function allowedEmailDomains(env) {
+  const e = env || (typeof process !== "undefined" ? process.env : {}) || {};
+  const raw = e.ALLOWED_EMAIL_DOMAINS || e.ALLOWED_EMAIL_DOMAIN || "loathr.com";
+  if (String(raw).trim() === "*") return []; // explicit wildcard → no restriction
+  return String(raw).split(",").map((d) => d.trim().toLowerCase().replace(/^@/, "")).filter(Boolean);
+}
+
+// Is this verified email allowed to use the app? True when its domain is in the
+// allowed list. An empty allow-list (ALLOWED_EMAIL_DOMAINS="") means no restriction;
+// a missing/malformed email is rejected when a restriction is set. Pure.
+export function emailAllowed(email, env) {
+  const doms = allowedEmailDomains(env);
+  if (!doms.length) return true;
+  const s = String(email || "").toLowerCase();
+  const at = s.lastIndexOf("@");
+  if (at < 0) return false;
+  return doms.includes(s.slice(at + 1));
+}
+
 // Is this (verified) uid the one-time bootstrap admin — the escape hatch that lets
 // the FIRST admin self-promote before any admin exists to assign roles? Gated only
 // by the server-only BOOTSTRAP_ADMIN_UID env var. Pure → unit-tested; shared by the

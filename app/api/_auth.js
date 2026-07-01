@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseBearer, adminCredentials, authGateEnabled } from "./authCore";
+import { parseBearer, adminCredentials, authGateEnabled, emailAllowed, allowedEmailDomains } from "./authCore";
 import { roleFromClaims } from "../studio/authority";
 
 // Route-level auth verifier. firebase-admin is loaded LAZILY and only when the
@@ -29,6 +29,12 @@ export async function verifyRequest(request) {
   try {
     const auth = await adminAuth();
     const decoded = await auth.verifyIdToken(token);
+    // Domain allow-list (default @loathr.com): a verified token from an outside
+    // domain is rejected here, so even a valid Google session can't reach any gated
+    // route. `forbidden` → the caller responds 403 (authenticated but not allowed).
+    if (!emailAllowed(decoded.email)) {
+      return { ok: false, gated: true, forbidden: true, reason: "Only " + allowedEmailDomains().map((d) => "@" + d).join(" / ") + " accounts may use this app." };
+    }
     // The `role` custom claim (set by an admin) rides in the verified token, so
     // the gate / admin routes read authority off the same source the rules do.
     return { ok: true, uid: decoded.uid, role: roleFromClaims(decoded), gated: true };

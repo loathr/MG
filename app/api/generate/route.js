@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifyRequest, unauthorized, quotaExceeded } from "../_auth";
+import { verifyRequest, unauthorized, forbidden, quotaExceeded } from "../_auth";
 import { meterGenerate } from "../adminStore";
 
 // Vercel kills serverless functions after their maxDuration regardless of
@@ -71,7 +71,7 @@ export async function POST(request) {
   // user's ID token so this isn't an open proxy to the Anthropic key. No creds →
   // open (the current behaviour). See CLOUD_SETUP.md.
   const auth = await verifyRequest(request);
-  if (!auth.ok) return unauthorized(auth.reason);
+  if (!auth.ok) return auth.forbidden ? forbidden(auth.reason) : unauthorized(auth.reason);
 
   // Usage limit (admin-set, server-enforced): when the gate is on, meter this
   // account's monthly generations and refuse once it's at its cap. No limit set

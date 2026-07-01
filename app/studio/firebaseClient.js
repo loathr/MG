@@ -21,13 +21,35 @@ async function authInstance() {
   return _authPromise;
 }
 
+// The email domains allowed to sign in (client-side mirror of the server gate):
+// NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS (comma-separated), default "loathr.com".
+function allowedDomainsClient() {
+  const raw = (typeof process !== "undefined" && process.env && process.env.NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS) || "loathr.com";
+  return String(raw).split(",").map((d) => d.trim().toLowerCase().replace(/^@/, "")).filter(Boolean);
+}
+function emailAllowedClient(email) {
+  const doms = allowedDomainsClient();
+  if (!doms.length) return true;
+  const s = String(email || "").toLowerCase();
+  const at = s.lastIndexOf("@");
+  return at >= 0 && doms.includes(s.slice(at + 1));
+}
+
 // Open the Google sign-in popup; resolves the signed-in user (or null if cloud
-// is disabled). Throws on a real auth failure (the caller surfaces it).
+// is disabled). Rejects an account outside the allowed domain (default @loathr.com)
+// — signs it straight back out and throws a clear message the sign-in screen shows,
+// so an outside Google account can never enter the app. Throws on a real auth
+// failure too (the caller surfaces it).
 export async function signInWithGoogle() {
   const auth = await authInstance();
   if (!auth) return null;
-  const { GoogleAuthProvider, signInWithPopup } = await import("firebase/auth");
+  const { GoogleAuthProvider, signInWithPopup, signOut } = await import("firebase/auth");
   const res = await signInWithPopup(auth, new GoogleAuthProvider());
+  if (!emailAllowedClient(res.user && res.user.email)) {
+    try { await signOut(auth); } catch (e) { /* ignore */ }
+    const doms = allowedDomainsClient().map((d) => "@" + d).join(" or ");
+    throw new Error("Only " + doms + " accounts can sign in.");
+  }
   return res.user;
 }
 

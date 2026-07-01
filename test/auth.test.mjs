@@ -3,7 +3,26 @@
 // decision + header parsing.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseBearer, adminCredentials, authGateEnabled, isBootstrapAdmin } from "../app/api/authCore.js";
+import { parseBearer, adminCredentials, authGateEnabled, isBootstrapAdmin, allowedEmailDomains, emailAllowed } from "../app/api/authCore.js";
+
+test("allowedEmailDomains: defaults to loathr.com; env overrides (comma list, strips @)", () => {
+  assert.deepEqual(allowedEmailDomains({}), ["loathr.com"]);                                  // default
+  assert.deepEqual(allowedEmailDomains({ ALLOWED_EMAIL_DOMAIN: "@Acme.com" }), ["acme.com"]);  // single, lowered, @stripped
+  assert.deepEqual(allowedEmailDomains({ ALLOWED_EMAIL_DOMAINS: "loathr.com, acme.io" }), ["loathr.com", "acme.io"]);
+  assert.deepEqual(allowedEmailDomains({ ALLOWED_EMAIL_DOMAINS: "" }), ["loathr.com"]);         // empty falls to default
+});
+
+test("emailAllowed: only the allowed domain passes; wrong domain / missing @ rejected", () => {
+  assert.equal(emailAllowed("sam@loathr.com", {}), true);
+  assert.equal(emailAllowed("SAM@LOATHR.COM", {}), true);        // case-insensitive
+  assert.equal(emailAllowed("sam@gmail.com", {}), false);
+  assert.equal(emailAllowed("notanemail", {}), false);
+  assert.equal(emailAllowed("", {}), false);
+  assert.equal(emailAllowed("x@acme.io", { ALLOWED_EMAIL_DOMAINS: "acme.io" }), true);
+  // the "*" wildcard disables the restriction (any signed-in account allowed)
+  assert.deepEqual(allowedEmailDomains({ ALLOWED_EMAIL_DOMAINS: "*" }), []);
+  assert.equal(emailAllowed("anyone@gmail.com", { ALLOWED_EMAIL_DOMAINS: "*" }), true);
+});
 
 test("isBootstrapAdmin: only the exact BOOTSTRAP_ADMIN_UID matches", () => {
   const env = { BOOTSTRAP_ADMIN_UID: "uid-123" };

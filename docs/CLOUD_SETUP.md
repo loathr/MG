@@ -159,6 +159,25 @@ The server gate (`/api/generate` requiring a token) turns on only when the
 `FIREBASE_*` admin creds are present (`authCore.adminCredentials`). So you can ship
 public auth first and add server gating once the service account is in.
 
+**Sign-in domain lock (default `@loathr.com`).** Sign-in is restricted to one or
+more email domains — **`loathr.com` by default**, so a configured deploy is locked
+to `@loathr.com` with no extra setup. An outside Google account is signed straight
+back out at the sign-in screen (client check) and rejected with **403** on every
+gated API route (`emailAllowed` in `authCore.js`). To change or widen it:
+| Var | Value |
+| --- | --- |
+| `ALLOWED_EMAIL_DOMAINS` (server) | comma list, e.g. `loathr.com,acme.io` — or `*` to allow any signed-in account |
+| `NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS` (client) | the SAME value, so the sign-in screen rejects to match the server |
+Set both to the same thing. Leave unset to keep the `@loathr.com` default.
+
+Defense in depth (optional): mirror it in the Firestore rules so storage is locked
+too — add a helper and require it on the user/deck/pulse writes:
+```
+function loathr() { return request.auth != null &&
+  request.auth.token.email.matches('.*@loathr[.]com$'); }
+// then AND `loathr()` into the allow read/write conditions under users/{uid}/…
+```
+
 ## 7. Deploy & verify
 1. Redeploy on Vercel so the env vars bake in.
 2. Open `/studio` → you should see **Continue with Google** → sign in.
