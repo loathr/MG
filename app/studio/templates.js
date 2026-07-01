@@ -152,19 +152,23 @@ const FOOTER_RULE_Y = 1240, FOOTER_Y = 1262;
 export const FOOTER_SOURCES_Y = 1186;
 
 // The per-desk cover lockup. Editorial: a struck-out wordmark, top-right.
-// Enterprise: "Enterprise" over "by Loathr", top-left. News Desk: none (it signs
-// off on the closer). The editorial mark uses `wordmark` (default "LOATHR") so a
+// Enterprise: "Enterprise" over "by Loathr", top-left. News Desk: a newspaper
+// nameplate. The editorial mark uses `wordmark` (default "LOATHR") so a
 // Brand-panel wordmark change re-themes it; its red strike follows the accent.
 export function coverWordmark(style, brand) {
   const st = effectiveStyle(style, brand);
   if (style === "newsdesk") {
-    // A masthead "ear": the wordmark + a section descriptor over a red rule,
-    // top-centre, so the News Desk cover is branded as editorial (it previously
-    // had no mark). Role-tagged so the white-label toggle strips it like the rest.
-    const wm = (brand && brand.wordmark) || "LOATHR";
+    // A newspaper NAMEPLATE: the masthead title in the eroded display face over a
+    // red rule, top-centre — the News Desk's own publication identity, NOT the
+    // account wordmark (no "LOATHR", no strike). White-label: a custom brand
+    // wordmark takes over the plate; otherwise it reads "News". Role-tagged so the
+    // white-label toggle strips it like every other brand mark.
+    const mast = (brand && brand.wordmark && brand.wordmark !== "LOATHR") ? brand.wordmark : "News";
+    // Just the nameplate — the masthead cover layout already draws a full-width
+    // red rule (y≈190) directly beneath it, so no extra rule here (avoids a double
+    // bar). The nameplate sits above that rule as the title.
     return [
-      makeText(st.headFont, { id: uid("wm"), role: "wordmark", x: M, y: 96, w: ARTBOARD_W - 2 * M, h: 38, content: (wm + " · The News Desk").toUpperCase(), fontSize: 21, fontWeight: st.headWeight, color: st.ink, align: "center", letterSpacing: 4, lineHeight: 1 }),
-      makeElement("rect", { id: uid("r"), role: "wordmark", x: ARTBOARD_W / 2 - 70, y: 142, w: 140, h: 3, fill: st.accent }),
+      makeText("'Eroded', 'Medhorn', serif", { id: uid("wm"), role: "wordmark", x: M, y: 84, w: ARTBOARD_W - 2 * M, h: 100, content: mast, fontSize: 88, fontWeight: 400, color: st.ink, align: "center", letterSpacing: 3, lineHeight: 1 }),
     ];
   }
   if (style === "enterprise") {

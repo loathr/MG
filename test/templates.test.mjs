@@ -258,13 +258,23 @@ test("coverWordmark: enterprise is an 'Enterprise' / 'by Loathr' lockup", () => 
   assert.equal(ent[1].fontFamily, BRAND_FONT);          // the Loathr token is Courier
 });
 
-test("coverWordmark: News Desk now carries a masthead ear (role-tagged, white-labellable)", () => {
+test("coverWordmark: News Desk is a 'News' nameplate in the Eroded face (no LOATHR/strike)", () => {
   const nd = coverWordmark("newsdesk");
-  assert.ok(nd.length >= 1, "News Desk cover is no longer unbranded");
-  assert.ok(nd.every((e) => e.role === "wordmark"), "role-tagged so white-label strips it");
+  assert.equal(nd.length, 1, "just the nameplate — the masthead layout draws the rule");
+  const tag = nd[0];
+  assert.equal(tag.role, "wordmark");                         // role-tagged so white-label strips it
+  assert.equal(tag.content, "News");                          // the masthead nameplate, not "LOATHR"
+  assert.match(tag.fontFamily, /Eroded/);                     // the eroded display face
+  assert.ok(!tag.strike, "no editorial strike on the News Desk plate");
+  assert.equal(tag.align, "center");
+  assert.doesNotMatch(tag.content, /LOATHR/i);
+});
+
+test("coverWordmark: a white-label brand wordmark takes over the News Desk plate", () => {
+  const nd = coverWordmark("newsdesk", Object.assign({}, brandFromStyle("newsdesk"), { wordmark: "The Gazette" }));
   const tag = nd.find((e) => e.type === "text");
-  assert.match(tag.content, /NEWS DESK/i);
-  assert.ok(nd.some((e) => e.type === "rect" && e.fill === STYLES.newsdesk.accent), "red masthead rule");
+  assert.equal(tag.content, "The Gazette");                   // custom wordmark, still in the eroded plate
+  assert.match(tag.fontFamily, /Eroded/);
 });
 
 test("coverWordmark editorial follows a brand wordmark + accent", () => {
