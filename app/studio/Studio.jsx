@@ -602,7 +602,7 @@ export default function Studio() {
               <PanelButton onClick={addRect}>Rectangle</PanelButton>
               <PanelButton onClick={addLine}>Line / divider</PanelButton>
             </Collapsible>
-            <Collapsible title="Bubbles &amp; notes">
+            <Collapsible title="Bubbles &amp; notes" defaultOpen={false}>
               <div style={{ fontSize: 11, color: selectedIsText ? UI.brand : UI.muted, lineHeight: 1.45, marginBottom: 4 }}>
                 {selectedIsText ? "↩ Wraps the selected text." : "Tap to drop editable text, or select text first to wrap it."}
               </div>

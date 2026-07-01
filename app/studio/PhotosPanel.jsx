@@ -45,7 +45,9 @@ const dropHi = { borderColor: UI.brand, background: "#1c2530" };
 const grid = {
   // A real 2-column grid (row by row, top-to-bottom) rather than a balanced CSS
   // masonry — so results read in a predictable order and the panel scrolls down.
-  display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "start",
+  // alignItems:start is LOAD-BEARING: without it the row stretches the shorter
+  // tile, filling it with grey dead-space below the photo (the "smushed" look).
+  display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "start", alignItems: "start",
   padding: "0 12px 12px", overflowY: "auto", minHeight: 0,
 };
 const hint = { gridColumn: "1 / -1", color: "#7a7a7a", fontSize: 12, lineHeight: 1.5, padding: "16px 4px", textAlign: "center" };
