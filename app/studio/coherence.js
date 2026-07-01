@@ -28,6 +28,7 @@ export function buildCoherencePrompt(doc) {
     JSON.stringify(outline),
     "",
     "Judge the NARRATIVE STRUCTURE — not the facts. Assess:",
+    "- HOOK: is the COVER header (slide 0) a specific promise or tension that stops the scroll — NOT a generic label (\"The Future of X\", \"Everything You Need to Know\") — and does it set up the through-line the rest of the deck pays off?",
     "- SPINE: is there a single through-line the whole deck advances?",
     "- ARC: cover poses a tension, each middle slide escalates one concrete step, closer resolves it (no plateau).",
     "- CONNECTIVE TISSUE: does each slide pick up a thread from the one before, so swiping reads continuous?",
@@ -39,19 +40,19 @@ export function buildCoherencePrompt(doc) {
     ' "spine": "the deck\'s through-line in one sentence, as you actually read it",',
     ' "summary": "one sentence on how well it holds together",',
     ' "issues": [',
-    '   {"slide": <index or null>, "kind": "spine|transition|callback|repeat|arc|strength", "note": "the specific problem (or, for kind=strength, what works), one sentence",',
+    '   {"slide": <index or null>, "kind": "hook|spine|transition|callback|repeat|arc|strength", "note": "the specific problem (or, for kind=strength, what works), one sentence",',
     '    "fix": {"action": "rewrite|cut|merge", "into": <MERGE ONLY: the index of the slide to KEEP>, "heading": "<rewritten heading for the kept slide — rewrite/merge only>", "body": "<rewritten body, 2-3 tight sentences — rewrite/merge only>"}}',
     " ]}",
     "",
     "Rules:",
-    '- kind: "transition" (a slide doesn\'t connect to the previous), "callback" (closer misses the cover), "repeat" (two slides make the same point), "arc" (the escalation plateaus or dips), "spine" (a slide drifts off the through-line), "strength" (something that genuinely works).',
+    '- kind: "hook" (the cover header is generic or doesn\'t set up the deck — its fix is a rewrite of slide 0\'s heading), "transition" (a slide doesn\'t connect to the previous), "callback" (closer misses the cover), "repeat" (two slides make the same point), "arc" (the escalation plateaus or dips), "spine" (a slide drifts off the through-line), "strength" (something that genuinely works).',
     "- List the PROBLEMS first, most damaging first; you may add one or two strengths at the end.",
     "- Each PROBLEM should carry a concrete `fix`: REWRITE the flagged slide (give the new heading and/or body), CUT it when it adds nothing (repeat/off-spine — no heading/body needed), or MERGE it into another (set `into` to the slide to keep and give that slide's merged heading + body). Prefer the smallest fix that works; keep facts, figures and names. Omit `fix` only when you genuinely can't propose one, and never on a `strength`.",
     "- A rewritten heading is Title Case and specific; a rewritten body is 2-3 tight sentences carrying one proof point. Do NOT invent new facts — restructure and re-thread the existing ones.",
   ].join("\n");
 }
 
-const KINDS = { spine: 1, transition: 1, callback: 1, repeat: 1, arc: 1, strength: 1 };
+const KINDS = { hook: 1, spine: 1, transition: 1, callback: 1, repeat: 1, arc: 1, strength: 1 };
 const FIX_ACTIONS = { rewrite: 1, cut: 1, merge: 1 };
 
 // Normalise a raw fix onto the flagged slide, or null when it's not a usable fix

@@ -31,11 +31,12 @@ const fixTag = { fontSize: 8.5, fontWeight: 700, textTransform: "uppercase", let
 
 // problems first (by severity), strengths last.
 const KIND = {
-  spine: { rank: 0, color: "#ff6b6b", label: "Off the spine" },
-  repeat: { rank: 1, color: "#ff6b6b", label: "Repeated point" },
-  callback: { rank: 2, color: "#ffa94d", label: "Broken callback" },
-  transition: { rank: 3, color: "#ffa94d", label: "Weak transition" },
-  arc: { rank: 4, color: "#c9a227", label: "Flat arc" },
+  hook: { rank: 0, color: "#ff6b6b", label: "Weak hook" },
+  spine: { rank: 1, color: "#ff6b6b", label: "Off the spine" },
+  repeat: { rank: 2, color: "#ff6b6b", label: "Repeated point" },
+  callback: { rank: 3, color: "#ffa94d", label: "Broken callback" },
+  transition: { rank: 4, color: "#ffa94d", label: "Weak transition" },
+  arc: { rank: 5, color: "#c9a227", label: "Flat arc" },
   strength: { rank: 9, color: "#2ec27e", label: "Works" },
 };
 function kinfo(k) { return KIND[k] || KIND.spine; }
