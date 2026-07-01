@@ -49,6 +49,25 @@ test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabl
   assert.match(buildPrompt("x", "editorial", Object.assign({}, base, { webSearch: true })), /use web search/);
 });
 
+test("buildPrompt: a named voice + rich tone + document source thread in", () => {
+  const base = { seed: 3, today: "2026-06-26" };
+  // A named persona overrides the seeded voice with its signature-phrase prompt.
+  const v = buildPrompt("x", "editorial", Object.assign({}, base, { voice: "historian" }));
+  assert.match(v, /You are The Historian/);
+  assert.match(v, /buried in the archives/);
+  // A rich tone id renders as a full instruction line.
+  assert.match(buildPrompt("x", "editorial", Object.assign({}, base, { tone: "hype" })), /Tone — Write with maximum energy/);
+  // A document source builds the deck FROM the material and suppresses web search.
+  const d = buildPrompt("Q3 script", "business", Object.assign({}, base, { sourceDoc: "Revenue grew 20% on cloud.", webSearch: true }));
+  assert.match(d, /SOURCE DOCUMENT/);
+  assert.match(d, /Revenue grew 20% on cloud\./);
+  assert.match(d, /Do NOT web-search/);
+  assert.doesNotMatch(d, /use web search/); // the source block replaces the research line
+  // auto voice / no tone / no doc → unchanged (seeded voice, no source block)
+  const plain = buildPrompt("x", "editorial", base);
+  assert.equal(buildPrompt("x", "editorial", Object.assign({}, base, { voice: "auto", sourceDoc: "" })), plain);
+});
+
 test("buildPrompt: an optional route scopes the deck; an absent route is byte-identical", () => {
   const base = { seed: 7, today: "2026-06-26" };
   const plain = buildPrompt("GLP-1 drugs reshape pharma", "business", base);

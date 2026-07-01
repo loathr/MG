@@ -13,6 +13,7 @@
 // final text, surface progress, and honor an abort.
 import { slidesToDoc } from "./templates";
 import { getCategory, cautionFor } from "./categories";
+import { voicePrompt, tonePrompt } from "./voices";
 import { normalizeCaption, captionText, fallbackCaption } from "./captions";
 import { getIdToken } from "./firebaseClient";
 
@@ -79,7 +80,10 @@ export function buildPrompt(topic, categoryKey, opts) {
   const roles = cat.roles;
   const seed = o.seed != null ? o.seed >>> 0 : hashStr(topic + "|" + categoryKey);
   const angle = ANGLES[seed % ANGLES.length];
-  const voice = VOICES[Math.floor(seed / ANGLES.length) % VOICES.length];
+  // Voice: a chosen named persona (voices.js) overrides the seeded default; "auto"
+  // or none keeps the seeded voice so existing decks are unchanged.
+  const chosenVoice = voicePrompt(o.voice);
+  const voice = chosenVoice || VOICES[Math.floor(seed / ANGLES.length) % VOICES.length];
   const research = o.webSearch
     ? "Research first: use web search to verify the key facts, figures, names, and recent developments before you write — ground every claim in what you find and cite the 1-2 strongest real, current outlets per slide. Never cite a source you did not find."
     : "Ground every claim in well-established, real facts, and name 1-2 credible outlets per slide in sources. Do not fabricate statistics or cite events you are unsure occurred; if a topic needs live data you don't have, pick a more evergreen angle.";
@@ -119,7 +123,12 @@ export function buildPrompt(topic, categoryKey, opts) {
   // Deck length (cover + content + closer) from the create screen's Length control.
   const total = Math.max(4, Math.min(12, o.slides || 8));
   const content = total - 2;
-  const tone = o.tone && TONE_DESC[o.tone] ? TONE_DESC[o.tone] : "";
+  // Tone: the rich named tones (voices.js) are full instructions; fall back to the
+  // legacy TONE_DESC ids so older callers still work.
+  const toneRich = tonePrompt(o.tone);
+  const toneLegacy = !toneRich && o.tone && TONE_DESC[o.tone] ? TONE_DESC[o.tone] : "";
+  // Document → carousel: the pasted/extracted source the deck is built FROM.
+  const sourceDoc = o.sourceDoc ? String(o.sourceDoc).trim() : "";
   // White-label: strip every LOATHR mark from the GENERATED copy — no @handle in
   // the caption cta, no "invite the follow" closer, no brand sign-off. Default
   // (unbranded=false) keeps the prompt byte-identical to before.
@@ -139,9 +148,12 @@ export function buildPrompt(topic, categoryKey, opts) {
     o.today ? "Today's date is " + o.today + ". Treat the topic as of now — prefer the most recent, verifiable facts and avoid stale or dated framing." : null,
     cat.brief,
     "Approach this through " + angle + ". Voice: " + voice + ".",
-    tone ? "Tone: write it " + tone + " — let this colour the whole deck." : null,
+    toneRich ? "Tone — " + toneRich : (toneLegacy ? "Tone: write it " + toneLegacy + " — let this colour the whole deck." : null),
     "",
-    research,
+    // Document source (overrides web research): build the whole deck FROM the material.
+    sourceDoc
+      ? "SOURCE DOCUMENT — build the ENTIRE carousel from the material below. Distill ITS key points into the cover, content slides, and closer; stay faithful to it and do NOT invent facts, figures, names, quotes, or events it does not contain. Do NOT web-search — this document is the source. Where the material is thin for a slide, summarise or reframe what's there rather than fabricate. Preserve the document's own facts and terminology.\n\"\"\"\n" + sourceDoc + "\n\"\"\""
+      : research,
     routeLine,
     brandingLine,
     ground ? "Grounded source — build the deck on these specific facts, verifying and expanding them with search (correct anything outdated): \"" + ground + "\"" + (groundSrc ? " [" + groundSrc + "]" : "") : null,
@@ -384,8 +396,11 @@ export async function generateCarousel(topic, opts) {
   // path (usually ~40-60s, occasionally minutes), so the call is cancellable
   // (o.signal) and reports progress (o.onPhase). Pass webSearch:false for a fast
   // "Quick draft" from the model's knowledge (still anchored to today's date).
-  const webSearch = o.webSearch !== false;
-  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch, ground: o.ground, slides: o.slides, tone: o.tone, route: o.route, unbranded: o.unbranded });
+  // A document source is the material — never web-search over it (the doc is the
+  // truth), regardless of the quick-draft toggle.
+  const sourceDoc = o.sourceDoc ? String(o.sourceDoc) : "";
+  const webSearch = sourceDoc ? false : (o.webSearch !== false);
+  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch, ground: o.ground, slides: o.slides, tone: o.tone, voice: o.voice, sourceDoc, route: o.route, unbranded: o.unbranded });
   const text = await runPrompt(prompt, { model: o.model, webSearch, stream: o.stream, signal: o.signal, onPhase: o.onPhase });
   const slides = parseSlides(text);
   const wantPhotos = o.photos !== false;

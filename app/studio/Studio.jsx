@@ -314,15 +314,17 @@ export default function Studio() {
   // fonts / wordmark + logo) carries onto the freshly generated deck (§5).
   // The call is cancellable (AbortController) and reports coarse progress
   // (searching → writing); a "quick draft" skips the web search for speed.
-  const handleGenerate = async ({ style, category, topic, quickDraft, ground, slides, tone, route, unbranded }) => {
+  const handleGenerate = async ({ style, category, topic, quickDraft, ground, slides, tone, voice, sourceDoc, route, unbranded }) => {
     if (generating) return;
     const prevDoc = state.doc;
     const ac = new AbortController();
     genAbort.current = ac;
-    setGenerating(true); setGenError(""); setGenPhase(quickDraft ? "writing" : "searching");
+    // Document mode never web-searches (the doc is the source), so it goes straight
+    // to "writing"; a topic deck starts on "searching" unless it's a quick draft.
+    setGenerating(true); setGenError(""); setGenPhase((quickDraft || sourceDoc) ? "writing" : "searching");
     try {
       const doc = await generateCarousel(topic, {
-        style, category, webSearch: !quickDraft, ground, slides, tone, route, unbranded, signal: ac.signal, onPhase: setGenPhase,
+        style, category, webSearch: !quickDraft, ground, slides, tone, voice, sourceDoc, route, unbranded, signal: ac.signal, onPhase: setGenPhase,
       });
       dispatch({ type: "loadDoc", doc: carryBrandKit(doc, prevDoc) });
       // White-label: strip every LOATHR mark from the freshly generated deck so it

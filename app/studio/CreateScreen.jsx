@@ -7,6 +7,8 @@ import StylePreview from "./StylePreview";
 import TrendingPanel from "./TrendingPanel";
 import RouteSelect from "./RouteSelect";
 import { routeFraming, getBeat, REGIONS, URGENCY, ANGLES, EMPHASIS, MODES, framingPrompt, countriesForRegion } from "./trending";
+import { VOICES as PERSONAS, TONES as RICH_TONES } from "./voices";
+import { readDocFile } from "./docsource";
 
 // Screen 1 — Create (spec §4, Option C: "segment-first + voice override"). Pick a
 // DESK first — the look (Editorial / Enterprise / News Desk). Each desk implies a
@@ -25,13 +27,8 @@ const LENGTHS = [
   { id: "standard", label: "Standard", slides: 8 },
   { id: "deep", label: "Deep", slides: 10 },
 ];
-// Optional tone overlay (second axis beyond voice); none = let voice/desk decide.
-const TONES = [
-  { id: "punchy", label: "Punchy" },
-  { id: "analytical", label: "Analytical" },
-  { id: "playful", label: "Playful" },
-  { id: "authoritative", label: "Authoritative" },
-];
+// Optional tone overlay (the 6 rich tones from voices.js); none = let voice/desk decide.
+const TONES = RICH_TONES;
 function toneLabel(id) { const t = TONES.find((x) => x.id === id); return t ? t.label : ""; }
 // Voice options grouped by family for the Voice & tone dropdown.
 const VOICE_GROUPS = [
@@ -56,7 +53,18 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   const [quickDraft, setQuickDraft] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const [length, setLength] = useState("standard"); // deck length (default Standard)
-  const [tone, setTone] = useState(null);           // optional tone overlay
+  const [tone, setTone] = useState(null);           // optional tone overlay (6 rich tones)
+  // Named-persona VOICE (who's telling it) — a distinct axis from the desk's
+  // writing category; "auto" keeps the seeded default. Threaded as `voice`.
+  const [persona, setPersona] = useState("auto");
+  // Source mode: a short "topic" or a full "document" the deck is built from.
+  const [srcMode, setSrcMode] = useState("topic");   // "topic" | "doc"
+  const [docSrc, setDocSrc] = useState(null);        // { name, text, words } from a file
+  const [pasteText, setPasteText] = useState("");    // pasted material
+  const [docErr, setDocErr] = useState("");
+  const [docBusy, setDocBusy] = useState(false);
+  const [ddOpen, setDdOpen] = useState(null);        // open picker: "voice" | "tone" | null
+  const docFileRef = React.useRef(null);
   // Grounding seed (R5) from a picked Trending card: { extract, source }. Cleared
   // when the topic is edited by hand, so a typed-over topic isn't grounded stale.
   const [seed, setSeed] = useState(null);
@@ -126,11 +134,28 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     return (r.label || r.region || r.country || r.urgency || r.angle || r.emphasis || r.mode) ? r : null;
   };
 
+  // The document material (a loaded file's text, else the pasted text) when in doc mode.
+  const sourceDoc = srcMode === "doc" ? ((docSrc && docSrc.text) || pasteText.trim()) : "";
+  const canGenerate = !generating && (srcMode === "doc" ? !!sourceDoc : !!topic.trim());
+
   const submit = () => {
-    const t = topic.trim();
-    if (!t || generating) return;
+    if (!canGenerate) return;
     const slides = (LENGTHS.find((l) => l.id === length) || LENGTHS[1]).slides;
-    onGenerate({ style: desk, category: voice, topic: t, quickDraft, ground: seed, slides, tone, route: buildRoute(), unbranded });
+    // In doc mode the deck is built from the material; a short label (the file name
+    // or a stub) still fills the prompt's Topic slot + names the project.
+    const t = srcMode === "doc"
+      ? ((docSrc && docSrc.name.replace(/\.[^.]+$/, "")) || "Your document")
+      : topic.trim();
+    onGenerate({ style: desk, category: voice, topic: t, quickDraft, ground: seed, slides, tone, voice: persona, sourceDoc, route: buildRoute(), unbranded });
+  };
+
+  // Load a dropped/picked document → extract its text (txt/md/pdf).
+  const loadDoc = async (file) => {
+    if (!file) return;
+    setDocErr(""); setDocBusy(true);
+    try { setDocSrc(await readDocFile(file)); }
+    catch (e) { setDocErr((e && e.message) || "Couldn't read that document."); setDocSrc(null); }
+    finally { setDocBusy(false); }
   };
 
   // Coarse progress label while generating (the call streams searching -> writing).
@@ -139,6 +164,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     : quickDraft ? "Drafting…" : "Starting…";
 
   const voiceOverridden = voice !== DESK_VOICE[desk];
+  const personaObj = PERSONAS.find((p) => p.id === persona) || PERSONAS[0];
 
   return (
     <div style={screen}>
@@ -162,14 +188,70 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
         </div>
 
         <div style={{ ...label, marginTop: 18 }}>What&apos;s it about?</div>
-        <input
-          value={topic}
-          onChange={(e) => { setTopic(e.target.value); setSeed(null); }}
-          onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-          placeholder="Type a topic — or open Trending below"
-          autoFocus
-          style={topicInput}
-        />
+        {/* Source mode — a short topic, or a full document the deck is built from */}
+        <div style={modeRow}>
+          <button type="button" onClick={() => setSrcMode("topic")} style={modeBtn(srcMode === "topic")}>✍ Topic</button>
+          <button type="button" onClick={() => setSrcMode("doc")} style={modeBtn(srcMode === "doc")}>📄 From a document</button>
+        </div>
+        {srcMode === "topic" ? (
+          <input
+            value={topic}
+            onChange={(e) => { setTopic(e.target.value); setSeed(null); }}
+            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            placeholder="Type a topic — or open Trending below"
+            autoFocus
+            style={topicInput}
+          />
+        ) : (
+          <div style={docZone} onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) loadDoc(f); }}>
+            <div style={docTop}>
+              <span style={{ fontSize: 12.5, color: "#8a8a90", flex: 1 }}>{docBusy ? "Reading…" : "Drop a .txt · .md · .pdf, or paste your material below"}</span>
+              <button type="button" style={docBrowse} onClick={() => docFileRef.current && docFileRef.current.click()}>Browse…</button>
+              <input ref={docFileRef} type="file" accept=".txt,.md,.markdown,.pdf" style={{ display: "none" }}
+                onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) loadDoc(f); }} />
+            </div>
+            <textarea value={pasteText} onChange={(e) => { setPasteText(e.target.value); setDocSrc(null); }}
+              placeholder="…or paste your script, article, transcript, or notes here" style={docPaste} />
+            {docSrc ? (
+              <div style={docChip}>📄 {docSrc.name} · {docSrc.words.toLocaleString()} words · loaded
+                <button type="button" style={docX} onClick={() => setDocSrc(null)} title="Remove">✕</button></div>
+            ) : null}
+            {docErr ? <div style={docErrBox}>{docErr}</div> : null}
+          </div>
+        )}
+        {/* Voice (persona) + Tone — compact pickers, applied to BOTH modes */}
+        <div style={vtRow}>
+          <div style={{ position: "relative", flex: 1 }}>
+            <button type="button" onClick={() => setDdOpen(ddOpen === "voice" ? null : "voice")} style={vtBtn(true)}>
+              <span style={vtL}><span style={vtK}>Voice</span><span style={vtV}>{personaObj.icon} {personaObj.label}</span></span>
+              <span style={vtCar}>▾</span>
+            </button>
+            {ddOpen === "voice" && (
+              <div style={vtMenu}>
+                {PERSONAS.map((p) => (
+                  <button key={p.id} type="button" onClick={() => { setPersona(p.id); setDdOpen(null); }} style={vtOpt(p.id === persona)}>
+                    <span>{p.icon} {p.label}</span><span style={vtPhrase}>{p.phrase}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={{ position: "relative", flex: 1 }}>
+            <button type="button" onClick={() => setDdOpen(ddOpen === "tone" ? null : "tone")} style={vtBtn(false)}>
+              <span style={vtL}><span style={vtK}>Tone</span><span style={vtV}>{tone ? toneLabel(tone) : "Auto"}</span></span>
+              <span style={vtCar}>▾</span>
+            </button>
+            {ddOpen === "tone" && (
+              <div style={vtMenu}>
+                <button type="button" onClick={() => { setTone(null); setDdOpen(null); }} style={vtOpt(!tone)}>Auto</button>
+                {TONES.map((t) => (
+                  <button key={t.id} type="button" onClick={() => { setTone(t.id); setDdOpen(null); }} style={vtOpt(t.id === tone)}>{t.label}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
         {/* Scope (all desks): sector + region + country on ONE line — scope the
             live pull AND frame generation, paired with the sector. Urgency is
             News-only. */}
@@ -303,8 +385,8 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
 
         {error && <div style={errBox}>{error}</div>}
 
-        <button onClick={submit} disabled={generating || !topic.trim()} style={primary(generating || !topic.trim())}>
-          {generating ? genLabel : (quickDraft ? "⚡  Make a quick draft" : "✨  Make my carousel")}
+        <button onClick={submit} disabled={!canGenerate} style={primary(!canGenerate)}>
+          {generating ? genLabel : (srcMode === "doc" ? "✨  Make a carousel from this document" : (quickDraft ? "⚡  Make a quick draft" : "✨  Make my carousel"))}
         </button>
 
         {generating ? (
@@ -378,6 +460,25 @@ const topicInput = {
   background: "#1d1d21", color: "#fff", border: "1px solid #3a3a42", borderRadius: 10,
   textAlign: "center", outline: "none",
 };
+// --- source mode (Topic / Document) + Voice/Tone pickers ---
+const modeRow = { display: "flex", gap: 6, background: "#141417", border: "1px solid #26262c", borderRadius: 11, padding: 5, margin: "0 auto 12px", width: "max-content" };
+const modeBtn = (on) => ({ padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none", background: on ? "#26262e" : "transparent", color: on ? "#fff" : "#8a8a90" });
+const docZone = { width: "100%", background: "#141417", border: "1.5px dashed #3a3a44", borderRadius: 12, padding: 14, textAlign: "left" };
+const docTop = { display: "flex", alignItems: "center", gap: 10, marginBottom: 11 };
+const docBrowse = { background: "#26262b", border: "1px solid #36363c", color: "#dcdce2", borderRadius: 8, fontSize: 12, fontWeight: 600, padding: "8px 13px", cursor: "pointer", flexShrink: 0 };
+const docPaste = { width: "100%", boxSizing: "border-box", minHeight: 100, background: "#0f0f12", border: "1px solid #2a2a30", borderRadius: 9, padding: "11px 12px", fontSize: 13, color: "#dcdce2", lineHeight: 1.5, resize: "vertical", outline: "none", fontFamily: "inherit" };
+const docChip = { display: "inline-flex", alignItems: "center", gap: 8, background: "#1c1c22", border: "1px solid #34343c", borderRadius: 9, padding: "8px 12px", marginTop: 11, fontSize: 12.5, color: "#cdbcff" };
+const docX = { background: "transparent", border: "none", color: "#8a8a90", cursor: "pointer", fontSize: 12, marginLeft: 4 };
+const docErrBox = { fontSize: 11.5, color: "#ffb3a6", marginTop: 9, lineHeight: 1.4 };
+const vtRow = { display: "flex", gap: 11, width: "100%", marginTop: 12, position: "relative", zIndex: 5 };
+const vtBtn = (accent) => ({ width: "100%", height: 54, background: accent ? "#16121f" : "#141417", border: "1px solid " + (accent ? "#3a2f5e" : "#26262c"), borderRadius: 11, display: "flex", alignItems: "center", padding: "0 15px", justifyContent: "space-between", cursor: "pointer" });
+const vtL = { display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-start", minWidth: 0 };
+const vtK = { fontSize: 9.5, color: "#7c7c84", letterSpacing: 1, textTransform: "uppercase" };
+const vtV = { fontSize: 14, color: "#eaeaea", fontWeight: 600, whiteSpace: "nowrap" };
+const vtCar = { color: "#7c7c84", fontSize: 11, flexShrink: 0, marginLeft: 8 };
+const vtMenu = { position: "absolute", top: 58, left: 0, right: 0, zIndex: 20, background: "#17131f", border: "1px solid #3a2f5e", borderRadius: 11, padding: 6, maxHeight: 300, overflowY: "auto", boxShadow: "0 16px 40px rgba(0,0,0,0.6)" };
+const vtOpt = (on) => ({ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 1, width: "100%", textAlign: "left", padding: "8px 11px", borderRadius: 7, border: "none", cursor: "pointer", background: on ? "#2a2150" : "transparent", color: on ? "#cdbcff" : "#dadade", fontSize: 13 });
+const vtPhrase = { fontSize: 10.5, color: "#7c7c84", fontStyle: "italic" };
 // Seed "Try" hints — the picked beat's curated topics, as quiet fill-the-topic
 // suggestions (TOPIC_ROUTES.md: ghost hints, never inserted as a slide topic).
 const seedRow = { display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap", marginTop: 12 };
