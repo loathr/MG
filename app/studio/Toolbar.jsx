@@ -86,7 +86,7 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
       {el.type === "text" && (
         <>
           <span style={{ width: 150 }}><FontSelect value={el.fontFamily} options={FONT_OPTIONS} onChange={(v) => up({ fontFamily: v })} title="Font (whole text)" /></span>
-          <Stepper value={Math.round(el.fontSize || 0)} onDelta={(d) => up({ fontSize: Math.max(6, (el.fontSize || 0) + d) })} />
+          <Stepper value={Math.round(el.fontSize || 0)} onDelta={(d) => up({ fontSize: Math.max(6, (el.fontSize || 0) + d) })} onSet={(v) => up({ fontSize: Math.max(6, Math.min(400, v)) })} />
           <ColorBtn title="Text colour" value={textColor} onChange={(v) => setStyle({ color: v })} glyph={<span style={{ fontWeight: 800, borderBottom: "3px solid " + (textColor || "#fff"), lineHeight: 1 }}>A</span>} />
           <Sep />
           <Seg>
@@ -322,8 +322,40 @@ function SegBtn({ on, sel, onClick, onMouseDown, title, children }) {
   const fg = on ? (sel ? "#fff" : UI.onBrand) : "#dadade";
   return <button title={title} onMouseDown={onMouseDown} onClick={onClick} style={{ ...segBtn, background: on ? bg : "transparent", color: fg }}>{children}</button>;
 }
-function Stepper({ value, onDelta }) {
-  return <span style={stepper}><button style={stepBtn} onClick={() => onDelta(-2)}>−</button><span style={stepVal}>{value}</span><button style={stepBtn} onClick={() => onDelta(2)}>+</button></span>;
+// The font-size control: −/+ buttons AND a directly TYPEABLE value. The middle is
+// a numeric input (was a static label, so you couldn't type a size); onSet commits
+// on Enter/blur, Escape reverts, and the draft re-syncs whenever `value` changes
+// from outside (the ± buttons, undo, selecting another element).
+function Stepper({ value, onDelta, onSet }) {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => { setDraft(String(value)); }, [value]);
+  const commit = () => {
+    const n = parseInt(draft, 10);
+    if (Number.isFinite(n) && onSet) onSet(n);
+    else setDraft(String(value));
+  };
+  return (
+    <span style={stepper}>
+      <button style={stepBtn} onMouseDown={(e) => e.preventDefault()} onClick={() => onDelta(-2)} title="Smaller">−</button>
+      <input
+        style={stepInput}
+        value={draft}
+        inputMode="numeric"
+        aria-label="Font size"
+        onChange={(e) => setDraft(e.target.value.replace(/[^\d]/g, "").slice(0, 4))}
+        onFocus={(e) => e.target.select()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); commit(); e.currentTarget.blur(); }
+          else if (e.key === "Escape") { e.preventDefault(); setDraft(String(value)); e.currentTarget.blur(); }
+          else if (e.key === "ArrowUp") { e.preventDefault(); onDelta(2); }
+          else if (e.key === "ArrowDown") { e.preventDefault(); onDelta(-2); }
+          e.stopPropagation(); // keep canvas shortcuts (Delete, etc.) from firing while typing
+        }}
+        onBlur={commit}
+      />
+      <button style={stepBtn} onMouseDown={(e) => e.preventDefault()} onClick={() => onDelta(2)} title="Larger">+</button>
+    </span>
+  );
 }
 function ColorBtn({ value, onChange, glyph, title, dim, extra }) {
   return (
@@ -401,6 +433,7 @@ const segBtn = { width: 32, height: 30, border: "none", cursor: "pointer", fontS
 const stepper = { display: "inline-flex", alignItems: "center", height: 32, background: "#24242a", border: "1px solid #34343c", borderRadius: 9, overflow: "hidden" };
 const stepBtn = { width: 28, height: 30, border: "none", background: "transparent", color: "#eaeaea", cursor: "pointer", fontSize: 15 };
 const stepVal = { minWidth: 30, textAlign: "center", color: "#eaeaea", fontSize: 12.5, fontWeight: 600 };
+const stepInput = { width: 34, textAlign: "center", color: "#eaeaea", fontSize: 12.5, fontWeight: 600, background: "transparent", border: "none", outline: "none", padding: 0, MozAppearance: "textfield" };
 const backdrop = { position: "fixed", inset: 0, zIndex: 70 };
 const popover = { position: "absolute", top: 54, zIndex: 71, width: 230, background: "#161619", border: "1px solid #34343c", borderRadius: 12, boxShadow: "0 18px 40px rgba(0,0,0,0.6)", padding: 12 };
 // ✨ inline-AI "Write" pill + its popover (gradient accent so it reads as the AI affordance)
