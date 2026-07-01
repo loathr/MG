@@ -8,6 +8,7 @@ import {
   commonsFilePathUrl, imageFromSummary, wikidataId, imageFromClaims, slideEntity,
   commonsCategoryFromClaims, commonsCategoryMembersUrl, parseCommonsCategoryMembers,
   sourceKind, looksLikeProperNoun, entityCandidate, mediaListUrl, parseMediaList,
+  commonsDepictsUrl, parseCommonsSearch,
 } from "../app/studio/entity.js";
 
 test("summaryUrl encodes the title", () => {
@@ -104,6 +105,23 @@ test("mediaListUrl / parseMediaList: article's own photos, largest srcset, raste
   assert.equal(out[0].thumb, "https://upload.wikimedia.org/x/440px-Serena.jpg"); // largest srcset, https-normalised
   assert.equal(out[0].url, "https://upload.wikimedia.org/x/1280px-Serena.jpg");  // upsized
   assert.equal(out[0].alt, "Serena at RG");
+});
+
+test("commonsDepictsUrl / parseCommonsSearch: P180 depicts search → real Commons photos", () => {
+  const u = commonsDepictsUrl("Q11459", 20);
+  assert.match(u, /generator=search/);
+  assert.match(u, /gsrsearch=haswbstatement%3AP180%3DQ11459/); // depicts this QID
+  assert.match(u, /gsrnamespace=6/);
+  assert.match(u, /gsrlimit=20/);
+  const json = { query: { pages: {
+    "1": { title: "File:Serena depicted.jpg", imageinfo: [{ thumburl: "https://upload.wikimedia.org/x/400px-Serena_depicted.jpg", extmetadata: { Artist: { value: "<a>Pat</a>" } } }] },
+    "2": { title: "File:Logo.svg", imageinfo: [{ thumburl: "https://upload.wikimedia.org/x/Logo.svg" }] }, // not raster → dropped
+  } } };
+  const out = parseCommonsSearch(json, 18);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].source, "Commons");
+  assert.equal(out[0].url, "https://upload.wikimedia.org/x/1280px-Serena_depicted.jpg"); // upsized
+  assert.equal(out[0].credit, "Pat");
 });
 
 test("sourceKind: Wikipedia/Wikidata=wiki, Commons=commons, stock providers=stock", () => {

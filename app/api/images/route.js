@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { summaryUrl, wikidataSearchUrl, wikidataClaimsUrl, imageFromSummary, wikidataId, imageFromClaims, slideEntity, commonsCategoryFromClaims, commonsCategoryMembersUrl, parseCommonsCategoryMembers, entityCandidate, mediaListUrl, parseMediaList } from "../../studio/entity";
+import { summaryUrl, wikidataSearchUrl, wikidataClaimsUrl, imageFromSummary, wikidataId, imageFromClaims, slideEntity, commonsCategoryFromClaims, commonsCategoryMembersUrl, parseCommonsCategoryMembers, entityCandidate, mediaListUrl, parseMediaList, commonsDepictsUrl, parseCommonsSearch } from "../../studio/entity";
 import { rankStock, interleave } from "../../studio/imagesearch";
 
 // Image search runs server-side because doing 10-30 sequential Unsplash/Pexels
@@ -481,6 +481,12 @@ async function resolveEntityGallery(name) {
             const mr = await fetchWithTimeout(commonsCategoryMembersUrl(cat, 30), 6000);
             if (mr.ok) out.push(...parseCommonsCategoryMembers(await mr.json(), 24));
           }
+          // Commons "depicts" (P180): files tagged as depicting this QID — real
+          // photos of the subject beyond their own category. Deduped downstream.
+          try {
+            const dr = await fetchWithTimeout(commonsDepictsUrl(qid, 20), 6000);
+            if (dr.ok) out.push(...parseCommonsSearch(await dr.json(), 18));
+          } catch (e) { /* depicts is best-effort */ }
         }
       }
     }

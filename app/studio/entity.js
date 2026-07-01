@@ -111,6 +111,41 @@ export function parseMediaList(json, max) {
   return out;
 }
 
+// Commons "depicts" (P180) search: files STRUCTURALLY TAGGED as depicting the
+// Wikidata QID — real photos of the subject beyond their own category (a photo
+// filed elsewhere but tagged "depicts Serena Williams" still surfaces). Keyless
+// CirrusSearch over the file namespace, with imageinfo for a ~400px thumb.
+export function commonsDepictsUrl(qid, limit) {
+  const id = String(qid == null ? "" : qid).trim();
+  return "https://commons.wikimedia.org/w/api.php?action=query&generator=search" +
+    "&gsrsearch=" + encodeURIComponent("haswbstatement:P180=" + id) +
+    "&gsrnamespace=6&gsrlimit=" + (limit || 20) +
+    "&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=400&format=json&origin=*";
+}
+
+// Parse a Commons generator=search imageinfo response into gallery items {url,
+// thumb, alt, credit, source:"Commons"}. Same shape/filters as the category
+// parser (raster photos only). Pure.
+export function parseCommonsSearch(json, max) {
+  const pages = json && json.query && json.query.pages ? json.query.pages : {};
+  const out = [];
+  for (const page of Object.values(pages)) {
+    const info = page && page.imageinfo && page.imageinfo[0];
+    const thumb = info && info.thumburl;
+    if (!thumb || !/\.(jpg|jpeg|png|webp)(\?|$)/i.test(thumb)) continue;
+    const meta = (info && info.extmetadata) || {};
+    out.push({
+      url: upsizeWikiThumb(thumb, THUMB_W) || thumb,
+      thumb,
+      alt: String(page.title || "").replace(/^File:/i, "").replace(/\.[a-z]+$/i, ""),
+      credit: meta.Artist ? String(meta.Artist.value).replace(/<[^>]*>/g, "").slice(0, 40) : "Wikimedia Commons",
+      source: "Commons",
+    });
+    if (max && out.length >= max) break;
+  }
+  return out;
+}
+
 // Sources that are GENUINE photos of the subject (real people/places) vs generic
 // stock. Drives result ranking (real first) and the panel's source badge. Pure.
 const REAL_SOURCES = { Wikipedia: "wiki", Wikidata: "wiki", Commons: "commons" };
