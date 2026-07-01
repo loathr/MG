@@ -82,6 +82,23 @@ export async function readShared(deckId, presentedToken) {
 
 // --- Admin console readers/writers (admin-only; the CALLER verifies admin) ----
 
+// Admin only: read ANY user's deck by owner uid + deck id, bypassing rules via
+// the Admin SDK (an admin has no Firestore path to another user's decks
+// otherwise). Returns { name, doc } or { doc:null } when absent. Read-only — the
+// console never writes back through this. The CALLER MUST have verified admin.
+export async function readAnyDeck(ownerUid, deckId) {
+  const d = await db();
+  if (!d || !ownerUid || !deckId) return { doc: null };
+  try {
+    const snap = await d.doc("users/" + ownerUid + "/decks/" + deckId).get();
+    if (!snap.exists) return { doc: null };
+    const rec = snap.data() || {};
+    return { doc: rec.doc || null, name: rec.name || "Carousel" };
+  } catch (e) {
+    return { doc: null, error: true };
+  }
+}
+
 // Every account for the console: merges Firebase Auth (email, display name, the
 // `role` custom claim, last sign-in) with Firestore (monthly limit + this month's
 // generation count). Fail-open to [] so the console degrades gracefully. Reads are

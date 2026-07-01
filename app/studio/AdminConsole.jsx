@@ -11,7 +11,7 @@ import { workspaceTotals, accountUsageState, sortAccounts } from "./adminModel";
 // decks. Admin-gated in the UI (Studio only mounts it for an admin) AND on the
 // server (every /api/admin/* route re-checks the role), so it's never the only
 // line of defence. All reads/writes carry the Firebase ID token.
-export default function AdminConsole({ onBack, selfUid, nowMs }) {
+export default function AdminConsole({ onBack, selfUid, nowMs, onOpenDeck }) {
   const [data, setData] = useState(null); // { accounts, decks, period, totals }
   const [tab, setTab] = useState("accounts");
   const [err, setErr] = useState("");
@@ -194,16 +194,23 @@ export default function AdminConsole({ onBack, selfUid, nowMs }) {
         {data && tab === "decks" && (
           <div style={panel}>
             <div style={{ ...row, ...headRow }}>
-              <span style={{ flex: 2 }}>Carousel</span><span style={{ flex: 1.4 }}>Owner</span><span style={{ width: 90 }}>Slides</span><span style={{ width: 120 }}>Updated</span>
+              <span style={{ flex: 2 }}>Carousel</span><span style={{ flex: 1.4 }}>Owner</span><span style={{ width: 90 }}>Slides</span><span style={{ width: 120 }}>Updated</span><span style={{ width: 70 }} />
             </div>
-            {data.decks.map((dk) => (
-              <div key={dk.ownerUid + "/" + dk.id} style={row}>
-                <span style={{ flex: 2, fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{dk.name}</span>
-                <span style={{ flex: 1.4, fontSize: 12.5, color: "#b6b6be" }}>{nameByUid[dk.ownerUid] || dk.ownerUid.slice(0, 8)}</span>
-                <span style={{ width: 90, fontSize: 12.5, color: "#8a8a90" }}>{dk.slideCount}</span>
-                <span style={{ width: 120, fontSize: 12, color: "#8a8a90" }}>{dk.updatedAt ? relativeTime(dk.updatedAt, nowMs) : "—"}</span>
-              </div>
-            ))}
+            {data.decks.map((dk) => {
+              const open = onOpenDeck ? () => onOpenDeck(dk.ownerUid, dk.id, dk.name) : null;
+              return (
+                <div key={dk.ownerUid + "/" + dk.id} style={open ? { ...row, cursor: "pointer" } : row}
+                  onClick={open || undefined} title={open ? "Open read-only" : undefined}>
+                  <span style={{ flex: 2, fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{dk.name}</span>
+                  <span style={{ flex: 1.4, fontSize: 12.5, color: "#b6b6be" }}>{nameByUid[dk.ownerUid] || dk.ownerUid.slice(0, 8)}</span>
+                  <span style={{ width: 90, fontSize: 12.5, color: "#8a8a90" }}>{dk.slideCount}</span>
+                  <span style={{ width: 120, fontSize: 12, color: "#8a8a90" }}>{dk.updatedAt ? relativeTime(dk.updatedAt, nowMs) : "—"}</span>
+                  <span style={{ width: 70, textAlign: "right" }}>
+                    {open ? <button style={openBtn} onClick={(e) => { e.stopPropagation(); open(); }}>Open</button> : null}
+                  </span>
+                </div>
+              );
+            })}
             {data.decks.length === 0 ? <div style={foot}>No decks saved yet.</div> : null}
           </div>
         )}
@@ -276,6 +283,7 @@ const cLast = { width: 96, fontSize: 12, color: "#8a8a90" };
 const cAct = { width: 150, display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" };
 const actBtn = { fontSize: 11.5, color: "#cfcfd4", background: "#1c1c20", border: "1px solid #2c2c32", borderRadius: 7, padding: "5px 9px", cursor: "pointer", whiteSpace: "nowrap" };
 const actDanger = { color: "#ff9a8a", borderColor: "#5a3030", background: "#241819" };
+const openBtn = { fontSize: 11, color: "#cfcfd4", background: "#1c1c20", border: "1px solid #2c2c32", borderRadius: 6, padding: "4px 10px", cursor: "pointer" };
 const suspTag = { fontSize: 10, background: "#3a2a16", color: "#e0b48a", borderRadius: 5, padding: "1px 6px", marginLeft: 6, fontWeight: 600 };
 const modalWrap = { position: "fixed", inset: 0, zIndex: 80, background: "rgba(4,4,6,0.6)", display: "grid", placeItems: "center", padding: 20 };
 const modal = { width: "100%", maxWidth: 380, background: "#161619", border: "1px solid #2f2f37", borderRadius: 14, padding: 20, boxShadow: "0 20px 50px rgba(0,0,0,0.6)" };

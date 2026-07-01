@@ -23,7 +23,7 @@ import CreateScreen from "./CreateScreen";
 import ProjectsScreen from "./ProjectsScreen";
 import AdminConsole from "./AdminConsole";
 import { isCloudEnabled } from "./cloud";
-import { onAuthChange, signOutCloud, getUserRole, bootstrapAdmin } from "./firebaseClient";
+import { onAuthChange, signOutCloud, getUserRole, bootstrapAdmin, getIdToken } from "./firebaseClient";
 import { saveDeck, loadDeck, listDecks, deleteDeck, watchSharePulse } from "./firebaseStore";
 import { exportSlide, exportSlides } from "./export";
 import { exportDeckToDrive } from "./driveExport";
@@ -89,6 +89,7 @@ export default function Studio() {
   const [saveState, setSaveState] = useState("idle"); // "idle" | "saving" | "saved"
   const [shareOpen, setShareOpen] = useState(false);  // Share-link popover (Tier A)
   const [sharedView, setSharedView] = useState(null); // opened via a share link: { deck, s, access, name }
+  const [adminView, setAdminView] = useState(null);   // admin opened someone's deck read-only: { name, error }
   const [drive, setDrive] = useState(null);           // Drive export status: { phase:"working"|"done"|"error", done, total, folderUrl, count, msg }
   const saveTimer = useRef(null);
   const genAbort = useRef(null); // AbortController for the in-flight generation
@@ -532,6 +533,29 @@ export default function Studio() {
   };
   const applyAllCorrections = (claims) => { (claims || []).forEach(applyCorrection); };
 
+  // Admin: open ANY user's deck read-only. Fetches it through the admin-gated
+  // /api/admin/deck (Admin SDK bypasses rules), loads it into the shared read-only
+  // viewer. We never persist — screen stays "admin", so autosave (screen==="editor")
+  // can't fire and mirror the viewed deck into the admin's own projects.
+  const openAdminDeck = async (ownerUid, deckId, fallbackName) => {
+    setAdminView({ name: fallbackName || "Carousel", error: null });
+    try {
+      const token = cloud ? await getIdToken() : null;
+      const res = await fetch("/api/admin/deck?uid=" + encodeURIComponent(ownerUid) + "&deck=" + encodeURIComponent(deckId),
+        token ? { headers: { Authorization: "Bearer " + token } } : undefined);
+      const data = res.ok ? await res.json() : null;
+      if (data && data.doc) {
+        dispatch({ type: "loadDoc", doc: data.doc });
+        setProjectName(data.name || fallbackName || "Carousel");
+        setAdminView({ name: data.name || fallbackName || "Carousel", error: null });
+      } else {
+        setAdminView({ name: fallbackName || "Carousel", error: "Couldn't open that deck — it may have been deleted." });
+      }
+    } catch (e) {
+      setAdminView({ name: fallbackName || "Carousel", error: "Couldn't open that deck." });
+    }
+  };
+
   const toggle = (key) => setActivePanel((p) => (p === key ? null : key));
 
   // Opened via a share link → a read-only, live viewer (no editing surface at
@@ -542,7 +566,17 @@ export default function Studio() {
   }
 
   if (cloud && screen === "admin") {
-    return <AdminConsole onBack={() => setScreen("projects")} selfUid={user && user.uid} nowMs={Date.now()} />;
+    // Admin opened another user's deck → the SAME read-only viewer used for share
+    // links (StaticSlide, no editing surface), with a Back-to-admin control. We
+    // stay on screen "admin" so the editor autosave (gated on screen==="editor")
+    // never fires and writes the viewed deck into the admin's own account.
+    if (adminView) {
+      return <SharedViewer doc={state.doc} slideIndex={state.slideIndex} name={projectName}
+        onNav={(i) => dispatch({ type: "setSlide", index: i })} error={adminView.error}
+        onBack={() => setAdminView(null)} admin />;
+    }
+    return <AdminConsole onBack={() => setScreen("projects")} selfUid={user && user.uid}
+      nowMs={Date.now()} onOpenDeck={openAdminDeck} />;
   }
 
   if (cloud && screen === "projects") {
@@ -936,18 +970,25 @@ const toastX = {
 // editing surface: a banner + a large StaticSlide of the current slide + the
 // strip for navigation. The parent re-pulls the doc on a poll, so this updates
 // live as the owner edits.
-function SharedViewer({ doc, slideIndex, name, onNav, error }) {
+function SharedViewer({ doc, slideIndex, name, onNav, error, onBack, admin }) {
   const slides = (doc && doc.slides) || [];
   const cur = slides[slideIndex] || slides[0];
   return (
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: UI.bg, color: UI.text, fontFamily: "Helvetica, Arial, sans-serif" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, height: 48, padding: "0 16px", borderBottom: "1px solid " + UI.border, flexShrink: 0 }}>
+        {onBack ? <button style={hbtn} onClick={onBack} title="Back to the admin console">‹ Admin</button> : null}
         <strong style={{ fontSize: 13 }}>{name || "Shared carousel"}</strong>
-        <span style={{ fontSize: 11, color: "#8fd3a8", background: "#142019", border: "1px solid #264a36", borderRadius: 12, padding: "2px 9px", display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <style>{"@keyframes lv-pulse{0%{box-shadow:0 0 0 0 rgba(62,196,109,.5)}70%{box-shadow:0 0 0 5px rgba(62,196,109,0)}100%{box-shadow:0 0 0 0 rgba(62,196,109,0)}}"}</style>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#3ec46d", animation: "lv-pulse 1.6s infinite" }} />
-          <Eye size={12} /> View only · live
-        </span>
+        {admin ? (
+          <span style={{ fontSize: 11, color: "#ffd36b", background: "#241d0e", border: "1px solid #4a3c16", borderRadius: 12, padding: "2px 9px", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Eye size={12} /> Admin view · read-only
+          </span>
+        ) : (
+          <span style={{ fontSize: 11, color: "#8fd3a8", background: "#142019", border: "1px solid #264a36", borderRadius: 12, padding: "2px 9px", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <style>{"@keyframes lv-pulse{0%{box-shadow:0 0 0 0 rgba(62,196,109,.5)}70%{box-shadow:0 0 0 5px rgba(62,196,109,0)}100%{box-shadow:0 0 0 0 rgba(62,196,109,0)}}"}</style>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#3ec46d", animation: "lv-pulse 1.6s infinite" }} />
+            <Eye size={12} /> View only · live
+          </span>
+        )}
         <span style={{ marginLeft: "auto", fontSize: 11, color: UI.muted }}>{slides.length} slide{slides.length === 1 ? "" : "s"}</span>
       </div>
       {error ? (
