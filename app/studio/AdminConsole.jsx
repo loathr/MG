@@ -17,6 +17,9 @@ export default function AdminConsole({ onBack, selfUid, nowMs }) {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState({}); // uid -> saving
+  const [confirm, setConfirm] = useState(null); // account pending permanent removal
+  const [confirmText, setConfirmText] = useState(""); // typed email to confirm
+  const [confirmDecks, setConfirmDecks] = useState(true); // also delete their data
 
   const authFetch = useCallback(async (url, opts) => {
     const token = await getIdToken();
@@ -58,6 +61,28 @@ export default function AdminConsole({ onBack, selfUid, nowMs }) {
     finally { setBusy((b) => ({ ...b, [uid]: false })); }
   };
 
+  // Suspend / reactivate (reversible) an account.
+  const setDisabled = async (uid, disabled) => {
+    setBusy((b) => ({ ...b, [uid]: true }));
+    try {
+      const r = await authFetch("/api/admin/account", { method: "POST", body: JSON.stringify({ uid, action: disabled ? "disable" : "enable" }) });
+      if (r.ok) patchAccount(uid, { disabled });
+      else setErr("Couldn't update the account.");
+    } catch (e) { setErr("Couldn't update the account."); }
+    finally { setBusy((b) => ({ ...b, [uid]: false })); }
+  };
+  // Permanently remove an account (+ optionally its data). Drops it from the list.
+  const removeAccount = async (uid, deleteDecks) => {
+    setBusy((b) => ({ ...b, [uid]: true }));
+    try {
+      const r = await authFetch("/api/admin/account", { method: "POST", body: JSON.stringify({ uid, action: "delete", deleteDecks }) });
+      if (r.ok) setData((d) => (d ? { ...d, accounts: d.accounts.filter((a) => a.uid !== uid) } : d));
+      else setErr("Couldn't remove the account.");
+    } catch (e) { setErr("Couldn't remove the account."); }
+    finally { setBusy((b) => ({ ...b, [uid]: false })); setConfirm(null); }
+  };
+  const confirmReady = !!(confirm && confirmText.trim().toLowerCase() === (confirm.email || "").toLowerCase());
+
   const accounts = data ? sortAccounts(data.accounts) : [];
   const totals = data ? workspaceTotals(data.accounts) : { accounts: 0, admins: 0, generationsThisMonth: 0, overLimit: 0 };
   const nameByUid = {};
@@ -92,7 +117,7 @@ export default function AdminConsole({ onBack, selfUid, nowMs }) {
         {data && tab === "accounts" && (
           <div style={panel}>
             <div style={{ ...row, ...headRow }}>
-              <span style={cAcct}>Account</span><span style={cRole}>Role</span><span style={cLim}>Monthly limit</span><span style={cUse}>Used this month</span><span style={cLast}>Last active</span>
+              <span style={cAcct}>Account</span><span style={cRole}>Role</span><span style={cLim}>Monthly limit</span><span style={cUse}>Used this month</span><span style={cLast}>Last active</span><span style={cAct}>Actions</span>
             </div>
             {accounts.map((a) => {
               const st = accountUsageState(a.used, a.limit);
@@ -101,7 +126,7 @@ export default function AdminConsole({ onBack, selfUid, nowMs }) {
                   <span style={cAcct}>
                     <span style={{ ...av, background: avColor(a.uid) }}>{(a.name || a.email || "?").slice(0, 1).toUpperCase()}</span>
                     <span style={{ minWidth: 0 }}>
-                      <span style={nm}>{a.name}{a.uid === selfUid ? <span style={youTag}>you</span> : null}</span>
+                      <span style={nm}>{a.name}{a.uid === selfUid ? <span style={youTag}>you</span> : null}{a.disabled ? <span style={suspTag}>suspended</span> : null}</span>
                       <span style={em}>{a.email}</span>
                     </span>
                   </span>
@@ -124,6 +149,20 @@ export default function AdminConsole({ onBack, selfUid, nowMs }) {
                     <span style={bar}><span style={{ display: "block", height: "100%", borderRadius: 4, width: (st.unlimited ? Math.min(100, st.used) : Math.round(st.ratio * 100)) + "%", background: st.over ? "#ff7a6b" : barColor(a.role) }} /></span>
                   </span>
                   <span style={cLast}>{a.lastActive ? relativeTime(new Date(a.lastActive).getTime(), nowMs) : "—"}</span>
+                  <span style={cAct}>
+                    {a.uid === selfUid ? (
+                      <span style={{ fontSize: 11, color: "#6f6f77" }}>—</span>
+                    ) : (
+                      <>
+                        <button type="button" disabled={!!busy[a.uid]} onClick={() => setDisabled(a.uid, !a.disabled)}
+                          style={actBtn} title={a.disabled ? "Reactivate — allow sign-in again" : "Suspend — block sign-in (reversible)"}>
+                          {a.disabled ? "Reactivate" : "Suspend"}
+                        </button>
+                        <button type="button" disabled={!!busy[a.uid]} onClick={() => { setConfirm(a); setConfirmText(""); setConfirmDecks(true); }}
+                          style={{ ...actBtn, ...actDanger }} title="Remove permanently">Remove</button>
+                      </>
+                    )}
+                  </span>
                 </div>
               );
             })}
@@ -169,6 +208,31 @@ export default function AdminConsole({ onBack, selfUid, nowMs }) {
           </div>
         )}
       </div>
+
+      {confirm && (
+        <div style={modalWrap} onClick={() => setConfirm(null)}>
+          <div style={modal} onClick={(e) => e.stopPropagation()}>
+            <div style={modalTitle}>Remove {confirm.name}?</div>
+            <div style={modalBody}>
+              This permanently deletes <b>{confirm.email}</b>&rsquo;s account and revokes their access. This can&rsquo;t be undone.
+            </div>
+            <label style={ckRow}>
+              <input type="checkbox" checked={confirmDecks} onChange={(e) => setConfirmDecks(e.target.checked)} />
+              Also delete all their decks &amp; data
+            </label>
+            <div style={{ fontSize: 12, color: "#8a8a90", margin: "12px 0 6px" }}>Type their email to confirm:</div>
+            <input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder={confirm.email}
+              autoFocus style={confirmInput} onKeyDown={(e) => { if (e.key === "Enter" && confirmReady) removeAccount(confirm.uid, confirmDecks); if (e.key === "Escape") setConfirm(null); }} />
+            <div style={modalBtns}>
+              <button type="button" style={cancelBtn} onClick={() => setConfirm(null)}>Cancel</button>
+              <button type="button" disabled={!confirmReady || !!busy[confirm.uid]} onClick={() => removeAccount(confirm.uid, confirmDecks)}
+                style={{ ...dangerBtn, opacity: confirmReady ? 1 : 0.5, cursor: confirmReady ? "pointer" : "not-allowed" }}>
+                {busy[confirm.uid] ? "Removing…" : "Remove account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -209,6 +273,19 @@ const cRole = { width: 128 };
 const cLim = { width: 130, display: "flex", alignItems: "center", gap: 7 };
 const cUse = { flex: 1.3, minWidth: 150 };
 const cLast = { width: 96, fontSize: 12, color: "#8a8a90" };
+const cAct = { width: 150, display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" };
+const actBtn = { fontSize: 11.5, color: "#cfcfd4", background: "#1c1c20", border: "1px solid #2c2c32", borderRadius: 7, padding: "5px 9px", cursor: "pointer", whiteSpace: "nowrap" };
+const actDanger = { color: "#ff9a8a", borderColor: "#5a3030", background: "#241819" };
+const suspTag = { fontSize: 10, background: "#3a2a16", color: "#e0b48a", borderRadius: 5, padding: "1px 6px", marginLeft: 6, fontWeight: 600 };
+const modalWrap = { position: "fixed", inset: 0, zIndex: 80, background: "rgba(4,4,6,0.6)", display: "grid", placeItems: "center", padding: 20 };
+const modal = { width: "100%", maxWidth: 380, background: "#161619", border: "1px solid #2f2f37", borderRadius: 14, padding: 20, boxShadow: "0 20px 50px rgba(0,0,0,0.6)" };
+const modalTitle = { fontSize: 15, fontWeight: 700, marginBottom: 8 };
+const modalBody = { fontSize: 12.5, color: "#c2c2ca", lineHeight: 1.5, marginBottom: 12 };
+const ckRow = { display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "#dcdce2", cursor: "pointer" };
+const confirmInput = { width: "100%", boxSizing: "border-box", height: 34, background: "#111114", border: "1px solid #2c2c32", borderRadius: 8, color: "#eaeaea", fontSize: 13, padding: "0 10px", outline: "none" };
+const modalBtns = { display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 };
+const cancelBtn = { fontSize: 12.5, color: "#cfcfd4", background: "#1c1c20", border: "1px solid #2c2c32", borderRadius: 8, padding: "8px 14px", cursor: "pointer" };
+const dangerBtn = { fontSize: 12.5, fontWeight: 600, color: "#fff", background: "#a33028", border: "1px solid #c0392b", borderRadius: 8, padding: "8px 14px" };
 const av = { width: 32, height: 32, borderRadius: "50%", flex: "none", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, color: "#fff" };
 const nm = { fontWeight: 600, fontSize: 13, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
 const em = { fontSize: 11.5, color: "#7d7d85", display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };

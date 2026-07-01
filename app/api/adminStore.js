@@ -120,6 +120,7 @@ export async function listAccounts(nowMs) {
         // non-admin with no explicit limit, unlimited for admins, else the set value.
         limit: effectiveMonthlyLimit(role, stored),
         used,
+        disabled: !!u.disabled, // suspended accounts can't sign in
         lastActive: (u.metadata && (u.metadata.lastSignInTime || u.metadata.lastRefreshTime)) || null,
       });
     }
@@ -156,6 +157,50 @@ export async function setUserLimit(targetUid, monthly) {
     await d.doc("users/" + targetUid).set({ limits: { monthly: n } }, { merge: true });
     return true;
   } catch (e) { return false; }
+}
+
+// Admin only: enable/disable an account (REVERSIBLE). Disabling flips the Firebase
+// Auth `disabled` flag, which blocks sign-in and revokes tokens immediately. The
+// caller MUST have already verified it is an admin (and that it isn't self).
+export async function setUserDisabled(targetUid, disabled) {
+  const creds = adminCredentials();
+  if (!creds || !targetUid) return false;
+  const { getApps, initializeApp, cert } = await import("firebase-admin/app");
+  const app = getApps().length ? getApps()[0] : initializeApp({ credential: cert(creds) });
+  const { getAuth } = await import("firebase-admin/auth");
+  await getAuth(app).updateUser(targetUid, { disabled: !!disabled });
+  return true;
+}
+
+// Admin only: PERMANENTLY delete an account — the Firebase Auth user, and (when
+// deleteDecks, the default) all their Firestore data: decks + each deck's share
+// index/pulse + the usage counters + the user doc. Irreversible. Best-effort on
+// the data purge (fail-open) but the Auth user deletion is awaited. The caller
+// MUST have verified admin + not-self.
+export async function deleteAccount(targetUid, deleteDecks) {
+  const creds = adminCredentials();
+  if (!creds || !targetUid) return false;
+  if (deleteDecks !== false) {
+    const d = await db();
+    if (d) {
+      try {
+        const decks = await d.collection("users/" + targetUid + "/decks").get();
+        for (const doc of decks.docs) {
+          try { await doc.ref.delete(); } catch (e) { /* skip */ }
+          try { await d.doc("shares/" + doc.id).delete(); } catch (e) { /* skip */ }
+          try { await d.doc("sharePulse/" + doc.id).delete(); } catch (e) { /* skip */ }
+        }
+        const months = await d.collection("usage/" + targetUid + "/months").get();
+        for (const m of months.docs) { try { await m.ref.delete(); } catch (e) { /* skip */ } }
+        try { await d.doc("users/" + targetUid).delete(); } catch (e) { /* skip */ }
+      } catch (e) { /* best-effort purge — still delete the Auth user below */ }
+    }
+  }
+  const { getApps, initializeApp, cert } = await import("firebase-admin/app");
+  const app = getApps().length ? getApps()[0] : initializeApp({ credential: cert(creds) });
+  const { getAuth } = await import("firebase-admin/auth");
+  await getAuth(app).deleteUser(targetUid);
+  return true;
 }
 
 // Admin only: set an account's `role` custom claim (the authority the token
