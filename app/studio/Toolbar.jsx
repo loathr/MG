@@ -8,6 +8,7 @@ import { fitShapeBox } from "./textfit";
 import { readImageFile } from "./imageFile";
 import { removeBackground } from "./bgRemove";
 import { WRITE_KINDS, WRITE_KIND_ORDER } from "./aitext";
+import { clearHighlightRuns } from "./model";
 import {
   Type, Image as ImageIcon, Square, Minus, AlignLeft, AlignCenter, AlignRight,
   Ban, Sparkles, Crop, Check, RotateCcw, Eraser, FlipHorizontal2, FlipVertical2,
@@ -64,12 +65,17 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
   // Highlight: a span keeps it on its run (`bg`); the whole text box keeps it on
   // `textBg` (what the renderers read) — the old setStyle wrote `bg` element-wide,
   // which nothing rendered, so the H button looked dead off a selection.
-  // Whole-box highlight. Clearing it (v=null) also drops the GENERATION `highlight`
-  // phrase (el.highlight) — otherwise a generated highlight could only be removed by
-  // editing the word, since it folds into a bg run independently of textBg.
+  // Clearing a highlight (v=null) must strip BOTH the bg AND the paired knockout
+  // text colour so the phrase's colour returns to the element base and the span
+  // merges back into the surrounding copy — otherwise a removed highlight left the
+  // text white (its knockout colour) and visibly detached. On a SELECTION that's a
+  // bg:null + color:null run patch; on the WHOLE BOX it also strips every baked
+  // highlight run (generated highlights fold into runs now, not the old `highlight`
+  // marker) plus the legacy textBg/highlight fields for older decks.
   const setHl = (v) => {
-    if (sel && onStyleSpan) onStyleSpan({ bg: v });
-    else up(v ? { textBg: v } : { textBg: null, highlight: null });
+    if (sel && onStyleSpan) onStyleSpan(v ? { bg: v } : { bg: null, color: null });
+    else if (v) up({ textBg: v });
+    else up({ textBg: null, highlight: null, highlightColor: null, highlightText: null, runs: clearHighlightRuns(el.runs) });
   };
 
   return (

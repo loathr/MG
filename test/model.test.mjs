@@ -7,7 +7,7 @@ import {
   blankSlide, sampleSlide, cloneSlide, imageBackground,
   findElement, highlightRuns, uploadResult,
   styledRuns, applyRunStyle, clearRunStyle, remapRuns, isUniformText, elementBaseStyle, highlightOffsets,
-  bakeHighlight, bakeDocHighlights, correctionSite, applyCorrectionToDoc,
+  bakeHighlight, bakeDocHighlights, clearHighlightRuns, correctionSite, applyCorrectionToDoc,
   cropRect, imageTransform, cropAnchor, reframeCrop,
 } from "../app/studio/model.js";
 
@@ -281,6 +281,18 @@ test("bakeHighlight: an explicit run wins over the marker on overlap (precedence
   const baked = bakeHighlight(el);
   const mark = styledRuns(baked).find((s) => s.text === "big");
   assert.equal(mark.bg, "#00ff00"); // explicit run's bg, not the marker's
+});
+
+test("clearHighlightRuns: drops the highlight bg + its knockout colour, keeps other runs, drops empties", () => {
+  // a baked highlight run (bg + knockout color) → removed entirely so text re-merges
+  assert.deepEqual(clearHighlightRuns([{ start: 4, end: 7, bg: "#e23744", color: "#000" }]), []);
+  // a highlight run that ALSO carries bold → keeps bold, loses bg + knockout color
+  assert.deepEqual(clearHighlightRuns([{ start: 0, end: 3, bg: "#e23744", color: "#000", bold: true }]),
+    [{ start: 0, end: 3, bold: true }]);
+  // a plain colour run (no bg) is untouched
+  assert.deepEqual(clearHighlightRuns([{ start: 1, end: 2, color: "#f00" }]), [{ start: 1, end: 2, color: "#f00" }]);
+  assert.deepEqual(clearHighlightRuns([]), []);
+  assert.deepEqual(clearHighlightRuns(undefined), []);
 });
 
 test("bakeDocHighlights: bakes every text element and no-ops an already-clean doc", () => {

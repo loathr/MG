@@ -474,6 +474,24 @@ export function bakeHighlight(el) {
   return out;
 }
 
+// Strip highlight styling from a runs array — used when removing a highlight from a
+// whole text box. A highlight run carries a `bg` and (usually) a knockout `color`
+// paired with it; drop BOTH so the phrase's text colour returns to the element
+// base and the span merges back into the surrounding copy (the "doesn't integrate
+// back" bug). Runs without a `bg` are left untouched; a run left with nothing but
+// its range is dropped. Pure.
+export function clearHighlightRuns(runs) {
+  const out = [];
+  for (const r of (runs || [])) {
+    if (r.bg == null) { out.push(r); continue; } // not a highlight run — keep as-is
+    const n = Object.assign({}, r);
+    delete n.bg;
+    delete n.color; // the knockout text colour that pairs with the highlight bg
+    if (Object.keys(n).some((k) => k !== "start" && k !== "end")) out.push(n);
+  }
+  return out;
+}
+
 // Bake every text element's highlight marker across a whole doc — used on load so
 // decks saved with the old marker fields migrate to real runs once. Pure; returns
 // a new doc only when something changed (else the same reference, so callers can

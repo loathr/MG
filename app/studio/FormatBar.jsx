@@ -117,7 +117,7 @@ export default function FormatBar({ style, accent, rect, onStyle, onClear, onSiz
               {HL_SWATCHES.map((c, i) => (
                 <button key={i} onMouseDown={hold} onClick={() => { apply(c); setHex(c); }} title={c} style={{ ...gsw, background: c }} />
               ))}
-              <button onMouseDown={hold} onClick={() => { onStyle({ bg: null }); setPop(null); }} title="No highlight"
+              <button onMouseDown={hold} onClick={() => { onStyle({ bg: null, color: null }); setPop(null); }} title="No highlight"
                 style={{ ...gsw, background: "#222", color: "#9a9a9a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⊘</button>
             </div>
           )}
