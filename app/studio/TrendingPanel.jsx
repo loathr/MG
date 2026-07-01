@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { UI } from "./theme";
 import { beatsForDesk, defaultBeat, beatVoice } from "./trending";
+import { TrendingUp, ChevronDown, ChevronRight, RefreshCw, MapPin } from "lucide-react";
 
 // The cued, hidden "Trending" panel on the create screen. Closed by default —
 // just the pill. Opening it fetches live topics for the selected beat from the
@@ -66,14 +67,14 @@ export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, r
   return (
     <div style={{ width: "100%", marginTop: 16, display: "flex", flexDirection: "column", alignItems: "center" }}>
       <button type="button" onClick={() => setOpen((o) => !o)} style={cue} title="Live trending topics — free sources, no credits used">
-        <span style={{ color: "#5aa6ff" }}>✦</span> Trending <span style={{ color: "#6a6a73", fontSize: 11 }}>{open ? "▾" : "▸"}</span>
+        <TrendingUp size={14} style={{ color: "#5aa6ff" }} /> Trending {open ? <ChevronDown size={13} style={{ color: "#6a6a73" }} /> : <ChevronRight size={13} style={{ color: "#6a6a73" }} />}
       </button>
 
       {open && (
         <div style={panel}>
           <div style={phead}>
-            <span style={ptitle}><span style={{ color: "#5aa6ff" }}>✦</span> Trending now</span>
-            <button type="button" onClick={() => load(true)} style={refreshBtn} disabled={loading} title="Pull the latest">↻ Refresh</button>
+            <span style={ptitle}><TrendingUp size={14} style={{ color: "#5aa6ff" }} /> Trending now</span>
+            <button type="button" onClick={() => load(true)} style={refreshBtn} disabled={loading} title="Pull the latest"><RefreshCw size={13} /> Refresh</button>
           </div>
           <div style={ddRow}>
             <span style={ddLabel}>Trending in</span>
@@ -84,7 +85,7 @@ export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, r
 
           {scope && scope.requested && !loading ? (
             <div style={scopeNote(scope.sourced)} title="What scope produced these results">
-              <span>📍</span> {scope.sourced ? "Scoped to " + scope.requested : "No live results for " + scope.requested + " — showing broader"}
+              <MapPin size={13} style={{ flexShrink: 0 }} /> {scope.sourced ? "Scoped to " + scope.requested : "No live results for " + scope.requested + " — showing broader"}
             </div>
           ) : null}
 
@@ -127,7 +128,7 @@ const panel = {
 };
 const phead = { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 };
 const ptitle = { fontSize: 11.5, letterSpacing: 1, textTransform: "uppercase", color: "#b9bdc6", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 7 };
-const refreshBtn = { fontSize: 11.5, color: "#9aa0ab", background: "transparent", border: "1px solid #2f2f37", borderRadius: 999, padding: "4px 10px", cursor: "pointer" };
+const refreshBtn = { fontSize: 11.5, color: "#9aa0ab", background: "transparent", border: "1px solid #2f2f37", borderRadius: 999, padding: "4px 10px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 };
 const ddRow = { display: "flex", alignItems: "center", gap: 10, marginBottom: 14 };
 const ddLabel = { fontSize: 12, color: UI.muted, flexShrink: 0 };
 const ddSelect = { flex: 1, height: 38, borderRadius: 8, background: UI.surface2, color: "#fff", border: "1px solid " + UI.border, fontSize: 13, padding: "0 11px", cursor: "pointer" };

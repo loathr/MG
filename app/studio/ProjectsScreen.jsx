@@ -2,6 +2,7 @@
 import React from "react";
 import { UI } from "./theme";
 import { relativeTime } from "./cloud";
+import { Settings, X } from "lucide-react";
 
 // "Your projects" — the signed-in landing screen (cloud only). A grid of the
 // user's saved decks (metadata only, from listDecks) + a New card. Opening one
@@ -14,7 +15,7 @@ export default function ProjectsScreen({ projects, onOpen, onNew, onDelete, emai
         <div style={ph}>
           <span style={h}>Your projects</span>
           <span style={acct}>
-            {isAdmin ? <button type="button" onClick={onAdmin} style={adminBtn} title="Workspace admin console">⚙ Admin</button> : null}
+            {isAdmin ? <button type="button" onClick={onAdmin} style={adminBtn} title="Workspace admin console"><Settings size={13} /> Admin</button> : null}
             <span style={avatar}>{(email || "?").slice(0, 1).toUpperCase()}</span>
             <span style={{ color: "#b6b6be" }}>{email}</span>
             <button type="button" onClick={onSignOut} style={signout} title="Sign out">Sign out</button>
@@ -34,7 +35,7 @@ export default function ProjectsScreen({ projects, onOpen, onNew, onDelete, emai
                   <div style={dt}>{relativeTime(p.updatedAt, nowMs)} · {p.slideCount} slide{p.slideCount === 1 ? "" : "s"}</div>
                 </div>
               </button>
-              <button type="button" onClick={() => onDelete(p.id)} style={del} title="Delete">✕</button>
+              <button type="button" onClick={() => onDelete(p.id)} style={del} title="Delete"><X size={14} /></button>
             </div>
           ))}
         </div>
@@ -55,7 +56,7 @@ const h = { fontSize: 16, fontWeight: 700 };
 const acct = { display: "flex", alignItems: "center", gap: 10, fontSize: 12, color: "#b6b6be" };
 const avatar = { width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#6ea8ff,#9b59b6)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" };
 const signout = { background: "transparent", border: "1px solid " + UI.border, color: "#b6b6be", borderRadius: 7, padding: "5px 10px", fontSize: 11.5, cursor: "pointer" };
-const adminBtn = { background: "#1b1b1f", border: "1px solid #2a2a30", color: "#ffd36b", borderRadius: 7, padding: "5px 11px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" };
+const adminBtn = { background: "#1b1b1f", border: "1px solid #2a2a30", color: "#ffd36b", borderRadius: 7, padding: "5px 11px", fontSize: 11.5, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 };
 const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 14 };
 const newCard = { border: "1.5px dashed #34343c", borderRadius: 12, background: "transparent", color: "#8a8a92", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 176, cursor: "pointer" };
 const card = { position: "relative", border: "1px solid #20202a", borderRadius: 12, overflow: "hidden", background: "#0d0d10" };
@@ -65,5 +66,5 @@ const thumbName = { fontFamily: "Georgia, serif", fontSize: 15, fontWeight: 800,
 const meta = { padding: "9px 11px" };
 const nm = { fontSize: 12.5, color: "#e6e6ea", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
 const dt = { fontSize: 10.5, color: "#6f6f78", marginTop: 2 };
-const del = { position: "absolute", top: 7, right: 7, width: 24, height: 24, borderRadius: 6, background: "rgba(10,10,12,0.7)", color: "#cfcfcf", border: "1px solid " + UI.border, cursor: "pointer", fontSize: 12 };
+const del = { position: "absolute", top: 7, right: 7, width: 24, height: 24, borderRadius: 6, background: "rgba(10,10,12,0.7)", color: "#cfcfcf", border: "1px solid " + UI.border, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" };
 const empty = { textAlign: "center", color: "#6f6f78", fontSize: 13, marginTop: 30 };

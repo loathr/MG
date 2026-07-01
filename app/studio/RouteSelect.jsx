@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { UI } from "./theme";
 import { groupsForDesk, getBeat, deskKind } from "./trending";
+import { ChevronUp, ChevronDown } from "lucide-react";
 
 // The template-specific TOPIC ROUTE control (TOPIC_ROUTES.md, mock "B"): a
 // grouped dropdown that collapses to one line. Its label adapts to the desk —
@@ -22,7 +23,7 @@ export default function RouteSelect({ desk, value, onChange, hideLabel }) {
       <button type="button" onClick={() => setOpen((o) => !o)} style={sel(open)} title={kind + " route"}>
         <span style={pre}>{kind}</span>
         <span style={{ ...cur, color: value ? "#fff" : UI.muted }}>{current}</span>
-        <span style={chev}>{open ? "▴" : "▾"}</span>
+        <span style={chev}>{open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span>
       </button>
 
       {open && (
@@ -63,7 +64,7 @@ function sel(open) {
 }
 const pre = { fontSize: 10, letterSpacing: 1, color: UI.muted, textTransform: "uppercase" };
 const cur = { fontSize: 14.5, fontWeight: 600 };
-const chev = { marginLeft: "auto", color: "#7f7f88", fontSize: 13 };
+const chev = { marginLeft: "auto", color: "#7f7f88", display: "inline-flex", alignItems: "center" };
 const backdrop = { position: "fixed", inset: 0, zIndex: 40 };
 const menu = {
   position: "absolute", left: 0, right: 0, top: "100%", marginTop: 8, zIndex: 41,

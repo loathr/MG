@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { UI } from "./theme";
+import { ChevronDown, Check } from "lucide-react";
 
 // A compact font picker that previews each option IN its own face — a native
 // <select> can't render options in their font, which matters when choosing
@@ -29,7 +30,7 @@ export default function FontSelect({ value, options, onChange, title }) {
     <div ref={ref} style={{ position: "relative", flex: 1, minWidth: 0 }}>
       <button type="button" title={title} onClick={() => setOpen((o) => !o)} style={btn}>
         <span style={{ fontFamily: value, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cur ? cur.label : "Custom"}</span>
-        <span style={{ color: "#888", marginLeft: 6, flexShrink: 0 }}>▾</span>
+        <ChevronDown size={14} style={{ color: "#888", marginLeft: 6, flexShrink: 0 }} />
       </button>
       {open ? (
         <div style={pop}>
@@ -42,7 +43,7 @@ export default function FontSelect({ value, options, onChange, title }) {
                   <div key={f.value} onClick={() => { onChange(f.value); setOpen(false); }}
                     style={Object.assign({}, opt, { fontFamily: f.value, background: on ? (UI.brand + "22") : "transparent", color: on ? "#ffffff" : "#e8e8e8" })}>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.label}</span>
-                    {on ? <span style={{ color: UI.brand, fontSize: 12, fontFamily: "Helvetica, Arial, sans-serif", flexShrink: 0 }}>✓</span> : null}
+                    {on ? <Check size={14} style={{ color: UI.brand, flexShrink: 0 }} /> : null}
                   </div>
                 );
               })}
