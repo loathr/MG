@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { summaryUrl, wikidataSearchUrl, wikidataClaimsUrl, imageFromSummary, wikidataId, imageFromClaims, slideEntity } from "../../studio/entity";
+import { summaryUrl, wikidataSearchUrl, wikidataClaimsUrl, imageFromSummary, wikidataId, imageFromClaims, slideEntity, commonsCategoryFromClaims, commonsCategoryMembersUrl, parseCommonsCategoryMembers, looksLikeProperNoun } from "../../studio/entity";
 
 // Image search runs server-side because doing 10-30 sequential Unsplash/Pexels
 // calls from the browser kept killing the renderer process on flaky networks —
@@ -441,29 +441,68 @@ async function runImagePipeline(body) {
 // background can never reintroduce the multi-thousand-pixel decode that took the
 // old app down. `thumb` is a small image used by the search grid itself, so the
 // panel stays light even with 30 results on screen.
+// Entity-first gallery for a PERSON/place query: the real Wikipedia portrait, the
+// Wikidata P18 image, and the subject's Commons category (P373) — a set of genuine,
+// openly-licensed photos of the actual subject. Keyless. Best-effort: any miss just
+// yields fewer real photos and the caller falls back to stock. Order = portrait
+// first, then the gallery.
+async function resolveEntityGallery(name) {
+  const out = [];
+  try {
+    const r = await fetchWithTimeout(summaryUrl(name), { headers: { Accept: "application/json" } }, 6000);
+    if (r.ok) { const url = imageFromSummary(await r.json()); if (url) out.push({ url, thumb: url, alt: name, credit: "Wikipedia", source: "Wikipedia" }); }
+  } catch (e) { /* fall through */ }
+  try {
+    const sr = await fetchWithTimeout(wikidataSearchUrl(name), 6000);
+    if (sr.ok) {
+      const qid = wikidataId(await sr.json());
+      if (qid) {
+        const cr = await fetchWithTimeout(wikidataClaimsUrl(qid), 6000);
+        if (cr.ok) {
+          const cj = await cr.json();
+          const p18 = imageFromClaims(cj);
+          if (p18) out.push({ url: p18, thumb: p18, alt: name, credit: "Wikimedia Commons", source: "Wikidata" });
+          const cat = commonsCategoryFromClaims(cj);
+          if (cat) {
+            const mr = await fetchWithTimeout(commonsCategoryMembersUrl(cat, 24), 6000);
+            if (mr.ok) out.push(...parseCommonsCategoryMembers(await mr.json(), 18));
+          }
+        }
+      }
+    }
+  } catch (e) { /* give up; stock covers it */ }
+  return out;
+}
+
 async function runSearch(rawQuery) {
   const query = (rawQuery || "").trim().slice(0, 80);
   if (!query) return [];
+  const seen = {};
+  const out = [];
+  const push = (img) => {
+    if (!img || !img.url || !img.thumb || out.length >= 30) return;
+    const key = normalizeImgUrl(img.url);
+    if (seen[key]) return;
+    seen[key] = true;
+    out.push(img);
+  };
+  // A proper-noun query gets real photos of the subject FIRST (entity-first),
+  // then stock fills below. Object/scene queries skip this and go straight to
+  // stock (where stock is strong), so ordinary searches pay no extra round-trip.
+  if (looksLikeProperNoun(query)) {
+    (await resolveEntityGallery(query)).forEach(push);
+  }
   const groups = await Promise.all([
     searchUnsplash(query),
     searchPexels(query),
     searchPixabay(query),
     searchWikiCommons(query),
   ]);
-  const seen = {};
-  const out = [];
   const maxLen = groups.reduce((m, g) => Math.max(m, g.length), 0);
   // Round-robin interleave so the grid mixes providers rather than showing all
   // of one source before the next.
   for (let i = 0; i < maxLen && out.length < 30; i++) {
-    for (let g = 0; g < groups.length; g++) {
-      const img = groups[g][i];
-      if (!img || !img.url || !img.thumb) continue;
-      const key = normalizeImgUrl(img.url);
-      if (seen[key]) continue;
-      seen[key] = true;
-      out.push(img);
-    }
+    for (let g = 0; g < groups.length; g++) push(groups[g][i]);
   }
   return out;
 }

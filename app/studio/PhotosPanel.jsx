@@ -2,7 +2,17 @@
 import React, { useCallback, useRef, useState } from "react";
 import { UI } from "./theme";
 import { uploadResult } from "./model";
+import { sourceKind } from "./entity";
 import { Upload } from "lucide-react";
+
+// The source badge on a searched result — real photos of the subject (Wikipedia /
+// Commons) are called out vs generic stock, so it's clear which results are
+// genuinely the person searched for.
+const BADGE = {
+  wiki: { label: "Real · Wikipedia", bg: "#173225", fg: "#8fd3a8", bd: "#2a5a40" },
+  commons: { label: "Real · Commons", bg: "#15252f", fg: "#8fc7e6", bd: "#2a4a5a" },
+  stock: { label: "Stock", bg: "#2a2a30", fg: "#9a9aa4", bd: "#3a3a42" },
+};
 
 // Photos panel (spec §7). Search box -> masonry of results from /api/images, PLUS
 // "upload from device". Tap a result (searched or uploaded) to set it as the
@@ -54,6 +64,7 @@ const grid = {
   padding: "0 12px 12px", overflowY: "auto", minHeight: 0,
 };
 const hint = { gridColumn: "1 / -1", color: "#7a7a7a", fontSize: 12, lineHeight: 1.5, padding: "16px 4px", textAlign: "center" };
+const sectionDivider = { gridColumn: "1 / -1", fontSize: 9.5, letterSpacing: 0.8, textTransform: "uppercase", color: "#7c7c84", fontWeight: 700, margin: "6px 0 0", paddingTop: 2 };
 
 // Read an uploaded image file -> a §3-safe { url, thumb } via canvas downscale:
 // the full image capped to <=1600px (the same ceiling /api/images enforces) plus
@@ -116,7 +127,15 @@ function PhotoCard({ img, onSetBackground, onAddImage }) {
           position: "absolute", top: 6, left: 6, background: UI.brand, color: UI.onBrand,
           fontSize: 9, fontWeight: 700, letterSpacing: 0.4, padding: "2px 6px", borderRadius: 4, pointerEvents: "none",
         }}>UPLOADED</span>
-      ) : null}
+      ) : img.source ? (() => {
+        const b = BADGE[sourceKind(img.source)] || BADGE.stock;
+        return (
+          <span style={{
+            position: "absolute", top: 6, left: 6, background: b.bg, color: b.fg, border: "1px solid " + b.bd,
+            fontSize: 8.5, fontWeight: 700, letterSpacing: 0.3, padding: "2px 5px", borderRadius: 4, pointerEvents: "none",
+          }}>{b.label}</span>
+        );
+      })() : null}
       {hover && (
         <div style={{
           position: "absolute", inset: 0, display: "flex", flexDirection: "column",
@@ -185,8 +204,13 @@ export default function PhotosPanel({ onSetBackground, onAddImage, onClose }) {
     if (e.dataTransfer && e.dataTransfer.files) handleFiles(e.dataTransfer.files);
   }, [handleFiles]);
 
+  // Results come real-first from the route; split so a divider can separate the
+  // genuine subject photos (Wikipedia / Commons) from the generic stock below.
+  const realResults = results.filter((r) => sourceKind(r.source) !== "stock");
+  const stockResults = results.filter((r) => sourceKind(r.source) === "stock");
   const items = uploads.concat(results);
   const hasItems = items.length > 0;
+  const showDivider = realResults.length > 0 && stockResults.length > 0;
 
   return (
     <div style={wrap}
@@ -230,9 +254,22 @@ export default function PhotosPanel({ onSetBackground, onAddImage, onClose }) {
       )}
 
       <div style={grid}>
-        {items.map((img, i) => (
+        {/* Uploads, then real subject photos, then a divider, then stock. When
+            there are no real results the divider is skipped and it's a plain grid. */}
+        {uploads.map((img, i) => (
+          <PhotoCard key={"u" + (img.url || "") + i} img={img} onSetBackground={onSetBackground} onAddImage={onAddImage} />
+        ))}
+        {(showDivider ? realResults : results).map((img, i) => (
           <PhotoCard key={(img.url || "") + i} img={img} onSetBackground={onSetBackground} onAddImage={onAddImage} />
         ))}
+        {showDivider && (
+          <>
+            <div style={sectionDivider}>More from stock</div>
+            {stockResults.map((img, i) => (
+              <PhotoCard key={"s" + (img.url || "") + i} img={img} onSetBackground={onSetBackground} onAddImage={onAddImage} />
+            ))}
+          </>
+        )}
 
         {loading && results.length === 0 && (
           <div style={hint}>Searching…</div>

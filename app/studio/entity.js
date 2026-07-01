@@ -25,9 +25,74 @@ export function wikidataSearchUrl(name) {
     "&language=en&format=json&limit=1&origin=*";
 }
 
+// Claims we need in ONE call: P18 (image) + P373 (Commons category, for the
+// people gallery). imageFromClaims still reads only P18, so this is back-compat.
 export function wikidataClaimsUrl(qid) {
   return "https://www.wikidata.org/w/api.php?action=wbgetclaims&entity=" +
-    encodeURIComponent(String(qid == null ? "" : qid)) + "&property=P18&format=json&origin=*";
+    encodeURIComponent(String(qid == null ? "" : qid)) + "&property=P18%7CP373&format=json&origin=*";
+}
+
+// The P373 (Commons category) claim → the category title (e.g. "Serena Williams"),
+// or null. That category is a curated gallery of real, openly-licensed photos of
+// the subject — the fix for a person search returning only generic stock. Pure.
+export function commonsCategoryFromClaims(json) {
+  const p373 = json && json.claims && json.claims.P373;
+  const snak = p373 && p373[0] && p373[0].mainsnak;
+  const cat = snak && snak.datavalue && snak.datavalue.value;
+  return cat && typeof cat === "string" ? cat.trim() : null;
+}
+
+// MediaWiki API URL listing the FILE members of a Commons category, each with a
+// ~400px thumb (grid-light; upsized to 1280 for the picked url). Keyless.
+export function commonsCategoryMembersUrl(category, limit) {
+  const cat = String(category == null ? "" : category).replace(/^Category:/i, "").trim();
+  return "https://commons.wikimedia.org/w/api.php?action=query&generator=categorymembers&gcmtitle=" +
+    encodeURIComponent("Category:" + cat) +
+    "&gcmtype=file&gcmlimit=" + (limit || 24) +
+    "&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=400&format=json&origin=*";
+}
+
+// Parse a categorymembers imageinfo response into gallery items {url, thumb, alt,
+// credit, source:"Commons"}. Keeps only real raster photos (jpg/png/webp) — drops
+// SVG logos, PDFs, and audio the category may also contain. Pure.
+export function parseCommonsCategoryMembers(json, max) {
+  const pages = json && json.query && json.query.pages ? json.query.pages : {};
+  const out = [];
+  for (const page of Object.values(pages)) {
+    const info = page && page.imageinfo && page.imageinfo[0];
+    const thumb = info && info.thumburl;
+    if (!thumb || !/\.(jpg|jpeg|png|webp)(\?|$)/i.test(thumb)) continue;
+    const meta = (info && info.extmetadata) || {};
+    out.push({
+      url: upsizeWikiThumb(thumb, THUMB_W) || thumb,
+      thumb,
+      alt: (page.title || "").replace(/^File:/i, "").replace(/\.[a-z]+$/i, ""),
+      credit: meta.Artist ? String(meta.Artist.value).replace(/<[^>]*>/g, "").slice(0, 40) : "Wikimedia Commons",
+      source: "Commons",
+    });
+    if (max && out.length >= max) break;
+  }
+  return out;
+}
+
+// Sources that are GENUINE photos of the subject (real people/places) vs generic
+// stock. Drives result ranking (real first) and the panel's source badge. Pure.
+const REAL_SOURCES = { Wikipedia: "wiki", Wikidata: "wiki", Commons: "commons" };
+export function sourceKind(source) {
+  return REAL_SOURCES[source] || "stock";
+}
+
+// Heuristic: does the query look like a proper noun (a named person/place/org) —
+// so it's worth the keyless Wikipedia/Wikidata round-trip? Capitalised, 1-4 words,
+// not an obviously lowercase common-noun search ("sunset", "city skyline"). Errs
+// toward trying entity resolution for any capitalised query. Pure.
+export function looksLikeProperNoun(query) {
+  const s = String(query == null ? "" : query).trim();
+  if (!s || s.length > 60) return false;
+  const words = s.split(/\s+/);
+  if (words.length < 1 || words.length > 4) return false;
+  const caps = words.filter((w) => /^[A-Z]/.test(w)).length;
+  return caps >= 1 && caps >= Math.ceil(words.length / 2);
 }
 
 // A MediaWiki/Commons thumbnail URL embeds its rendered width as "/NNNpx-".

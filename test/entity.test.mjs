@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 import {
   summaryUrl, wikidataSearchUrl, wikidataClaimsUrl, upsizeWikiThumb,
   commonsFilePathUrl, imageFromSummary, wikidataId, imageFromClaims, slideEntity,
+  commonsCategoryFromClaims, commonsCategoryMembersUrl, parseCommonsCategoryMembers,
+  sourceKind, looksLikeProperNoun,
 } from "../app/studio/entity.js";
 
 test("summaryUrl encodes the title", () => {
@@ -57,6 +59,53 @@ test("wikidataId reads the top hit; imageFromClaims reads P18 -> Commons URL", (
   assert.equal(imageFromClaims({ claims: {} }), null);
   assert.match(wikidataClaimsUrl("Q123"), /entity=Q123&property=P18/);
   assert.match(wikidataSearchUrl("Fela Kuti"), /search=Fela%20Kuti/);
+});
+
+test("commonsCategoryFromClaims reads P373; commonsCategoryMembersUrl builds a keyless list URL", () => {
+  const claims = { claims: { P373: [{ mainsnak: { datavalue: { value: "Serena Williams" } } }] } };
+  assert.equal(commonsCategoryFromClaims(claims), "Serena Williams");
+  assert.equal(commonsCategoryFromClaims({ claims: {} }), null);
+  const u = commonsCategoryMembersUrl("Serena Williams", 24);
+  assert.match(u, /generator=categorymembers/);
+  assert.match(u, /gcmtitle=Category%3ASerena%20Williams/);
+  assert.match(u, /gcmlimit=24/);
+  assert.match(u, /iiurlwidth=400/);
+  // tolerates a leading "Category:" and defaults the limit
+  assert.match(commonsCategoryMembersUrl("Category:Fela Kuti"), /gcmtitle=Category%3AFela%20Kuti/);
+});
+
+test("parseCommonsCategoryMembers keeps real photos, drops SVG/PDF, upsizes the picked url", () => {
+  const json = { query: { pages: {
+    "1": { title: "File:Serena 2019.jpg", imageinfo: [{ thumburl: "https://upload.wikimedia.org/commons/thumb/a/serena/400px-Serena_2019.jpg", extmetadata: { Artist: { value: "<a>Jane</a>" } } }] },
+    "2": { title: "File:Logo.svg", imageinfo: [{ thumburl: "https://upload.wikimedia.org/commons/thumb/x/400px-Logo.svg.png" }] }, // svg source but png thumb — kept (real raster)
+    "3": { title: "File:Doc.pdf", imageinfo: [{ thumburl: "https://upload.wikimedia.org/commons/Doc.pdf" }] }, // not a raster → dropped
+    "4": { title: "File:NoThumb.jpg", imageinfo: [{}] }, // no thumburl → dropped
+  } } };
+  const out = parseCommonsCategoryMembers(json, 18);
+  assert.equal(out.length, 2);
+  assert.ok(out.every((x) => x.source === "Commons"));
+  assert.equal(out[0].url, "https://upload.wikimedia.org/commons/thumb/a/serena/1280px-Serena_2019.jpg"); // upsized 400→1280
+  assert.equal(out[0].thumb, "https://upload.wikimedia.org/commons/thumb/a/serena/400px-Serena_2019.jpg");
+  assert.equal(out[0].credit, "Jane"); // HTML stripped
+});
+
+test("sourceKind: Wikipedia/Wikidata=wiki, Commons=commons, stock providers=stock", () => {
+  assert.equal(sourceKind("Wikipedia"), "wiki");
+  assert.equal(sourceKind("Wikidata"), "wiki");
+  assert.equal(sourceKind("Commons"), "commons");
+  assert.equal(sourceKind("Pexels"), "stock");
+  assert.equal(sourceKind("Unsplash"), "stock");
+  assert.equal(sourceKind(undefined), "stock");
+});
+
+test("looksLikeProperNoun: capitalised names trigger entity search; lowercase scenes don't", () => {
+  assert.equal(looksLikeProperNoun("Serena Williams"), true);
+  assert.equal(looksLikeProperNoun("New York"), true);
+  assert.equal(looksLikeProperNoun("Serena"), true);
+  assert.equal(looksLikeProperNoun("sunset"), false);
+  assert.equal(looksLikeProperNoun("city skyline at night"), false);
+  assert.equal(looksLikeProperNoun(""), false);
+  assert.equal(looksLikeProperNoun("this is a very long lowercase phrase that is clearly not a name"), false);
 });
 
 test("slideEntity normalizes entity/person + entityType, drops blanks and bad types", () => {
