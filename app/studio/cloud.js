@@ -15,14 +15,20 @@
 // Read the public Firebase web config at call-time (so tests can set env, and so
 // a missing value flips the feature off rather than throwing at import).
 export function cloudConfig() {
-  const e = (typeof process !== "undefined" && process.env) ? process.env : {};
+  // IMPORTANT: reference each NEXT_PUBLIC_* var DIRECTLY as
+  // `process.env.NEXT_PUBLIC_…`. Next.js inlines these into the client bundle at
+  // build time ONLY for literal, direct references — reading them through an alias
+  // (`const e = process.env; e.NEXT_PUBLIC_X`) or by destructuring is NOT replaced,
+  // so in the browser the values come back empty and the whole cloud layer stays
+  // dark even when the vars are set. Direct access is inlined in the browser and is
+  // a normal runtime read under Node (tests), so it works in both.
   const cfg = {
-    apiKey: e.NEXT_PUBLIC_FIREBASE_API_KEY || "",
-    authDomain: e.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
-    projectId: e.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
-    storageBucket: e.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "",
-    messagingSenderId: e.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
-    appId: e.NEXT_PUBLIC_FIREBASE_APP_ID || "",
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "",
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
   };
   // Enabled only when the load-bearing fields are all present.
   return (cfg.apiKey && cfg.authDomain && cfg.projectId && cfg.appId) ? cfg : null;
