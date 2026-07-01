@@ -186,13 +186,18 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
 
   return (
     <div ref={containerRef} style={{ flex: 1, minWidth: 0, minHeight: 0, display: "grid", placeItems: "center", overflow: "hidden", background: UI.bg, position: "relative" }}
-      onDragOver={onCanvasDragOver} onDragLeave={onCanvasDragLeave} onDrop={onCanvasDrop}>
+      onDragOver={onCanvasDragOver} onDragLeave={onCanvasDragLeave} onDrop={onCanvasDrop}
+      onPointerDown={(e) => { if (e.target === e.currentTarget) dispatch({ type: "deselect" }); }}>
       <div style={{ position: "relative", width: ARTBOARD_W * scale, height: ARTBOARD_H * scale, boxShadow: "0 10px 40px rgba(0,0,0,0.5)" }}>
         {/* scaled artboard in artboard coordinates */}
         <div
           ref={artRef}
           data-artboard
-          style={{ position: "absolute", top: 0, left: 0, width: ARTBOARD_W, height: ARTBOARD_H, transform: "scale(" + scale + ")", transformOrigin: "top left", overflow: "hidden", background: bg.color || "#0c0c0c" }}
+          /* overflow:visible (not hidden) so an element that runs past the board edge
+             stays painted AND hit-testable — you can select/drag the part hanging off
+             the canvas. The board's crop is re-imposed for export/thumbnails by their
+             own renderers; the dim "mat" below reads the off-board area as bleed. */
+          style={{ position: "absolute", top: 0, left: 0, width: ARTBOARD_W, height: ARTBOARD_H, transform: "scale(" + scale + ")", transformOrigin: "top left", overflow: "visible", background: bg.color || "#0c0c0c" }}
           onPointerDown={() => dispatch({ type: "deselect" })}
         >
           {/* The ONE heavy decode: the active slide's full-res background. Off-
@@ -233,6 +238,13 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
             )
           )}
         </div>
+
+        {/* Bleed "mat": a board-sized transparent box whose huge spread-shadow dims
+            everything OUTSIDE the board (clipped by the container). It sits above the
+            off-board element bleed but below the detach button and selection handles
+            (DOM order + auto z-index), so the hanging-off part reads as bleed while its
+            handles stay bright and grabbable. pointerEvents:none keeps it click-through. */}
+        <div style={{ position: "absolute", inset: 0, boxShadow: "0 0 0 9999px rgba(10,10,12,0.55)", pointerEvents: "none" }} />
 
         {/* F1: detach the background photo into an editable layer. Shown only when
             the slide's background is a photo and nothing is selected — feature
