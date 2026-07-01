@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { summaryUrl, wikidataSearchUrl, wikidataClaimsUrl, imageFromSummary, wikidataId, imageFromClaims, slideEntity, commonsCategoryFromClaims, commonsCategoryMembersUrl, parseCommonsCategoryMembers, looksLikeProperNoun, mediaListUrl, parseMediaList } from "../../studio/entity";
+import { summaryUrl, wikidataSearchUrl, wikidataClaimsUrl, imageFromSummary, wikidataId, imageFromClaims, slideEntity, commonsCategoryFromClaims, commonsCategoryMembersUrl, parseCommonsCategoryMembers, entityCandidate, mediaListUrl, parseMediaList } from "../../studio/entity";
 import { rankStock, interleave } from "../../studio/imagesearch";
 
 // Image search runs server-side because doing 10-30 sequential Unsplash/Pexels
@@ -449,16 +449,23 @@ async function runImagePipeline(body) {
 // first, then the gallery.
 async function resolveEntityGallery(name) {
   const out = [];
-  let title = name; // canonical article title (summary redirects a bare name to it)
+  let title = name;      // canonical article title (summary redirects a bare name to it)
+  let resolved = false;  // did the query resolve to a real (non-disambiguation) article?
   try {
     const r = await fetchWithTimeout(summaryUrl(name), { headers: { Accept: "application/json" } }, 6000);
     if (r.ok) {
       const j = await r.json();
-      if (j && j.title) title = j.title;
-      const url = imageFromSummary(j);
-      if (url) out.push({ url, thumb: url, alt: name, credit: "Wikipedia", source: "Wikipedia" });
+      if (j && j.type !== "disambiguation" && j.title) {
+        resolved = true;
+        title = j.title;
+        const url = imageFromSummary(j);
+        if (url) out.push({ url, thumb: url, alt: name, credit: "Wikipedia", source: "Wikipedia" });
+      }
     }
   } catch (e) { /* fall through */ }
+  // Not a real article (a 404 or a disambiguation, e.g. "startup office") → skip the
+  // expensive Wikidata/category/media-list steps; stock covers it. One fetch spent.
+  if (!resolved) return out;
   try {
     const sr = await fetchWithTimeout(wikidataSearchUrl(name), 6000);
     if (sr.ok) {
@@ -500,10 +507,11 @@ async function runSearch(rawQuery) {
     seen[key] = true;
     out.push(img);
   };
-  // A proper-noun query gets real photos of the subject FIRST (entity-first),
-  // then stock fills below. Object/scene queries skip this and go straight to
-  // stock (where stock is strong), so ordinary searches pay no extra round-trip.
-  if (looksLikeProperNoun(query)) {
+  // A short query gets real photos of the subject FIRST (entity-first) when it
+  // resolves to a real Wikipedia article; otherwise the resolver short-circuits
+  // after one fetch and stock fills. Case-insensitive so lowercase names
+  // ("serena williams", "trump") work — the old capitalised gate missed them.
+  if (entityCandidate(query)) {
     (await resolveEntityGallery(query)).forEach(push);
   }
   // Deeper pull: fetch TWO pages per keyed provider (~2× the pool) so there's more

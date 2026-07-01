@@ -25,11 +25,14 @@ export function wikidataSearchUrl(name) {
     "&language=en&format=json&limit=1&origin=*";
 }
 
-// Claims we need in ONE call: P18 (image) + P373 (Commons category, for the
-// people gallery). imageFromClaims still reads only P18, so this is back-compat.
+// ALL claims for the entity in one call. We deliberately DON'T filter by property:
+// wbgetclaims' `property` param takes a single id, so "P18|P373" is invalid and
+// returned nothing (the people-gallery regression). Fetching all claims returns
+// them keyed by property at `json.claims`, so imageFromClaims (P18) and
+// commonsCategoryFromClaims (P373) both read what they need. A claim set is small.
 export function wikidataClaimsUrl(qid) {
   return "https://www.wikidata.org/w/api.php?action=wbgetclaims&entity=" +
-    encodeURIComponent(String(qid == null ? "" : qid)) + "&property=P18%7CP373&format=json&origin=*";
+    encodeURIComponent(String(qid == null ? "" : qid)) + "&format=json&origin=*";
 }
 
 // The P373 (Commons category) claim → the category title (e.g. "Serena Williams"),
@@ -126,6 +129,20 @@ export function looksLikeProperNoun(query) {
   if (words.length < 1 || words.length > 4) return false;
   const caps = words.filter((w) => /^[A-Z]/.test(w)).length;
   return caps >= 1 && caps >= Math.ceil(words.length / 2);
+}
+
+// Whether a query is worth a Wikipedia lookup — CASE-INSENSITIVE, because search
+// boxes are usually typed lowercase ("serena williams", "trump"), which the
+// capitalised looksLikeProperNoun missed (people search only returned stock). Any
+// short 1-4 word query qualifies; the resolver then cheaply short-circuits when the
+// summary doesn't resolve to a real article, so a generic "startup office" pays
+// only one fast fetch. Pure.
+export function entityCandidate(query) {
+  const s = String(query == null ? "" : query).trim();
+  if (!s || s.length > 50) return false;
+  if (/^\d+$/.test(s)) return false; // pure numbers aren't entities
+  const words = s.split(/\s+/);
+  return words.length >= 1 && words.length <= 4;
 }
 
 // A MediaWiki/Commons thumbnail URL embeds its rendered width as "/NNNpx-".

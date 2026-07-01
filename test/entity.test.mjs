@@ -7,7 +7,7 @@ import {
   summaryUrl, wikidataSearchUrl, wikidataClaimsUrl, upsizeWikiThumb,
   commonsFilePathUrl, imageFromSummary, wikidataId, imageFromClaims, slideEntity,
   commonsCategoryFromClaims, commonsCategoryMembersUrl, parseCommonsCategoryMembers,
-  sourceKind, looksLikeProperNoun, mediaListUrl, parseMediaList,
+  sourceKind, looksLikeProperNoun, entityCandidate, mediaListUrl, parseMediaList,
 } from "../app/studio/entity.js";
 
 test("summaryUrl encodes the title", () => {
@@ -57,7 +57,8 @@ test("wikidataId reads the top hit; imageFromClaims reads P18 -> Commons URL", (
   const claims = { claims: { P18: [{ mainsnak: { datavalue: { value: "Bong Joon-ho 2019.jpg" } } }] } };
   assert.equal(imageFromClaims(claims), "https://commons.wikimedia.org/wiki/Special:FilePath/Bong_Joon-ho_2019.jpg?width=1280");
   assert.equal(imageFromClaims({ claims: {} }), null);
-  assert.match(wikidataClaimsUrl("Q123"), /entity=Q123&property=P18/);
+  assert.match(wikidataClaimsUrl("Q123"), /wbgetclaims&entity=Q123&format=json/);
+  assert.doesNotMatch(wikidataClaimsUrl("Q123"), /property=/); // no invalid property filter (all claims)
   assert.match(wikidataSearchUrl("Fela Kuti"), /search=Fela%20Kuti/);
 });
 
@@ -112,6 +113,16 @@ test("sourceKind: Wikipedia/Wikidata=wiki, Commons=commons, stock providers=stoc
   assert.equal(sourceKind("Pexels"), "stock");
   assert.equal(sourceKind("Unsplash"), "stock");
   assert.equal(sourceKind(undefined), "stock");
+});
+
+test("entityCandidate: CASE-INSENSITIVE — lowercase names qualify (the regression fix)", () => {
+  assert.equal(entityCandidate("serena williams"), true);  // lowercase name now works
+  assert.equal(entityCandidate("trump"), true);
+  assert.equal(entityCandidate("Serena Williams"), true);
+  assert.equal(entityCandidate("startup office"), true);   // qualifies, but resolver short-circuits (no article)
+  assert.equal(entityCandidate("a very long five word phrase here"), false); // >4 words
+  assert.equal(entityCandidate("2024"), false);            // pure number
+  assert.equal(entityCandidate(""), false);
 });
 
 test("looksLikeProperNoun: capitalised names trigger entity search; lowercase scenes don't", () => {
