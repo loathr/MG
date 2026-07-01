@@ -466,7 +466,7 @@ export default function Studio() {
   }
 
   if (screen === "create") {
-    return <CreateScreen onGenerate={handleGenerate} onBlank={startBlank} generating={generating} phase={genPhase} onCancel={cancelGenerate} error={genError} />;
+    return <CreateScreen onGenerate={handleGenerate} onBlank={startBlank} generating={generating} phase={genPhase} onCancel={cancelGenerate} error={genError} onBack={cloud && user ? backToProjects : null} />;
   }
 
   return (

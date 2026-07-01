@@ -10,7 +10,7 @@ import { routeFraming, getBeat, REGIONS, URGENCY, ANGLES, EMPHASIS, MODES, frami
 import { VOICES as PERSONAS, TONES as RICH_TONES } from "./voices";
 import { readDocFile } from "./docsource";
 import {
-  PenLine, FileText, X, ChevronDown, ChevronRight, Sparkles, Zap,
+  PenLine, FileText, X, ChevronDown, ChevronRight, Sparkles, Zap, ArrowLeft,
   Scroll, Swords, KeyRound, Clapperboard, BarChart3, MessageCircle, Headphones, Shirt, Mic, Gem,
 } from "lucide-react";
 
@@ -52,7 +52,7 @@ function deskLabel(key) {
   return s ? s.label : key;
 }
 
-export default function CreateScreen({ onGenerate, onBlank, generating, phase, onCancel, error }) {
+export default function CreateScreen({ onGenerate, onBlank, generating, phase, onCancel, error, onBack }) {
   const [desk, setDesk] = useState(DEFAULT_STYLE);
   // Voice follows the desk until the user overrides it under Advanced; after that
   // it's theirs and switching desk leaves it alone.
@@ -177,6 +177,13 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
 
   return (
     <div style={screen}>
+      {/* Route back to the dashboard without generating — cloud-only (there's no
+          dashboard in the local flow, so Studio passes onBack only when signed in). */}
+      {onBack && (
+        <button type="button" onClick={onBack} style={backBtn} title="Back to your projects">
+          <ArrowLeft size={14} /> Your projects
+        </button>
+      )}
       <div style={col}>
         <div style={brand}>loathrdotcom</div>
 
@@ -415,6 +422,8 @@ const screen = {
   fontFamily: "Helvetica, Arial, sans-serif",
 };
 const col = { width: "100%", maxWidth: 660, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" };
+// Back-to-dashboard pill, pinned top-left of the create screen (cloud only).
+const backBtn = { position: "absolute", left: 18, top: 16, zIndex: 5, display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 13px", background: "#1b1b1f", color: "#b6b6be", border: "1px solid #2a2a30", borderRadius: 8, fontSize: 12.5, cursor: "pointer" };
 // Wordmark uses the inherited Helvetica sans (the font "LOATHR STUDIO" used
 // before the loathrdotcom rename), not Courier — reverted per design.
 const brand = { fontSize: 13, letterSpacing: 4, color: "#cfcfcf", fontWeight: 700, marginBottom: 36 };
