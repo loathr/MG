@@ -5,7 +5,7 @@ import { resize as geoResize, rotate as geoRotate, snapMove, handlePoint, axes }
 import { readImageFile, isImageFile, fitDroppedImage } from "./imageFile";
 import ElementView from "./Element";
 import { UI } from "./theme";
-import { Pencil } from "lucide-react";
+import { Pencil, Copy, Scissors, ClipboardPaste, CopyPlus, Trash2 } from "lucide-react";
 
 const HANDLES = [
   { sx: -1, sy: -1 }, { sx: 0, sy: -1 }, { sx: 1, sy: -1 },
@@ -15,7 +15,7 @@ const HANDLES = [
 
 const clamp01 = (n) => Math.max(0, Math.min(1, n));
 
-export default function Artboard({ slide, selectedId, editingId, croppingId, dispatch, onTextSelect, onEditApi }) {
+export default function Artboard({ slide, selectedId, editingId, croppingId, dispatch, onTextSelect, onEditApi, canPaste }) {
   const containerRef = useRef(null);
   const artRef = useRef(null);
   const [scale, setScale] = useState(0.4);
@@ -271,6 +271,12 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
           <SelectionOverlay el={selected} scale={scale} onHandleDown={beginDrag} />
         )}
 
+        {/* Floating action bar above the selected element — copy / cut / paste /
+            duplicate / delete, mirroring ⌘C/⌘X/⌘V/⌘D and the toolbar ⋯ menu. */}
+        {selected && !editingId && !cropEl && (
+          <ActionBar el={selected} scale={scale} canPaste={canPaste} dispatch={dispatch} />
+        )}
+
         {/* Free-form crop capture: a transparent layer over the cropped image's box
             (above any scrim/text that overlaps it) so a drag anywhere in the box
             pans the photo. The rule-of-thirds guide (Element) shows beneath it. */}
@@ -364,6 +370,52 @@ function SelectionOverlay({ el, scale, onHandleDown, cropMode }) {
         }}
       />}
     </div>
+  );
+}
+
+// The floating element action bar. Positioned in SCREEN space above the element's
+// (un-rotated) bounding box; flips below when there's no room above. pointerEvents
+// isolated so a click acts on the button, never the canvas beneath.
+function ActionBar({ el, scale, canPaste, dispatch }) {
+  const H = 40; // approx bar height incl. gap
+  const topAbove = el.y * scale - H;
+  const below = topAbove < 4;
+  const top = below ? (el.y + el.h) * scale + 8 : el.y * scale - H;
+  const left = (el.x + el.w / 2) * scale;
+  const act = (type, extra) => (e) => { e.stopPropagation(); dispatch(Object.assign({ type }, extra)); };
+  return (
+    <div
+      onPointerDown={(e) => e.stopPropagation()}
+      style={{
+        position: "absolute", left, top, transform: "translateX(-50%)", zIndex: 25,
+        display: "inline-flex", gap: 2, padding: "4px 5px",
+        background: "rgba(20,20,24,0.94)", border: "1px solid #34343c", borderRadius: 10,
+        boxShadow: "0 8px 24px rgba(0,0,0,0.5)", whiteSpace: "nowrap",
+      }}
+    >
+      <AB title="Copy (⌘C)" onClick={act("copyEl", { id: el.id })}><Copy size={15} /></AB>
+      <AB title="Cut (⌘X)" onClick={act("cut", { id: el.id })}><Scissors size={15} /></AB>
+      <AB title="Paste (⌘V)" onClick={canPaste ? act("paste") : undefined} disabled={!canPaste}><ClipboardPaste size={15} /></AB>
+      <AB title="Duplicate (⌘D)" onClick={act("duplicate", { id: el.id })}><CopyPlus size={15} /></AB>
+      <AB title="Delete (⌫)" danger onClick={act("delete", { id: el.id })}><Trash2 size={15} /></AB>
+    </div>
+  );
+}
+function AB({ children, onClick, title, danger, disabled }) {
+  return (
+    <button
+      title={title}
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        width: 30, height: 30, display: "inline-flex", alignItems: "center", justifyContent: "center",
+        background: "transparent", border: "none", borderRadius: 7,
+        color: disabled ? "#5a5a62" : danger ? "#ff8a8a" : "#dcdce2",
+        cursor: disabled ? "default" : "pointer",
+      }}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = "#2a2a31"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+    >{children}</button>
   );
 }
 

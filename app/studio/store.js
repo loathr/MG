@@ -41,6 +41,12 @@ export function initStudio() {
     past: [],
     future: [],
     lastTag: null,
+    // In-app element clipboard (copy/cut/paste). Lives on state but OUTSIDE the
+    // undo snapshot (see `snap`), so copying never adds a history frame and undo
+    // never clobbers the buffer. `clipboardFrom` is the slide it was taken from,
+    // so a paste onto a DIFFERENT slide can centre instead of offset.
+    clipboard: null,
+    clipboardFrom: null,
   };
 }
 
@@ -288,6 +294,43 @@ function docReducer(state, a) {
       if (!cur) return state;
       const copy = Object.assign({}, cur, { id: uid(cur.type), x: (cur.x || 0) + 24, y: (cur.y || 0) + 24 });
       return Object.assign({}, withSlide(state, (s) => ({ ...s, elements: s.elements.concat([copy]) })), { selectedId: copy.id });
+    }
+    case "copyEl": {
+      // Stash a clone of the selected element in the in-app clipboard. Not a doc
+      // change → no undo frame (falls through the MUTATES/BOUNDARY checks below).
+      const el = (state.doc.slides[state.slideIndex].elements || []).find((e) => e.id === (a.id || state.selectedId));
+      if (!el) return state;
+      return Object.assign({}, state, { clipboard: Object.assign({}, el), clipboardFrom: state.slideIndex });
+    }
+    case "cut": {
+      // Copy to the clipboard AND remove the element (undoable — see MUTATES).
+      const id = a.id || state.selectedId;
+      const el = (state.doc.slides[state.slideIndex].elements || []).find((e) => e.id === id);
+      if (!el) return state;
+      const cleared = withSlide(state, (s) => ({
+        ...s,
+        elements: s.elements
+          .filter((e) => e.id !== id)
+          .map((e) => (e.tetherTo === id ? (({ tetherTo, ...rest }) => rest)(e) : e)),
+      }));
+      return Object.assign({}, cleared, { clipboard: Object.assign({}, el), clipboardFrom: state.slideIndex, selectedId: null, editingId: null, croppingId: null });
+    }
+    case "paste": {
+      // Drop the clipboard element onto the current slide with a fresh id: offset
+      // ~20px when pasting back onto the source slide (so it's visibly a copy), or
+      // centred when pasting onto a different slide. Selected on arrival. Undoable.
+      const c = state.clipboard;
+      if (!c) return state;
+      const w = c.w || 0, h = c.h || 0;
+      const sameSlide = state.clipboardFrom === state.slideIndex;
+      let x = sameSlide ? (c.x || 0) + 20 : Math.round((ARTBOARD_W - w) / 2);
+      let y = sameSlide ? (c.y || 0) + 20 : Math.round((ARTBOARD_H - h) / 2);
+      x = Math.max(0, Math.min(x, ARTBOARD_W - Math.min(w, 40)));
+      y = Math.max(0, Math.min(y, ARTBOARD_H - Math.min(h, 40)));
+      const el = Object.assign({}, c, { id: uid(c.type || "el"), x, y });
+      delete el.tetherTo; // a pasted copy shouldn't inherit the original's tether
+      delete el.role;     // and never carries brand-chrome role (footer/wordmark/…)
+      return Object.assign({}, withSlide(state, (s) => ({ ...s, elements: s.elements.concat([el]) })), { selectedId: el.id, editingId: null });
     }
     case "raise":
     case "lower": {
@@ -590,7 +633,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, duplicate: 1, update: 1, move: 1, setShare: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1, addFont: 1, removeFont: 1 };
+const MUTATES = { add: 1, duplicate: 1, cut: 1, paste: 1, update: 1, move: 1, setShare: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1, addFont: 1, removeFont: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1, crop: 1 };
 
 function snap(state) {
@@ -622,8 +665,9 @@ export function reducer(state, a) {
       });
     }
     case "loadDoc":
-      // A new document is a fresh history.
-      return { doc: a.doc, slideIndex: 0, selectedId: null, editingId: null, past: [], future: [], lastTag: null };
+      // A new document is a fresh history. Keep the clipboard so you can paste an
+      // element from one deck into another.
+      return { doc: a.doc, slideIndex: 0, selectedId: null, editingId: null, past: [], future: [], lastTag: null, clipboard: state.clipboard || null, clipboardFrom: null };
     case "commit":
       return state.lastTag == null ? state : Object.assign({}, state, { lastTag: null });
     default:

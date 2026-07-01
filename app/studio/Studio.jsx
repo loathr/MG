@@ -227,6 +227,19 @@ export default function Studio() {
         dispatch({ type: "redo" });
         return;
       }
+      // Element clipboard: ⌘/Ctrl C copy · X cut · V paste · D duplicate.
+      if (meta && (e.key === "c" || e.key === "C") && state.selectedId) {
+        e.preventDefault(); dispatch({ type: "copyEl", id: state.selectedId }); return;
+      }
+      if (meta && (e.key === "x" || e.key === "X") && state.selectedId) {
+        e.preventDefault(); dispatch({ type: "cut", id: state.selectedId }); return;
+      }
+      if (meta && (e.key === "v" || e.key === "V")) {
+        e.preventDefault(); dispatch({ type: "paste" }); return;
+      }
+      if (meta && (e.key === "d" || e.key === "D") && state.selectedId) {
+        e.preventDefault(); dispatch({ type: "duplicate", id: state.selectedId }); return;
+      }
       if ((e.key === "Delete" || e.key === "Backspace") && state.selectedId) {
         e.preventDefault();
         dispatch({ type: "delete", id: state.selectedId });
@@ -673,6 +686,7 @@ export default function Studio() {
             cropping={!!selectedEl && state.croppingId === selectedEl.id}
             siblings={selectedEl && slide ? (slide.elements || []).filter((e) => e.id !== selectedEl.id && !e.locked && e.tetherTo !== selectedEl.id) : []}
             onAiWrite={handleAiWrite}
+            canPaste={!!state.clipboard}
           />
           <Artboard
             slide={slide}
@@ -682,6 +696,7 @@ export default function Studio() {
             dispatch={dispatch}
             onTextSelect={setTextSel}
             onEditApi={(api) => { editApiRef.current = api; }}
+            canPaste={!!state.clipboard}
           />
 
           {/* Slide strip — under the canvas only, so the rail + panels run full

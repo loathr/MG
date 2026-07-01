@@ -12,7 +12,7 @@ import {
   Type, Image as ImageIcon, Square, Minus, AlignLeft, AlignCenter, AlignRight,
   Ban, Sparkles, Crop, Check, RotateCcw, Eraser, FlipHorizontal2, FlipVertical2,
   Contrast, Replace, ImageDown, MoreHorizontal, ChevronDown, ArrowUp, ArrowDown,
-  Copy, Trash2, Link2, X, Maximize2,
+  Copy, CopyPlus, ClipboardPaste, Trash2, Link2, X, Maximize2,
 } from "lucide-react";
 
 // The element-type badge glyph (top-left of the bar) as a line icon.
@@ -25,7 +25,7 @@ function KindIcon({ type }) { const I = KIND_ICON[type] || Square; return <I siz
 // inline; denser ones (Position, Effects, Shape) open as dropdown popovers
 // anchored to the bar. Wired to the same reducer actions the Inspector used; a
 // selected text SPAN still routes colour/weight through the floating FormatBar.
-export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan, cropping, siblings, onAiWrite }) {
+export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan, cropping, siblings, onAiWrite, canPaste }) {
   const [pop, setPop] = useState(null); // open popover: "position" | "effects" | "shape" | "crop" | "more" | "ai" | null
   const [bgBusy, setBgBusy] = useState(false);
   const [barW, setBarW] = useState(9999); // measured width → responsive overflow
@@ -198,7 +198,12 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
         {el.tetherTo
           ? <><div style={tetherRow}><span style={{ color: "#bfe9bf", display: "inline-flex", alignItems: "center", gap: 6 }}><Link2 size={13} /> Tethered to {tetherName(el.tetherTo, siblings)}</span><button style={miniClear} title="Untether" onClick={() => up({ tetherTo: null })}><X size={13} /></button></div><div style={{ height: 6 }} /></>
           : ((siblings && siblings.length) ? <><div style={tetherRow}><span style={{ ...pLab, display: "inline-flex", alignItems: "center", gap: 6 }}><Link2 size={13} /> Tether to…</span><select value="" onChange={(e) => { if (e.target.value) up({ tetherTo: e.target.value }); }} style={tetherSelect}><option value="">choose…</option>{siblings.map((s) => <option key={s.id} value={s.id}>{tetherLabel(s)}</option>)}</select></div><div style={{ height: 6 }} /></> : null)}
-        <WBtn onClick={() => { dispatch({ type: "duplicate", id: el.id }); setPop(null); }}><Copy size={14} /> Duplicate</WBtn>
+        {/* Element clipboard — mirrors ⌘C/⌘V/⌘D and the floating bar. */}
+        <WBtn onClick={() => { dispatch({ type: "copyEl", id: el.id }); setPop(null); }}><Copy size={14} /> Copy</WBtn>
+        <div style={{ height: 6 }} />
+        <WBtn disabled={!canPaste} onClick={() => { dispatch({ type: "paste" }); setPop(null); }}><ClipboardPaste size={14} /> Paste</WBtn>
+        <div style={{ height: 6 }} />
+        <WBtn onClick={() => { dispatch({ type: "duplicate", id: el.id }); setPop(null); }}><CopyPlus size={14} /> Duplicate</WBtn>
         <div style={{ height: 6 }} />
         <WBtn danger onClick={() => { dispatch({ type: "delete", id: el.id }); setPop(null); }}><Trash2 size={14} /> Delete</WBtn>
       </Popover>}
@@ -359,7 +364,7 @@ function EffectField({ label, value, fallback, onChange }) {
   const on = !!value;
   return <label style={{ ...pField, cursor: "pointer", position: "relative", overflow: "hidden" }}><span style={pLab}>{label}</span><span style={{ width: 16, height: 16, borderRadius: 4, marginLeft: "auto", border: "1px solid #555", background: on ? value : "repeating-conic-gradient(#3a3a40 0% 25%, #1c1c20 0% 50%) 50% / 8px 8px" }} /><input type="color" value={hexish(value || fallback)} onChange={(e) => onChange(e.target.value)} style={{ position: "absolute", inset: 0, opacity: 0 }} /></label>;
 }
-function WBtn({ children, onClick, danger }) { return <button onClick={onClick} style={{ ...wBtn, color: danger ? "#ff8a8a" : UI.text }}>{children}</button>; }
+function WBtn({ children, onClick, danger, disabled }) { return <button onClick={disabled ? undefined : onClick} disabled={disabled} style={{ ...wBtn, color: danger ? "#ff8a8a" : UI.text, opacity: disabled ? 0.4 : 1, cursor: disabled ? "default" : "pointer" }}>{children}</button>; }
 
 // A short label for an element in the tether picker (native <option> text, so it's
 // a word not an icon): a content hint for text, a type name otherwise.

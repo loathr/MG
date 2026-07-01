@@ -711,3 +711,36 @@ test("imageToBackground flattens a photo element back to the bg, re-absorbing th
   assert.equal(sl.background.scrim, scrim);                       // scrim recovered from the element
   assert.ok(!sl.elements.some((e) => e.role === "photo" || e.role === "scrim")); // gone
 });
+
+test("copy/paste: copyEl stashes without a history frame; paste adds an offset clone, selected", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "A", x: 100, y: 100, w: 200, h: 60, content: "hi" }) });
+  const framesBefore = s.past.length;
+  s = reducer(s, { type: "copyEl", id: "A" });
+  assert.ok(s.clipboard && s.clipboard.content === "hi", "clipboard holds the element");
+  assert.equal(s.past.length, framesBefore, "copy adds NO undo frame");
+  const nEls = cur(s).elements.length;
+  s = reducer(s, { type: "paste" });
+  const els = cur(s).elements;
+  assert.equal(els.length, nEls + 1, "paste added one element");
+  const pasted = els.find((e) => e.id === s.selectedId);
+  assert.ok(pasted && pasted.id !== "A", "pasted copy has a fresh id and is selected");
+  assert.equal(pasted.x, 120); assert.equal(pasted.y, 120);       // offset +20 on the same slide
+  assert.equal(pasted.content, "hi");
+  assert.equal(s.past.length, framesBefore + 1, "paste is one undo frame");
+});
+
+test("copy/paste: paste is a no-op with an empty clipboard; cut copies then removes (undoable)", () => {
+  let s = initStudio();
+  const n0 = cur(s).elements.length;
+  s = reducer(s, { type: "paste" });                              // nothing copied yet
+  assert.equal(cur(s).elements.length, n0, "empty paste does nothing");
+  s = reducer(s, { type: "add", element: makeElement("rect", { id: "R", x: 40, y: 40 }) });
+  const withR = cur(s).elements.length;
+  s = reducer(s, { type: "cut", id: "R" });
+  assert.ok(s.clipboard && s.clipboard.id === "R", "cut stashed the element");
+  assert.ok(!cur(s).elements.some((e) => e.id === "R"), "cut removed it");
+  assert.equal(s.selectedId, null);
+  s = reducer(s, { type: "undo" });                               // cut is undoable
+  assert.ok(cur(s).elements.some((e) => e.id === "R"), "undo restores the cut element");
+});
