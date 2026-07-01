@@ -449,6 +449,20 @@ export default function Studio() {
 
   const cancelFactCheck = () => { if (fcAbort.current) fcAbort.current.abort(); };
 
+  // Apply a verified fact-check correction: patch the deck (undoable) and mark the
+  // claim resolved, nudging the estimated score up (a real re-score needs Re-check).
+  const applyCorrection = (claim) => {
+    dispatch({ type: "applyCorrection", slide: claim.slide, wrong: claim.wrong, correction: claim.correction });
+    setFc((f) => {
+      if (!f || !f.result) return f;
+      const same = (c) => c.slide === claim.slide && c.wrong === claim.wrong && c.claim === claim.claim;
+      const claims = f.result.claims.map((c) => (same(c) ? Object.assign({}, c, { applied: true }) : c));
+      const score = f.result.score == null ? null : Math.min(10, f.result.score + 1);
+      return Object.assign({}, f, { result: Object.assign({}, f.result, { claims, score }) });
+    });
+  };
+  const applyAllCorrections = (claims) => { (claims || []).forEach(applyCorrection); };
+
   const toggle = (key) => setActivePanel((p) => (p === key ? null : key));
 
   // Opened via a share link → a read-only, live viewer (no editing surface at
@@ -732,10 +746,13 @@ export default function Studio() {
             error={fc.error}
             result={fc.result}
             phase={fc.phase}
+            doc={state.doc}
             onJump={(i) => dispatch({ type: "setSlide", index: i })}
             onClose={() => setFc(null)}
             onCancel={cancelFactCheck}
             onRetry={runFactCheck}
+            onApply={applyCorrection}
+            onApplyAll={applyAllCorrections}
           />
         )}
 

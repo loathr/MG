@@ -9,7 +9,7 @@
 // — those coalesce into ONE undo step via `lastTag` + a `commit` boundary the
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
-import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H, applyRunStyle, clearRunStyle, remapRuns, bakeDocHighlights } from "./model";
+import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H, applyRunStyle, clearRunStyle, remapRuns, bakeDocHighlights, applyCorrectionToDoc } from "./model";
 import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements, closerMarksFor } from "./templates";
 import { brandFromStyle, getStyle, FONT_PRESETS } from "./styles";
 import { shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
@@ -255,6 +255,13 @@ function docReducer(state, a) {
       // Deck-level share config { link, token } (Tier A live collaboration). Rides
       // on the doc so autosave persists it; the Share UI builds it via sharing.js.
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { share: a.share || null }) });
+    case "applyCorrection": {
+      // Apply a fact-check correction (replace `wrong` with `correction`) on the
+      // claim's slide — anywhere on the deck, not just the current slide. A no-op
+      // (same doc ref) when the phrase isn't found, so it can't corrupt the deck.
+      const doc = applyCorrectionToDoc(state.doc, a.slide, a.wrong, a.correction);
+      return doc === state.doc ? state : Object.assign({}, state, { doc });
+    }
     case "update":
       return withSlide(state, (s) => patchEl(s, a.id, a.patch));
     case "move":
@@ -633,7 +640,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, duplicate: 1, cut: 1, paste: 1, update: 1, move: 1, setShare: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1, addFont: 1, removeFont: 1 };
+const MUTATES = { add: 1, duplicate: 1, cut: 1, paste: 1, update: 1, move: 1, setShare: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1, addFont: 1, removeFont: 1, applyCorrection: 1 };
 const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1, crop: 1 };
 
 function snap(state) {

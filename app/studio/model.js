@@ -496,6 +496,57 @@ export function bakeDocHighlights(doc) {
   return changed ? Object.assign({}, doc, { slides }) : doc;
 }
 
+// Whether a fact-check `wrong` phrase can be applied on a slide — i.e. it's a
+// non-empty exact substring of some TEXT element's content there (what the reader
+// sees and what we can safely patch). The gate for offering a one-tap fix. Pure.
+export function correctionSite(doc, slideIndex, wrong) {
+  const w = wrong == null ? "" : String(wrong);
+  if (!w) return false;
+  const sl = doc && Array.isArray(doc.slides) ? doc.slides[slideIndex] : null;
+  if (!sl || !Array.isArray(sl.elements)) return false;
+  return sl.elements.some((e) => e && e.type === "text" && typeof e.content === "string" && e.content.indexOf(w) >= 0);
+}
+
+// Apply a fact-check correction to a slide: replace the FIRST occurrence of
+// `wrong` with `correction` in every text element that contains it (remapping
+// runs so styling on the untouched head/tail survives), and mirror the change
+// into the canonical slide.content strings so a re-flow / re-check stays aligned.
+// Returns a new doc when something changed, else the same reference. Pure.
+export function applyCorrectionToDoc(doc, slideIndex, wrong, correction) {
+  const w = wrong == null ? "" : String(wrong);
+  const rep = correction == null ? "" : String(correction);
+  if (!w || w === rep || !doc || !Array.isArray(doc.slides)) return doc;
+  const sl = doc.slides[slideIndex];
+  if (!sl) return doc;
+  let changed = false;
+  const replaceFirst = (s) => {
+    const i = s.indexOf(w);
+    return i < 0 ? s : s.slice(0, i) + rep + s.slice(i + w.length);
+  };
+  const elements = Array.isArray(sl.elements) ? sl.elements.map((e) => {
+    if (!e || e.type !== "text" || typeof e.content !== "string" || e.content.indexOf(w) < 0) return e;
+    changed = true;
+    const nextContent = replaceFirst(e.content);
+    const n = Object.assign({}, e, { content: nextContent });
+    if (Array.isArray(e.runs) && e.runs.length) n.runs = remapRuns(e.runs, e.content, nextContent);
+    return n;
+  }) : sl.elements;
+  // Mirror into the canonical content strings so a re-check / re-flow stays aligned.
+  let content = sl.content;
+  if (content && typeof content === "object") {
+    let cChanged = false;
+    const nc = Object.assign({}, content);
+    for (const k of ["heading", "subhead", "body", "cta", "stat", "statLabel", "kicker"]) {
+      if (typeof nc[k] === "string" && nc[k].indexOf(w) >= 0) { nc[k] = replaceFirst(nc[k]); cChanged = true; }
+    }
+    if (cChanged) { content = nc; changed = true; }
+  }
+  if (!changed) return doc;
+  const slides = doc.slides.slice();
+  slides[slideIndex] = Object.assign({}, sl, { elements, content });
+  return Object.assign({}, doc, { slides });
+}
+
 // True when the element renders as one uniform span carrying no inline-only
 // decoration (background / outline) — i.e. the container's own CSS fully covers
 // it, so the renderer can fast-path to the raw string (current behaviour).

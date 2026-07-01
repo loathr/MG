@@ -38,13 +38,14 @@ export function buildVerifyPrompt(doc, opts) {
     '{"score": <integer 0-10 overall factual accuracy, 10 = fully correct and well-sourced>,',
     ' "summary": "one sentence on the deck\'s overall accuracy",',
     ' "claims": [',
-    '   {"slide": <index>, "claim": "the specific claim, a few words", "verdict": "supported|unsupported|misleading|unverifiable", "note": "what you found, one sentence", "source": "outlet or URL if any"}',
+    '   {"slide": <index>, "claim": "the specific claim, a few words", "verdict": "supported|unsupported|misleading|unverifiable", "wrong": "the exact incorrect phrase copied VERBATIM from the slide text — omit when nothing needs changing", "correction": "the corrected phrase to replace it with — omit when you cannot verify a specific correct value", "note": "what you found, one sentence", "source": "outlet or URL if any"}',
     " ]}",
     "",
     "Rules:",
     "- Judge only checkable facts. Skip opinions, hooks, CTAs, and subjective phrasing.",
     '- verdict: "supported" (confirmed by a credible source), "unsupported" (contradicted or no basis), "misleading" (technically true but distorts), "unverifiable" (could not confirm either way).',
     "- Be skeptical: if you cannot find a credible source, it is unverifiable, not supported.",
+    "- CORRECTIONS: when a claim is unsupported or misleading AND you can verify the correct value, set `wrong` to the exact text to replace — copied CHARACTER-FOR-CHARACTER from the slide so it can be found — and `correction` to the corrected text. If you cannot verify a specific correct value, OMIT both; never guess a correction. Keep both short (the changed phrase only, e.g. a number or name), not a whole sentence.",
     "- List the problems first; you may also include a few key supported facts. Keep it to the claims that matter.",
   ].filter((l) => l != null).join("\n");
 }
@@ -66,11 +67,24 @@ export function parseVerdict(text) {
       slide: Number.isInteger(c.slide) ? c.slide : null,
       claim: String(c.claim || ""),
       verdict: VERDICTS[c.verdict] ? c.verdict : "unverifiable",
+      wrong: String(c.wrong || ""),
+      correction: String(c.correction || ""),
       note: String(c.note || ""),
       source: String(c.source || ""),
     }));
   const score = typeof obj.score === "number" ? Math.max(0, Math.min(10, obj.score)) : null;
   return { score, summary: String(obj.summary || ""), claims };
+}
+
+// A claim is APPLIABLE only when it's an actual problem, carries a credible
+// source, and has both the exact `wrong` phrase and a `correction` — the gate the
+// panel uses to offer a one-tap fix (unverifiable/unsourced stay advisory). The
+// exact-substring-in-the-deck check is done separately (correctionSite) since it
+// needs the doc. Pure.
+export function correctionReady(claim) {
+  if (!claim) return false;
+  const problem = claim.verdict === "unsupported" || claim.verdict === "misleading";
+  return !!(problem && claim.source && claim.wrong && claim.correction && claim.wrong !== claim.correction);
 }
 
 function todayISO() {

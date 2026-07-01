@@ -2,7 +2,7 @@
 // claims off a deck, building the verify prompt, and parsing the verdict.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { deckClaims, buildVerifyPrompt, parseVerdict } from "../app/studio/verify.js";
+import { deckClaims, buildVerifyPrompt, parseVerdict, correctionReady } from "../app/studio/verify.js";
 
 const DECK = {
   category: "news",
@@ -53,4 +53,24 @@ test("parseVerdict normalizes an unknown verdict and tolerates fences + trailing
 test("parseVerdict throws on empty or shapeless responses", () => {
   assert.throws(() => parseVerdict(""));
   assert.throws(() => parseVerdict("not json at all"));
+});
+
+test("parseVerdict reads the wrong/correction fields (empty when absent)", () => {
+  const v = parseVerdict('{"score":6,"claims":[{"slide":2,"claim":"cap","verdict":"misleading","wrong":"$570 billion","correction":"$633 billion","note":"n","source":"Reuters"}]}');
+  assert.equal(v.claims[0].wrong, "$570 billion");
+  assert.equal(v.claims[0].correction, "$633 billion");
+  const v2 = parseVerdict('{"score":8,"claims":[{"slide":0,"claim":"x","verdict":"supported","note":"","source":"AP"}]}');
+  assert.equal(v2.claims[0].wrong, "");
+  assert.equal(v2.claims[0].correction, "");
+});
+
+test("correctionReady: a problem verdict WITH source + wrong + correction is appliable; else not", () => {
+  const base = { verdict: "misleading", wrong: "$570 billion", correction: "$633 billion", source: "Reuters" };
+  assert.equal(correctionReady(base), true);
+  assert.equal(correctionReady(Object.assign({}, base, { verdict: "supported" })), false); // not a problem
+  assert.equal(correctionReady(Object.assign({}, base, { source: "" })), false);           // unsourced
+  assert.equal(correctionReady(Object.assign({}, base, { correction: "" })), false);       // no fix
+  assert.equal(correctionReady(Object.assign({}, base, { correction: "$570 billion" })), false); // fix == wrong
+  assert.equal(correctionReady(Object.assign({}, base, { verdict: "unverifiable" })), false);
+  assert.equal(correctionReady(null), false);
 });

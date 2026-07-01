@@ -7,7 +7,7 @@ import {
   blankSlide, sampleSlide, cloneSlide, imageBackground,
   findElement, highlightRuns, uploadResult,
   styledRuns, applyRunStyle, clearRunStyle, remapRuns, isUniformText, elementBaseStyle, highlightOffsets,
-  bakeHighlight, bakeDocHighlights,
+  bakeHighlight, bakeDocHighlights, correctionSite, applyCorrectionToDoc,
   cropRect, imageTransform, cropAnchor, reframeCrop,
 } from "../app/studio/model.js";
 
@@ -294,6 +294,37 @@ test("bakeDocHighlights: bakes every text element and no-ops an already-clean do
   assert.equal(out.slides[0].elements[0].highlight, undefined);
   // a clean doc round-trips to the SAME reference (no needless state update)
   assert.equal(bakeDocHighlights(out), out);
+});
+
+test("correctionSite: true only when `wrong` is an exact substring of a text element on the slide", () => {
+  const doc = { slides: [{ elements: [
+    makeElement("text", { content: "Novo Nordisk hit $570 billion in 2023" }),
+    makeElement("image", { src: "x" }),
+  ] }] };
+  assert.equal(correctionSite(doc, 0, "$570 billion"), true);
+  assert.equal(correctionSite(doc, 0, "$999 billion"), false); // not present
+  assert.equal(correctionSite(doc, 0, ""), false);             // empty
+  assert.equal(correctionSite(doc, 5, "$570 billion"), false); // no such slide
+});
+
+test("applyCorrectionToDoc: replaces the phrase in the element (+ remaps runs) and the canonical content", () => {
+  const doc = { slides: [{
+    content: { body: "Novo Nordisk hit $570 billion in 2023" },
+    elements: [makeElement("text", { content: "Novo Nordisk hit $570 billion in 2023", runs: [{ start: 0, end: 12, bold: true }] })],
+  }] };
+  const out = applyCorrectionToDoc(doc, 0, "$570 billion", "$633 billion");
+  assert.notEqual(out, doc);
+  assert.equal(out.slides[0].elements[0].content, "Novo Nordisk hit $633 billion in 2023");
+  assert.equal(out.slides[0].content.body, "Novo Nordisk hit $633 billion in 2023");
+  // "Novo Nordisk" (0..12) is before the edit, so its bold run survives intact
+  assert.deepEqual(out.slides[0].elements[0].runs, [{ start: 0, end: 12, bold: true }]);
+});
+
+test("applyCorrectionToDoc: a no-op (same ref) when the phrase isn't found or is unchanged", () => {
+  const doc = { slides: [{ content: { body: "hello" }, elements: [makeElement("text", { content: "hello" })] }] };
+  assert.equal(applyCorrectionToDoc(doc, 0, "zzz", "yyy"), doc);   // absent
+  assert.equal(applyCorrectionToDoc(doc, 0, "hello", "hello"), doc); // unchanged
+  assert.equal(applyCorrectionToDoc(doc, 0, "", "x"), doc);        // empty wrong
 });
 
 test("applyRunStyle: sets a key over a range and merges adjacent equal runs", () => {
