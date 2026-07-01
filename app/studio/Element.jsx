@@ -97,6 +97,7 @@ function ElementView({ element: el, isEditing, isCropping, onPointerDownBody, on
             src={el.src}
             alt=""
             draggable={false}
+            data-crop-img={el.id}
             style={Object.assign({ width: "100%", height: "100%", objectFit: el.fit || "cover", borderRadius: el.radius || 0, display: "block" }, imageTransform(el))}
             onError={(e) => { e.currentTarget.style.opacity = "0"; }}
           />

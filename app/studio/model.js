@@ -185,6 +185,50 @@ export function cropRect(natW, natH, boxW, boxH, crop) {
   return { sx, sy, sw: sw2, sh: sh2 };
 }
 
+// --- True-crop reframe -----------------------------------------------------
+// The crop is a non-destructive {zoom, focal} window over an object-fit:cover
+// image. Dragging a resize handle used to change the box and let cover rescale
+// the whole photo (the "minimizer" bug). Reframing instead keeps the image FIXED
+// on the artboard (same on-screen scale k and same origin O) while the frame box
+// changes — so the window reveals/hides image instead of shrinking it. Both fns
+// are pure and stay entirely within the {box, crop} model, so the export/thumbnail
+// renderers need no change (parity is automatic). `nat` = the image's natural
+// {w, h}px (read from the mounted <img> at drag start).
+export function cropAnchor(el, nat) {
+  const nw = Math.max(1, nat.w), nh = Math.max(1, nat.h);
+  const c = el.crop || {};
+  const z = Math.max(1, c.zoom || 1);
+  const fx = c.x != null ? c.x : 0.5, fy = c.y != null ? c.y : 0.5;
+  const coverScale = Math.max(el.w / nw, el.h / nh);
+  const sw2 = (el.w / coverScale) / z;      // source window width after zoom (natural px)
+  const k = el.w / sw2;                       // element px per natural px (on-screen scale)
+  const sh2 = (el.h / coverScale) / z;
+  const sx = (nw - sw2) * fx, sy = (nh - sh2) * fy;   // source window top-left (natural px)
+  const O = { x: el.x - sx * k, y: el.y - sy * k };   // artboard position of natural pixel (0,0)
+  return { O, k };
+}
+
+// Given the fixed anchor {O, k} and a new frame box, return the crop {zoom, x, y}
+// that keeps the image pinned on the artboard. Clamps zoom>=1 (can't reveal past
+// the image) and the focal to [0,1].
+export function reframeCrop(nat, anchor, box) {
+  const nw = Math.max(1, nat.w), nh = Math.max(1, nat.h);
+  const k = anchor.k, O = anchor.O;
+  const coverScale = Math.max(box.w / nw, box.h / nh);
+  const sw = box.w / coverScale, sh = box.h / coverScale;
+  const sw2Target = box.w / k;                 // window that preserves scale k
+  let z = sw / sw2Target;
+  if (!(z >= 1)) z = 1;
+  const sw2 = sw / z, sh2 = sh / z;
+  const sx = (box.x - O.x) / k, sy = (box.y - O.y) / k;
+  const dx = nw - sw2, dy = nh - sh2;
+  let fx = dx > 0 ? sx / dx : 0.5;
+  let fy = dy > 0 ? sy / dy : 0.5;
+  fx = Math.max(0, Math.min(1, fx));
+  fy = Math.max(0, Math.min(1, fy));
+  return { zoom: z, x: fx, y: fy };
+}
+
 // CSS transform/filter for an image element (crop zoom+focal · flip · mono),
 // shared by the live editor and the thumbnail so they match the export. Pure.
 export function imageTransform(el) {

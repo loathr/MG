@@ -1,6 +1,6 @@
 "use client";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ARTBOARD_W, ARTBOARD_H, makeElement } from "./model";
+import { ARTBOARD_W, ARTBOARD_H, makeElement, cropAnchor, reframeCrop } from "./model";
 import { resize as geoResize, rotate as geoRotate, snapMove, handlePoint, axes } from "./geometry";
 import { readImageFile, isImageFile, fitDroppedImage } from "./imageFile";
 import ElementView from "./Element";
@@ -63,6 +63,13 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
     } else if (d.mode === "resize") {
       const patch = geoResize(d.startEl, d.handle.sx, d.handle.sy, p, { min: 16 });
       dispatch({ type: "update", id: d.id, patch: roundBox(patch), coalesce: true });
+    } else if (d.mode === "reframe") {
+      // True crop: dragging a crop handle resizes the FRAME while the compensated
+      // crop keeps the image pinned on the artboard (see model.reframeCrop) — the
+      // window reveals/hides image instead of shrinking it.
+      const box = geoResize(d.startEl, d.handle.sx, d.handle.sy, p, { min: 16 });
+      const crop = reframeCrop(d.nat, d.anchor, box);
+      dispatch({ type: "update", id: d.id, patch: Object.assign(roundBox(box), { crop }), coalesce: true });
     } else if (d.mode === "rotate") {
       const deg = geoRotate(d.startEl, p, 3);
       dispatch({ type: "update", id: d.id, patch: { rotation: Math.round(deg) }, coalesce: true });
@@ -99,6 +106,19 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
       startEl: Object.assign({}, startEl),
       siblings: slide.elements.filter((e) => e.id !== id).map((e) => ({ x: e.x, y: e.y, w: e.w, h: e.h })),
     };
+    // Reframe needs the image's natural pixel size (read from the mounted <img>) to
+    // pin it while the frame changes. If we can't read it, fall back to a plain
+    // resize so the handle still does something sane.
+    if (mode === "reframe") {
+      const node = artRef.current && artRef.current.querySelector('img[data-crop-img="' + id + '"]');
+      if (node && node.naturalWidth && node.naturalHeight) {
+        const nat = { w: node.naturalWidth, h: node.naturalHeight };
+        drag.current.nat = nat;
+        drag.current.anchor = cropAnchor(startEl, nat);
+      } else {
+        drag.current.mode = "resize";
+      }
+    }
     window.addEventListener("pointermove", onWindowMove);
     window.addEventListener("pointerup", endDrag);
   }, [slide, toArtboard, onWindowMove, endDrag]);
@@ -345,7 +365,7 @@ function SelectionOverlay({ el, scale, onHandleDown, cropMode }) {
         return (
           <div
             key={i}
-            onPointerDown={(e) => { e.stopPropagation(); onHandleDown("resize", el.id, e.clientX, e.clientY, h); }}
+            onPointerDown={(e) => { e.stopPropagation(); onHandleDown(cropMode ? "reframe" : "resize", el.id, e.clientX, e.clientY, h); }}
             style={{
               position: "absolute",
               left: p.x * scale - HS / 2,

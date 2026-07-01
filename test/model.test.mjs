@@ -7,7 +7,7 @@ import {
   blankSlide, sampleSlide, cloneSlide, imageBackground,
   findElement, highlightRuns, uploadResult,
   styledRuns, applyRunStyle, clearRunStyle, remapRuns, isUniformText, elementBaseStyle, highlightOffsets,
-  cropRect, imageTransform,
+  cropRect, imageTransform, cropAnchor, reframeCrop,
 } from "../app/studio/model.js";
 
 test("cropRect: no crop = centred cover band; zoom shrinks the source window", () => {
@@ -316,4 +316,30 @@ test("uploadResult mirrors a search-result shape (url+thumb, flagged uploaded)",
   assert.equal(r.credit, "");                 // own uploads show a badge, not a credit strip
   assert.equal(r.alt, "beach.jpg");
   assert.equal(uploadResult("data:only").thumb, "data:only"); // thumb falls back to full src
+});
+
+test("reframe crop: shrinking the frame keeps the image fixed (not a minimizer)", () => {
+  const nat = { w: 1000, h: 1000 };
+  // 500-square box, no zoom, centred over a 1000-square image at cover → whole
+  // image fills the box at scale 0.5.
+  const el = { x: 0, y: 0, w: 500, h: 500, crop: { zoom: 1, x: 0.5, y: 0.5 } };
+  const anchor = cropAnchor(el, nat);
+  // Reframe by pulling the bottom-right corner in to a 250 square (top-left fixed).
+  const c = reframeCrop(nat, anchor, { x: 0, y: 0, w: 250, h: 250 });
+  // The kept window is the top-left quarter, at the SAME on-screen scale (zoom
+  // doubles so the source window halves; focal pins to the top-left corner).
+  assert.ok(Math.abs(c.zoom - 2) < 1e-6, "zoom compensates so the image doesn't shrink");
+  assert.ok(Math.abs(c.x - 0) < 1e-6 && Math.abs(c.y - 0) < 1e-6, "focal pins the anchored corner");
+});
+
+test("reframe crop: same box round-trips to the original crop; grow past image clamps zoom>=1", () => {
+  const nat = { w: 1200, h: 800 };
+  const el = { x: 40, y: 60, w: 400, h: 300, crop: { zoom: 1.5, x: 0.3, y: 0.7 } };
+  const anchor = cropAnchor(el, nat);
+  const same = reframeCrop(nat, anchor, { x: 40, y: 60, w: 400, h: 300 });
+  assert.ok(Math.abs(same.zoom - 1.5) < 1e-6, "identity reframe keeps zoom");
+  assert.ok(Math.abs(same.x - 0.3) < 1e-6 && Math.abs(same.y - 0.7) < 1e-6, "identity reframe keeps focal");
+  // Growing the frame far beyond what the image can cover at scale k clamps to 1.
+  const big = reframeCrop(nat, anchor, { x: 40, y: 60, w: 4000, h: 3000 });
+  assert.ok(big.zoom >= 1, "zoom never drops below 1");
 });
