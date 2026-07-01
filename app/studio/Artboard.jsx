@@ -297,6 +297,25 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
           <ActionBar el={selected} scale={scale} canPaste={canPaste} dispatch={dispatch} />
         )}
 
+        {/* Crop dimming ring (Option B): while cropping, darken the canvas AROUND
+            the crop box so the frame is the focus. One element sized to the box with
+            a huge spread box-shadow; the container's overflow:hidden clips the shadow
+            to the viewport (never the whole page). Non-clicking + below the pan layer,
+            so it never blocks a pan/reframe. Live canvas only — export/thumbnails
+            never enter crop mode, so they're untouched. */}
+        {cropEl && (
+          <div
+            style={{
+              position: "absolute", left: cropEl.x * scale, top: cropEl.y * scale,
+              width: cropEl.w * scale, height: cropEl.h * scale,
+              transform: "rotate(" + (cropEl.rotation || 0) + "deg)", transformOrigin: "center center",
+              borderRadius: (cropEl.radius || 0) * scale,
+              boxShadow: "0 0 0 9999px rgba(6,6,8,0.6)",
+              pointerEvents: "none", zIndex: 21,
+            }}
+          />
+        )}
+
         {/* Free-form crop capture: a transparent layer over the cropped image's box
             (above any scrim/text that overlaps it) so a drag anywhere in the box
             pans the photo. The rule-of-thirds guide (Element) shows beneath it. */}
