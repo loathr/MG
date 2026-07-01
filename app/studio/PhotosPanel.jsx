@@ -47,7 +47,10 @@ const grid = {
   // A real 2-column grid (row by row, top-to-bottom). Every tile is a uniform
   // square (PhotoCard sets aspectRatio + object-fit:cover), so the results read as
   // an even gallery — no ragged masonry, no grey dead-space under short tiles.
-  display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "start",
+  // alignItems:start (NOT the grid default `stretch`) keeps a tile from being
+  // stretched to its row — otherwise a portrait thumbnail's intrinsic height
+  // overrode the square aspect-ratio and the columns desynced ("stacking").
+  display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "start", alignItems: "start",
   padding: "0 12px 12px", overflowY: "auto", minHeight: 0,
 };
 const hint = { gridColumn: "1 / -1", color: "#7a7a7a", fontSize: 12, lineHeight: 1.5, padding: "16px 4px", textAlign: "center" };
@@ -101,9 +104,11 @@ function PhotoCard({ img, onSetBackground, onAddImage }) {
         loading="lazy"
         draggable={false}
         // Uniform square tiles (object-fit:cover) — every result is the SAME size
-        // regardless of its native aspect ratio, so the grid reads as a clean
-        // gallery instead of a ragged masonry.
-        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        // regardless of its native aspect ratio. ABSOLUTELY positioned so the image
+        // fills the square WITHOUT contributing to the container's height: a portrait
+        // thumbnail's intrinsic height would otherwise win over the 1:1 aspect-ratio
+        // and desync the two columns ("stacking" at higher result counts).
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         onError={(e) => { e.currentTarget.style.opacity = "0.15"; }}
       />
       {img.uploaded ? (
