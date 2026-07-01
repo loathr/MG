@@ -4,6 +4,7 @@ import { UI } from "./theme";
 import { brandFromStyle, EDITORIAL_PALETTES, paletteBrand, BRAND_FONT, FONT_OPTIONS, FONT_PRESETS, activePresetId, STYLE_LIST } from "./styles";
 import { cautionFor } from "./categories";
 import { uploadedFontGroup, fontFamilyValue } from "./fonts";
+import { Link2 } from "lucide-react";
 import FontSelect from "./FontSelect";
 import StylePreview from "./StylePreview";
 
@@ -189,13 +190,13 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
             </div>
             <button type="button" onClick={onResetAll}
               title="Re-render every slide from its text in this look — pulls any slide that drifted off-brand back in line. Discards manual per-element tweaks. Undoable."
-              style={{ ...miniBtn, width: "100%", height: 32, marginTop: 10 }}>↺ Re-apply this look to all slides</button>
+              style={{ ...miniBtn, width: "100%", height: 32, marginTop: 10 }}>Re-apply this look to all slides</button>
           </>
         ) : null}
         {lookDrifted && (
           <button type="button" onClick={resetLook}
             title="Revert palette, fonts & frame to this desk's default — keeps your wordmark, logo & caution. Undoable."
-            style={resetLookBtn}>↺ Reset to default look</button>
+            style={resetLookBtn}>Reset to default look</button>
         )}
         <div style={{ ...frow, marginTop: 11 }}>
           <span style={frowK}>Accent</span>
@@ -243,9 +244,9 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
               })}
             </div>
             {/* Frame colour — an explicit override; absent = follows the accent
-                (News Desk: ink). Deck-wide. Clear (↺) returns it to the accent. */}
+                (News Desk: ink). Deck-wide. Clear returns it to the accent. */}
             {/* Frame colour with an accent SYNC link. Linked (frameColor unset) =
-                the frame follows the accent live; the 🔗 toggle unlinks it to a
+                the frame follows the accent live; the link toggle unlinks it to a
                 held colour (and re-links it back). */}
             <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
               {cur.frameColor ? (
@@ -262,7 +263,7 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
               )}
               <button onClick={() => set({ frameColor: cur.frameColor ? null : cur.accent })}
                 title={cur.frameColor ? "Link the frame to the accent" : "Unlink — hold a custom frame colour"}
-                style={{ width: 30, height: 30, borderRadius: 6, background: cur.frameColor ? "#26262b" : UI.brand, color: cur.frameColor ? "#cfcfcf" : UI.onBrand, border: "1px solid " + (cur.frameColor ? "#36363c" : UI.brand), cursor: "pointer", fontSize: 13 }}>🔗</button>
+                style={{ width: 30, height: 30, borderRadius: 6, background: cur.frameColor ? "#26262b" : UI.brand, color: cur.frameColor ? "#cfcfcf" : UI.onBrand, border: "1px solid " + (cur.frameColor ? "#36363c" : UI.brand), cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Link2 size={14} /></button>
             </div>
           </div>
         </div>
@@ -277,7 +278,7 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
         {onUploadFont && (
           <>
             <button type="button" style={fontUpBtn} disabled={fontBusy} onClick={() => fontRef.current && fontRef.current.click()}>
-              {fontBusy ? "Adding…" : "⬆  Upload a font"}
+              {fontBusy ? "Adding…" : "Upload a font"}
             </button>
             <input ref={fontRef} type="file" accept=".ttf,.otf,.woff,.woff2,font/*" style={{ display: "none" }} onChange={pickFont} />
             <div style={fontHint}>TTF · OTF · WOFF · WOFF2 · up to 600 KB. Stored with the deck; stamps into exports.</div>
@@ -287,14 +288,14 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
                 {fonts.map((f) => (
                   <div key={f.id} style={fontRowItem}>
                     <span style={{ ...fontNameItem, fontFamily: fontFamilyValue(f.family) }}>{f.name}</span>
-                    <button type="button" style={fontDel} title={"Remove " + f.name} onClick={() => onRemoveFont && onRemoveFont(f.id)}>🗑</button>
+                    <button type="button" style={fontDel} title={"Remove " + f.name} onClick={() => onRemoveFont && onRemoveFont(f.id)}>Remove</button>
                   </div>
                 ))}
               </div>
             ) : null}
           </>
         )}
-        <div style={lock}>🔒 LOATHR marks (wordmark · footer · sign-off) stay Courier — not affected by these.</div>
+        <div style={lock}>LOATHR marks (wordmark · footer · sign-off) stay Courier — not affected by these.</div>
 
         {/* ---------- ELEMENTS ---------- */}
         <div style={sec}>Elements</div>
