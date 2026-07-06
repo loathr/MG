@@ -6,7 +6,7 @@ import { getCategory } from "./categories";
 import StylePreview from "./StylePreview";
 import TrendingPanel from "./TrendingPanel";
 import RouteSelect from "./RouteSelect";
-import { routeFraming, getBeat, REGIONS, URGENCY, ANGLES, EMPHASIS, MODES, framingPrompt, countriesForRegion } from "./trending";
+import { routeFraming, getBeat, REGIONS, URGENCY, ANGLES, EMPHASIS, MODES, framingPrompt, countriesForRegion, classifyTopicScope, beatsForDesk } from "./trending";
 import { VOICES as PERSONAS, TONES as RICH_TONES } from "./voices";
 import { readDocFile } from "./docsource";
 import StickLoader from "./StickLoader";
@@ -15,6 +15,7 @@ import { PRESETS, activePreset } from "./presets";
 import {
   PenLine, FileText, X, ChevronDown, ChevronRight, Sparkles, Zap, ArrowLeft, RefreshCw,
   Scroll, Swords, KeyRound, Clapperboard, BarChart3, MessageCircle, Headphones, Shirt, Mic, Gem,
+  ArrowRightLeft, MapPin,
 } from "lucide-react";
 
 // Voice-id → lucide icon (voices.js stores the name; this maps it to a component
@@ -112,6 +113,9 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   // topic"; cleared the moment the topic is edited by hand. Once set, the refiner
   // shows the virality score for that topic (post-decision, R: cost-free feeds).
   const [refineDecided, setRefineDecided] = useState(null);
+  // Scope precedence: once the user acts on (or dismisses) the off-sector prompt,
+  // suppress it until the topic / sector / desk changes, so it never nags.
+  const [scopeDismissed, setScopeDismissed] = useState(false);
 
   const pickDesk = (key) => {
     setDesk(key);
@@ -227,6 +231,20 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     const id = setInterval(() => setSeedRot((r) => r + 1), 6000);
     return () => clearInterval(id);
   }, [beat, topic, allSeeds.length]);
+  // Un-dismiss the off-sector prompt whenever the topic / sector / desk changes.
+  useEffect(() => { setScopeDismissed(false); }, [topic, beat, desk]);
+
+  // Cross-beat scope precedence: while choosing a topic with a sector selected,
+  // check whether the topic fits it; if not, offer to switch (pure/offline —
+  // classifyTopicScope, zero cost). Kept to the current desk's beats so a switch
+  // stays in-desk. Silent when there's no sector, no topic, or it's on-sector.
+  const deskBeats = beatsForDesk(desk);
+  const scopeClass = (srcMode === "topic" && topic.trim() && beat && !refineDecided)
+    ? classifyTopicScope(topic, beat, deskBeats) : null;
+  const showScopePrompt = !!(scopeClass && scopeClass.decidable && !scopeClass.onSector && !scopeDismissed);
+  const switchSector = (key) => { setBeat(key); setScopeDismissed(true); };
+  const keepRegionOnly = () => { setBeat(null); setScopeDismissed(true); };
+  const forceSector = () => setScopeDismissed(true);
 
   return (
     <div style={screen}>
@@ -272,9 +290,29 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
               autoFocus
               style={topicInput}
             />
+            {showScopePrompt && (
+              <div style={scopePrompt}>
+                <div style={scopePromptTop}>
+                  <ArrowRightLeft size={14} style={{ flexShrink: 0, marginTop: 1, color: "#e0b98a" }} />
+                  {scopeClass.suggestSwitch ? (
+                    <span>Reads like <b style={{ color: "#f0d3a8" }}>{scopeClass.best.label}</b>, not <b style={{ color: "#f0d3a8" }}>{scopeClass.current.label}</b>.</span>
+                  ) : (
+                    <span>This topic looks off-sector for <b style={{ color: "#f0d3a8" }}>{scopeClass.current.label}</b>.</span>
+                  )}
+                </div>
+                <div style={scopePromptBtns}>
+                  {scopeClass.suggestSwitch && (
+                    <button type="button" onClick={() => switchSector(scopeClass.best.key)} style={scopeBtnPrimary}>Switch to {scopeClass.best.label}</button>
+                  )}
+                  <button type="button" onClick={keepRegionOnly} style={scopeBtn}><MapPin size={12} /> Keep region only</button>
+                  <button type="button" onClick={forceSector} style={scopeBtnGhost}>Keep {scopeClass.current.label}</button>
+                </div>
+              </div>
+            )}
             <RefinePanel
               topic={topic}
               decided={refineDecided}
+              scope={{ region, country, beat }}
               onPickAngle={pickAngle}
               onPickTopic={pickRefinedTopic}
               onLock={lockTopic}
@@ -597,6 +635,14 @@ const seedRefresh = {
   width: 28, height: 28, borderRadius: 7, color: "#8a8a92",
   background: "#131316", border: "1px solid #232329", cursor: "pointer",
 };
+// Off-sector precedence prompt (cross-beat): amber, sits between the topic box
+// and the refiner. Offers Switch / Keep region only / Keep sector.
+const scopePrompt = { width: "100%", marginTop: 10, background: "#1a1206", border: "1px solid #4a3117", borderRadius: 11, padding: "11px 13px", textAlign: "left" };
+const scopePromptTop = { display: "flex", alignItems: "flex-start", gap: 9, fontSize: 12.5, color: "#e0b98a", lineHeight: 1.4 };
+const scopePromptBtns = { display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 };
+const scopeBtnPrimary = { fontSize: 11.5, fontWeight: 700, color: "#0a0a0a", background: "#e0b98a", border: "none", borderRadius: 7, padding: "6px 12px", cursor: "pointer" };
+const scopeBtn = { fontSize: 11.5, color: "#dcdce2", background: "#26262e", border: "1px solid #3a3a42", borderRadius: 7, padding: "6px 12px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 };
+const scopeBtnGhost = { fontSize: 11.5, color: "#9aa0ab", background: "transparent", border: "1px solid #33333c", borderRadius: 7, padding: "6px 12px", cursor: "pointer" };
 // News-desk secondary route (Region + Urgency).
 const secBox = { marginTop: 14, borderTop: "1px solid #1c1c22", paddingTop: 14, textAlign: "left" };
 const secLab = { fontSize: 10, letterSpacing: 1.2, color: "#6f6f78", textTransform: "uppercase", marginBottom: 10 };

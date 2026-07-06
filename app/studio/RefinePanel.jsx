@@ -17,17 +17,23 @@ import { Sparkles, Flame, Activity, Minus, ArrowUpRight, Pencil, Check, RotateCc
 // updates it instantly with no refetch.
 //
 // Props: topic (the base typed topic), decided (the locked title, or null),
+// scope { region, country, beat } (the create-screen Scope — flows into the feed
+// pull so related-recent + virality read WITHIN scope), and the callbacks
 // onPickAngle(title, angleId), onPickTopic(title), onLock(), onEdit().
-export default function RefinePanel({ topic, decided, onPickAngle, onPickTopic, onLock, onEdit }) {
+export default function RefinePanel({ topic, decided, scope, onPickAngle, onPickTopic, onLock, onEdit }) {
   const base = (topic || "").trim();
-  const [data, setData] = useState(null); // { items, signals } from the route
+  const [data, setData] = useState(null); // { items, signals, scope } from the route
   const [loading, setLoading] = useState(false);
   const abortRef = useRef(null);
 
   const suggestions = angleSuggestions(base);
+  const region = scope && scope.region ? scope.region : "";
+  const country = scope && scope.country ? scope.country : "";
+  const beat = scope && scope.beat ? scope.beat : "";
 
-  // Pull related coverage + raw signals for the base topic (debounced; the route
-  // caches 30 min so this is cheap). Signals feed the local score recompute.
+  // Pull related coverage + raw signals for the base topic, WITHIN the current
+  // scope (region/country/beat), debounced; the route caches 30 min so this is
+  // cheap. Signals feed the local score recompute.
   useEffect(() => {
     if (!base) { setData(null); return undefined; }
     const t = setTimeout(() => {
@@ -35,13 +41,17 @@ export default function RefinePanel({ topic, decided, onPickAngle, onPickTopic, 
       const ac = new AbortController();
       abortRef.current = ac;
       setLoading(true);
-      fetch("/api/refine?topic=" + encodeURIComponent(base), { signal: ac.signal })
+      const params = "?topic=" + encodeURIComponent(base)
+        + (region && region !== "global" ? "&region=" + encodeURIComponent(region) : "")
+        + (country ? "&country=" + encodeURIComponent(country) : "")
+        + (beat ? "&beat=" + encodeURIComponent(beat) : "");
+      fetch("/api/refine" + params, { signal: ac.signal })
         .then((r) => r.json())
         .then((d) => { if (!ac.signal.aborted) { setData(d && d.signals ? d : { items: [], signals: null }); setLoading(false); } })
         .catch(() => { if (!ac.signal.aborted) { setData({ items: [], signals: null }); setLoading(false); } });
     }, 450);
     return () => { clearTimeout(t); if (abortRef.current) abortRef.current.abort(); };
-  }, [base]);
+  }, [base, region, country, beat]);
 
   if (!base) return null;
 
@@ -101,7 +111,7 @@ export default function RefinePanel({ topic, decided, onPickAngle, onPickTopic, 
       </div>
       {(loading || items.length > 0) && (
         <>
-          <div style={{ ...vlab, marginTop: 14 }}>Related &amp; recent <span style={opt}>— live from free feeds</span></div>
+          <div style={{ ...vlab, marginTop: 14 }}>Related &amp; recent <span style={opt}>— live from free feeds{data && data.scope && data.scope.place ? " · " + data.scope.place : ""}</span></div>
           {loading && !items.length ? (
             <div style={relNote}>Checking what&apos;s current…</div>
           ) : (

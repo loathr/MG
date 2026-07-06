@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { googleNewsUrl, gdeltUrl, parseRss, parseGdelt, mergeSources, mostReadUrl, parseMostRead, scopeQuery } from "../../studio/trending";
+import { googleNewsUrl, gdeltUrl, parseRss, parseGdelt, mergeSources, mostReadUrl, parseMostRead, scopeQuery, geoHint, regionById, countriesForRegion, getBeat } from "../../studio/trending";
 import { viralityScore, viralityTier, cleanTopic } from "../../studio/refine";
 
 // Live signals for the Topic refiner — a topic's RELATED recent coverage + a
@@ -8,6 +8,13 @@ import { viralityScore, viralityTier, cleanTopic } from "../../studio/refine";
 // effort: any source that fails is skipped and the score is computed from what
 // came back (the headline-shape signal always contributes, so an offline sandbox
 // still returns a sane low score rather than an error).
+//
+// SCOPE-AWARE: the same Scope the Trending panel uses (region / country / beat)
+// now flows in, so the refiner's related-recent + virality are read WITHIN scope
+// instead of globally. Region/country geo-scope the pull (Google News hl/gl +
+// GDELT sourcecountry); when a beat is set we also count how much of the topic's
+// coverage sits IN that sector vs overall — the feed-count confirmation of the
+// client's instant cross-beat classification.
 export const revalidate = 1800;
 
 const UA = "LoathrStudio/1.0 (Instagram carousel maker; topic refiner)";
@@ -49,6 +56,18 @@ function matchedViews(wikiItems, topic) {
   return best;
 }
 
+// Resolve the Scope into a place keyword + a geo hint for the topic pull. A
+// country uses its own hint; a region uses its first hinted member hub (and its
+// label as the place keyword) so a topic reads as "in-region"; global → neither.
+function resolveScope(region, country) {
+  if (country) return { place: country, hint: geoHint(country) };
+  if (region && region !== "global") {
+    const hub = (countriesForRegion(region) || []).find((c) => geoHint(c));
+    return { place: regionById(region).label, hint: hub ? geoHint(hub) : null };
+  }
+  return { place: null, hint: null };
+}
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -57,16 +76,23 @@ export async function GET(request) {
     // the feed query (so the client can also recompute the score locally when the
     // user picks a different angle, no refetch). Defaults to the topic.
     const headline = cleanTopic(searchParams.get("headline") || "") || topic;
-    if (!topic) return NextResponse.json({ topic: "", items: [], signals: null, score: 0, tier: "mild" });
+    if (!topic) return NextResponse.json({ topic: "", items: [], signals: null, score: 0, tier: "mild", scope: null });
 
-    const query = scopeQuery([], topic, null); // "(topic)" — no beat terms, topic is the query
+    // Scope in (all optional): region / country geo-scope the pull; a beat drives
+    // the in-sector coverage count.
+    const region = searchParams.get("region");
+    const country = searchParams.get("country");
+    const beatKey = searchParams.get("beat");
+    const { place, hint } = resolveScope(region, country);
+    const scoped = !!(place || hint);
+
+    // Topic query, scoped to the place when one is set ("(topic) \"Europe\"").
+    const query = scopeQuery([], topic, place);
     const now = Date.now();
 
-    // Two keyless news sources for the topic (GDELT carries images + dates; Google
-    // News carries fresh coverage) + Wikipedia most-read for a popularity signal.
     const [gnText, gdeltJson, featured] = await Promise.all([
-      getText(googleNewsUrl(query, null)),
-      getJson(gdeltUrl(query, null)),
+      getText(googleNewsUrl(query, hint)),
+      getJson(gdeltUrl(query, hint)),
       getJson(mostReadUrl(new Date(now).getUTCFullYear(), new Date(now).getUTCMonth() + 1, new Date(now).getUTCDate())),
     ]);
     const gn = parseRss(gnText, 12);
@@ -76,9 +102,23 @@ export async function GET(request) {
     // Related & recent — merged + deduped, newest sources first, capped small.
     const items = mergeSources([gd, gn], 5).slice(0, 4);
 
-    // Signals: distinct feeds that returned anything, article coverage, freshest
-    // dated item, matched Wikipedia read volume, and the headline shape (the topic
-    // itself). Fed to the pure scorer.
+    // Feed-count confirmation of off-sector: when a beat is set, count how much of
+    // the topic's coverage appears IN that sector's terms vs overall. One extra
+    // GDELT call, best-effort. The client's instant cross-beat classifier decides;
+    // this confirms it with live data (topic covered, but not in-sector → off).
+    let sectorCoverage = null;
+    if (beatKey) {
+      const beat = getBeat(beatKey);
+      const terms = (beat.terms || []).slice(0, 6);
+      if (terms.length) {
+        const sectorQ = "(" + terms.join(" OR ") + ") (" + topic + ")";
+        const sgd = parseGdelt(await getJson(gdeltUrl(sectorQ, hint)), 20);
+        sectorCoverage = { sector: beat.key, inSector: sgd.length, overall: gd.length };
+      }
+    }
+
+    // Signals (scoped): distinct feeds that returned anything, article coverage,
+    // freshest dated item, matched Wikipedia read volume, and the headline shape.
     const sources = [gn.length > 0, gd.length > 0, wiki.length > 0].filter(Boolean).length;
     const signals = {
       sources,
@@ -89,9 +129,10 @@ export async function GET(request) {
     };
     const result = viralityScore(signals);
     const tier = viralityTier(result.score).tier;
+    const scope = scoped ? { place: place || null, inRegion: !!hint } : null;
 
-    return NextResponse.json({ topic, items, signals, score: result.score, parts: result.parts, tier });
+    return NextResponse.json({ topic, items, signals, score: result.score, parts: result.parts, tier, scope, sectorCoverage });
   } catch (e) {
-    return NextResponse.json({ topic: "", items: [], signals: null, score: 0, tier: "mild", error: e && e.message ? e.message : "refine failed" }, { status: 200 });
+    return NextResponse.json({ topic: "", items: [], signals: null, score: 0, tier: "mild", scope: null, error: e && e.message ? e.message : "refine failed" }, { status: 200 });
   }
 }
