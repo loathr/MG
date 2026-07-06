@@ -447,6 +447,58 @@ function L_dossier(c, st, pal) {
   ];
 }
 
+// --- Premium layouts (Phase 4): ledger / sidebar / framed. Refined editorial
+// compositions built from text + thin FILLED/STROKED rects only — no image or
+// stacked layers (FLAT-LAYERS §3), so they render identically across Element /
+// StaticSlide / export and carry the same crash profile as the other text
+// layouts. Palette + photo-awareness like the rest; every field degrades.
+
+// Two-column ledger: kicker + heading in a narrow left column, a full-height
+// hairline divider, and the body flowing in the right column. A magazine
+// "above/beside the fold" structure the single-column layouts don't offer.
+function L_ledger(c, st, pal) {
+  const leftW = 430;
+  const ruleX = M + leftW + 30;
+  const rightX = ruleX + 30;
+  const rightW = ARTBOARD_W - M - rightX;
+  return [
+    pal.accentBar ? makeElement("rect", { id: uid("r"), x: M, y: 300, w: 48, h: 6, fill: pal.accent }) : null,
+    c.kicker ? makeText(st.kickerFont, { tier: "label", x: M, y: 326, w: leftW, h: 40, content: c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.secondary || pal.accent, letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
+    makeText(st.headFont, { tier: "heading", x: M, y: 384, w: leftW, h: 620, content: c.heading, fontSize: 58, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.05 }),
+    makeElement("rect", { id: uid("r"), x: ruleX, y: 320, w: 2, h: 740, fill: pal.accentBar ? pal.accent : pal.muted, opacity: pal.accentBar ? 1 : 0.5 }),
+    c.body ? makeText(st.bodyFont, { tier: "body", x: rightX, y: 322, w: rightW, h: 740, content: c.body, fontSize: 31, fontWeight: 400, color: pal.sub, lineHeight: 1.5 }) : null,
+    sourcesEl(st, pal, c.sources),
+  ];
+}
+
+// Sidebar: a bold accent bar pinned to the left margin with the kicker, heading,
+// and body indented beside it — a clean vertical-rail editorial look.
+function L_sidebar(c, st, pal) {
+  const barW = 10, tx = M + 44, tw = ARTBOARD_W - M - tx;
+  return [
+    makeElement("rect", { id: uid("r"), x: M, y: 316, w: barW, h: 640, fill: pal.accent }),
+    c.kicker ? makeText(st.kickerFont, { tier: "label", x: tx, y: 320, w: tw, h: 40, content: c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.secondary || pal.accent, letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
+    makeText(st.headFont, { tier: "heading", x: tx, y: 378, w: tw, h: 360, content: c.heading, fontSize: 62, fontWeight: st.headWeight, color: pal.ink, lineHeight: 1.06 }),
+    c.body ? makeText(st.bodyFont, { tier: "body", x: tx, y: 800, w: tw, h: 400, content: c.body, fontSize: 31, fontWeight: 400, color: pal.sub, lineHeight: 1.48 }) : null,
+    sourcesEl(st, pal, c.sources),
+  ];
+}
+
+// Framed: an inset ruled rectangle (a bordered card) with the kicker, heading and
+// body centred inside — a refined, gallery-label statement. The border is one
+// stroked rect (Element renders a rect stroke as a CSS border), never a layer.
+function L_framed(c, st, pal) {
+  const fx = 116, fy = 286, fw = ARTBOARD_W - 2 * fx, fh = 778;
+  const ix = fx + 56, iw = fw - 112;
+  return [
+    makeElement("rect", { id: uid("r"), x: fx, y: fy, w: fw, h: fh, fill: "none", stroke: pal.accentBar ? pal.accent : pal.muted, strokeWidth: 2, radius: 0 }),
+    c.kicker ? makeText(st.kickerFont, { tier: "label", x: ix, y: fy + 72, w: iw, h: 40, content: c.kicker.toUpperCase(), fontSize: 22, fontWeight: st.kickerWeight, color: pal.secondary || pal.accent, align: "center", letterSpacing: st.kickerSpacing, lineHeight: 1.2 }) : null,
+    makeText(st.headFont, { tier: "heading", x: ix, y: fy + 150, w: iw, h: 340, content: c.heading, fontSize: 64, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.08 }),
+    c.body ? makeText(st.bodyFont, { tier: "body", x: ix, y: fy + 486, w: iw, h: 240, content: c.body, fontSize: 30, fontWeight: 400, color: pal.sub, align: "center", lineHeight: 1.45 }) : null,
+    sourcesEl(st, pal, c.sources),
+  ];
+}
+
 // --- Image+text "Feature" layout (Phase 3). The photo becomes an ELEMENT filling
 // a band of the board (top by default, or bottom) while the text sits on a solid
 // panel in the NORMAL palette — the inverse of the full-bleed photo backgrounds
@@ -528,7 +580,7 @@ function L_featureSplit(c, st, pal) {
   ];
 }
 
-const LAYOUT_FNS = { classic: L_classic, cover: L_cover, masthead: L_masthead, dossier: L_dossier, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote, stat: L_stat, versus: L_versus, feature: L_feature, featureBottom: L_featureBottom, featureSplit: L_featureSplit };
+const LAYOUT_FNS = { classic: L_classic, cover: L_cover, masthead: L_masthead, dossier: L_dossier, centered: L_centered, statement: L_statement, bottom: L_bottom, split: L_split, numbered: L_numbered, quote: L_quote, ledger: L_ledger, sidebar: L_sidebar, framed: L_framed, stat: L_stat, versus: L_versus, feature: L_feature, featureBottom: L_featureBottom, featureSplit: L_featureSplit };
 
 // Each layout belongs to a FAMILY (category) so the Templates panel can group
 // them and new variants slot into a home instead of a flat list:
@@ -547,6 +599,9 @@ export const LAYOUT_LIST = [
   { key: "split", label: "Split", category: "feature" },
   { key: "numbered", label: "Numbered", category: "text" },
   { key: "quote", label: "Quote", category: "text" },
+  { key: "ledger", label: "Ledger", category: "text" },
+  { key: "sidebar", label: "Sidebar", category: "text" },
+  { key: "framed", label: "Framed", category: "text" },
   { key: "stat", label: "Stat", category: "data" },
   { key: "versus", label: "Versus", category: "data" },
   { key: "feature", label: "Feature", category: "feature" },

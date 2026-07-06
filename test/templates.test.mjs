@@ -408,3 +408,37 @@ test("slidesToDoc: a feature layout needs a photo and routes it to an element (�
   );
   assert.equal(noImg.slides[1].layout, "classic");
 });
+
+test("premium layouts (ledger/sidebar/framed): registered, render, vector-only", () => {
+  const keys = LAYOUT_LIST.map((l) => l.key);
+  for (const k of ["ledger", "sidebar", "framed"]) {
+    assert.ok(keys.includes(k), "registered: " + k);
+    assert.equal(LAYOUT_LIST.find((l) => l.key === k).category, "text");
+  }
+  const content = { kicker: "MARKETS", heading: "The private-credit boom", body: "Lorem ipsum dolor sit amet.", sources: ["FT"] };
+  for (const k of ["ledger", "sidebar", "framed"]) {
+    const els = renderLayout(k, content, "editorial", false);
+    // real text emitted (heading present)
+    assert.ok(els.some((e) => e.type === "text" && /private-credit/i.test(e.content || "")), k + " has heading");
+    // FLAT-LAYERS §3: text + rect only, never an image element or a stacked layer
+    assert.ok(els.every((e) => e.type === "text" || e.type === "rect"), k + " is vector-only");
+    // a slide built from it carries zero heavy images
+    assert.equal(heavyImageCount({ background: { type: "color" }, elements: els }), 0, k + " no heavy images");
+  }
+});
+
+test("premium layouts degrade when optional fields are missing", () => {
+  for (const k of ["ledger", "sidebar", "framed"]) {
+    const els = renderLayout(k, { heading: "Just a headline" }, "editorial", false);
+    assert.ok(els.length >= 1 && els.some((e) => e.type === "text"), k + " renders heading-only");
+  }
+});
+
+test("premium layouts reflow cleanly and are pickable content layouts", () => {
+  assert.ok(CONTENT_LAYOUTS.includes("ledger") && CONTENT_LAYOUTS.includes("sidebar") && CONTENT_LAYOUTS.includes("framed"));
+  const slide = { style: "editorial", layout: "classic", content: { heading: "H", body: "b", kicker: "K" }, background: { type: "color", color: "#000" }, elements: [] };
+  const patch = reflowSlide(slide, "ledger");
+  assert.equal(patch.layout, "ledger");
+  assert.ok(Array.isArray(patch.elements) && patch.elements.length);
+  assert.equal(patch.background.type, "color"); // no photo → stays a solid background
+});
