@@ -107,18 +107,20 @@ function PhotoCard({ img, onSetBackground, onAddImage }) {
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ position: "relative", borderRadius: 6, overflow: "hidden", background: "#26262b", aspectRatio: "1 / 1" }}
+      // Uniform square tile via the padding-top hack (paddingTop:100% = 100% of the
+      // WIDTH). Unlike `aspect-ratio` on a box whose only child is absolutely
+      // positioned — which paints a square but contributes 0 height to the grid ROW
+      // track, so same-column tiles collapse together and overlap ("stacking") — the
+      // padding is real in-flow layout height, so it sizes the row track correctly.
+      style={{ position: "relative", borderRadius: 6, overflow: "hidden", background: "#26262b", width: "100%", paddingTop: "100%" }}
     >
       <img
         src={img.thumb}
         alt={img.alt || ""}
         loading="lazy"
         draggable={false}
-        // Uniform square tiles (object-fit:cover) — every result is the SAME size
-        // regardless of its native aspect ratio. ABSOLUTELY positioned so the image
-        // fills the square WITHOUT contributing to the container's height: a portrait
-        // thumbnail's intrinsic height would otherwise win over the 1:1 aspect-ratio
-        // and desync the two columns ("stacking" at higher result counts).
+        // The image fills the padded square (object-fit:cover) — every result the
+        // SAME size regardless of its native aspect ratio.
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         onError={(e) => { e.currentTarget.style.opacity = "0.15"; }}
       />
