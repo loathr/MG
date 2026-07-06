@@ -177,6 +177,29 @@ function humanHours(h) {
   return Math.round(n / 24) + "d ago";
 }
 
+// ---- Breaking-mode ordering -------------------------------------------------
+// Breaking mode wants the rail HOTTEST-first, not richness-first. Per-item heat
+// blends recency (dominant for breaking) with headline shape — freshest + punchiest
+// lead. nowMs is passed in so this stays pure/testable; an item with no parseable
+// date falls back to a neutral recency so headline shape still ranks it.
+export function itemHeat(item, nowMs) {
+  const it = item || {};
+  const t = it.when ? Date.parse(it.when) : NaN;
+  const hours = isNaN(t) ? null : Math.max(0, (Number(nowMs) - t) / 36e5);
+  const recency = hours == null ? 0.35 : clamp01(1 - hours / 48); // 48h breaking window
+  const head = scoreHeadline(it.title);
+  return 0.62 * recency + 0.38 * head;
+}
+
+// Stable hottest-first ordering of trending items for Breaking mode. Ties keep
+// original order (recency-composed upstream). Pure — never mutates the input.
+export function rankBreaking(items, nowMs) {
+  return (items || [])
+    .map((it, i) => ({ it, i, h: itemHeat(it, nowMs) }))
+    .sort((a, b) => b.h - a.h || a.i - b.i)
+    .map((x) => x.it);
+}
+
 // A tiny description of what the headline signal rewarded. Pure.
 function headlineNote(title) {
   const s = String(title || "");

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { UI } from "./theme";
 import { beatsForDesk, defaultBeat, beatVoice } from "./trending";
-import { TrendingUp, ChevronDown, ChevronRight, RefreshCw, MapPin } from "lucide-react";
+import { TrendingUp, ChevronDown, ChevronRight, RefreshCw, MapPin, Flame } from "lucide-react";
 
 // The cued, hidden "Trending" panel on the create screen. Closed by default —
 // just the pill. Opening it fetches live topics for the selected beat from the
@@ -92,6 +92,12 @@ export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, r
             </div>
           ) : null}
 
+          {urgency === "breaking" && !loading && items.length ? (
+            <div style={breakingNote} title="Breaking mode orders the rail hottest-first">
+              <Flame size={13} style={{ flexShrink: 0 }} /> Ordered hottest-first · last 48h
+            </div>
+          ) : null}
+
           {loading ? (
             <div style={note}>Loading what&apos;s trending…</div>
           ) : items.length ? (
@@ -135,6 +141,10 @@ const refreshBtn = { fontSize: 11.5, color: "#9aa0ab", background: "transparent"
 const ddRow = { display: "flex", alignItems: "center", gap: 10, marginBottom: 14 };
 const ddLabel = { fontSize: 12, color: UI.muted, flexShrink: 0 };
 const ddSelect = { flex: 1, height: 38, borderRadius: 8, background: UI.surface2, color: "#fff", border: "1px solid " + UI.border, fontSize: 13, padding: "0 11px", cursor: "pointer" };
+const breakingNote = {
+  display: "flex", alignItems: "center", gap: 6, fontSize: 11, marginBottom: 12, padding: "6px 10px",
+  borderRadius: 7, background: "#20100e", border: "1px solid #4a221d", color: "#e89a8f",
+};
 const scopeNote = (sourced) => ({
   display: "flex", alignItems: "center", gap: 6, fontSize: 11, marginBottom: 12, padding: "6px 10px",
   borderRadius: 7, background: sourced ? "#142019" : "#221c16",

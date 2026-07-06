@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getBeat, mostReadUrl, parseRss, parseMostRead, selectTrending, filterByRegion, filterByCountry, filterByRecency, urgencyById, regionById, scopedPlan, googleNewsUrl, gdeltUrl, parseGdelt, mergeSources, backfillSeeds } from "../../studio/trending";
+import { rankBreaking } from "../../studio/refine";
 
 // Live "Trending" for a beat, from FREE keyless feeds only — per-beat RSS
 // (recency) + Wikipedia most-read (popularity + photos + a never-empty fallback).
@@ -136,7 +137,13 @@ export async function GET(request) {
     // leads with its in-region content even when those items carry no image.
     const merged = mergeSources([scopedItems, baseRanked], pool);
     const composed = backfillSeeds(merged, beat.seeds, pool);
-    const items = (fresh ? shuffle(composed) : composed).slice(0, 6);
+    // Breaking mode reorders the rail HOTTEST-first (recency + headline shape),
+    // overriding the usual richness/shuffle order — the freshest, punchiest news
+    // leads. Other urgencies keep the composed order (fresh=shuffle for variety).
+    const ordered = urg && urg.id === "breaking"
+      ? rankBreaking(composed, now.getTime())
+      : (fresh ? shuffle(composed) : composed);
+    const items = ordered.slice(0, 6);
 
     // Honest scope label (#5): say what actually produced the rail — the place, how
     // many in-region hubs it fanned across, and, if the scoped sources came back

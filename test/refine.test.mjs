@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import {
   hashStr, cleanTopic, ANGLE_TEMPLATES, angleSuggestions,
   scoreHeadline, VIRALITY_WEIGHTS, viralityScore, viralityTier, viralityReasons, compactViews,
+  itemHeat, rankBreaking,
 } from "../app/studio/refine.js";
 
 test("cleanTopic collapses whitespace and trims trailing punctuation", () => {
@@ -98,6 +99,31 @@ test("compactViews formats thousands and millions", () => {
   assert.equal(compactViews(1200000), "1.2M");
   assert.equal(compactViews(950), "950");
   assert.equal(compactViews(0), "0");
+});
+
+test("rankBreaking orders hottest-first: fresher + punchier lead", () => {
+  const now = Date.parse("2026-07-06T12:00:00Z");
+  const hr = (h) => new Date(now - h * 36e5).toISOString();
+  const items = [
+    { title: "Quarterly agricultural output review", when: hr(40) },       // old, plain
+    { title: "5 shocking revelations as ceasefire collapses", when: hr(2) }, // fresh, punchy
+    { title: "Markets steady in afternoon trading", when: hr(20) },          // mid
+  ];
+  const ranked = rankBreaking(items, now);
+  assert.equal(ranked[0].title, "5 shocking revelations as ceasefire collapses");
+  assert.equal(ranked[2].title, "Quarterly agricultural output review");
+  // pure — input not mutated
+  assert.equal(items[0].title, "Quarterly agricultural output review");
+});
+
+test("itemHeat: undated items fall back to headline shape, bounded", () => {
+  const now = Date.parse("2026-07-06T12:00:00Z");
+  const punchy = itemHeat({ title: "7 secrets nobody tells you" }, now);
+  const plain = itemHeat({ title: "a routine update" }, now);
+  assert.ok(punchy > plain);
+  assert.ok(punchy >= 0 && punchy <= 1);
+  assert.deepEqual(rankBreaking([], now), []);
+  assert.deepEqual(rankBreaking(null, now), []);
 });
 
 test("viralityReasons builds labelled rows from signals", () => {
