@@ -223,6 +223,12 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
           </>
         )}
         <P2><NumField label="Line" value={round2(el.lineHeight || 1.1)} step={0.05} onChange={(n) => up({ lineHeight: n })} /><NumField label="Track" value={round2(el.letterSpacing || 0)} step={0.5} onChange={(n) => up({ letterSpacing: n })} /></P2>
+        <div style={{ height: 8 }} />
+        {/* Clear the element's text EFFECTS (background · outline) and restore
+            Line/Track to defaults; the base text colour is left as-is. */}
+        <WBtn onClick={() => up({ textBg: null, textStroke: null, textStrokeWidth: 0, lineHeight: 1.1, letterSpacing: 0 })}>
+          <RotateCcw size={13} /> Reset text effects
+        </WBtn>
       </Popover>}
 
       {pop === "shape" && el.type === "text" && <ShapePop el={el} up={up} dispatch={dispatch} onClose={() => setPop(null)} />}
