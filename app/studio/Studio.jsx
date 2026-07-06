@@ -34,7 +34,7 @@ import { checkCoherence } from "./coherence";
 import {
   Type, Shapes, Image as ImageIcon, LayoutTemplate, Palette, Captions,
   Undo2, Redo2, RotateCcw, RotateCw, ShieldCheck, Share2, Download,
-  ChevronDown, ChevronRight, CornerDownLeft, Eye, Workflow,
+  ChevronDown, ChevronRight, CornerDownLeft, Eye, Workflow, Copy, Check,
 } from "lucide-react";
 
 const hbtn = {
@@ -42,6 +42,21 @@ const hbtn = {
   border: "1px solid " + UI.border, borderRadius: 7, cursor: "pointer", fontSize: 12,
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
 };
+
+// Share-link Copy button that confirms the click: swaps to a green "Copied!" for
+// ~1.5s, then reverts. Owns its own copied state so it drops into the inline
+// share panel without threading state through Studio.
+function ShareCopyButton({ url }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch (e) { /* ignore */ }
+  };
+  return (
+    <button style={copied ? { ...hbtn, background: "#12201a", borderColor: "#2b5a3c", color: "#7be3a0" } : hbtn} onClick={copy} title="Copy the share link">
+      {copied ? <><Check size={13} /> Copied!</> : <><Copy size={13} /> Copy</>}
+    </button>
+  );
+}
 const iconBtn = (enabled) => ({
   ...hbtn, minWidth: 34, padding: "0 9px", lineHeight: 1,
   opacity: enabled ? 1 : 0.4, cursor: enabled ? "pointer" : "default",
@@ -676,7 +691,7 @@ export default function Studio() {
                       <>
                         <div style={{ display: "flex", gap: 6, marginTop: 9 }}>
                           <input readOnly value={url} onFocus={(e) => e.target.select()} style={{ flex: 1, minWidth: 0, height: 30, background: "#1d1d20", border: "1px solid " + UI.border, borderRadius: 6, color: "#ddd", fontSize: 11, padding: "0 8px" }} />
-                          <button style={hbtn} onClick={() => { try { navigator.clipboard.writeText(url); } catch (e) { /* ignore */ } }}>Copy</button>
+                          <ShareCopyButton url={url} />
                         </div>
                         <button style={{ ...hbtn, marginTop: 7, fontSize: 11 }} onClick={rotate} title="Invalidate the old link and make a new one"><RotateCw size={13} /> Reset link</button>
                       </>
