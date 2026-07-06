@@ -121,6 +121,84 @@ export function routeFraming(key) {
   return { kind: deskKind(b.desk), label: b.label, terms: (b.terms || []).slice() };
 }
 
+// ---- Cross-beat topic classification (create-screen precedence) -------------
+// Decide whether a typed topic fits the chosen sector/beat, and if not, which
+// beat it actually reads like — so the create screen can offer "Switch to {X}"
+// rather than blindly dropping the sector. Pure + OFFLINE (no feeds): a light
+// word/prefix overlap of the topic against each beat's TERMS + SEEDS. Zero Claude
+// cost. Works well for topical phrases ("vertical farming"); bare named entities
+// ("Taylor Swift") share few generic terms and score low everywhere — that's what
+// the refine route's live feed-count check is the backstop for.
+const TOPIC_STOP = new Set(["the", "a", "an", "and", "or", "of", "for", "to", "in", "on", "with", "how", "why", "what", "is", "are", "its", "new", "vs"]);
+
+export function topicTokens(topic) {
+  return String(topic || "").toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !TOPIC_STOP.has(w));
+}
+
+// A beat's searchable token bag: its terms + seeds, tokenized.
+function beatTokenBag(beat) {
+  const bag = new Set();
+  for (const s of [].concat((beat && beat.terms) || [], (beat && beat.seeds) || [])) {
+    for (const t of topicTokens(s)) bag.add(t);
+  }
+  return bag;
+}
+
+// Whole-word or light morphological (prefix) match. Short tokens (<4) need an
+// exact hit so "art" can't spuriously swallow "artist".
+function tokenHits(tok, bag) {
+  if (bag.has(tok)) return true;
+  if (tok.length < 4) return false;
+  for (const b of bag) {
+    if (b.length < 4) continue;
+    if (tok.startsWith(b) || b.startsWith(tok)) return true;
+  }
+  return false;
+}
+
+// 0..1 share of the topic's tokens that the beat's terms+seeds cover. Pure.
+export function scoreTopicBeat(topic, beat) {
+  const toks = topicTokens(topic);
+  if (!toks.length || !beat) return 0;
+  const bag = beatTokenBag(beat);
+  if (!bag.size) return 0;
+  let hit = 0;
+  for (const t of toks) if (tokenHits(t, bag)) hit++;
+  return hit / toks.length;
+}
+
+const ON_SECTOR = 0.34;   // current beat covers >= a third of the topic → on-sector
+const STRONG_BEST = 0.5;  // another beat must clearly cover the topic to suggest a switch
+const SWITCH_MARGIN = 0.3; // …and beat the current beat by this much
+
+// Classify a topic against the current beat + a pool of candidates (default all
+// beats). Returns whether it's on-sector and the best-fitting beat, so the create
+// screen can offer Switch / Keep-region-only / Force. Pure; the round keeps the
+// scores tidy for display. `decidable:false` = too little signal to judge (empty
+// or all-stopword topic) → the UI stays quiet.
+export function classifyTopicScope(topic, currentBeatKey, pool) {
+  const beats = pool && pool.length ? pool : BEATS;
+  const toks = topicTokens(topic);
+  const current = getBeat(currentBeatKey);
+  const curScore = scoreTopicBeat(topic, current);
+  const r2 = (x) => Math.round(x * 100) / 100;
+  if (!toks.length) return { decidable: false, onSector: true, current: { key: current.key, label: current.label, score: 0 }, best: null };
+  let best = { key: current.key, label: current.label, desk: current.desk, score: curScore };
+  for (const b of beats) {
+    const sc = scoreTopicBeat(topic, b);
+    if (sc > best.score) best = { key: b.key, label: b.label, desk: b.desk, score: sc };
+  }
+  const onSector = curScore >= ON_SECTOR || best.key === current.key;
+  const suggestSwitch = !onSector && best.key !== current.key && best.score >= STRONG_BEST && (best.score - curScore) >= SWITCH_MARGIN;
+  return {
+    decidable: true,
+    onSector,
+    suggestSwitch,
+    current: { key: current.key, label: current.label, score: r2(curScore) },
+    best: { key: best.key, label: best.label, desk: best.desk, score: r2(best.score) },
+  };
+}
+
 // ---- News Desk secondary route (Tier 2): Region + Urgency -------------------
 // The monolith's NEWSDESK_REGIONS / NEWSDESK_URGENCY. Region scopes the live
 // pull (its `countries` filter the feed, Tier 2b) and frames generation; urgency

@@ -8,6 +8,7 @@ import {
   filterByTerms, rankItems, selectTrending, backfillSeeds, filterByRegion, filterByCountry, countriesForRegion, filterByRecency,
   geoHint, scopeQuery, scopedPlan, googleNewsUrl, gdeltUrl, parseGdelt, mergeSources,
   rotateWindow, isJunkImage,
+  topicTokens, scoreTopicBeat, classifyTopicScope,
 } from "../app/studio/trending.js";
 
 test("BEATS feed config: dedicated vs shared/sub-topic vs the lone feed-less beat", () => {
@@ -448,4 +449,48 @@ test("rankItems: depth/richness first — feed recency leads, thumbnails are NOT
   assert.ok(ranked.length <= 6);
   // R5: the extract carries through so generation can ground on it
   assert.match(ranked[0].extract, /Villeneuve/);
+});
+
+// ---- Cross-beat topic classification (create-screen precedence) -------------
+test("topicTokens drops stopwords and short words", () => {
+  assert.deepEqual(topicTokens("The future of interest rates"), ["future", "interest", "rates"]);
+  assert.deepEqual(topicTokens("A vs B"), []);            // all stop/short
+  assert.deepEqual(topicTokens(""), []);
+});
+
+test("scoreTopicBeat: prefix/morphology match against terms + seeds", () => {
+  const finance = getBeat("ent_finance");
+  // "rates" ~ term "rate"; "interest" not a term → 1 of 2 tokens covered
+  assert.ok(scoreTopicBeat("interest rates", finance) >= 0.5);
+  // an unrelated topic scores ~0 for finance
+  assert.equal(scoreTopicBeat("vertical farming", finance), 0);
+});
+
+test("classifyTopicScope: on-sector topic stays put", () => {
+  const r = classifyTopicScope("interest rate cuts", "ent_finance");
+  assert.equal(r.decidable, true);
+  assert.equal(r.onSector, true);
+  assert.equal(r.suggestSwitch, false);
+});
+
+test("classifyTopicScope: off-sector topical phrase suggests the right sector", () => {
+  // "vertical farming" while Finance is selected → should point at Agriculture
+  const r = classifyTopicScope("vertical farming yields", "ent_finance");
+  assert.equal(r.onSector, false);
+  assert.equal(r.suggestSwitch, true);
+  assert.equal(r.best.key, "ent_agriculture");
+  assert.ok(r.best.score > r.current.score);
+});
+
+test("classifyTopicScope: empty/weak topic is not decidable (UI stays quiet)", () => {
+  const r = classifyTopicScope("", "ent_finance");
+  assert.equal(r.decidable, false);
+  assert.equal(r.onSector, true);      // don't nag when there's nothing to judge
+});
+
+test("classifyTopicScope: honors a provided beat pool (desk-scoped switching)", () => {
+  const pool = BEATS.filter((b) => b.desk === "enterprise");
+  const r = classifyTopicScope("crypto stablecoin regulation", "ent_finance", pool);
+  // stays within the enterprise pool; best is a real enterprise sector
+  assert.ok(pool.some((b) => b.key === r.best.key));
 });
