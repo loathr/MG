@@ -111,6 +111,55 @@ export function rewriteImages(doc, map) {
   return Object.assign({}, doc, { slides, brand });
 }
 
+// ---- Dashboard grouping -----------------------------------------------------
+// Bucket a deck by its updatedAt for the grouped dashboard. Pure — nowMs is
+// passed in (no Date.now) so it's deterministic/testable. Two modes:
+//   "recency" (default): Today · Earlier this week · Earlier in {month} · then a
+//                        per-calendar-month bucket for anything older.
+//   "month":  every deck straight under its calendar-month header.
+// Returns { key, label, order } — `order` sorts groups newest-first (0 = top).
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function startOfDay(ms) { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); }
+
+export function bucketByTime(ts, nowMs, mode) {
+  const t = Number(ts) || 0;
+  const now = Number(nowMs) || 0;
+  const dt = new Date(t);
+  const dn = new Date(now);
+  const ym = dt.getFullYear() * 12 + dt.getMonth();
+  const nowYm = dn.getFullYear() * 12 + dn.getMonth();
+  const monthLabel = MONTH_NAMES[dt.getMonth()] + " " + dt.getFullYear();
+  if (mode === "month") return { key: "m" + ym, label: monthLabel, order: nowYm - ym };
+  const sod = startOfDay(now);
+  if (t >= sod) return { key: "today", label: "Today", order: 0 };
+  if (t >= sod - 6 * 864e5) return { key: "week", label: "Earlier this week", order: 1 };
+  if (ym === nowYm) return { key: "month", label: "Earlier in " + MONTH_NAMES[dn.getMonth()], order: 2 };
+  return { key: "m" + ym, label: monthLabel, order: 2 + (nowYm - ym) }; // previous months, newest first
+}
+
+// Group a project list into ordered time buckets, each with items newest-first.
+// Empty buckets never appear. Pure — nowMs injected.
+export function groupDecks(projects, nowMs, mode) {
+  const map = new Map();
+  for (const p of projects || []) {
+    const b = bucketByTime(p && p.updatedAt, nowMs, mode);
+    let g = map.get(b.key);
+    if (!g) { g = { key: b.key, label: b.label, order: b.order, items: [] }; map.set(b.key, g); }
+    g.items.push(p);
+  }
+  const groups = [...map.values()].sort((a, b) => a.order - b.order);
+  for (const g of groups) g.items.sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0));
+  return groups;
+}
+
+// Whether a group should start COLLAPSED by default: older calendar-month buckets
+// (the "m…" keys past the current month). Recent buckets (today / week / earlier
+// this month) stay open. Pure. `order` is the group's order from bucketByTime.
+export function groupCollapsedByDefault(group) {
+  if (!group || typeof group.key !== "string") return false;
+  return group.key[0] === "m" && group.order >= 1;
+}
+
 // "2h ago" relative label for the Projects list. Pure — nowMs is passed in.
 export function relativeTime(ms, nowMs) {
   if (!ms || !nowMs || nowMs < ms) return "just now";

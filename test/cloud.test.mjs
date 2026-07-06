@@ -2,7 +2,7 @@
 // deck (de)serialization + the relative-time label. No firebase here.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cloudConfig, isCloudEnabled, projectRecord, docFromRecord, relativeTime, collectImageData, imageKey, rewriteImages } from "../app/studio/cloud.js";
+import { cloudConfig, isCloudEnabled, projectRecord, docFromRecord, relativeTime, collectImageData, imageKey, rewriteImages, bucketByTime, groupDecks, groupCollapsedByDefault } from "../app/studio/cloud.js";
 
 const FIREBASE_ENV = [
   "NEXT_PUBLIC_FIREBASE_API_KEY", "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
@@ -103,4 +103,62 @@ test("rewriteImages swaps data URLs for uploaded URLs and leaves the rest intact
   assert.equal(out.slides[0].elements[1].content, "hi");                         // non-image fields preserved
   // the persisted doc now carries NO base64 once everything is mapped
   assert.equal(collectImageData(out).length, 1); // only the unmapped thumb remains
+});
+
+// A fixed "now": 2026-07-20 12:00 local (mid-month, so "earlier this month" is
+// reachable). Deck timestamps are offsets from it so the buckets are deterministic
+// regardless of when the test runs.
+const NOW = new Date(2026, 6, 20, 12, 0, 0).getTime(); // Jul 20 2026 (month is 0-based)
+const daysAgo = (d) => NOW - d * 864e5;
+
+test("bucketByTime: recency buckets", () => {
+  assert.equal(bucketByTime(NOW - 2 * 36e5, NOW).key, "today");            // 2h ago
+  assert.equal(bucketByTime(daysAgo(2), NOW).key, "week");                 // 2 days
+  assert.equal(bucketByTime(daysAgo(2), NOW).label, "Earlier this week");
+  // 10 days ago is still July (same month) but older than a week
+  const m = bucketByTime(daysAgo(10), NOW);
+  assert.equal(m.key, "month");
+  assert.equal(m.label, "Earlier in July");
+  // June → its own calendar-month bucket
+  const jun = bucketByTime(new Date(2026, 5, 20).getTime(), NOW);
+  assert.equal(jun.label, "June 2026");
+  assert.ok(jun.order > m.order, "older month sorts after earlier-this-month");
+});
+
+test("bucketByTime: month mode files everything under its calendar month", () => {
+  assert.equal(bucketByTime(daysAgo(2), NOW, "month").label, "July 2026");
+  assert.equal(bucketByTime(new Date(2026, 5, 1).getTime(), NOW, "month").label, "June 2026");
+  assert.equal(bucketByTime(new Date(2026, 4, 1).getTime(), NOW, "month").label, "May 2026");
+  // current month sorts first (order 0), older after
+  assert.ok(bucketByTime(new Date(2026, 4, 1).getTime(), NOW, "month").order
+    > bucketByTime(daysAgo(2), NOW, "month").order);
+});
+
+test("groupDecks: ordered buckets, items newest-first, empties dropped", () => {
+  const decks = [
+    { id: "a", name: "A", updatedAt: NOW - 3 * 36e5 },          // today
+    { id: "b", name: "B", updatedAt: NOW - 1 * 36e5 },          // today (newer)
+    { id: "c", name: "C", updatedAt: daysAgo(3) },              // this week
+    { id: "d", name: "D", updatedAt: new Date(2026, 5, 10).getTime() }, // June
+  ];
+  const groups = groupDecks(decks, NOW);
+  assert.deepEqual(groups.map((g) => g.key), ["today", "week", "m24317"]); // today · this week · June
+  assert.equal(groups[0].key, "today");
+  // today's items newest-first: b before a
+  assert.deepEqual(groups[0].items.map((x) => x.id), ["b", "a"]);
+  assert.equal(groups[1].key, "week");
+  assert.equal(groups[groups.length - 1].label, "June 2026");
+  // no empty groups
+  assert.ok(groups.every((g) => g.items.length > 0));
+});
+
+test("groupCollapsedByDefault: older months collapsed, recent open", () => {
+  const groups = groupDecks([
+    { id: "a", updatedAt: NOW - 36e5 },
+    { id: "d", updatedAt: new Date(2026, 5, 10).getTime() },
+  ], NOW);
+  const today = groups.find((g) => g.key === "today");
+  const june = groups.find((g) => g.label === "June 2026");
+  assert.equal(groupCollapsedByDefault(today), false);
+  assert.equal(groupCollapsedByDefault(june), true);
 });
