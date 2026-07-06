@@ -237,6 +237,28 @@ test("rethemeDoc remaps on-brand elements and leaves off-brand ones", () => {
   assert.equal(out.slides[0].background.color, "#111111");
 });
 
+test("rethemeDoc retitles the wordmark on a brand wordmark change (incl. first edit)", () => {
+  const doc = {
+    brand: brandFromStyle("editorial"),
+    slides: [{
+      background: { type: "color", color: "#000" },
+      elements: [
+        makeElement("text", { role: "wordmark", content: "LOATHR" }),
+        makeElement("text", { role: "heading", content: "LOATHR" }), // not a wordmark → left alone
+      ],
+    }],
+  };
+  // First edit: previous brand carried NO explicit wordmark (undefined) — must
+  // still retitle the default "LOATHR" mark.
+  const out1 = rethemeDoc(doc, {}, { wordmark: "ACME" });
+  assert.equal(out1.slides[0].elements[0].content, "ACME", "wordmark retitled from default");
+  assert.equal(out1.slides[0].elements[1].content, "LOATHR", "non-wordmark text untouched");
+  // Subsequent edit: prev wordmark set explicitly.
+  const doc2 = Object.assign({}, doc, { slides: [Object.assign({}, doc.slides[0], { elements: [makeElement("text", { role: "wordmark", content: "ACME" })] })] });
+  const out2 = rethemeDoc(doc2, { wordmark: "ACME" }, { wordmark: "BETA" });
+  assert.equal(out2.slides[0].elements[0].content, "BETA");
+});
+
 test("D3 · rethemeDoc remaps element textBg/textStroke + per-run colours on a palette swap", () => {
   const prev = brandFromStyle("editorial");                 // accent #e23744, ink, bg #0c0c0c
   const next = Object.assign({}, prev, { accent: "#00ff00" });

@@ -128,7 +128,11 @@ export function rethemeDoc(doc, prev, next) {
       if (e.tier === "label" && b.labelFont) n = Object.assign({}, n, { fontFamily: b.labelFont });
       else if (e.tier === "heading" && b.headFont) n = Object.assign({}, n, { fontFamily: b.headFont });
       else if (e.tier === "body" && b.bodyFont) n = Object.assign({}, n, { fontFamily: b.bodyFont });
-      if (b.wordmark && p.wordmark && n.content === p.wordmark) n = Object.assign({}, n, { content: b.wordmark });
+      // Retitle the editorial cover/closer wordmark on a brand wordmark change.
+      // Match the element whose content is the PREVIOUS wordmark, defaulting to
+      // "LOATHR" — so the first edit works even when the prior brand carried no
+      // explicit wordmark (blank/older docs), where p.wordmark is undefined.
+      if (b.wordmark && n.role === "wordmark" && n.content === (p.wordmark || "LOATHR")) n = Object.assign({}, n, { content: b.wordmark });
       // The inline highlight marker is a DERIVED color pair — its background is the
       // accent and its knockout text is the deck bg — set only by the renderer, with
       // no manual-edit path. So a palette swap must carry it too; otherwise the
