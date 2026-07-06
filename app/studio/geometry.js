@@ -111,3 +111,50 @@ export function snapMove(box, artboard, siblings, threshold) {
   if (bestY) { y += bestY.diff; guides.push({ axis: "y", pos: bestY.pos }); }
   return { x, y, guides };
 }
+
+// Nearest target value within `th` of `v`, or null. Pure helper.
+function nearestLine(targets, v, th) {
+  let best = null;
+  for (const t of targets) {
+    const d = Math.abs(t - v);
+    if (d <= th && (best == null || d < Math.abs(best - v))) best = t;
+  }
+  return best;
+}
+
+// Snap a RESIZE in progress. Given the proposed resized box and which handle is
+// dragged (sx, sy in {-1,0,1}), snap only the MOVING edge(s) to artboard + sibling
+// lines, keeping the opposite edge fixed, and never below `min`. Returns
+// { x, y, w, h, guides } — a corrected box + guide lines to draw. Pure. Assumes
+// axis-aligned (rotation 0); the caller skips it for rotated elements, as snapMove
+// also implicitly does.
+export function snapResize(box, sx, sy, artboard, siblings, threshold, min) {
+  const th = threshold == null ? 7 : threshold;
+  const floor = min == null ? MIN_SIZE : min;
+  const targetXs = [0, artboard.w / 2, artboard.w];
+  const targetYs = [0, artboard.h / 2, artboard.h];
+  (siblings || []).forEach((s) => {
+    const l = boxLines(s);
+    targetXs.push.apply(targetXs, l.xs);
+    targetYs.push.apply(targetYs, l.ys);
+  });
+  let x = box.x, y = box.y, w = box.w, h = box.h;
+  const guides = [];
+  if (sx === 1) {                                   // right edge moves; left fixed
+    const t = nearestLine(targetXs, x + w, th);
+    if (t != null && (t - x) >= floor) { w = t - x; guides.push({ axis: "x", pos: t }); }
+  } else if (sx === -1) {                            // left edge moves; right fixed
+    const right = x + w;
+    const t = nearestLine(targetXs, x, th);
+    if (t != null && (right - t) >= floor) { x = t; w = right - t; guides.push({ axis: "x", pos: t }); }
+  }
+  if (sy === 1) {                                    // bottom edge moves; top fixed
+    const t = nearestLine(targetYs, y + h, th);
+    if (t != null && (t - y) >= floor) { h = t - y; guides.push({ axis: "y", pos: t }); }
+  } else if (sy === -1) {                            // top edge moves; bottom fixed
+    const bottom = y + h;
+    const t = nearestLine(targetYs, y, th);
+    if (t != null && (bottom - t) >= floor) { y = t; h = bottom - t; guides.push({ axis: "y", pos: t }); }
+  }
+  return { x, y, w, h, guides };
+}

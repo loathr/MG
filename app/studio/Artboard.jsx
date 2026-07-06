@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ARTBOARD_W, ARTBOARD_H, makeElement, cropAnchor, reframeCrop } from "./model";
-import { resize as geoResize, rotate as geoRotate, snapMove, handlePoint, axes } from "./geometry";
+import { resize as geoResize, rotate as geoRotate, snapMove, snapResize, handlePoint, axes } from "./geometry";
 import { readImageFile, isImageFile, fitDroppedImage } from "./imageFile";
 import ElementView from "./Element";
 import { UI } from "./theme";
@@ -51,18 +51,28 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
     const d = drag.current;
     if (!d) return;
     const p = toArtboard(e.clientX, e.clientY);
+    // Hold Alt/Option to bypass snapping for fine, unconstrained placement.
+    const noSnap = e.altKey;
     if (d.mode === "move") {
       const nx = d.startEl.x + (p.x - d.start.x);
       const ny = d.startEl.y + (p.y - d.start.y);
       const box = { x: nx, y: ny, w: d.startEl.w, h: d.startEl.h };
-      const snapped = snapMove(box, { w: ARTBOARD_W, h: ARTBOARD_H }, d.siblings, 8);
+      const snapped = noSnap ? { x: nx, y: ny, guides: [] } : snapMove(box, { w: ARTBOARD_W, h: ARTBOARD_H }, d.siblings, 8);
       setGuides(snapped.guides);
       // "move" (not a plain x/y update) so any element tethered to this one (B6)
       // is dragged along by the same delta.
       dispatch({ type: "move", id: d.id, x: Math.round(snapped.x), y: Math.round(snapped.y), coalesce: true });
     } else if (d.mode === "resize") {
       const patch = geoResize(d.startEl, d.handle.sx, d.handle.sy, p, { min: 16 });
-      dispatch({ type: "update", id: d.id, patch: roundBox(patch), coalesce: true });
+      // Snap the moving edge(s) to artboard/sibling lines — skipped when Alt is
+      // held or the element is rotated (guides assume axis-aligned, like snapMove).
+      let box = patch;
+      if (!noSnap && !d.startEl.rotation) {
+        const sn = snapResize(patch, d.handle.sx, d.handle.sy, { w: ARTBOARD_W, h: ARTBOARD_H }, d.siblings, 8, 16);
+        setGuides(sn.guides);
+        box = sn;
+      } else setGuides([]);
+      dispatch({ type: "update", id: d.id, patch: roundBox(box), coalesce: true });
     } else if (d.mode === "reframe") {
       // True crop: dragging a crop handle resizes the FRAME while the compensated
       // crop keeps the image pinned on the artboard (see model.reframeCrop) — the
