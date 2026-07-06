@@ -10,6 +10,7 @@ import { routeFraming, getBeat, REGIONS, URGENCY, ANGLES, EMPHASIS, MODES, frami
 import { VOICES as PERSONAS, TONES as RICH_TONES } from "./voices";
 import { readDocFile } from "./docsource";
 import StickLoader from "./StickLoader";
+import RefinePanel from "./RefinePanel";
 import { PRESETS, activePreset } from "./presets";
 import {
   PenLine, FileText, X, ChevronDown, ChevronRight, Sparkles, Zap, ArrowLeft, RefreshCw,
@@ -106,6 +107,11 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   // Quick-start: curated presets + the 8 angle-seeds, folded away by default so the
   // create screen stays clean (opens on demand).
   const [qsOpen, setQsOpen] = useState(false);
+  // Topic refiner: the DECIDED title (null while still choosing). Set when the user
+  // picks a refined angle / related headline / Trending card, or taps "Use my
+  // topic"; cleared the moment the topic is edited by hand. Once set, the refiner
+  // shows the virality score for that topic (post-decision, R: cost-free feeds).
+  const [refineDecided, setRefineDecided] = useState(null);
 
   const pickDesk = (key) => {
     setDesk(key);
@@ -134,7 +140,15 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     setSeed(ground && ground.extract ? ground : null);
     if (voiceKey) { setVoice(voiceKey); setVoiceTouched(true); }
     if (beatKey) setBeat(beatKey);
+    setRefineDecided(t); // a picked Trending card is a decided topic → show its virality
   };
+  // Refiner handlers. Picking a sharper angle also seeds the route angle; any
+  // decision locks the topic (reveals the virality score). Editing the topic box
+  // clears the decision so the score hides until the topic is decided again.
+  const pickAngle = (title, angleId) => { setTopic(title); setSeed(null); if (angleId) setAngle(angleId); setRefineDecided(title); };
+  const pickRefinedTopic = (title) => { setTopic(title); setSeed(null); setRefineDecided(title); };
+  const lockTopic = () => { const t = topic.trim(); if (t) setRefineDecided(t); };
+  const editTopic = () => setRefineDecided(null);
 
   // Build the resolved route (TOPIC_ROUTES.md) from the beat + News region/urgency.
   // Null when nothing is set, so generation is byte-identical to the plain path.
@@ -249,14 +263,24 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
           <button type="button" onClick={() => setSrcMode("doc")} style={modeBtn(srcMode === "doc")}><FileText size={14} /> From a document</button>
         </div>
         {srcMode === "topic" ? (
-          <input
-            value={topic}
-            onChange={(e) => { setTopic(e.target.value); setSeed(null); }}
-            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-            placeholder="Type a topic — or open Trending below"
-            autoFocus
-            style={topicInput}
-          />
+          <>
+            <input
+              value={topic}
+              onChange={(e) => { setTopic(e.target.value); setSeed(null); setRefineDecided(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+              placeholder="Type a topic — or open Trending below"
+              autoFocus
+              style={topicInput}
+            />
+            <RefinePanel
+              topic={topic}
+              decided={refineDecided}
+              onPickAngle={pickAngle}
+              onPickTopic={pickRefinedTopic}
+              onLock={lockTopic}
+              onEdit={editTopic}
+            />
+          </>
         ) : (
           <div style={docZone} onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) loadDoc(f); }}>
