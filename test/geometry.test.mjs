@@ -3,7 +3,7 @@
 // edge fixed, never below the minimum). Artboard-coordinate space; pure.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { snapMove, snapResize, scaleTextResize } from "../app/studio/geometry.js";
+import { snapMove, snapResize, scaleTextResize, imageCornerResize, wheelZoom } from "../app/studio/geometry.js";
 
 const ART = { w: 1080, h: 1350 };
 
@@ -101,4 +101,38 @@ test("scaleTextResize: font clamps to 6..400 and tracking scales with it", () =>
   // tracking scales with the effective font ratio (2x → letterSpacing 4)
   const dbl = scaleTextResize(el, 1, 1, { x: 0, y: 0, w: 200, h: 80 });
   assert.equal(dbl.letterSpacing, 4);
+});
+
+test("imageCornerResize: within the canvas just resizes the frame (no zoom)", () => {
+  const el = { type: "image", x: 100, y: 100, w: 300, h: 200, crop: { zoom: 1, x: 0.5, y: 0.5 } };
+  // bottom-right handle dragged to a frame still inside 1080x1350
+  const r = imageCornerResize(el, 1, 1, { x: 100, y: 100, w: 500, h: 300 }, ART);
+  assert.equal(r.w, 500); assert.equal(r.h, 300);
+  assert.equal(r.crop, undefined, "no zoom while inside the canvas");
+});
+
+test("imageCornerResize: past the edge clamps the frame and folds overflow into zoom", () => {
+  const el = { type: "image", x: 200, y: 200, w: 400, h: 300, crop: { zoom: 1, x: 0.5, y: 0.5 } };
+  // drag the bottom-right corner way past the right/bottom edge
+  const r = imageCornerResize(el, 1, 1, { x: 200, y: 200, w: 1600, h: 1600 }, ART);
+  assert.equal(r.x + r.w, ART.w, "right edge clamped to the canvas");
+  assert.equal(r.y + r.h, ART.h, "bottom edge clamped to the canvas");
+  assert.ok(r.crop && r.crop.zoom > 1, "overflow became zoom (" + (r.crop && r.crop.zoom) + ")");
+  assert.equal(r.crop.x, 0.5); // focal preserved
+});
+
+test("imageCornerResize: top-left handle keeps the bottom-right corner fixed", () => {
+  const el = { type: "image", x: 300, y: 300, w: 200, h: 200 };
+  const r = imageCornerResize(el, -1, -1, { x: 100, y: 100, w: 400, h: 400 }, ART);
+  assert.equal(r.x + r.w, 500); // bottom-right (500,500) fixed
+  assert.equal(r.y + r.h, 500);
+});
+
+test("wheelZoom: scroll up zooms in, down zooms out, clamped 1..8, focal kept", () => {
+  const el = { type: "image", crop: { zoom: 2, x: 0.3, y: 0.7 } };
+  assert.ok(wheelZoom(el, -100).zoom > 2, "scroll up (negative deltaY) zooms in");
+  assert.ok(wheelZoom(el, 100).zoom < 2, "scroll down zooms out");
+  assert.equal(wheelZoom(el, -100).x, 0.3); // focal preserved
+  assert.equal(wheelZoom({ crop: { zoom: 1 } }, 10000).zoom, 1, "never below 1");
+  assert.equal(wheelZoom({ crop: { zoom: 7.9 } }, -100000).zoom, 8, "clamped to 8");
 });

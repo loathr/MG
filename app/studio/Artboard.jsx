@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ARTBOARD_W, ARTBOARD_H, makeElement, cropAnchor, reframeCrop } from "./model";
-import { resize as geoResize, rotate as geoRotate, snapMove, snapResize, scaleTextResize, handlePoint, axes } from "./geometry";
+import { resize as geoResize, rotate as geoRotate, snapMove, snapResize, scaleTextResize, imageCornerResize, wheelZoom, handlePoint, axes } from "./geometry";
 import { readImageFile, isImageFile, fitDroppedImage } from "./imageFile";
 import ElementView from "./Element";
 import { UI } from "./theme";
@@ -22,6 +22,10 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
   const [guides, setGuides] = useState([]);
   const [dropping, setDropping] = useState(false); // a file is being dragged over
   const drag = useRef(null);
+  // Latest slide, read by the (once-attached) wheel listener without re-binding.
+  const slideRef = useRef(slide);
+  slideRef.current = slide;
+  const wheelCommit = useRef(null);
 
   // Fit the artboard into the available space.
   useLayoutEffect(() => {
@@ -39,6 +43,25 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // Scroll-to-zoom: when a plain image is selected, the wheel zooms its crop
+  // (enlarge/minimize) instead of scrolling the page. Native non-passive listener
+  // so preventDefault works; reads the live slide via a ref so it binds once per
+  // selection. No-op (normal scroll) when the selection isn't an image.
+  useEffect(() => {
+    const node = artRef.current;
+    if (!node) return undefined;
+    const onWheel = (e) => {
+      const el = (slideRef.current.elements || []).find((x) => x.id === selectedId);
+      if (!el || el.type !== "image" || el.locked) return; // let the page scroll
+      e.preventDefault();
+      dispatch({ type: "update", id: el.id, patch: { crop: wheelZoom(el, e.deltaY) }, coalesce: true });
+      if (wheelCommit.current) clearTimeout(wheelCommit.current);
+      wheelCommit.current = setTimeout(() => dispatch({ type: "commit" }), 250);
+    };
+    node.addEventListener("wheel", onWheel, { passive: false });
+    return () => node.removeEventListener("wheel", onWheel);
+  }, [selectedId, dispatch]);
 
   // client px -> artboard units, using the live measured scale (exact).
   const toArtboard = useCallback((clientX, clientY) => {
@@ -70,6 +93,11 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
         // edge handles fall through to the reflow path below.
         setGuides([]);
         dispatch({ type: "update", id: d.id, patch: scaleTextResize(d.startEl, d.handle.sx, d.handle.sy, box0), coalesce: true });
+      } else if (d.startEl.type === "image" && !d.startEl.rotation) {
+        // Resize the frame; dragging PAST the artboard edge folds the overflow into
+        // crop.zoom (enlarge). The separate reframe/crop modes are untouched.
+        setGuides([]);
+        dispatch({ type: "update", id: d.id, patch: imageCornerResize(d.startEl, d.handle.sx, d.handle.sy, box0, { w: ARTBOARD_W, h: ARTBOARD_H }), coalesce: true });
       } else {
         // Snap the moving edge(s) to artboard/sibling lines — skipped when Alt is
         // held or the element is rotated (guides assume axis-aligned, like snapMove).

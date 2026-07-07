@@ -77,6 +77,38 @@ export function scaleTextResize(startEl, sx, sy, box, opts) {
   return patch;
 }
 
+// Image resize with past-edge zoom. `box` is the geoResize frame. The moving
+// edge(s) are CLAMPED to the artboard, and however far the frame WANTED to extend
+// beyond the canvas (in the drag direction) is folded into crop.zoom — so dragging
+// a corner out past the edge keeps "enlarging" via zoom once the frame maxes out.
+// Anchor edges stay fixed. Pure. Returns a patch (with `crop` only when it zooms).
+export function imageCornerResize(startEl, sx, sy, box, artboard) {
+  const W = artboard.w, H = artboard.h;
+  const c0 = startEl.crop || { zoom: 1, x: 0.5, y: 0.5 };
+  const startZoom = Math.max(1, c0.zoom || 1);
+  let x = box.x, y = box.y, w = box.w, h = box.h, ofx = 0, ofy = 0;
+  if (sx > 0) { const right = box.x + box.w; ofx = Math.max(0, right - W); w = Math.min(right, W) - x; }
+  else if (sx < 0) { ofx = Math.max(0, -box.x); const l = Math.max(box.x, 0); w = (box.x + box.w) - l; x = l; }
+  if (sy > 0) { const bot = box.y + box.h; ofy = Math.max(0, bot - H); h = Math.min(bot, H) - y; }
+  else if (sy < 0) { ofy = Math.max(0, -box.y); const t = Math.max(box.y, 0); h = (box.y + box.h) - t; y = t; }
+  w = Math.max(16, w); h = Math.max(16, h);
+  const of = Math.max(ofx / W, ofy / H);
+  const patch = { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
+  if (of > 0.002) {
+    const zoom = Math.max(1, Math.min(8, +(startZoom * (1 + of * 1.8)).toFixed(3)));
+    patch.crop = { zoom, x: c0.x == null ? 0.5 : c0.x, y: c0.y == null ? 0.5 : c0.y };
+  }
+  return patch;
+}
+
+// Zoom an image's crop by a wheel delta (scroll-to-zoom). Clamped to [1, 8],
+// keeping the focal point. Pure.
+export function wheelZoom(startEl, deltaY) {
+  const c0 = startEl.crop || { zoom: 1, x: 0.5, y: 0.5 };
+  const zoom = Math.max(1, Math.min(8, +((Math.max(1, c0.zoom || 1)) * (1 - deltaY * 0.0015)).toFixed(3)));
+  return { zoom, x: c0.x == null ? 0.5 : c0.x, y: c0.y == null ? 0.5 : c0.y };
+}
+
 // Rotation from a pointer at the rotate handle (which sits above top-center).
 // Optionally snap to the nearest 15° when within `snapWithin` degrees.
 export function rotate(el, pointer, snapWithin) {
