@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ARTBOARD_W, ARTBOARD_H, makeElement, cropAnchor, reframeCrop } from "./model";
-import { resize as geoResize, rotate as geoRotate, snapMove, snapResize, handlePoint, axes } from "./geometry";
+import { resize as geoResize, rotate as geoRotate, snapMove, snapResize, scaleTextResize, handlePoint, axes } from "./geometry";
 import { readImageFile, isImageFile, fitDroppedImage } from "./imageFile";
 import ElementView from "./Element";
 import { UI } from "./theme";
@@ -63,16 +63,24 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
       // is dragged along by the same delta.
       dispatch({ type: "move", id: d.id, x: Math.round(snapped.x), y: Math.round(snapped.y), coalesce: true });
     } else if (d.mode === "resize") {
-      const patch = geoResize(d.startEl, d.handle.sx, d.handle.sy, p, { min: 16 });
-      // Snap the moving edge(s) to artboard/sibling lines — skipped when Alt is
-      // held or the element is rotated (guides assume axis-aligned, like snapMove).
-      let box = patch;
-      if (!noSnap && !d.startEl.rotation) {
-        const sn = snapResize(patch, d.handle.sx, d.handle.sy, { w: ARTBOARD_W, h: ARTBOARD_H }, d.siblings, 8, 16);
-        setGuides(sn.guides);
-        box = sn;
-      } else setGuides([]);
-      dispatch({ type: "update", id: d.id, patch: roundBox(box), coalesce: true });
+      const box0 = geoResize(d.startEl, d.handle.sx, d.handle.sy, p, { min: 16 });
+      const isCorner = d.handle.sx !== 0 && d.handle.sy !== 0;
+      if (d.startEl.type === "text" && isCorner && !d.startEl.rotation) {
+        // Font-aware: a corner scales the type (+ box + tracking) proportionally;
+        // edge handles fall through to the reflow path below.
+        setGuides([]);
+        dispatch({ type: "update", id: d.id, patch: scaleTextResize(d.startEl, d.handle.sx, d.handle.sy, box0), coalesce: true });
+      } else {
+        // Snap the moving edge(s) to artboard/sibling lines — skipped when Alt is
+        // held or the element is rotated (guides assume axis-aligned, like snapMove).
+        let box = box0;
+        if (!noSnap && !d.startEl.rotation) {
+          const sn = snapResize(box0, d.handle.sx, d.handle.sy, { w: ARTBOARD_W, h: ARTBOARD_H }, d.siblings, 8, 16);
+          setGuides(sn.guides);
+          box = sn;
+        } else setGuides([]);
+        dispatch({ type: "update", id: d.id, patch: roundBox(box), coalesce: true });
+      }
     } else if (d.mode === "reframe") {
       // True crop: dragging a crop handle resizes the FRAME while the compensated
       // crop keeps the image pinned on the artboard (see model.reframeCrop) — the

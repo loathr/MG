@@ -3,7 +3,7 @@
 // edge fixed, never below the minimum). Artboard-coordinate space; pure.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { snapMove, snapResize } from "../app/studio/geometry.js";
+import { snapMove, snapResize, scaleTextResize } from "../app/studio/geometry.js";
 
 const ART = { w: 1080, h: 1350 };
 
@@ -68,4 +68,37 @@ test("snapResize: sx:0 handle leaves x/w untouched", () => {
   const r = snapResize(box, 0, 1, ART, [], 8, 16);
   assert.equal(r.x, 5);
   assert.equal(r.w, 200);
+});
+
+test("scaleTextResize: a corner scales the font with the box, opposite corner fixed", () => {
+  const el = { type: "text", x: 100, y: 100, w: 200, h: 80, fontSize: 40 };
+  // drag the bottom-right corner out to double the width → font scales up, anchor
+  // (top-left) stays at 100,100
+  const box = { x: 100, y: 100, w: 400, h: 160 };       // 2x
+  const r = scaleTextResize(el, 1, 1, box);
+  assert.equal(r.fontSize, 80, "font doubled");
+  assert.equal(r.x, 100); assert.equal(r.y, 100);        // top-left anchor fixed
+  assert.equal(r.w, 400); assert.equal(r.h, 160);
+});
+
+test("scaleTextResize: dragging the top-left corner keeps the bottom-right fixed", () => {
+  const el = { type: "text", x: 100, y: 100, w: 200, h: 80, fontSize: 40 };
+  // shrink toward the bottom-right (handle sx:-1, sy:-1) to half size
+  const box = { x: 200, y: 140, w: 100, h: 40 };         // 0.5x
+  const r = scaleTextResize(el, -1, -1, box);
+  assert.equal(r.fontSize, 20, "font halved");
+  // bottom-right corner (300,180) stays put
+  assert.equal(r.x + r.w, 300);
+  assert.equal(r.y + r.h, 180);
+});
+
+test("scaleTextResize: font clamps to 6..400 and tracking scales with it", () => {
+  const el = { type: "text", x: 0, y: 0, w: 100, h: 40, fontSize: 40, letterSpacing: 2 };
+  const huge = scaleTextResize(el, 1, 1, { x: 0, y: 0, w: 2000, h: 800 });
+  assert.equal(huge.fontSize, 400, "clamped to max");
+  const tiny = scaleTextResize(el, 1, 1, { x: 0, y: 0, w: 5, h: 2 });
+  assert.equal(tiny.fontSize, 6, "clamped to min");
+  // tracking scales with the effective font ratio (2x → letterSpacing 4)
+  const dbl = scaleTextResize(el, 1, 1, { x: 0, y: 0, w: 200, h: 80 });
+  assert.equal(dbl.letterSpacing, 4);
 });

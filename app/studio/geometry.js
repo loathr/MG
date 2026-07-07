@@ -52,6 +52,31 @@ export function resize(el, sx, sy, pointer, opts) {
   return { x: nc.x - w / 2, y: nc.y - h / 2, w, h };
 }
 
+// Font-aware CORNER resize for a text element: scale the font size (and tracking)
+// with the box instead of just reflowing it. `box` is the geoResize output for the
+// same drag. Picks a single uniform scale (the axis the pointer moved most), clamps
+// the font to [minFont, maxFont], recomputes the box from the clamped scale, and
+// keeps the OPPOSITE corner fixed. Pure; the caller only uses this for non-rotated
+// text on a corner handle (edges keep reflowing). Returns a patch.
+export function scaleTextResize(startEl, sx, sy, box, opts) {
+  const minF = (opts && opts.minFont) || 6;
+  const maxF = (opts && opts.maxFont) || 400;
+  const startFont = startEl.fontSize || 32;
+  const sw = startEl.w ? box.w / startEl.w : 1;
+  const sh = startEl.h ? box.h / startEl.h : 1;
+  const s = Math.abs(sw - 1) >= Math.abs(sh - 1) ? sw : sh;
+  let font = Math.round(startFont * s);
+  font = Math.max(minF, Math.min(maxF, font));
+  const eff = font / startFont;                       // effective scale after clamp
+  const w = Math.max(16, Math.round(startEl.w * eff));
+  const h = Math.max(16, Math.round(startEl.h * eff));
+  const x = sx >= 0 ? startEl.x : Math.round(startEl.x + startEl.w - w);
+  const y = sy >= 0 ? startEl.y : Math.round(startEl.y + startEl.h - h);
+  const patch = { x, y, w, h, fontSize: font };
+  if (startEl.letterSpacing) patch.letterSpacing = +(startEl.letterSpacing * eff).toFixed(2);
+  return patch;
+}
+
 // Rotation from a pointer at the rotate handle (which sits above top-center).
 // Optionally snap to the nearest 15° when within `snapWithin` degrees.
 export function rotate(el, pointer, snapWithin) {
