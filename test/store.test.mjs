@@ -849,3 +849,33 @@ test("align left snaps selected elements to their shared box edge", () => {
   assert.equal(byId(s, "A").x, 0);
   assert.equal(byId(s, "B").x, 0);
 });
+
+// --- collab: applyRemote merges peer ops without polluting undo/selection ----
+test("applyRemote merges a peer's el.set without adding an undo frame", () => {
+  let s = threeEls();
+  s = reducer(s, { type: "select", id: "C" });
+  const past = s.past.length;
+  const sid = cur(s).id;
+  s = reducer(s, { type: "applyRemote", ops: [{ t: "el.set", slide: sid, id: "A", patch: { x: 77 } }] });
+  assert.equal(byId(s, "A").x, 77, "peer edit applied to the doc");
+  assert.equal(s.past.length, past, "remote edit is NOT undoable");
+  assert.equal(s.selectedId, "C", "my selection is untouched");
+});
+
+test("applyRemote shields the element I'm editing (advisory lock)", () => {
+  let s = threeEls();
+  const sid = cur(s).id;
+  s = reducer(s, { type: "applyRemote", ops: [{ t: "el.set", slide: sid, id: "A", patch: { x: 500 } }], held: ["A"] });
+  assert.equal(byId(s, "A").x, 0, "held element ignores the remote patch");
+});
+
+test("applyRemote clamps the slide index when a peer deletes slides", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "addSlide" });
+  s = reducer(s, { type: "setSlide", index: 1 });
+  assert.equal(s.slideIndex, 1);
+  const goneId = s.doc.slides[1].id;
+  s = reducer(s, { type: "applyRemote", ops: [{ t: "slide.del", id: goneId }] });
+  assert.equal(s.doc.slides.length, 1);
+  assert.equal(s.slideIndex, 0, "index clamped after the peer removed my slide");
+});

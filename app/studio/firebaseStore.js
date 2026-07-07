@@ -157,6 +157,52 @@ export async function clearPresence(deckId, sessionId) {
   } catch (e) { /* best-effort */ }
 }
 
+// ---------------------------------------------------------------------------
+// Collab edit stream (phase 2). An append-only log of id-keyed op batches at
+// edits/{deckId}/stream/{autoId}. Each client appends its batches and applies the
+// others'. `ts` is written so a Firestore TTL policy on the `stream` collection
+// can auto-reap old batches (recommended — see docs/CLOUD_SETUP.md). Best-effort;
+// a no-op when cloud is disabled. The authoritative deck doc still saves normally,
+// so the stream is a fast path, not the source of truth.
+// ---------------------------------------------------------------------------
+
+// Append one batch of ops from this session.
+export async function publishEdits(deckId, sessionId, ops) {
+  const d = await db(); if (!d || !deckId || !sessionId || !ops || !ops.length) return;
+  try {
+    const fs = await import("firebase/firestore");
+    await fs.addDoc(fs.collection(d, "edits", deckId, "stream"), { from: sessionId, ops, ts: Date.now() });
+  } catch (e) { /* best-effort */ }
+}
+
+// Subscribe to the edit stream: cb(ops) fires for every newly appended batch that
+// ISN'T mine and landed after I joined (so I don't replay history on load). Returns
+// an unsubscribe fn; a safe no-op when cloud is off. Browser-only.
+export function watchEdits(deckId, sessionId, cb) {
+  let unsub = () => {};
+  if (!deckId) return () => {};
+  const joinedAt = Date.now();
+  db().then((d) => {
+    if (!d) return;
+    import("firebase/firestore").then(({ collection, onSnapshot }) => {
+      unsub = onSnapshot(
+        collection(d, "edits", deckId, "stream"),
+        (snap) => {
+          snap.docChanges().forEach((chg) => {
+            if (chg.type !== "added") return;
+            const data = chg.doc.data() || {};
+            if (data.from === sessionId) return;          // my own batch — skip
+            if ((data.ts || 0) < joinedAt) return;        // pre-join history — skip
+            if (Array.isArray(data.ops)) { try { cb(data.ops); } catch (e) { /* ignore */ } }
+          });
+        },
+        () => { /* permission/other error → stream just stays quiet */ },
+      );
+    }).catch(() => {});
+  }).catch(() => {});
+  return () => unsub();
+}
+
 // The full deck doc for one project, or null.
 export async function loadDeck(uid, id) {
   const d = await db(); if (!d || !uid || !id) return null;

@@ -29,7 +29,7 @@ export function usePresence({ deckId, user, enabled }) {
   const [records, setRecords] = useState({});
   const [tick, setTick] = useState(0);
   // Live pointer/selection, mutated cheaply on every event; flushed on an interval.
-  const latest = useRef({ cursor: null, selection: [], slide: 0 });
+  const latest = useRef({ cursor: null, selection: [], slide: 0, editing: false });
   const lastWrite = useRef({ sig: "", ts: 0 });
 
   // Subscribe to the deck's presence collection.
@@ -46,11 +46,11 @@ export function usePresence({ deckId, user, enabled }) {
     if (!on) return undefined;
     const flush = () => {
       const l = latest.current;
-      const sig = JSON.stringify([l.cursor, l.selection, l.slide]);
+      const sig = JSON.stringify([l.cursor, l.selection, l.slide, l.editing]);
       const now = Date.now();
       if (sig === lastWrite.current.sig && now - lastWrite.current.ts < HEARTBEAT_MS) return;
       lastWrite.current = { sig, ts: now };
-      writePresence(deckId, sessionId.current, { uid: me.uid, name: me.name, color: me.color, cursor: l.cursor, selection: l.selection, slide: l.slide });
+      writePresence(deckId, sessionId.current, { uid: me.uid, name: me.name, color: me.color, cursor: l.cursor, selection: l.selection, slide: l.slide, editing: l.editing });
     };
     flush();
     const iv = setInterval(flush, FLUSH_MS);
@@ -79,7 +79,7 @@ export function usePresence({ deckId, user, enabled }) {
 
   // Reporters the editor calls; they only touch the ref (the interval flushes).
   const reportCursor = (pt) => { latest.current.cursor = pt; };
-  const reportSelection = (ids, slide) => { latest.current.selection = ids || []; latest.current.slide = slide; };
+  const reportSelection = (ids, slide, editing) => { latest.current.selection = ids || []; latest.current.slide = slide; latest.current.editing = !!editing; };
 
   return { peers, reportCursor, reportSelection, me };
 }

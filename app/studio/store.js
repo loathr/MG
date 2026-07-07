@@ -11,6 +11,7 @@
 // ============================================================================
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H, applyRunStyle, clearRunStyle, remapRuns, bakeDocHighlights, applyCorrectionToDoc, applyCoherenceFix } from "./model";
 import { expandGroups, toggleSelection, alignPatches, newGroupId } from "./group";
+import { applyOps } from "./sync";
 import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements, closerMarksFor } from "./templates";
 import { brandFromStyle, getStyle, FONT_PRESETS } from "./styles";
 import { shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
@@ -740,6 +741,16 @@ export function reducer(state, a) {
       return { doc: bakeDocHighlights(a.doc), slideIndex: 0, selectedId: null, selectedIds: [], editingId: null, past: [], future: [], lastTag: null, clipboard: state.clipboard || null, clipboardFrom: null };
     case "commit":
       return state.lastTag == null ? state : Object.assign({}, state, { lastTag: null });
+    case "applyRemote": {
+      // Merge a peer's edit ops into the doc (collab phase 2). NOT undoable — you
+      // never undo someone else's edit — and it leaves your selection/editing state
+      // alone; `a.held` shields an element you're actively editing. Slide index is
+      // clamped in case a peer deleted slides out from under you.
+      const doc = applyOps(state.doc, a.ops, { held: a.held });
+      if (doc === state.doc) return state;
+      const slideIndex = Math.max(0, Math.min(state.slideIndex, (doc.slides || []).length - 1));
+      return Object.assign({}, state, { doc, slideIndex });
+    }
     default:
       break;
   }

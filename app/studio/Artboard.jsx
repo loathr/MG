@@ -377,7 +377,15 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
                   transform: "rotate(" + (el.rotation || 0) + "deg)", transformOrigin: "center center",
                   border: "2px solid " + pr.color, borderRadius: (el.radius || 0), pointerEvents: "none", boxSizing: "border-box",
                 }}>
-                  <span style={{ position: "absolute", left: -2, top: -22, fontSize: 11, fontWeight: 600, color: "#0a0a0a", background: pr.color, padding: "1px 7px", borderRadius: "4px 4px 4px 0", whiteSpace: "nowrap" }}>{pr.name}</span>
+                  <span style={{ position: "absolute", left: -2, top: -22, fontSize: 11, fontWeight: 600, color: "#0a0a0a", background: pr.color, padding: "1px 7px", borderRadius: "4px 4px 4px 0", whiteSpace: "nowrap" }}>
+                    {pr.name}{pr.editing ? " · editing" : ""}
+                  </span>
+                  {/* Advisory lock: a peer actively editing this element gets a badge.
+                      It's advisory — you can still edit (last-writer-wins) — so it
+                      informs rather than blocks. */}
+                  {pr.editing && (
+                    <span style={{ position: "absolute", top: -9, right: -9, width: 18, height: 18, borderRadius: "50%", background: pr.color, color: "#0a0a0a", display: "grid", placeItems: "center", fontSize: 10, border: "2px solid " + (bg.color || "#0c0c0c") }}>🔒</span>
+                  )}
                 </div>
               );
             })

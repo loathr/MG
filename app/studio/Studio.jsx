@@ -25,6 +25,7 @@ import ProjectsScreen from "./ProjectsScreen";
 import AdminConsole from "./AdminConsole";
 import { isCloudEnabled } from "./cloud";
 import { usePresence } from "./usePresence";
+import { useSync } from "./useSync";
 import { initials } from "./presence";
 import { onAuthChange, signOutCloud, getUserRole, bootstrapAdmin, getIdToken } from "./firebaseClient";
 import { saveDeck, loadDeck, listDecks, deleteDeck, watchSharePulse } from "./firebaseStore";
@@ -156,15 +157,23 @@ export default function Studio() {
   // Live presence (collab phase 1): broadcast my cursor/selection and see other
   // signed-in editors on the same deck. A no-op (empty peers) when cloud is off,
   // nobody's signed in, or we're in a read-only share view.
+  const collabOn = cloud && !!user && screen === "editor" && !sharedView;
   const { peers, reportCursor, reportSelection } = usePresence({
     deckId: projectId,
     user,
-    enabled: cloud && !!user && screen === "editor" && !sharedView,
+    enabled: collabOn,
   });
-  // Publish my selection + current slide whenever either changes.
+  // Publish my selection + current slide + an editing (advisory-lock) flag whenever
+  // any of them changes.
   useEffect(() => {
-    reportSelection((state.selectedIds && state.selectedIds.length ? state.selectedIds : (state.selectedId ? [state.selectedId] : [])), state.slideIndex);
-  }, [state.selectedId, state.selectedIds, state.slideIndex, reportSelection]);
+    reportSelection(
+      (state.selectedIds && state.selectedIds.length ? state.selectedIds : (state.selectedId ? [state.selectedId] : [])),
+      state.slideIndex,
+      !!state.editingId,
+    );
+  }, [state.selectedId, state.selectedIds, state.slideIndex, state.editingId, reportSelection]);
+  // Live edit sync (phase 2): publish my doc changes as ops and apply peers'.
+  useSync({ deckId: projectId, doc: state.doc, dispatch, editingId: state.editingId, enabled: collabOn });
 
   // Optional demo deck for the FLAT-LAYERS image-path proof: ?demo=photos9 jumps
   // straight into the editor. Client-only (avoids SSR mismatch) and runs once.

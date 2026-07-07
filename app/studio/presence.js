@@ -42,6 +42,7 @@ export function toPeer(id, raw) {
     color: r.color || peerColor(r.uid || id),
     cursor,
     selection,
+    editing: !!r.editing,           // holds an element open for edit (advisory lock)
     slide: r.slide == null ? null : r.slide,
     ts: r.ts || 0,
   };
