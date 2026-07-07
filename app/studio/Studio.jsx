@@ -276,16 +276,24 @@ export default function Studio() {
       if (meta && (e.key === "d" || e.key === "D") && state.selectedId) {
         e.preventDefault(); dispatch({ type: "duplicate", id: state.selectedId }); return;
       }
-      if ((e.key === "Delete" || e.key === "Backspace") && state.selectedId) {
+      // ⌘G groups the current multi-selection; ⌘⇧G ungroups it.
+      if (meta && (e.key === "g" || e.key === "G")) {
         e.preventDefault();
-        dispatch({ type: "delete", id: state.selectedId });
+        dispatch({ type: e.shiftKey ? "ungroup" : "group" });
+        return;
+      }
+      const multi = (state.selectedIds || []).length > 1;
+      if ((e.key === "Delete" || e.key === "Backspace") && (state.selectedId || multi)) {
+        e.preventDefault();
+        if (multi) dispatch({ type: "deleteMany", ids: state.selectedIds });
+        else dispatch({ type: "delete", id: state.selectedId });
       } else if (e.key === "Escape") {
         dispatch({ type: "deselect" });
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [screen, state.editingId, state.selectedId]);
+  }, [screen, state.editingId, state.selectedId, state.selectedIds]);
 
   // The text-span selection is scoped to one element on one slide — drop it when
   // either changes (clicking away, selecting another element, switching slides).
@@ -861,6 +869,7 @@ export default function Studio() {
           <Artboard
             slide={slide}
             selectedId={state.selectedId}
+            selectedIds={state.selectedIds}
             editingId={state.editingId}
             croppingId={state.croppingId}
             dispatch={dispatch}

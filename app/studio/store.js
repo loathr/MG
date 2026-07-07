@@ -10,6 +10,7 @@
 // Artboard dispatches when a drag ends. Selection/navigation are not undoable.
 // ============================================================================
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H, applyRunStyle, clearRunStyle, remapRuns, bakeDocHighlights, applyCorrectionToDoc, applyCoherenceFix } from "./model";
+import { expandGroups, toggleSelection, alignPatches, newGroupId } from "./group";
 import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements, closerMarksFor } from "./templates";
 import { brandFromStyle, getStyle, FONT_PRESETS } from "./styles";
 import { shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
@@ -36,6 +37,7 @@ export function initStudio() {
     doc: sampleDoc(),
     slideIndex: 0,
     selectedId: null,
+    selectedIds: [],
     editingId: null,
     croppingId: null,
     past: [],
@@ -235,15 +237,64 @@ export function carryBrandKit(newDoc, prevDoc) {
 // Pure doc/selection transitions. No history bookkeeping — the wrapper adds it.
 function docReducer(state, a) {
   switch (a.type) {
-    case "select":
+    case "select": {
+      // Selecting a grouped element pulls in its whole group; ⇧-click (additive)
+      // toggles that group in/out of the current multi-selection. selectedId stays
+      // the primary (for the single-element toolbar/inspector paths).
+      const els = (state.doc.slides[state.slideIndex] || {}).elements || [];
+      const ids = a.additive ? toggleSelection(els, state.selectedIds || [], a.id) : expandGroups(els, [a.id]);
       return Object.assign({}, state, {
         selectedId: a.id,
+        selectedIds: ids,
         editingId: state.editingId === a.id ? state.editingId : null,
-        // Leaving an element exits its crop mode; re-selecting the same one keeps it.
         croppingId: state.croppingId === a.id ? state.croppingId : null,
       });
+    }
+    case "selectMarquee": {
+      const els = (state.doc.slides[state.slideIndex] || {}).elements || [];
+      const ids = expandGroups(els, a.ids || []);
+      return Object.assign({}, state, { selectedId: ids[0] || null, selectedIds: ids, editingId: null, croppingId: null });
+    }
     case "deselect":
-      return Object.assign({}, state, { selectedId: null, editingId: null, croppingId: null });
+      return Object.assign({}, state, { selectedId: null, selectedIds: [], editingId: null, croppingId: null });
+    case "moveMany": {
+      // Shift a set of ids by a delta (drag a multi-selection/group), carrying any
+      // element tethered to a moved one that isn't itself in the set.
+      const set = new Set(a.ids || []);
+      const dx = a.dx || 0, dy = a.dy || 0;
+      return withSlide(state, (s) => ({ ...s, elements: s.elements.map((e) => {
+        if (set.has(e.id)) return { ...e, x: Math.round(e.x + dx), y: Math.round(e.y + dy) };
+        if (e.tetherTo && set.has(e.tetherTo)) return { ...e, x: Math.round(e.x + dx), y: Math.round(e.y + dy) };
+        return e;
+      }) }));
+    }
+    case "group": {
+      // Bind the current selection into a group (≥2). One click re-selects it all.
+      const ids = state.selectedIds || [];
+      if (ids.length < 2) return state;
+      const gid = newGroupId();
+      const set = new Set(ids);
+      return withSlide(state, (s) => ({ ...s, elements: s.elements.map((e) => (set.has(e.id) && !e.locked ? { ...e, groupId: gid } : e)) }));
+    }
+    case "ungroup": {
+      const set = new Set(state.selectedIds || []);
+      return withSlide(state, (s) => ({ ...s, elements: s.elements.map((e) => {
+        if (!set.has(e.id) || !e.groupId) return e;
+        const n = { ...e }; delete n.groupId; return n;
+      }) }));
+    }
+    case "deleteMany": {
+      const set = new Set(a.ids || state.selectedIds || []);
+      if (!set.size) return state;
+      return Object.assign({}, withSlide(state, (s) => ({ ...s,
+        elements: s.elements.filter((e) => !set.has(e.id)).map((e) => (e.tetherTo && set.has(e.tetherTo) ? { ...e, tetherTo: null } : e)),
+      })), { selectedId: null, selectedIds: [], editingId: null, croppingId: null });
+    }
+    case "align": {
+      const els = (state.doc.slides[state.slideIndex] || {}).elements || [];
+      const patches = alignPatches(els, state.selectedIds || [], a.mode);
+      return withSlide(state, (s) => ({ ...s, elements: s.elements.map((e) => (patches[e.id] ? { ...e, ...patches[e.id] } : e)) }));
+    }
     case "edit":
       return Object.assign({}, state, { selectedId: a.id, editingId: a.id, croppingId: null });
     case "endEdit":
@@ -651,8 +702,8 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, duplicate: 1, cut: 1, paste: 1, update: 1, move: 1, setShare: 1, styleText: 1, delete: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1, addFont: 1, removeFont: 1, applyCorrection: 1, applyCoherenceFix: 1 };
-const BOUNDARY = { select: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1, crop: 1 };
+const MUTATES = { add: 1, duplicate: 1, cut: 1, paste: 1, update: 1, move: 1, moveMany: 1, setShare: 1, styleText: 1, delete: 1, deleteMany: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1, addFont: 1, removeFont: 1, applyCorrection: 1, applyCoherenceFix: 1, group: 1, ungroup: 1, align: 1 };
+const BOUNDARY = { select: 1, selectMarquee: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1, crop: 1 };
 
 function snap(state) {
   return { doc: state.doc, slideIndex: state.slideIndex };
@@ -668,7 +719,7 @@ export function reducer(state, a) {
         slideIndex: Math.max(0, Math.min(prev.slideIndex, prev.doc.slides.length - 1)),
         past: state.past.slice(0, -1),
         future: [snap(state)].concat(state.future),
-        selectedId: null, editingId: null, lastTag: null,
+        selectedId: null, selectedIds: [], editingId: null, lastTag: null,
       });
     }
     case "redo": {
@@ -679,14 +730,14 @@ export function reducer(state, a) {
         slideIndex: Math.max(0, Math.min(nxt.slideIndex, nxt.doc.slides.length - 1)),
         past: state.past.concat([snap(state)]),
         future: state.future.slice(1),
-        selectedId: null, editingId: null, lastTag: null,
+        selectedId: null, selectedIds: [], editingId: null, lastTag: null,
       });
     }
     case "loadDoc":
       // A new document is a fresh history. Keep the clipboard so you can paste an
       // element from one deck into another. Bake any legacy highlight markers into
       // real runs on the way in, so decks saved before the fix become editable.
-      return { doc: bakeDocHighlights(a.doc), slideIndex: 0, selectedId: null, editingId: null, past: [], future: [], lastTag: null, clipboard: state.clipboard || null, clipboardFrom: null };
+      return { doc: bakeDocHighlights(a.doc), slideIndex: 0, selectedId: null, selectedIds: [], editingId: null, past: [], future: [], lastTag: null, clipboard: state.clipboard || null, clipboardFrom: null };
     case "commit":
       return state.lastTag == null ? state : Object.assign({}, state, { lastTag: null });
     default:

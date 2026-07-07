@@ -5,7 +5,8 @@ import { resize as geoResize, rotate as geoRotate, snapMove, snapResize, scaleTe
 import { readImageFile, isImageFile, fitDroppedImage } from "./imageFile";
 import ElementView from "./Element";
 import { UI } from "./theme";
-import { Pencil, Copy, Scissors, ClipboardPaste, CopyPlus, Trash2 } from "lucide-react";
+import { expandGroups, marqueeHits, selectionBox } from "./group";
+import { Pencil, Copy, Scissors, ClipboardPaste, CopyPlus, Trash2, Group, Ungroup, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal } from "lucide-react";
 
 const HANDLES = [
   { sx: -1, sy: -1 }, { sx: 0, sy: -1 }, { sx: 1, sy: -1 },
@@ -15,13 +16,15 @@ const HANDLES = [
 
 const clamp01 = (n) => Math.max(0, Math.min(1, n));
 
-export default function Artboard({ slide, selectedId, editingId, croppingId, dispatch, onTextSelect, onEditApi, canPaste }) {
+export default function Artboard({ slide, selectedId, selectedIds, editingId, croppingId, dispatch, onTextSelect, onEditApi, canPaste }) {
   const containerRef = useRef(null);
   const artRef = useRef(null);
   const [scale, setScale] = useState(0.4);
   const [guides, setGuides] = useState([]);
   const [dropping, setDropping] = useState(false); // a file is being dragged over
+  const [marquee, setMarquee] = useState(null);    // rubber-band rect (artboard coords) or null
   const drag = useRef(null);
+  const multi = (selectedIds || []).length > 1;
   // Latest slide, read by the (once-attached) wheel listener without re-binding.
   const slideRef = useRef(slide);
   slideRef.current = slide;
@@ -76,6 +79,22 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
     const p = toArtboard(e.clientX, e.clientY);
     // Hold Alt/Option to bypass snapping for fine, unconstrained placement.
     const noSnap = e.altKey;
+    if (d.mode === "marquee") {
+      // Rubber-band select: draw the rect (screen feedback). Stash it on the drag
+      // ref so pointer-up reads the final rect without a stale-closure hazard.
+      const rect = { x: d.start.x, y: d.start.y, w: p.x - d.start.x, h: p.y - d.start.y };
+      d.rect = rect;
+      setMarquee(rect);
+      return;
+    }
+    if (d.mode === "moveMany") {
+      // Drag a whole selection/group: dispatch the INCREMENT since the last event so
+      // the store's delta-based moveMany accumulates exactly (one coalesced frame).
+      const dx = Math.round(p.x - d.start.x), dy = Math.round(p.y - d.start.y);
+      const ddx = dx - d.lastDx, ddy = dy - d.lastDy;
+      if (ddx || ddy) { dispatch({ type: "moveMany", ids: d.ids, dx: ddx, dy: ddy, coalesce: true }); d.lastDx = dx; d.lastDy = dy; }
+      return;
+    }
     if (d.mode === "move") {
       const nx = d.startEl.x + (p.x - d.start.x);
       const ny = d.startEl.y + (p.y - d.start.y);
@@ -133,14 +152,27 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
   }, [dispatch, toArtboard]);
 
   const endDrag = useCallback(() => {
-    const wasDragging = !!drag.current;
+    const d = drag.current;
     drag.current = null;
     setGuides([]);
     window.removeEventListener("pointermove", onWindowMove);
     window.removeEventListener("pointerup", endDrag);
+    if (d && d.mode === "marquee") {
+      // Commit the rubber-band: a real drag selects the hits; a click (no drag)
+      // clears the selection. Reads the final rect + live slide via refs.
+      const r = d.rect;
+      setMarquee(null);
+      if (r && (Math.abs(r.w) > 3 || Math.abs(r.h) > 3)) {
+        const ids = marqueeHits((slideRef.current.elements || []), r);
+        dispatch(ids.length ? { type: "selectMarquee", ids } : { type: "deselect" });
+      } else {
+        dispatch({ type: "deselect" });
+      }
+      return;
+    }
     // Close the undo step: continuous move/resize/rotate updates coalesced into
     // one frame; the next interaction starts fresh.
-    if (wasDragging) dispatch({ type: "commit" });
+    if (d) dispatch({ type: "commit" });
   }, [onWindowMove, dispatch]);
 
   const beginDrag = useCallback((mode, id, clientX, clientY, handle) => {
@@ -169,12 +201,39 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
     window.addEventListener("pointerup", endDrag);
   }, [slide, toArtboard, onWindowMove, endDrag]);
 
+  // Drag a whole set of ids as one rigid group (multi-selection / grouped elements),
+  // dispatching moveMany deltas. No per-element snapping — the set moves as a block.
+  const beginGroupDrag = useCallback((ids, clientX, clientY) => {
+    drag.current = { mode: "moveMany", ids: ids.slice(), start: toArtboard(clientX, clientY), lastDx: 0, lastDy: 0 };
+    window.addEventListener("pointermove", onWindowMove);
+    window.addEventListener("pointerup", endDrag);
+  }, [toArtboard, onWindowMove, endDrag]);
+
+  // Empty-canvas press starts a rubber-band marquee (not an immediate deselect) so
+  // you can lasso several elements; a click with no drag clears the selection.
+  const beginMarquee = useCallback((clientX, clientY) => {
+    const p = toArtboard(clientX, clientY);
+    drag.current = { mode: "marquee", start: p };
+    setMarquee({ x: p.x, y: p.y, w: 0, h: 0 });
+    window.addEventListener("pointermove", onWindowMove);
+    window.addEventListener("pointerup", endDrag);
+  }, [toArtboard, onWindowMove, endDrag]);
+
   // element body -> select + move, OR pan the focal point when in crop mode
   const onPointerDownBody = useCallback((e, id) => {
     e.stopPropagation();
+    // ⇧-click toggles this element's group in/out of the multi-selection (no drag).
+    if (e.shiftKey) { dispatch({ type: "select", id, additive: true }); return; }
+    // Decide what moves. Clicking a member of the current multi-selection keeps that
+    // selection and drags the whole block; otherwise (re)select this element — which
+    // pulls in its group — and drag that.
+    const cur = selectedIds || [];
+    if (cur.includes(id) && cur.length > 1) { beginGroupDrag(cur, e.clientX, e.clientY); return; }
     dispatch({ type: "select", id });
-    beginDrag("move", id, e.clientX, e.clientY);
-  }, [dispatch, beginDrag]);
+    const dragIds = expandGroups(slide.elements, [id]);
+    if (dragIds.length > 1) beginGroupDrag(dragIds, e.clientX, e.clientY);
+    else beginDrag("move", id, e.clientX, e.clientY);
+  }, [dispatch, beginDrag, beginGroupDrag, selectedIds, slide]);
 
   const onStartEdit = useCallback((id) => dispatch({ type: "edit", id }), [dispatch]);
   const onStartCrop = useCallback((id) => dispatch({ type: "crop", id }), [dispatch]);
@@ -265,7 +324,7 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
              the canvas. The board's crop is re-imposed for export/thumbnails by their
              own renderers; the dim "mat" below reads the off-board area as bleed. */
           style={{ position: "absolute", top: 0, left: 0, width: ARTBOARD_W, height: ARTBOARD_H, transform: "scale(" + scale + ")", transformOrigin: "top left", overflow: "visible", background: bg.color || "#0c0c0c" }}
-          onPointerDown={() => dispatch({ type: "deselect" })}
+          onPointerDown={(e) => { if (!croppingId) { e.stopPropagation(); beginMarquee(e.clientX, e.clientY); } }}
         >
           {/* The ONE heavy decode: the active slide's full-res background. Off-
               screen slides never mount this (they render bg.thumb in SlideThumb),
@@ -295,6 +354,18 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
               onStyleApply={onStyleApply}
             />
           ))}
+
+          {/* rubber-band marquee (artboard coords; normalised for up-left drags) */}
+          {marquee && (Math.abs(marquee.w) > 1 || Math.abs(marquee.h) > 1) && (
+            <div style={{
+              position: "absolute",
+              left: Math.min(marquee.x, marquee.x + marquee.w),
+              top: Math.min(marquee.y, marquee.y + marquee.h),
+              width: Math.abs(marquee.w), height: Math.abs(marquee.h),
+              border: "1px solid " + UI.select, background: "rgba(45,140,255,0.12)",
+              pointerEvents: "none",
+            }} />
+          )}
 
           {/* snapping guides (artboard coords) */}
           {guides.map((g, i) =>
@@ -333,15 +404,34 @@ export default function Artboard({ slide, selectedId, editingId, croppingId, dis
         {/* selection overlay in SCREEN space so handles are a constant size.
             (R3: contextual controls now live in the right Inspector, not a
             floating toolbar — the canvas stays unobstructed.) */}
-        {selected && !editingId && !cropEl && (
+        {selected && !multi && !editingId && !cropEl && (
           <SelectionOverlay el={selected} scale={scale} onHandleDown={beginDrag} />
         )}
 
         {/* Floating action bar above the selected element — copy / cut / paste /
             duplicate / delete, mirroring ⌘C/⌘X/⌘V/⌘D and the toolbar ⋯ menu. */}
-        {selected && !editingId && !cropEl && (
+        {selected && !multi && !editingId && !cropEl && (
           <ActionBar el={selected} scale={scale} canPaste={canPaste} dispatch={dispatch} />
         )}
+
+        {/* Multi-selection: a dashed bounding box over the whole set, plus a toolbar
+            to group/ungroup, align, and delete them as a block. Individual element
+            handles are hidden — the selection moves as one (drag any member). */}
+        {multi && !editingId && !cropEl && (() => {
+          const gbox = selectionBox(slide.elements, selectedIds);
+          if (!gbox) return null;
+          const anyGrouped = (slide.elements || []).some((e) => selectedIds.includes(e.id) && e.groupId);
+          return (
+            <>
+              <div style={{
+                position: "absolute", left: gbox.x * scale, top: gbox.y * scale,
+                width: gbox.w * scale, height: gbox.h * scale,
+                border: "1.5px dashed " + UI.select, boxSizing: "border-box", pointerEvents: "none",
+              }} />
+              <GroupBar box={gbox} scale={scale} count={selectedIds.length} anyGrouped={anyGrouped} dispatch={dispatch} />
+            </>
+          );
+        })()}
 
         {/* Crop dimming ring (Option B): while cropping, darken the canvas AROUND
             the crop box so the frame is the focus. One element sized to the box with
@@ -486,6 +576,44 @@ function ActionBar({ el, scale, canPaste, dispatch }) {
     </div>
   );
 }
+// The multi-selection toolbar: group / ungroup, the six alignments, and delete.
+// Positioned above the selection's bounding box (flips below when there's no room).
+function GroupBar({ box, scale, count, anyGrouped, dispatch }) {
+  const H = 40;
+  const topAbove = box.y * scale - H;
+  const below = topAbove < 4;
+  const top = below ? (box.y + box.h) * scale + 8 : topAbove;
+  const left = (box.x + box.w / 2) * scale;
+  const act = (type, extra) => (e) => { e.stopPropagation(); dispatch(Object.assign({ type }, extra)); };
+  const align = (mode) => (e) => { e.stopPropagation(); dispatch({ type: "align", mode }); };
+  return (
+    <div
+      onPointerDown={(e) => e.stopPropagation()}
+      style={{
+        position: "absolute", left, top, transform: "translateX(-50%)", zIndex: 25,
+        display: "inline-flex", alignItems: "center", gap: 2, padding: "4px 5px",
+        background: "rgba(20,20,24,0.94)", border: "1px solid #34343c", borderRadius: 10,
+        boxShadow: "0 8px 24px rgba(0,0,0,0.5)", whiteSpace: "nowrap",
+      }}
+    >
+      <span style={{ fontSize: 11, color: "#8a8a92", padding: "0 6px", fontFamily: "Helvetica, Arial, sans-serif" }}>{count}</span>
+      {anyGrouped
+        ? <AB title="Ungroup (⌘⇧G)" onClick={act("ungroup")}><Ungroup size={15} /></AB>
+        : <AB title="Group (⌘G)" onClick={act("group")}><Group size={15} /></AB>}
+      <span style={sep} />
+      <AB title="Align left" onClick={align("left")}><AlignStartVertical size={15} /></AB>
+      <AB title="Align center" onClick={align("centerX")}><AlignCenterVertical size={15} /></AB>
+      <AB title="Align right" onClick={align("right")}><AlignEndVertical size={15} /></AB>
+      <AB title="Align top" onClick={align("top")}><AlignStartHorizontal size={15} /></AB>
+      <AB title="Align middle" onClick={align("centerY")}><AlignCenterHorizontal size={15} /></AB>
+      <AB title="Align bottom" onClick={align("bottom")}><AlignEndHorizontal size={15} /></AB>
+      <span style={sep} />
+      <AB title="Delete (⌫)" danger onClick={act("deleteMany")}><Trash2 size={15} /></AB>
+    </div>
+  );
+}
+const sep = { width: 1, height: 20, background: "#34343c", margin: "0 3px" };
+
 function AB({ children, onClick, title, danger, disabled }) {
   return (
     <button

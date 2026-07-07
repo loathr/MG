@@ -769,3 +769,83 @@ test("copy/paste: paste is a no-op with an empty clipboard; cut copies then remo
   s = reducer(s, { type: "undo" });                               // cut is undoable
   assert.ok(cur(s).elements.some((e) => e.id === "R"), "undo restores the cut element");
 });
+
+// --- multi-select + grouping (group.js wired through the store) ------------
+function threeEls() {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("rect", { id: "A", x: 0, y: 0, w: 100, h: 40 }) });
+  s = reducer(s, { type: "add", element: makeElement("rect", { id: "B", x: 200, y: 20, w: 80, h: 60 }) });
+  s = reducer(s, { type: "add", element: makeElement("rect", { id: "C", x: 50, y: 300, w: 120, h: 30 }) });
+  return s;
+}
+const byId = (s, id) => cur(s).elements.find((e) => e.id === id);
+
+test("select is single by default; ⇧-click (additive) accumulates a multi-selection", () => {
+  let s = threeEls();
+  s = reducer(s, { type: "select", id: "A" });
+  assert.deepEqual(s.selectedIds, ["A"]);
+  assert.equal(s.selectedId, "A");
+  s = reducer(s, { type: "select", id: "C", additive: true });
+  assert.deepEqual(s.selectedIds.slice().sort(), ["A", "C"]);
+  // plain (non-additive) select collapses back to one
+  s = reducer(s, { type: "select", id: "B" });
+  assert.deepEqual(s.selectedIds, ["B"]);
+});
+
+test("group binds the selection, and selecting one member re-selects the whole group", () => {
+  let s = threeEls();
+  s = reducer(s, { type: "select", id: "A" });
+  s = reducer(s, { type: "select", id: "B", additive: true });
+  s = reducer(s, { type: "group" });
+  const gid = byId(s, "A").groupId;
+  assert.ok(gid && byId(s, "B").groupId === gid, "A and B share a fresh groupId");
+  assert.equal(byId(s, "C").groupId, undefined, "C is untouched");
+  assert.equal(s.past.length > 0, true, "group is undoable");
+  // clicking A alone pulls B back in
+  s = reducer(s, { type: "select", id: "A" });
+  assert.deepEqual(s.selectedIds.slice().sort(), ["A", "B"]);
+  // ungroup dissolves it
+  s = reducer(s, { type: "ungroup" });
+  assert.equal(byId(s, "A").groupId, undefined);
+});
+
+test("group is a no-op with fewer than two selected", () => {
+  let s = threeEls();
+  s = reducer(s, { type: "select", id: "A" });
+  const before = s;
+  s = reducer(s, { type: "group" });
+  assert.equal(byId(s, "A").groupId, undefined);
+});
+
+test("moveMany shifts every selected id by the delta (undoable in one frame)", () => {
+  let s = threeEls();
+  const p = s.past.length;
+  s = reducer(s, { type: "moveMany", ids: ["A", "B"], dx: 10, dy: -5 });
+  assert.equal(byId(s, "A").x, 10); assert.equal(byId(s, "A").y, -5);
+  assert.equal(byId(s, "B").x, 210); assert.equal(byId(s, "B").y, 15);
+  assert.equal(byId(s, "C").x, 50, "unselected C stays put");
+  assert.equal(s.past.length, p + 1);
+});
+
+test("selectMarquee expands to whole groups; deleteMany removes the selection", () => {
+  let s = threeEls();
+  s = reducer(s, { type: "select", id: "A" });
+  s = reducer(s, { type: "select", id: "B", additive: true });
+  s = reducer(s, { type: "group" });
+  // marquee hitting only A brings in its group-mate B
+  s = reducer(s, { type: "selectMarquee", ids: ["A"] });
+  assert.deepEqual(s.selectedIds.slice().sort(), ["A", "B"]);
+  s = reducer(s, { type: "deleteMany", ids: s.selectedIds });
+  assert.ok(!cur(s).elements.some((e) => e.id === "A" || e.id === "B"), "both removed");
+  assert.ok(cur(s).elements.some((e) => e.id === "C"), "C survives");
+  assert.deepEqual(s.selectedIds, []);
+});
+
+test("align left snaps selected elements to their shared box edge", () => {
+  let s = threeEls();
+  s = reducer(s, { type: "select", id: "A" });
+  s = reducer(s, { type: "select", id: "B", additive: true });
+  s = reducer(s, { type: "align", mode: "left" });
+  assert.equal(byId(s, "A").x, 0);
+  assert.equal(byId(s, "B").x, 0);
+});
