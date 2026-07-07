@@ -112,6 +112,51 @@ export function watchSharePulse(deckId, cb) {
   return () => unsub();
 }
 
+// ---------------------------------------------------------------------------
+// Live presence (collab phase 1) — who's editing a deck right now, their cursor
+// and selection. Kept in an EPHEMERAL sibling collection presence/{deckId}/peers/
+// {sessionId}, never in the deck doc, so it never bloats the 1 MB deck or touches
+// undo/save. Every call is best-effort and a safe no-op when cloud is disabled.
+// ---------------------------------------------------------------------------
+
+// Write/refresh my presence record (heartbeat). `data` carries uid/name/color and
+// the live cursor/selection/slide; ts is stamped here for the freshness reap.
+export async function writePresence(deckId, sessionId, data) {
+  const d = await db(); if (!d || !deckId || !sessionId) return;
+  try {
+    const fs = await import("firebase/firestore");
+    await fs.setDoc(fs.doc(d, "presence", deckId, "peers", sessionId), Object.assign({}, data, { ts: Date.now() }), { merge: true });
+  } catch (e) { /* presence is best-effort */ }
+}
+
+// Subscribe to everyone's presence on a deck: cb(records) fires with a map of
+// {sessionId: record} on every change. Returns an unsubscribe fn; a safe no-op
+// when cloud is off or the listener errors. Browser-only.
+export function watchPresence(deckId, cb) {
+  let unsub = () => {};
+  if (!deckId) return () => {};
+  db().then((d) => {
+    if (!d) return;
+    import("firebase/firestore").then(({ collection, onSnapshot }) => {
+      unsub = onSnapshot(
+        collection(d, "presence", deckId, "peers"),
+        (snap) => { const recs = {}; snap.forEach((s) => { recs[s.id] = s.data(); }); try { cb(recs); } catch (e) { /* ignore */ } },
+        () => { /* permission/other error → presence just stays empty */ },
+      );
+    }).catch(() => {});
+  }).catch(() => {});
+  return () => unsub();
+}
+
+// Drop my presence record on leave (unmount / tab close). Best-effort.
+export async function clearPresence(deckId, sessionId) {
+  const d = await db(); if (!d || !deckId || !sessionId) return;
+  try {
+    const fs = await import("firebase/firestore");
+    await fs.deleteDoc(fs.doc(d, "presence", deckId, "peers", sessionId));
+  } catch (e) { /* best-effort */ }
+}
+
 // The full deck doc for one project, or null.
 export async function loadDeck(uid, id) {
   const d = await db(); if (!d || !uid || !id) return null;

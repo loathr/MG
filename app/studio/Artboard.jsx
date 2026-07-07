@@ -16,7 +16,7 @@ const HANDLES = [
 
 const clamp01 = (n) => Math.max(0, Math.min(1, n));
 
-export default function Artboard({ slide, selectedId, selectedIds, editingId, croppingId, dispatch, onTextSelect, onEditApi, canPaste }) {
+export default function Artboard({ slide, selectedId, selectedIds, editingId, croppingId, dispatch, onTextSelect, onEditApi, canPaste, peers, slideIndex, onCursor }) {
   const containerRef = useRef(null);
   const artRef = useRef(null);
   const [scale, setScale] = useState(0.4);
@@ -72,6 +72,14 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
     const s = rect.width / ARTBOARD_W;
     return { x: (clientX - rect.left) / s, y: (clientY - rect.top) / s };
   }, []);
+
+  // Report my pointer to the presence layer (artboard units, so peers at any zoom
+  // agree). Throttling + writes happen in usePresence; this just forwards.
+  const onCanvasPointerMove = useCallback((e) => {
+    if (!onCursor || !artRef.current) return;
+    const p = toArtboard(e.clientX, e.clientY);
+    onCursor({ x: Math.round(p.x), y: Math.round(p.y) });
+  }, [onCursor, toArtboard]);
 
   const onWindowMove = useCallback((e) => {
     const d = drag.current;
@@ -313,6 +321,7 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
   return (
     <div ref={containerRef} style={{ flex: 1, minWidth: 0, minHeight: 0, display: "grid", placeItems: "center", overflow: "hidden", background: UI.bg, position: "relative" }}
       onDragOver={onCanvasDragOver} onDragLeave={onCanvasDragLeave} onDrop={onCanvasDrop}
+      onPointerMove={onCanvasPointerMove}
       onPointerDown={(e) => { if (e.target === e.currentTarget) dispatch({ type: "deselect" }); }}>
       <div style={{ position: "relative", width: ARTBOARD_W * scale, height: ARTBOARD_H * scale, boxShadow: "0 10px 40px rgba(0,0,0,0.5)" }}>
         {/* scaled artboard in artboard coordinates */}
@@ -353,6 +362,25 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
               onEditApi={onEditApi}
               onStyleApply={onStyleApply}
             />
+          ))}
+
+          {/* Remote selections (collab): a coloured outline + name on whatever each
+              other editor has selected on THIS slide. Artboard coords, so they scale
+              with the elements. pointerEvents:none — purely informational. */}
+          {(peers || []).filter((pr) => pr.slide === slideIndex && pr.selection && pr.selection.length).map((pr) => (
+            (pr.selection || []).map((sid) => {
+              const el = slide.elements.find((e) => e.id === sid);
+              if (!el) return null;
+              return (
+                <div key={pr.id + ":" + sid} style={{
+                  position: "absolute", left: el.x, top: el.y, width: el.w, height: el.h,
+                  transform: "rotate(" + (el.rotation || 0) + "deg)", transformOrigin: "center center",
+                  border: "2px solid " + pr.color, borderRadius: (el.radius || 0), pointerEvents: "none", boxSizing: "border-box",
+                }}>
+                  <span style={{ position: "absolute", left: -2, top: -22, fontSize: 11, fontWeight: 600, color: "#0a0a0a", background: pr.color, padding: "1px 7px", borderRadius: "4px 4px 4px 0", whiteSpace: "nowrap" }}>{pr.name}</span>
+                </div>
+              );
+            })
           ))}
 
           {/* rubber-band marquee (artboard coords; normalised for up-left drags) */}
@@ -480,6 +508,21 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
             border: "2px dashed " + UI.select, borderRadius: 4, background: "rgba(45,140,255,0.07)",
           }} />
         )}
+
+        {/* Remote cursors (collab): each other editor's pointer on THIS slide, name-
+            tagged in their colour. Screen space (constant size at any zoom) with a
+            short transition so they glide between throttled updates. */}
+        {(peers || []).filter((pr) => pr.slide === slideIndex && pr.cursor).map((pr) => (
+          <div key={pr.id} style={{
+            position: "absolute", left: pr.cursor.x * scale, top: pr.cursor.y * scale,
+            zIndex: 40, pointerEvents: "none", transition: "left .12s linear, top .12s linear",
+          }}>
+            <svg width="18" height="18" viewBox="0 0 18 18" style={{ display: "block", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))" }}>
+              <path d="M2 2 L2 15 L6 11 L9 17 L11 16 L8 10 L14 10 Z" fill={pr.color} stroke="#0a0a0a" strokeWidth="0.6" />
+            </svg>
+            <span style={{ position: "absolute", left: 14, top: 13, fontSize: 10, fontWeight: 600, color: "#0a0a0a", background: pr.color, padding: "2px 7px", borderRadius: "4px 8px 8px 8px", whiteSpace: "nowrap" }}>{pr.name}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

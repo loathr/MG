@@ -24,6 +24,8 @@ import CreateScreen from "./CreateScreen";
 import ProjectsScreen from "./ProjectsScreen";
 import AdminConsole from "./AdminConsole";
 import { isCloudEnabled } from "./cloud";
+import { usePresence } from "./usePresence";
+import { initials } from "./presence";
 import { onAuthChange, signOutCloud, getUserRole, bootstrapAdmin, getIdToken } from "./firebaseClient";
 import { saveDeck, loadDeck, listDecks, deleteDeck, watchSharePulse } from "./firebaseStore";
 import { exportSlide, exportSlides } from "./export";
@@ -62,6 +64,32 @@ const iconBtn = (enabled) => ({
   ...hbtn, minWidth: 34, padding: "0 9px", lineHeight: 1,
   opacity: enabled ? 1 : 0.4, cursor: enabled ? "pointer" : "default",
 });
+
+// Live-presence avatar stack (collab phase 1): one coloured chip per other editor
+// in the deck, with a green "live" dot. Nothing renders when you're alone. The chip
+// colour matches that peer's cursor + selection outline on the canvas.
+function PresenceAvatars({ peers }) {
+  if (!peers || !peers.length) return null;
+  const shown = peers.slice(0, 4);
+  const extra = peers.length - shown.length;
+  return (
+    <div style={{ display: "flex", alignItems: "center", marginRight: 8 }} title={peers.map((p) => p.name).join(", ") + " editing"}>
+      {shown.map((p, i) => (
+        <div key={p.id} style={{
+          width: 26, height: 26, borderRadius: "50%", background: p.color, color: "#0a0a0a",
+          border: "2px solid " + UI.surface, marginLeft: i ? -8 : 0, position: "relative",
+          display: "grid", placeItems: "center", fontSize: 10, fontWeight: 700,
+        }}>
+          {initials(p.name)}
+          <span style={{ position: "absolute", right: -1, bottom: -1, width: 7, height: 7, borderRadius: "50%", background: "#38d39f", border: "2px solid " + UI.surface }} />
+        </div>
+      ))}
+      {extra > 0 && (
+        <div style={{ width: 26, height: 26, borderRadius: "50%", background: UI.surface2, color: UI.muted, border: "2px solid " + UI.surface, marginLeft: -8, display: "grid", placeItems: "center", fontSize: 10, fontWeight: 700 }}>+{extra}</div>
+      )}
+    </div>
+  );
+}
 
 // Left tool rail (spec §5). Photos is wired; Text/Elements drop pre-styled
 // content; Templates/Brand are placeholders for later passes.
@@ -124,6 +152,19 @@ export default function Studio() {
   const slide = state.doc.slides[state.slideIndex];
   const selectedEl = slide && (slide.elements || []).find((e) => e.id === state.selectedId);
   const selectedIsText = !!(selectedEl && selectedEl.type === "text");
+
+  // Live presence (collab phase 1): broadcast my cursor/selection and see other
+  // signed-in editors on the same deck. A no-op (empty peers) when cloud is off,
+  // nobody's signed in, or we're in a read-only share view.
+  const { peers, reportCursor, reportSelection } = usePresence({
+    deckId: projectId,
+    user,
+    enabled: cloud && !!user && screen === "editor" && !sharedView,
+  });
+  // Publish my selection + current slide whenever either changes.
+  useEffect(() => {
+    reportSelection((state.selectedIds && state.selectedIds.length ? state.selectedIds : (state.selectedId ? [state.selectedId] : [])), state.slideIndex);
+  }, [state.selectedId, state.selectedIds, state.slideIndex, reportSelection]);
 
   // Optional demo deck for the FLAT-LAYERS image-path proof: ?demo=photos9 jumps
   // straight into the editor. Client-only (avoids SSR mismatch) and runs once.
@@ -683,6 +724,7 @@ export default function Studio() {
         <span style={{ fontSize: 11, color: UI.muted, marginRight: 4 }}>
           {state.doc.slides.length} slide{state.doc.slides.length === 1 ? "" : "s"}
         </span>
+        <PresenceAvatars peers={peers} />
         <button
           style={{ ...hbtn, opacity: fc && fc.loading ? 0.6 : 1 }}
           disabled={!!(fc && fc.loading)}
@@ -876,6 +918,9 @@ export default function Studio() {
             onTextSelect={setTextSel}
             onEditApi={(api) => { editApiRef.current = api; }}
             canPaste={!!state.clipboard}
+            peers={peers}
+            slideIndex={state.slideIndex}
+            onCursor={reportCursor}
           />
 
           {/* Slide strip — under the canvas only, so the rail + panels run full
