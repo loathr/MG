@@ -62,8 +62,10 @@ function sel(open) {
     padding: "0 13px", gap: 10, cursor: "pointer",
   };
 }
-const pre = { fontSize: 10, letterSpacing: 1, color: UI.muted, textTransform: "uppercase" };
-const cur = { fontSize: 14.5, fontWeight: 600 };
+const pre = { fontSize: 10, letterSpacing: 1, color: UI.muted, textTransform: "uppercase", flexShrink: 0 };
+// One line, ellipsised — a long sector name ("Healthcare & Pharma") must not wrap
+// and make the control taller than the region/country selects beside it.
+const cur = { fontSize: 14, fontWeight: 600, flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
 const chev = { marginLeft: "auto", color: "#7f7f88", display: "inline-flex", alignItems: "center" };
 const backdrop = { position: "fixed", inset: 0, zIndex: 40 };
 const menu = {

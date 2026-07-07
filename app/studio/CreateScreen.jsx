@@ -337,10 +337,13 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
                 onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
                 placeholder="Type a topic — or pick one from the rail below"
                 autoFocus
-                style={topicInput}
+                // Left-aligned so a long topic/headline reads from the start; the
+                // right padding only reserves room for the Refine pill when it shows.
+                style={{ ...topicInput, textAlign: "left", padding: (topic.trim() && !refineDecided) ? "0 96px 0 18px" : "0 18px" }}
               />
-              {/* Refine affordance — the refiner opens automatically as you type. */}
-              <span style={refineHint(!!topic.trim())}><Sparkles size={12} /> Refine</span>
+              {/* Refine affordance — shown while choosing; hidden once decided so it
+                  never crowds a long locked topic. */}
+              {topic.trim() && !refineDecided && <span style={refineHint(true)}><Sparkles size={12} /> Refine</span>}
             </div>
             {flagCountry && (
               <div style={flagChip(flagPalette)}>
@@ -699,9 +702,15 @@ const regionSelect = {
 // Compact one-line scope row: sector (RouteSelect) · region · country.
 const scopeLab = { fontSize: 10, letterSpacing: 1.2, color: "#6f6f78", textTransform: "uppercase", marginBottom: 9 };
 const scopeRow = { display: "flex", gap: 8, alignItems: "flex-start" };
+// A chevron caret matching RouteSelect, so the native region/country selects read
+// as part of the same control row (not raw OS dropdowns).
+const scopeCaret = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237f7f88' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>\")";
 function scopeSel(active) {
   return { flex: 1, minWidth: 0, height: 42, borderRadius: 9, background: UI.surface2,
-    border: "1px solid " + (active ? UI.brand : "#2c2c32"), color: "#f0f0f2", fontSize: 13, padding: "0 11px", cursor: "pointer" };
+    border: "1px solid " + (active ? UI.brand : "#2c2c32"), color: "#f0f0f2", fontSize: 13,
+    padding: "0 30px 0 11px", cursor: "pointer",
+    appearance: "none", WebkitAppearance: "none", MozAppearance: "none",
+    backgroundImage: scopeCaret, backgroundRepeat: "no-repeat", backgroundPosition: "right 10px center" };
 }
 const urgRow = { display: "flex", gap: 8, marginTop: 9 };
 // White-label create-page toggle (mirrors the Brand-panel one).
