@@ -8,6 +8,7 @@
 import { adminCredentials } from "./authCore";
 import { quotaCheck, usagePeriodKey, normalizeRole, effectiveMonthlyLimit } from "../studio/authority";
 import { resolveShared } from "../studio/sharing";
+import { collectImageData, imageKey, rewriteImages } from "../studio/cloud";
 
 let _db = null;
 async function db() {
@@ -20,6 +21,76 @@ async function db() {
     _db = getFirestore(app);
   }
   return _db;
+}
+
+// The Admin Storage bucket for server-side image offload (shared-edit write-back).
+// Bucket name from the public config, or the project's default. null when Storage
+// isn't configured → images stay inline (small decks only), matching the client.
+let _bucket = null;
+async function bucket() {
+  const creds = adminCredentials();
+  if (!creds) return null;
+  const name = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || (creds.projectId ? creds.projectId + ".appspot.com" : null);
+  if (!name) return null;
+  if (!_bucket) {
+    const { getApps, initializeApp, cert } = await import("firebase-admin/app");
+    const app = getApps().length ? getApps()[0] : initializeApp({ credential: cert(creds) });
+    const { getStorage } = await import("firebase-admin/storage");
+    _bucket = getStorage(app).bucket(name);
+  }
+  return _bucket;
+}
+
+// Server-side twin of firebaseStore.uploadDeckImages: push every embedded data:
+// image to the owner's deck folder (same content-hashed path the client uses, so
+// they dedupe) and rewrite the doc to tokened download URLs. A failed upload leaves
+// that one image inline rather than aborting. Used when a shared EDITOR (who has no
+// Firebase auth of their own) saves back through the token.
+async function offloadImagesAdmin(ownerUid, deckId, doc) {
+  const datas = collectImageData(doc);
+  if (!datas.length) return doc;
+  const b = await bucket();
+  if (!b) return doc;
+  const { randomUUID } = await import("crypto");
+  const map = {};
+  for (const dataUrl of datas) {
+    try {
+      const m = /^data:([^;]+);base64,(.*)$/.exec(dataUrl);
+      if (!m) continue;
+      const contentType = m[1];
+      const buf = Buffer.from(m[2], "base64");
+      const path = "users/" + ownerUid + "/decks/" + deckId + "/" + imageKey(dataUrl);
+      const token = randomUUID();
+      await b.file(path).save(buf, { contentType, resumable: false, metadata: { metadata: { firebaseStorageDownloadTokens: token } } });
+      map[dataUrl] = "https://firebasestorage.googleapis.com/v0/b/" + b.name + "/o/" + encodeURIComponent(path) + "?alt=media&token=" + token;
+    } catch (e) { /* leave this image inline; the rest still offload */ }
+  }
+  return rewriteImages(doc, map);
+}
+
+// Persist a shared EDITOR's changes back to the owner's deck, authorised by the
+// share token (not a user session — the token IS the capability, matching readShared).
+// Verifies the token grants EDIT, offloads embedded images, writes the doc, and
+// bumps the pulse so live viewers/owner refetch. Whole-doc, last-writer-wins.
+// Returns { ok, access }; { ok:false } when the token doesn't grant edit.
+export async function writeShared(deckId, presentedToken, doc) {
+  const d = await db();
+  if (!d || !deckId || !doc) return { ok: false, access: "none" };
+  try {
+    const idxSnap = await d.doc("shares/" + deckId).get();
+    if (!idxSnap.exists) return { ok: false, access: "none" };
+    const access = resolveShared(idxSnap.data(), presentedToken);
+    if (access !== "edit") return { ok: false, access };   // view / none can't write
+    const ownerUid = idxSnap.data().ownerUid;
+    const offloaded = await offloadImagesAdmin(ownerUid, deckId, doc);
+    const now = Date.now();
+    await d.doc("users/" + ownerUid + "/decks/" + deckId).set(
+      { doc: offloaded, updatedAt: now, slideCount: (offloaded.slides || []).length }, { merge: true });
+    try { await d.doc("sharePulse/" + deckId).set({ updatedAt: now }, { merge: true }); } catch (e) { /* pulse best-effort */ }
+    return { ok: true, access: "edit" };
+  } catch (e) {
+    return { ok: false, access: "none", error: true };
+  }
 }
 
 // The RAW stored monthly limit from users/{uid}.limits.monthly, or null when unset

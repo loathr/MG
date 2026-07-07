@@ -187,6 +187,9 @@ export default function Studio() {
   const slide = state.doc.slides[state.slideIndex];
   const selectedEl = slide && (slide.elements || []).find((e) => e.id === state.selectedId);
   const selectedIsText = !!(selectedEl && selectedEl.type === "text");
+  // A share link opened with EDIT access → the recipient gets the real editor and
+  // saves back to the owner's deck through the token (not a read-only viewer).
+  const sharedEdit = !!(sharedView && sharedView.access === "edit");
 
   // Live presence (collab phase 1): broadcast my cursor/selection and see other
   // signed-in editors on the same deck. A no-op (empty peers) when cloud is off,
@@ -318,7 +321,9 @@ export default function Studio() {
   // itself carries no token or content). A slow interval stays as a fallback for
   // when Firestore/onSnapshot isn't available (cloud off, rules, offline).
   useEffect(() => {
-    if (!sharedView) return undefined;
+    // A read-only viewer follows the deck live; an EDIT-link editor is the writer,
+    // so it must NOT refetch (that would clobber their in-progress edits).
+    if (!sharedView || sharedEdit) return undefined;
     const refetch = () => {
       fetch("/api/shared?deck=" + encodeURIComponent(sharedView.deck) + "&s=" + encodeURIComponent(sharedView.s))
         .then((r) => (r.ok ? r.json() : null))
@@ -328,7 +333,26 @@ export default function Studio() {
     const unsub = watchSharePulse(sharedView.deck, refetch); // instant on owner save
     const id = setInterval(refetch, 20000);                  // fallback safety-net
     return () => { unsub(); clearInterval(id); };
-  }, [sharedView]);
+  }, [sharedView, sharedEdit]);
+
+  // Shared-edit autosave: an EDIT-link editor persists changes back to the owner's
+  // deck through the token (debounced), bumping the pulse so the owner's other
+  // viewers refresh. Whole-doc, last-writer-wins (see writeShared).
+  useEffect(() => {
+    if (!sharedEdit) return undefined;
+    setSaveState("saving");
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      fetch("/api/shared?deck=" + encodeURIComponent(sharedView.deck) + "&s=" + encodeURIComponent(sharedView.s), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ doc: state.doc }),
+      })
+        .then((r) => setSaveState(r.ok ? "saved" : "idle"))
+        .catch(() => setSaveState("idle"));
+    }, 1200);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [sharedEdit, state.doc, sharedView]);
 
   // Load the user's deck list whenever the Projects screen is shown.
   useEffect(() => {
@@ -730,9 +754,10 @@ export default function Studio() {
 
   const toggle = (key) => setActivePanel((p) => (p === key ? null : key));
 
-  // Opened via a share link → a read-only, live viewer (no editing surface at
-  // all — it renders StaticSlide, the same non-interactive renderer as the strip).
-  if (sharedView) {
+  // Opened via a share link with VIEW access → a read-only, live viewer (renders
+  // StaticSlide, the same non-interactive renderer as the strip). An EDIT link
+  // instead falls through to the full editor below, autosaving back via the token.
+  if (sharedView && !sharedEdit) {
     return <SharedViewer doc={state.doc} slideIndex={state.slideIndex} name={projectName}
       onNav={(i) => dispatch({ type: "setSlide", index: i })} error={genError} />;
   }
@@ -798,11 +823,17 @@ export default function Studio() {
         <button style={iconBtn(state.future.length > 0)} disabled={state.future.length === 0} onClick={() => dispatch({ type: "redo" })} title="Redo (Ctrl/Cmd+Shift+Z)"><Redo2 size={16} /></button>
         <button style={iconBtn(true)} onClick={() => doReset(false)} title="Reset this slide to the brand look (undoable)"><RotateCcw size={16} /></button>
         <div style={{ flex: 1 }} />
+        {sharedEdit && (
+          <span style={{ fontSize: 11, color: "#cbb26a", marginRight: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 9px", borderRadius: 12, background: "rgba(203,178,106,0.12)", border: "1px solid rgba(203,178,106,0.4)" }}
+            title="You're editing a deck shared with you by its owner. Changes save back to their deck.">
+            <Share2 size={12} /> Shared · editing
+          </span>
+        )}
         {cloud ? (
           <span style={{ fontSize: 11, color: saveState === "saved" ? "#7ed09a" : UI.muted, marginRight: 8, display: "inline-flex", alignItems: "center", gap: 5 }}
-            title={saveState === "saved" ? "Saved to your account" : "Saving…"}>
+            title={sharedEdit ? (saveState === "saved" ? "Saved to the owner's deck" : "Saving to the owner's deck…") : (saveState === "saved" ? "Saved to your account" : "Saving…")}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: saveState === "saved" ? "#7ed09a" : UI.muted }} />
-            {saveState === "uploading" ? "Uploading images…" : saveState === "saving" ? "Saving…" : "Saved to cloud"}
+            {saveState === "uploading" ? "Uploading images…" : saveState === "saving" ? "Saving…" : (sharedEdit ? "Saved to owner" : "Saved to cloud")}
           </span>
         ) : null}
         <span style={{ fontSize: 11, color: UI.muted, marginRight: 4 }}>
