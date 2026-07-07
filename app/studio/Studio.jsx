@@ -88,6 +88,15 @@ export default function Studio() {
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState("");
   const [activePanel, setActivePanel] = useState("photos");
+  const [resetNote, setResetNote] = useState(null); // transient "slide reset" confirmation
+  // Reset re-flows the slide's content into its layout in the current brand — a
+  // visual no-op if the slide hasn't drifted, so it can feel like nothing happened.
+  // A short confirmation makes the action legible; the reset itself is undoable.
+  const doReset = (all) => {
+    dispatch(all ? { type: "resetSlideToBrand", all: true } : { type: "resetSlideToBrand" });
+    setResetNote(all ? "All slides reset to the brand look" : "Slide reset to the brand look");
+  };
+  useEffect(() => { if (!resetNote) return undefined; const t = setTimeout(() => setResetNote(null), 1900); return () => clearTimeout(t); }, [resetNote]);
   const [dlOpen, setDlOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [fc, setFc] = useState(null); // fact check: null | { loading, error, result, phase }
@@ -654,7 +663,7 @@ export default function Studio() {
         />
         <button style={iconBtn(state.past.length > 0)} disabled={state.past.length === 0} onClick={() => dispatch({ type: "undo" })} title="Undo (Ctrl/Cmd+Z)"><Undo2 size={16} /></button>
         <button style={iconBtn(state.future.length > 0)} disabled={state.future.length === 0} onClick={() => dispatch({ type: "redo" })} title="Redo (Ctrl/Cmd+Shift+Z)"><Redo2 size={16} /></button>
-        <button style={iconBtn(true)} onClick={() => dispatch({ type: "resetSlideToBrand" })} title="Reset this slide to the brand look (undoable)"><RotateCcw size={16} /></button>
+        <button style={iconBtn(true)} onClick={() => doReset(false)} title="Reset this slide to the brand look (undoable)"><RotateCcw size={16} /></button>
         <div style={{ flex: 1 }} />
         {cloud ? (
           <span style={{ fontSize: 11, color: saveState === "saved" ? "#7ed09a" : UI.muted, marginRight: 8, display: "inline-flex", alignItems: "center", gap: 5 }}
@@ -802,7 +811,7 @@ export default function Studio() {
             brand={state.doc.brand}
             onApply={(layout) => dispatch({ type: "setLayout", layout })}
             onApplyAll={(layout) => dispatch({ type: "setLayout", layout, all: true })}
-            onReset={() => dispatch({ type: "resetSlideToBrand" })}
+            onReset={() => doReset(false)}
             onClose={() => setActivePanel(null)}
           />
         )}
@@ -821,7 +830,7 @@ export default function Studio() {
             onUploadFont={handleUploadFont}
             onRemoveFont={(id) => dispatch({ type: "removeFont", id })}
             onChrome={(key, on) => dispatch({ type: "setChrome", key, on })}
-            onResetAll={() => dispatch({ type: "resetSlideToBrand", all: true })}
+            onResetAll={() => doReset(true)}
             onClose={() => setActivePanel(null)}
           />
         )}
@@ -932,6 +941,12 @@ export default function Studio() {
         />
       )}
 
+      {/* Reset confirmation — reset re-flows the slide and can be a visual no-op,
+          so this makes the action visible. */}
+      {resetNote && (
+        <div style={resetToast}><RotateCcw size={14} /> {resetNote}</div>
+      )}
+
       {/* Google Drive export status toast (deploy-only feature). */}
       {drive && (
         <div style={driveToast}>
@@ -985,6 +1000,12 @@ const menuItem = {
   display: "block", width: "100%", textAlign: "left", height: 32, padding: "0 10px",
   background: "transparent", color: UI.text, border: "none", borderRadius: 6,
   cursor: "pointer", fontSize: 13,
+};
+const resetToast = {
+  position: "fixed", left: "50%", bottom: 24, transform: "translateX(-50%)", zIndex: 60,
+  display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 15px", borderRadius: 10,
+  background: "#12201a", border: "1px solid #2b5a3c", color: "#a8d8a8", fontSize: 12.5, fontWeight: 600,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
 };
 const driveToast = {
   position: "fixed", right: 18, bottom: 18, zIndex: 70, width: 260,
