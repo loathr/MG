@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useReducer, useRef, useState } from "react";
-import { reducer, initStudio, carryBrandKit } from "./store";
+import { reducer, initStudio, carryBrandKit, rethemeDoc } from "./store";
+import { flagBrand, effectiveCountry } from "./flag";
 import { makeElement, imageBackground, blankDoc, uid, ARTBOARD_W, ARTBOARD_H } from "./model";
 import { readFontFile, registerFont, registerDocFonts } from "./fonts";
 import { generateCarousel, regenerateCaption } from "./generate";
@@ -363,7 +364,7 @@ export default function Studio() {
   // fonts / wordmark + logo) carries onto the freshly generated deck (§5).
   // The call is cancellable (AbortController) and reports coarse progress
   // (searching → writing); a "quick draft" skips the web search for speed.
-  const handleGenerate = async ({ style, category, topic, quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded }) => {
+  const handleGenerate = async ({ style, category, topic, quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded, flag }) => {
     if (generating) return;
     const prevDoc = state.doc;
     const ac = new AbortController();
@@ -375,7 +376,21 @@ export default function Studio() {
       const doc = await generateCarousel(topic, {
         style, category, webSearch: !quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded, signal: ac.signal, onPhase: setGenPhase,
       });
-      dispatch({ type: "loadDoc", doc: carryBrandKit(doc, prevDoc) });
+      // Flag palette (opt-in): an explicit Scope country, else one detected in the
+      // topic, tints the deck's accent/secondary from that country's flag (bg/ink
+      // stay readable). Applied AFTER carryBrandKit so it wins, and rethemed so the
+      // generated elements pick up the new accent. Deterministic, no extra cost.
+      let outDoc = carryBrandKit(doc, prevDoc);
+      if (flag !== false) {
+        const country = effectiveCountry(route && route.country, topic);
+        if (country) {
+          const next = flagBrand(country, outDoc.brand);
+          if (next.flagCountry && next.accent !== outDoc.brand.accent) {
+            outDoc = Object.assign({}, rethemeDoc(outDoc, outDoc.brand, next), { brand: next });
+          }
+        }
+      }
+      dispatch({ type: "loadDoc", doc: outDoc });
       // White-label: strip every LOATHR mark from the freshly generated deck so it
       // renders brand-free from the first frame (the prompt already kept the COPY
       // brand-free; this removes the template chrome marks).

@@ -15,8 +15,9 @@ import { PRESETS, activePreset } from "./presets";
 import {
   PenLine, FileText, X, ChevronDown, ChevronRight, Sparkles, Zap, ArrowLeft, RefreshCw,
   Scroll, Swords, KeyRound, Clapperboard, BarChart3, MessageCircle, Headphones, Shirt, Mic, Gem,
-  ArrowRightLeft, MapPin,
+  ArrowRightLeft, MapPin, Flag,
 } from "lucide-react";
+import { effectiveCountry } from "./flag";
 
 // Voice-id → lucide icon (voices.js stores the name; this maps it to a component
 // so the data module stays JSX-free). Rendered in the Voice picker.
@@ -116,6 +117,9 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   // Scope precedence: once the user acts on (or dismisses) the off-sector prompt,
   // suppress it until the topic / sector / desk changes, so it never nags.
   const [scopeDismissed, setScopeDismissed] = useState(false);
+  // Flag palette (opt-in, on by default): tint the deck from a country's flag when
+  // one is picked in Scope OR detected in the confirmed topic.
+  const [flagPalette, setFlagPalette] = useState(true);
 
   const pickDesk = (key) => {
     setDesk(key);
@@ -183,7 +187,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     const t = srcMode === "doc"
       ? ((docSrc && docSrc.name.replace(/\.[^.]+$/, "")) || "Your document")
       : topic.trim();
-    onGenerate({ style: desk, category: voice, topic: t, quickDraft, polish, ground: seed, slides, tone, voice: persona, sourceDoc, route: buildRoute(), unbranded });
+    onGenerate({ style: desk, category: voice, topic: t, quickDraft, polish, ground: seed, slides, tone, voice: persona, sourceDoc, route: buildRoute(), unbranded, flag: flagPalette });
   };
 
   // Load a dropped/picked document → extract its text (txt/md/pdf).
@@ -245,6 +249,9 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   const switchSector = (key) => { setBeat(key); setScopeDismissed(true); };
   const keepRegionOnly = () => { setBeat(null); setScopeDismissed(true); };
   const forceSector = () => setScopeDismissed(true);
+  // The country whose flag will tint the deck: an explicit Scope country wins,
+  // else one detected in the confirmed topic (or the typed topic for a live hint).
+  const flagCountry = effectiveCountry(country, srcMode === "topic" ? (refineDecided || topic) : "");
 
   return (
     <div style={screen}>
@@ -335,6 +342,17 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
               {/* Refine affordance — the refiner opens automatically as you type. */}
               <span style={refineHint(!!topic.trim())}><Sparkles size={12} /> Refine</span>
             </div>
+            {flagCountry && (
+              <div style={flagChip(flagPalette)}>
+                <Flag size={13} style={{ flexShrink: 0 }} />
+                {flagPalette
+                  ? <span>Flag palette · <b>{flagCountry}</b> — deck tinted from its flag</span>
+                  : <span>Detected <b>{flagCountry}</b> — use its flag colours?</span>}
+                <button type="button" onClick={() => setFlagPalette((v) => !v)} style={flagChipBtn(flagPalette)}>
+                  {flagPalette ? "Turn off" : "Use it"}
+                </button>
+              </div>
+            )}
             {showScopePrompt && (
               <div style={scopePrompt}>
                 <div style={scopePromptTop}>
@@ -610,6 +628,19 @@ const topicInput = {
   background: "#1d1d21", color: "#fff", border: "1px solid #3a3a42", borderRadius: 10,
   textAlign: "center", outline: "none",
 };
+// Flag-palette chip under the topic — active (deck tinted) vs an enable nudge.
+function flagChip(on) {
+  return { display: "flex", alignItems: "center", gap: 8, width: "100%", marginTop: 10, padding: "8px 12px",
+    borderRadius: 9, fontSize: 11.5, textAlign: "left",
+    background: on ? "#141a14" : "#141417", border: "1px solid " + (on ? "#2f4a2f" : "#2a2a30"),
+    color: on ? "#a8d8a8" : "#b6b6be" };
+}
+function flagChipBtn(on) {
+  return { marginLeft: "auto", flexShrink: 0, fontSize: 10.5, fontWeight: 700, cursor: "pointer",
+    borderRadius: 6, padding: "4px 9px",
+    background: on ? "transparent" : "#26262e", color: on ? "#8a8a92" : "#dcdce2",
+    border: "1px solid " + (on ? "#2a2a30" : "#3a3a42") };
+}
 // The "Refine" affordance pinned inside the topic box (the refiner auto-opens).
 const refineHint = (on) => ({
   position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
