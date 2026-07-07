@@ -462,7 +462,7 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
               <div style={{
                 position: "absolute", left: gbox.x * scale, top: gbox.y * scale,
                 width: gbox.w * scale, height: gbox.h * scale,
-                border: "1.5px dashed " + UI.select, boxSizing: "border-box", pointerEvents: "none",
+                border: "1px dashed " + UI.select, boxSizing: "border-box", pointerEvents: "none",
               }} />
               <GroupBar box={gbox} scale={scale} count={selectedIds.length} anyGrouped={anyGrouped} dispatch={dispatch} />
             </>
@@ -541,7 +541,10 @@ function roundBox(b) {
 }
 
 function SelectionOverlay({ el, scale, onHandleDown, cropMode }) {
-  const HS = 11; // handle screen size px
+  const HS = 6; // handle screen size px (slim)
+  // On a very thin element the mid-edge handles stack on the corners and read as
+  // chunky blue tabs — drop them there (there's nothing to grab from a 10px side).
+  const thin = Math.min(el.w, el.h) * scale < 22;
   const box = {
     position: "absolute",
     left: el.x * scale,
@@ -550,7 +553,7 @@ function SelectionOverlay({ el, scale, onHandleDown, cropMode }) {
     height: el.h * scale,
     transform: "rotate(" + (el.rotation || 0) + "deg)",
     transformOrigin: "center center",
-    border: "1.5px solid " + UI.select,
+    border: "1px solid " + UI.select,
     pointerEvents: "none",
     boxSizing: "border-box",
   };
@@ -565,8 +568,10 @@ function SelectionOverlay({ el, scale, onHandleDown, cropMode }) {
     // so dragging an edge reframes (pull in/out) while the interior still pans.
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: cropMode ? 24 : undefined }}>
       <div style={box} />
-      {/* resize handles */}
+      {/* resize handles — mid-edge ones (sx===0 || sy===0) drop out when the
+          element is too thin to resize from a side. */}
       {HANDLES.map((h, i) => {
+        if (thin && (h.sx === 0 || h.sy === 0)) return null;
         const p = handlePoint(el, h.sx, h.sy);
         return (
           <div
@@ -577,7 +582,7 @@ function SelectionOverlay({ el, scale, onHandleDown, cropMode }) {
               left: p.x * scale - HS / 2,
               top: p.y * scale - HS / 2,
               width: HS, height: HS,
-              background: "#fff", border: "1.5px solid " + UI.select, borderRadius: 2,
+              background: "#fff", border: "1px solid " + UI.select, borderRadius: 2,
               cursor: cursorFor(h, el.rotation), pointerEvents: "auto", boxSizing: "border-box",
             }}
           />
@@ -588,10 +593,10 @@ function SelectionOverlay({ el, scale, onHandleDown, cropMode }) {
         onPointerDown={(e) => { e.stopPropagation(); onHandleDown("rotate", el.id, e.clientX, e.clientY); }}
         style={{
           position: "absolute",
-          left: rot.x * scale - 7,
-          top: rot.y * scale - 7,
-          width: 14, height: 14, borderRadius: "50%",
-          background: "#fff", border: "1.5px solid " + UI.select,
+          left: rot.x * scale - 6,
+          top: rot.y * scale - 6,
+          width: 12, height: 12, borderRadius: "50%",
+          background: "#fff", border: "1px solid " + UI.select,
           cursor: "grab", pointerEvents: "auto", boxSizing: "border-box",
         }}
       />}
