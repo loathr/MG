@@ -4,7 +4,7 @@
 // Artboard (client px -> artboard units via the fit scale).
 // ============================================================================
 
-const MIN_SIZE = 16;
+const MIN_SIZE = 2; // resize floor — small enough that a shape can shrink to a hairline / vanish
 
 export function deg2rad(d) { return (d * Math.PI) / 180; }
 export function rad2deg(r) { return (r * 180) / Math.PI; }

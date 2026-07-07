@@ -113,7 +113,9 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
       // is dragged along by the same delta.
       dispatch({ type: "move", id: d.id, x: Math.round(snapped.x), y: Math.round(snapped.y), coalesce: true });
     } else if (d.mode === "resize") {
-      const box0 = geoResize(d.startEl, d.handle.sx, d.handle.sy, p, { min: 16 });
+      // min:2 lets a shape shrink to a hairline / vanish; text & image re-clamp to
+      // their own sensible floors in scaleTextResize / imageCornerResize below.
+      const box0 = geoResize(d.startEl, d.handle.sx, d.handle.sy, p, { min: 2 });
       const isCorner = d.handle.sx !== 0 && d.handle.sy !== 0;
       if (d.startEl.type === "text" && isCorner && !d.startEl.rotation) {
         // Font-aware: a corner scales the type (+ box + tracking) proportionally;
@@ -130,7 +132,7 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
         // held or the element is rotated (guides assume axis-aligned, like snapMove).
         let box = box0;
         if (!noSnap && !d.startEl.rotation) {
-          const sn = snapResize(box0, d.handle.sx, d.handle.sy, { w: ARTBOARD_W, h: ARTBOARD_H }, d.siblings, 8, 16);
+          const sn = snapResize(box0, d.handle.sx, d.handle.sy, { w: ARTBOARD_W, h: ARTBOARD_H }, d.siblings, 8, 2);
           setGuides(sn.guides);
           box = sn;
         } else setGuides([]);
