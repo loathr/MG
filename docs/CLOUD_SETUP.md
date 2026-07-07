@@ -73,9 +73,32 @@ service cloud.firestore {
       allow read:   if true;
       allow write:  if request.auth != null;
     }
+    // Live presence (collab): each open editor's cursor/selection/name. Signed-in
+    // users only, and you may only write a record that claims YOUR OWN uid (no
+    // impersonating another peer's name/colour). Ephemeral + cosmetic — never the
+    // deck content. Reads are any signed-in member of the workspace.
+    match /presence/{deckId}/peers/{sessionId} {
+      allow read:   if request.auth != null;
+      allow write:  if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null;
+    }
+    // Live edit stream (collab): the append-only op log. Signed-in users only, and a
+    // batch must be stamped with a `from` session id — so anonymous share-link
+    // editors CANNOT inject ops here (they persist via the server /api/shared write,
+    // which the Admin SDK does, bypassing rules). Append-only: no updates/deletes.
+    match /edits/{deckId}/stream/{batchId} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.from is string;
+      allow update, delete: if false;
+    }
   }
 }
 ```
+> Baseline for a trusted workspace: any signed-in member can read/write presence
+> and edits. To lock collaboration to a specific deck's members, AND in a check
+> that the deck is actually shared, e.g. `exists(/databases/$(database)/documents/shares/$(deckId))`,
+> and consider a **TTL policy** on the `edits/{deckId}/stream` collection (on the
+> `ts` field) so the op log auto-reaps instead of growing unbounded.
 Roles ride as a `role` custom claim (`viewer`/`editor`/`admin`) set via
 `POST /api/admin/role`. **Bootstrap the first admin is AUTOMATIC:** set
 `BOOTSTRAP_ADMIN_UID` to your uid (Production env) → redeploy → sign in. The app
