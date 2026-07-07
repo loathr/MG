@@ -811,7 +811,7 @@ export default function Studio() {
             brand={state.doc.brand}
             onApply={(layout) => dispatch({ type: "setLayout", layout })}
             onApplyAll={(layout) => dispatch({ type: "setLayout", layout, all: true })}
-            onReset={() => doReset(false)}
+            onReset={() => doReset(true)}
             onClose={() => setActivePanel(null)}
           />
         )}
