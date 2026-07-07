@@ -109,23 +109,9 @@ export default function RefinePanel({ topic, decided, scope, onPickAngle, onPick
           </button>
         ))}
       </div>
-      {(loading || items.length > 0) && (
-        <>
-          <div style={{ ...vlab, marginTop: 14 }}>Related &amp; recent <span style={opt}>— live from free feeds{data && data.scope && data.scope.place ? " · " + data.scope.place : ""}</span></div>
-          {loading && !items.length ? (
-            <div style={relNote}>Checking what&apos;s current…</div>
-          ) : (
-            <div style={relWrap}>
-              {items.map((it, i) => (
-                <button key={i} type="button" onClick={() => onPickTopic(it.title)} style={relItem} title={"Use: " + it.title}>
-                  <span style={relTitle}>{it.title}</span>
-                  <span style={relSrc}>{it.source || "feed"}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </>
-      )}
+      {/* "Related & recent" now lives in the single Trending & related rail below
+          (one surface, one scope) — not duplicated here. The fetch above still runs
+          to supply the virality signals used once a topic is decided. */}
     </div>
   );
 }

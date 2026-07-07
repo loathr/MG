@@ -280,16 +280,61 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
           <button type="button" onClick={() => setSrcMode("topic")} style={modeBtn(srcMode === "topic")}><PenLine size={14} /> Topic</button>
           <button type="button" onClick={() => setSrcMode("doc")} style={modeBtn(srcMode === "doc")}><FileText size={14} /> From a document</button>
         </div>
+        {/* Scope (all desks) — sits directly ABOVE the topic so the sector/region
+            context is set BEFORE you type or pick a topic, and everything below
+            (refiner, the merged Trending & related rail, generation) is scoped by
+            it. Urgency is News-only. */}
+        <div style={{ width: "100%", marginBottom: 12, textAlign: "left" }}>
+          <div style={scopeLab}>Scope <span style={opt}>— optional · sector · region · country</span></div>
+          <div style={scopeRow}>
+            <div style={{ flex: 1.2, minWidth: 0 }}><RouteSelect desk={desk} value={beat} onChange={setBeat} hideLabel /></div>
+            <select value={region || "global"} onChange={(e) => pickRegion(e.target.value)} style={scopeSel(false)} title="Region">
+              {REGIONS.map((r) => <option key={r.id} value={r.id}>{r.id === "global" ? "Global" : r.label}</option>)}
+            </select>
+            {region && region !== "global" && (
+              <select value={country || ""} onChange={(e) => setCountry(e.target.value || null)} style={scopeSel(!!country)} title="Country (sub-region)">
+                <option value="">All of {(REGIONS.find((r) => r.id === region) || {}).label}</option>
+                {countriesForRegion(region).map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            )}
+          </div>
+          {shownSeeds.length > 0 && (
+            <div style={seedRow}>
+              <span style={seedCue}>Try</span>
+              {shownSeeds.map((s) => (
+                <button key={s} type="button" onClick={() => { setTopic(s); setSeed(null); setRefineDecided(null); }} style={seedChip}>{s}</button>
+              ))}
+              {allSeeds.length > 3 && (
+                <button type="button" onClick={() => setSeedRot((r) => r + 1)} style={seedRefresh} title="More suggestions">
+                  <RefreshCw size={12} />
+                </button>
+              )}
+            </div>
+          )}
+          {desk === "newsdesk" && (
+            <div style={urgRow}>
+              {URGENCY.map((u) => (
+                <button key={u.id} type="button" onClick={() => pickUrgency(u.id)} style={urgChip(urgency === u.id, u.id)}>
+                  <span style={urgDot(u.id)} />{u.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {srcMode === "topic" ? (
           <>
-            <input
-              value={topic}
-              onChange={(e) => { setTopic(e.target.value); setSeed(null); setRefineDecided(null); }}
-              onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-              placeholder="Type a topic — or open Trending below"
-              autoFocus
-              style={topicInput}
-            />
+            <div style={{ position: "relative", width: "100%" }}>
+              <input
+                value={topic}
+                onChange={(e) => { setTopic(e.target.value); setSeed(null); setRefineDecided(null); }}
+                onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+                placeholder="Type a topic — or pick one from the rail below"
+                autoFocus
+                style={topicInput}
+              />
+              {/* Refine affordance — the refiner opens automatically as you type. */}
+              <span style={refineHint(!!topic.trim())}><Sparkles size={12} /> Refine</span>
+            </div>
             {showScopePrompt && (
               <div style={scopePrompt}>
                 <div style={scopePromptTop}>
@@ -337,6 +382,10 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             {docErr ? <div style={docErrBox}>{docErr}</div> : null}
           </div>
         )}
+        {/* One scoped rail directly under the topic: browse Trending when nothing's
+            typed, "Trending & related" (topic-seeded) once a topic is present —
+            the merge of the old Trending pill + the refiner's related list. */}
+        <TrendingPanel onPick={pickTrending} desk={desk} beat={beat} onBeat={setBeat} region={region} country={country} urgency={urgency} topic={srcMode === "topic" ? topic : ""} />
         {/* Quick start — curated presets + the 8 angle-seeds, collapsed by default. */}
         <button type="button" onClick={() => setQsOpen((v) => !v)} style={qsToggle}>
           {qsOpen ? <ChevronDown size={14} style={{ verticalAlign: "-2px" }} /> : <ChevronRight size={14} style={{ verticalAlign: "-2px" }} />} Quick start
@@ -406,48 +455,6 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             )}
           </div>
         </div>
-        {/* Scope (all desks): sector + region + country on ONE line — scope the
-            live pull AND frame generation, paired with the sector. Urgency is
-            News-only. */}
-        <div style={{ width: "100%", marginTop: 14, textAlign: "left" }}>
-          <div style={scopeLab}>Scope <span style={opt}>— optional · sector · region · country</span></div>
-          <div style={scopeRow}>
-            <div style={{ flex: 1.2, minWidth: 0 }}><RouteSelect desk={desk} value={beat} onChange={setBeat} hideLabel /></div>
-            <select value={region || "global"} onChange={(e) => pickRegion(e.target.value)} style={scopeSel(false)} title="Region">
-              {REGIONS.map((r) => <option key={r.id} value={r.id}>{r.id === "global" ? "Global" : r.label}</option>)}
-            </select>
-            {region && region !== "global" && (
-              <select value={country || ""} onChange={(e) => setCountry(e.target.value || null)} style={scopeSel(!!country)} title="Country (sub-region)">
-                <option value="">All of {(REGIONS.find((r) => r.id === region) || {}).label}</option>
-                {countriesForRegion(region).map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            )}
-          </div>
-          {shownSeeds.length > 0 && (
-            <div style={seedRow}>
-              <span style={seedCue}>Try</span>
-              {shownSeeds.map((s) => (
-                <button key={s} type="button" onClick={() => { setTopic(s); setSeed(null); }} style={seedChip}>{s}</button>
-              ))}
-              {allSeeds.length > 3 && (
-                <button type="button" onClick={() => setSeedRot((r) => r + 1)} style={seedRefresh} title="More suggestions">
-                  <RefreshCw size={12} />
-                </button>
-              )}
-            </div>
-          )}
-          {desk === "newsdesk" && (
-            <div style={urgRow}>
-              {URGENCY.map((u) => (
-                <button key={u.id} type="button" onClick={() => pickUrgency(u.id)} style={urgChip(urgency === u.id, u.id)}>
-                  <span style={urgDot(u.id)} />{u.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <TrendingPanel onPick={pickTrending} desk={desk} beat={beat} onBeat={setBeat} region={region} country={country} urgency={urgency} />
-
         {/* Options — opt-in; the default path never opens it. Holds voice/tone (+
             desk framing), the white-label toggle, and quick-draft. */}
         <button type="button" onClick={() => setAdvanced((v) => !v)} style={advToggle}>
@@ -599,10 +606,17 @@ function voiceLine(on) {
 }
 
 const topicInput = {
-  width: "100%", height: 52, padding: "0 18px", fontSize: 17,
+  width: "100%", height: 52, padding: "0 92px", fontSize: 17,
   background: "#1d1d21", color: "#fff", border: "1px solid #3a3a42", borderRadius: 10,
   textAlign: "center", outline: "none",
 };
+// The "Refine" affordance pinned inside the topic box (the refiner auto-opens).
+const refineHint = (on) => ({
+  position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+  display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700,
+  color: on ? UI.onBrand : "#7c7c84", background: on ? UI.brand : "transparent",
+  border: on ? "none" : "1px solid #33333c", borderRadius: 7, padding: "4px 9px", pointerEvents: "none",
+});
 // --- source mode (Topic / Document) + Voice/Tone pickers ---
 const modeRow = { display: "flex", gap: 6, background: "#141417", border: "1px solid #26262c", borderRadius: 11, padding: 5, margin: "0 auto 12px", width: "max-content" };
 const modeBtn = (on) => ({ padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none", background: on ? "#26262e" : "transparent", color: on ? "#fff" : "#8a8a90", display: "inline-flex", alignItems: "center", gap: 6 });

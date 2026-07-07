@@ -10,8 +10,11 @@ import { TrendingUp, ChevronDown, ChevronRight, RefreshCw, MapPin, Flame } from 
 // card fills the topic and sets the matching voice (tie-back). Reskins lightly
 // to the current desk: monochrome thumbnails for Enterprise, serif titles for
 // News Desk. Zero Claude credits.
-export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, region, country, urgency }) {
-  const [open, setOpen] = useState(false);
+export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, region, country, urgency, topic }) {
+  const [open, setOpen] = useState(true);
+  // A topic in the box turns this into the "Trending & related" rail (topic-seeded,
+  // scoped, via /api/refine) instead of the beat browse; empty → browse Trending.
+  const q = (topic || "").trim();
   // The beat is owned by the create screen's route dropdown (shared state). When
   // the route is "Any" (null) we still browse the desk's first beat so the rail
   // has something to show; changing it here sets the route too.
@@ -30,50 +33,58 @@ export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, r
     const ac = new AbortController();
     abortRef.current = ac;
     setLoading(true); setError("");
-    // Region + urgency (News-desk secondary route, Tier 2b) scope/recency-filter
-    // the live pull server-side; omitted when unset (other desks).
-    const params = "?beat=" + encodeURIComponent(beat)
-      + (region ? "&region=" + encodeURIComponent(region) : "")
-      + (country ? "&country=" + encodeURIComponent(country) : "")
-      + (urgency ? "&urgency=" + encodeURIComponent(urgency) : "")
-      + (fresh ? "&fresh=1" : "");
-    fetch("/api/trending" + params, { signal: ac.signal })
+    // Region scopes both routes; urgency is trending-only. Omitted when unset.
+    const sc = (region && region !== "global" ? "&region=" + encodeURIComponent(region) : "")
+      + (country ? "&country=" + encodeURIComponent(country) : "");
+    // Topic present → /api/refine for what's RELATED & recent to it (scoped);
+    // none → /api/trending browse for the beat/scope.
+    const url = q
+      ? "/api/refine?topic=" + encodeURIComponent(q) + sc + (routeBeat ? "&beat=" + encodeURIComponent(routeBeat) : "")
+      : "/api/trending?beat=" + encodeURIComponent(beat) + sc
+        + (urgency ? "&urgency=" + encodeURIComponent(urgency) : "") + (fresh ? "&fresh=1" : "");
+    fetch(url, { signal: ac.signal })
       .then((r) => r.json())
       .then((d) => {
         if (ac.signal.aborted) return;
         setItems(Array.isArray(d.items) ? d.items : []);
-        setScope(d.scope || null);
+        // Normalise the scope note across the two route shapes.
+        setScope(q
+          ? (d.scope && d.scope.place ? { requested: d.scope.place, sourced: true, hubs: 0 } : null)
+          : (d.scope || null));
         if (d.error) setError(d.error);
         setLoading(false);
       })
-      .catch(() => { if (!ac.signal.aborted) { setError("Couldn't reach the trending feeds."); setLoading(false); } });
+      .catch(() => { if (!ac.signal.aborted) { setError("Couldn't reach the feeds."); setLoading(false); } });
   };
 
   useEffect(() => {
     if (!open) return undefined;
-    load(false);
-    return () => { if (abortRef.current) abortRef.current.abort(); };
+    // Debounced so typing a topic doesn't refetch on every keystroke; the routes
+    // also cache 30 min server-side.
+    const t = setTimeout(() => load(false), 350);
+    return () => { clearTimeout(t); if (abortRef.current) abortRef.current.abort(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, beat, region, country, urgency]);
+  }, [open, beat, region, country, urgency, q]);
 
   // Carry the card's summary + source as a grounding seed (R5) so generation is
   // built on the actual story, not just its title — plus the beat itself as the
   // route, so a picked card keeps paying off into generation.
-  const pick = (it) => { onPick(it.title, beatVoice(beat), { extract: it.extract || "", source: it.source || "" }, beat); setOpen(false); };
+  // Picking a card fills the topic; the rail stays open and flips to "related".
+  const pick = (it) => { onPick(it.title, beatVoice(beat), { extract: it.extract || "", source: it.source || "" }, beat); };
 
   const mono = desk === "enterprise";
   const serif = desk === "newsdesk";
 
   return (
     <div style={{ width: "100%", marginTop: 16, display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <button type="button" onClick={() => setOpen((o) => !o)} style={cue} title="Live trending topics — free sources, no credits used">
-        <TrendingUp size={14} style={{ color: "#5aa6ff" }} /> Trending {open ? <ChevronDown size={13} style={{ color: "#6a6a73" }} /> : <ChevronRight size={13} style={{ color: "#6a6a73" }} />}
+      <button type="button" onClick={() => setOpen((o) => !o)} style={cue} title="Live topics — free sources, no credits used">
+        <TrendingUp size={14} style={{ color: "#5aa6ff" }} /> {q ? "Trending & related" : "Trending"} {open ? <ChevronDown size={13} style={{ color: "#6a6a73" }} /> : <ChevronRight size={13} style={{ color: "#6a6a73" }} />}
       </button>
 
       {open && (
         <div style={panel}>
           <div style={phead}>
-            <span style={ptitle}><TrendingUp size={14} style={{ color: "#5aa6ff" }} /> Trending now</span>
+            <span style={ptitle}><TrendingUp size={14} style={{ color: "#5aa6ff" }} /> {q ? "Trending & related" : "Trending now"}</span>
             <button type="button" onClick={() => load(true)} style={refreshBtn} disabled={loading} title="Pull the latest"><RefreshCw size={13} /> Refresh</button>
           </div>
           <div style={ddRow}>
@@ -116,7 +127,7 @@ export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, r
               ))}
             </div>
           ) : (
-            <div style={note}>{error || "Nothing trending right now — type your own topic above."}</div>
+            <div style={note}>{error || (q ? "No related coverage yet — your topic still works." : "Nothing trending right now — type a topic above.")}</div>
           )}
 
           <div style={foot}>Live from free sources (Wikipedia + news feeds) · no credits used</div>
