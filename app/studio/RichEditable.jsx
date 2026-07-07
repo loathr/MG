@@ -115,7 +115,9 @@ function RichEditable({ el, textStyle, onCommitText, onEndEdit, onTextSelect, on
         onEndEdit();
       }}
       onKeyDown={(e) => {
-        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.blur(); }
+        // Enter now inserts a line break (newlines render via white-space:pre-wrap
+        // and the run parser); commit with Cmd/Ctrl+Enter or by clicking away.
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); }
         else if (e.key === "Escape") { e.preventDefault(); cancelledRef.current = true; e.currentTarget.blur(); }
         e.stopPropagation();
       }}

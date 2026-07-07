@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { styledRuns, isUniformText } from "./model";
+import { styledRuns, isUniformText, applyCase } from "./model";
 
 // Render a text element's content as styled RUNS — each contiguous span carries
 // its own colour / weight / italic / strike / background / outline (see
@@ -11,7 +11,7 @@ import { styledRuns, isUniformText } from "./model";
 // background/outline) we return the raw string so the container's own CSS covers
 // it — keeping the common case byte-for-byte as before.
 export default function RichText({ el }) {
-  if (isUniformText(el)) return el.content;
+  if (isUniformText(el)) return applyCase(el.content, el.textCase);
   const spans = styledRuns(el);
   return spans.map((s, i) => <span key={i} style={spanStyle(s)}>{s.text}</span>);
 }

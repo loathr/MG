@@ -406,9 +406,26 @@ function overlayToRuns(ov) {
 // cover the WHOLE string — what the renderers draw. One span when there are no
 // runs/marker. Each span: { text, color, fontWeight, italic, strike, strikeColor,
 // bg, stroke, strokeWidth }.
+// Non-destructive text-case transform for a text element's DISPLAYED string.
+// upper/lower/title are LENGTH-PRESERVING, so run/override offsets stay valid and
+// it can be applied at render time in every renderer (parity) without ever
+// mutating el.content. Unknown/empty case → the text unchanged.
+export function applyCase(text, kase) {
+  const s = String(text == null ? "" : text);
+  if (kase === "upper") return s.toUpperCase();
+  if (kase === "lower") return s.toLowerCase();
+  if (kase === "title") return s.toLowerCase().replace(/(^|[\s\-/([{"'])(\p{L})/gu, (_, p, c) => p + c.toUpperCase());
+  return s;
+}
+
 export function styledRuns(el) {
   const base = elementBaseStyle(el);
-  const { content, ov } = charOverrides(el);
+  const raw = charOverrides(el);
+  // Apply the element's textCase to the displayed content (length-preserving, so
+  // the per-char overrides still line up). RichText's uniform fast path applies the
+  // same transform, so case is identical live / thumbnail / export.
+  const content = applyCase(raw.content, el && el.textCase);
+  const ov = raw.ov;
   if (!content.length) return [];
   const spans = [];
   let i = 0;

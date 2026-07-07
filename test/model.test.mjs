@@ -9,7 +9,7 @@ import {
   styledRuns, applyRunStyle, clearRunStyle, remapRuns, isUniformText, elementBaseStyle, highlightOffsets,
   bakeHighlight, bakeDocHighlights, clearHighlightRuns, correctionSite, applyCorrectionToDoc,
   applyRewriteToDoc, applyCoherenceFix, coherenceFixApplicable,
-  cropRect, imageTransform, cropAnchor, reframeCrop,
+  cropRect, imageTransform, cropAnchor, reframeCrop, applyCase,
 } from "../app/studio/model.js";
 
 test("cropRect: no crop = centred cover band; zoom shrinks the source window", () => {
@@ -476,4 +476,28 @@ test("reframe crop: same box round-trips to the original crop; grow past image c
   // Growing the frame far beyond what the image can cover at scale k clamps to 1.
   const big = reframeCrop(nat, anchor, { x: 40, y: 60, w: 4000, h: 3000 });
   assert.ok(big.zoom >= 1, "zoom never drops below 1");
+});
+
+test("applyCase: upper/lower/title are length-preserving and non-destructive", () => {
+  assert.equal(applyCase("The Turning Point", "upper"), "THE TURNING POINT");
+  assert.equal(applyCase("The Turning Point", "lower"), "the turning point");
+  assert.equal(applyCase("the turning POINT", "title"), "The Turning Point");
+  assert.equal(applyCase("x", null), "x");            // no case → unchanged
+  assert.equal(applyCase("café-bar", "title"), "Café-Bar"); // after hyphen too
+  // length preserved for every mode (keeps run offsets valid)
+  for (const k of ["upper", "lower", "title", null]) {
+    assert.equal(applyCase("Hello World 42!", k).length, "Hello World 42!".length, k);
+  }
+});
+
+test("styledRuns applies textCase to the displayed spans (renderer parity)", () => {
+  const el = makeElement("text", { content: "hello world", fontSize: 40, textCase: "upper" });
+  const spans = styledRuns(el);
+  assert.equal(spans.map((s) => s.text).join(""), "HELLO WORLD");
+  // runs offsets survive because case is length-preserving
+  const styled = makeElement("text", { content: "hello world", fontSize: 40, textCase: "title",
+    runs: [{ start: 0, end: 5, bold: true }] });
+  const sp = styledRuns(styled);
+  assert.equal(sp.map((s) => s.text).join(""), "Hello World");
+  assert.ok(sp[0].fontWeight >= 700, "the bolded run still maps to the first word");
 });

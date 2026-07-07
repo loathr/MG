@@ -224,6 +224,14 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
         )}
         <P2><NumField label="Line" value={round2(el.lineHeight || 1.1)} step={0.05} onChange={(n) => up({ lineHeight: n })} /><NumField label="Track" value={round2(el.letterSpacing || 0)} step={0.5} onChange={(n) => up({ letterSpacing: n })} /></P2>
         <div style={{ height: 8 }} />
+        {/* Non-destructive text case — applied at render, original text preserved. */}
+        <div style={caseRow}>
+          <span style={caseLab}>Case</span>
+          {[["upper", "AA", "UPPERCASE"], ["lower", "aa", "lowercase"], ["title", "Aa", "Title Case"], [null, "—", "Normal"]].map(([k, lab, ttl]) => (
+            <button key={ttl} type="button" title={ttl} onClick={() => up({ textCase: k })} style={caseBtn((el.textCase || null) === k)}>{lab}</button>
+          ))}
+        </div>
+        <div style={{ height: 8 }} />
         {/* Clear the element's text EFFECTS (background · outline) and restore
             Line/Track to defaults; the base text colour is left as-is. */}
         <WBtn onClick={() => up({ textBg: null, textStroke: null, textStrokeWidth: 0, lineHeight: 1.1, letterSpacing: 0 })}>
@@ -463,4 +471,11 @@ const pField = { flex: 1, height: 32, background: UI.surface2, border: "1px soli
 const pLab = { color: UI.muted, fontSize: 10, flexShrink: 0 };
 const pNum = { flex: 1, minWidth: 0, width: "100%", background: "transparent", border: "none", color: UI.text, fontSize: 12, textAlign: "right", outline: "none" };
 const pHint = { fontSize: 11, color: UI.muted, lineHeight: 1.45 };
+const caseRow = { display: "flex", alignItems: "center", gap: 6 };
+const caseLab = { fontSize: 11, color: UI.muted, width: 40, flexShrink: 0 };
+function caseBtn(on) {
+  return { flex: 1, height: 30, borderRadius: 7, cursor: "pointer", fontSize: 12.5, fontWeight: 700,
+    background: on ? UI.brand : UI.surface2, color: on ? UI.onBrand : UI.text,
+    border: "1px solid " + (on ? UI.brand : UI.border) };
+}
 const wBtn = { width: "100%", height: 32, borderRadius: 7, background: UI.surface2, border: "1px solid " + UI.border, color: UI.text, cursor: "pointer", fontSize: 12.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 };
