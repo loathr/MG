@@ -162,3 +162,25 @@ test("groupCollapsedByDefault: older months collapsed, recent open", () => {
   assert.equal(groupCollapsedByDefault(today), false);
   assert.equal(groupCollapsedByDefault(june), true);
 });
+
+test("collectImageData + rewriteImages cover slide.content.image (the re-flow source)", () => {
+  const DATA_C = "data:image/jpeg;base64,Q0M=";
+  const doc = {
+    brand: {},
+    slides: [{
+      background: { type: "color", color: "#000" },
+      elements: [],
+      // a feature/generated slide keeps its photo on content.image as a data URL
+      content: { heading: "H", image: { url: DATA_C, thumb: DATA_C, credit: "c", source: "s" } },
+    }],
+  };
+  // it's collected for offload
+  assert.ok(collectImageData(doc).includes(DATA_C), "content.image is collected");
+  // and rewritten to the uploaded URL (kept in lockstep with bg/elements)
+  const out = rewriteImages(doc, { [DATA_C]: "https://store/c.jpg" });
+  assert.equal(out.slides[0].content.image.url, "https://store/c.jpg");
+  assert.equal(out.slides[0].content.image.thumb, "https://store/c.jpg");
+  assert.equal(out.slides[0].content.image.credit, "c", "non-image fields preserved");
+  // no data: URL left behind → the doc no longer bloats past Firestore's cap
+  assert.equal(collectImageData(out).length, 0);
+});

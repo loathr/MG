@@ -75,6 +75,12 @@ export function collectImageData(doc) {
   for (const s of (doc && doc.slides) || []) {
     if (s.background) { add(s.background.src); add(s.background.thumb); }
     for (const e of s.elements || []) for (const f of IMG_FIELDS) add(e[f]);
+    // The slide's canonical photo (content.image) — the source re-flow reads to
+    // move the picture between background and feature element. It MUST be offloaded
+    // too, or its data: URL bloats the Firestore doc past the 1 MB cap (save fails,
+    // images vanish) and diverges from the offloaded background (a re-flow then
+    // shows a stale/broken URL). Same images dedupe by content, so this is free.
+    if (s.content && s.content.image) { add(s.content.image.url); add(s.content.image.thumb); }
   }
   if (doc && doc.brand && doc.brand.logo) add(doc.brand.logo.src);
   return [...set];
@@ -102,7 +108,13 @@ export function rewriteImages(doc, map) {
       for (const f of IMG_FIELDS) if (isDataUrl(e[f]) && map[e[f]]) { if (n === e) n = Object.assign({}, e); n[f] = map[e[f]]; }
       return n;
     });
-    return Object.assign({}, s, { background, elements });
+    // Keep content.image in lockstep with the offloaded background/element so a
+    // later re-flow uses the SAME (storage) URL — not a stale data: URL.
+    let content = s.content;
+    if (content && content.image && (isDataUrl(content.image.url) || isDataUrl(content.image.thumb))) {
+      content = Object.assign({}, s.content, { image: Object.assign({}, content.image, { url: sub(content.image.url), thumb: sub(content.image.thumb) }) });
+    }
+    return Object.assign({}, s, { background, elements, content });
   });
   let brand = doc.brand;
   if (brand && brand.logo && isDataUrl(brand.logo.src) && map[brand.logo.src]) {
