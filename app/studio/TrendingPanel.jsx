@@ -11,10 +11,13 @@ import { TrendingUp, ChevronDown, ChevronRight, RefreshCw, MapPin, Flame } from 
 // to the current desk: monochrome thumbnails for Enterprise, serif titles for
 // News Desk. Zero Claude credits.
 export default function TrendingPanel({ onPick, desk, beat: routeBeat, onBeat, region, country, urgency, topic }) {
-  const [open, setOpen] = useState(true);
+  // Collapsed on the empty landing (keeps the create screen to one screen), then
+  // auto-opens the moment a topic is typed to reveal "Trending & related".
+  const [open, setOpen] = useState(false);
   // A topic in the box turns this into the "Trending & related" rail (topic-seeded,
   // scoped, via /api/refine) instead of the beat browse; empty → browse Trending.
   const q = (topic || "").trim();
+  useEffect(() => { if (q) setOpen(true); }, [q]);
   // The beat is owned by the create screen's route dropdown (shared state). When
   // the route is "Any" (null) we still browse the desk's first beat so the rail
   // has something to show; changing it here sets the route too.

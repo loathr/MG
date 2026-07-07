@@ -264,8 +264,8 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             const on = desk === s.key;
             return (
               <button key={s.key} type="button" onClick={() => pickDesk(s.key)} style={card(on)} title={s.blurb}>
-                <div style={{ borderRadius: 5, overflow: "hidden", lineHeight: 0, width: 150, height: 92 }}>
-                  <StylePreview style={s} width={150} />
+                <div style={{ borderRadius: 5, overflow: "hidden", lineHeight: 0, width: 122, height: 74 }}>
+                  <StylePreview style={s} width={122} />
                 </div>
                 <div style={cardLabel(on)}>{s.label}</div>
                 <div style={voiceLine(on)}>{getCategory(DESK_VOICE[s.key]).label}</div>
@@ -274,7 +274,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
           })}
         </div>
 
-        <div style={{ ...label, marginTop: 18 }}>What&apos;s it about?</div>
+        <div style={{ ...label, marginTop: 12 }}>What&apos;s it about?</div>
         {/* Source mode — a short topic, or a full document the deck is built from */}
         <div style={modeRow}>
           <button type="button" onClick={() => setSrcMode("topic")} style={modeBtn(srcMode === "topic")}><PenLine size={14} /> Topic</button>
@@ -549,7 +549,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
 
 const screen = {
   position: "absolute", inset: 0, display: "grid", placeItems: "center",
-  overflow: "auto", padding: 24,
+  overflow: "auto", padding: "16px 24px",
   background: "radial-gradient(1100px 600px at 50% -10%, #0f0f0f 0%, #070707 55%, #000 100%)",
   fontFamily: "Helvetica, Arial, sans-serif",
 };
@@ -558,17 +558,17 @@ const col = { width: "100%", maxWidth: 660, display: "flex", flexDirection: "col
 const backBtn = { position: "absolute", left: 18, top: 16, zIndex: 5, display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 13px", background: "#1b1b1f", color: "#b6b6be", border: "1px solid #2a2a30", borderRadius: 8, fontSize: 12.5, cursor: "pointer" };
 // Wordmark uses the inherited Helvetica sans (the font "LOATHR STUDIO" used
 // before the loathrdotcom rename), not Courier — reverted per design.
-const brand = { fontSize: 13, letterSpacing: 4, color: "#cfcfcf", fontWeight: 700, marginBottom: 36 };
-const label = { fontSize: 13, letterSpacing: 1, color: "#8f8f97", marginBottom: 14, textTransform: "uppercase" };
-const gallery = { display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" };
+const brand = { fontSize: 13, letterSpacing: 4, color: "#cfcfcf", fontWeight: 700, marginBottom: 16 };
+const label = { fontSize: 12, letterSpacing: 1, color: "#8f8f97", marginBottom: 9, textTransform: "uppercase" };
+const gallery = { display: "flex", gap: 9, justifyContent: "center", flexWrap: "wrap" };
 // Length control (default-visible, dashed "NEW" box).
-const lenWrap = { width: "100%", maxWidth: 520, border: "1px dashed #3a3a42", borderRadius: 12, padding: 13, marginTop: 22, position: "relative" };
+const lenWrap = { width: "100%", maxWidth: 520, border: "1px dashed #3a3a42", borderRadius: 12, padding: 10, marginTop: 12, position: "relative" };
 const lenBadge = { position: "absolute", top: -9, left: 14, background: UI.brand, color: UI.onBrand, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, padding: "1px 7px", borderRadius: 5 };
-const lenLab = { fontSize: 10, letterSpacing: 1.2, color: "#8f8f97", textTransform: "uppercase", marginBottom: 10, textAlign: "center" };
+const lenLab = { fontSize: 10, letterSpacing: 1.2, color: "#8f8f97", textTransform: "uppercase", marginBottom: 7, textAlign: "center" };
 const lenRow = { display: "flex", gap: 9 };
 function lenBtn(on) {
   return {
-    flex: 1, height: 50, borderRadius: 8, cursor: "pointer",
+    flex: 1, height: 44, borderRadius: 8, cursor: "pointer",
     border: "1px solid " + (on ? UI.brand : UI.border), background: on ? UI.brand : UI.surface2,
     color: on ? UI.onBrand : "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
   };
@@ -591,22 +591,22 @@ const vHint = { fontSize: 11, color: "#7f7f87" };
 
 function card(on) {
   return {
-    display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-    padding: 7, width: 164, borderRadius: 9, cursor: "pointer",
+    display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+    padding: 6, width: 136, borderRadius: 9, cursor: "pointer",
     background: on ? "#222228" : "transparent",
     border: "1.5px solid " + (on ? UI.brand : "#2c2c32"),
     transition: "border-color 120ms, background 120ms",
   };
 }
 function cardLabel(on) {
-  return { fontSize: 13, fontWeight: 600, color: on ? "#fff" : "#d8d8d8", marginTop: 1 };
+  return { fontSize: 12.5, fontWeight: 600, color: on ? "#fff" : "#d8d8d8", marginTop: 1 };
 }
 function voiceLine(on) {
   return { fontSize: 9.5, letterSpacing: 0.4, fontWeight: 600, color: on ? UI.brandHi : "#6f6f78", textTransform: "uppercase" };
 }
 
 const topicInput = {
-  width: "100%", height: 52, padding: "0 92px", fontSize: 17,
+  width: "100%", height: 46, padding: "0 92px", fontSize: 16,
   background: "#1d1d21", color: "#fff", border: "1px solid #3a3a42", borderRadius: 10,
   textAlign: "center", outline: "none",
 };
@@ -618,8 +618,8 @@ const refineHint = (on) => ({
   border: on ? "none" : "1px solid #33333c", borderRadius: 7, padding: "4px 9px", pointerEvents: "none",
 });
 // --- source mode (Topic / Document) + Voice/Tone pickers ---
-const modeRow = { display: "flex", gap: 6, background: "#141417", border: "1px solid #26262c", borderRadius: 11, padding: 5, margin: "0 auto 12px", width: "max-content" };
-const modeBtn = (on) => ({ padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none", background: on ? "#26262e" : "transparent", color: on ? "#fff" : "#8a8a90", display: "inline-flex", alignItems: "center", gap: 6 });
+const modeRow = { display: "flex", gap: 6, background: "#141417", border: "1px solid #26262c", borderRadius: 11, padding: 4, margin: "0 auto 10px", width: "max-content" };
+const modeBtn = (on) => ({ padding: "7px 16px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", border: "none", background: on ? "#26262e" : "transparent", color: on ? "#fff" : "#8a8a90", display: "inline-flex", alignItems: "center", gap: 6 });
 const docZone = { width: "100%", background: "#141417", border: "1.5px dashed #3a3a44", borderRadius: 12, padding: 14, textAlign: "left" };
 const docTop = { display: "flex", alignItems: "center", gap: 10, marginBottom: 11 };
 const docBrowse = { background: "#26262b", border: "1px solid #36363c", color: "#dcdce2", borderRadius: 8, fontSize: 12, fontWeight: 600, padding: "8px 13px", cursor: "pointer", flexShrink: 0 };
@@ -627,8 +627,8 @@ const docPaste = { width: "100%", boxSizing: "border-box", minHeight: 100, backg
 const docChip = { display: "inline-flex", alignItems: "center", gap: 8, background: "#1c1c22", border: "1px solid #34343c", borderRadius: 9, padding: "8px 12px", marginTop: 11, fontSize: 12.5, color: "#cdbcff" };
 const docX = { background: "transparent", border: "none", color: "#8a8a90", cursor: "pointer", fontSize: 12, marginLeft: 4 };
 const docErrBox = { fontSize: 11.5, color: "#ffb3a6", marginTop: 9, lineHeight: 1.4 };
-const vtRow = { display: "flex", gap: 11, width: "100%", marginTop: 12, position: "relative", zIndex: 5 };
-const vtBtn = (accent) => ({ width: "100%", height: 54, background: accent ? "#16121f" : "#141417", border: "1px solid " + (accent ? "#3a2f5e" : "#26262c"), borderRadius: 11, display: "flex", alignItems: "center", padding: "0 15px", justifyContent: "space-between", cursor: "pointer" });
+const vtRow = { display: "flex", gap: 11, width: "100%", marginTop: 10, position: "relative", zIndex: 5 };
+const vtBtn = (accent) => ({ width: "100%", height: 46, background: accent ? "#16121f" : "#141417", border: "1px solid " + (accent ? "#3a2f5e" : "#26262c"), borderRadius: 11, display: "flex", alignItems: "center", padding: "0 15px", justifyContent: "space-between", cursor: "pointer" });
 const vtL = { display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-start", minWidth: 0 };
 const vtK = { fontSize: 9.5, color: "#7c7c84", letterSpacing: 1, textTransform: "uppercase" };
 const vtV = { fontSize: 14, color: "#eaeaea", fontWeight: 600, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6 };
@@ -669,8 +669,8 @@ const regionSelect = {
 const scopeLab = { fontSize: 10, letterSpacing: 1.2, color: "#6f6f78", textTransform: "uppercase", marginBottom: 9 };
 const scopeRow = { display: "flex", gap: 8, alignItems: "flex-start" };
 function scopeSel(active) {
-  return { flex: 1, minWidth: 0, height: 46, borderRadius: 10, background: UI.surface2,
-    border: "1px solid " + (active ? UI.brand : "#2c2c32"), color: "#f0f0f2", fontSize: 13, padding: "0 10px", cursor: "pointer" };
+  return { flex: 1, minWidth: 0, height: 42, borderRadius: 9, background: UI.surface2,
+    border: "1px solid " + (active ? UI.brand : "#2c2c32"), color: "#f0f0f2", fontSize: 13, padding: "0 11px", cursor: "pointer" };
 }
 const urgRow = { display: "flex", gap: 8, marginTop: 9 };
 // White-label create-page toggle (mirrors the Brand-panel one).
@@ -704,12 +704,12 @@ const lenAuto = {
   background: UI.brand, borderRadius: 4, padding: "1px 6px", fontWeight: 700,
 };
 const advToggle = {
-  marginTop: 22, background: "transparent", border: "none", color: "#8f8f97",
+  marginTop: 12, background: "transparent", border: "none", color: "#8f8f97",
   fontSize: 12.5, cursor: "pointer", letterSpacing: 0.3,
 };
 // Quick-start (presets + angle) collapsible.
 const qsToggle = {
-  marginTop: 14, background: "transparent", border: "none", color: "#c8c8ce",
+  marginTop: 10, background: "transparent", border: "none", color: "#c8c8ce",
   fontSize: 12.5, fontWeight: 600, cursor: "pointer", letterSpacing: 0.2, textAlign: "left", width: "100%",
 };
 const qsToggleSub = { color: "#7c7c84", fontWeight: 400 };
@@ -731,7 +731,7 @@ const qsClear = { marginLeft: "auto", fontSize: 11, color: "#8a8a92", background
 const errBox = { marginTop: 14, padding: "8px 12px", background: "#3a1f22", color: "#ff9a9a", fontSize: 13, borderRadius: 8 };
 function primary(disabled) {
   return {
-    marginTop: 22, height: 52, padding: "0 28px", minWidth: 260,
+    marginTop: 14, height: 48, padding: "0 28px", minWidth: 260,
     fontSize: 16, fontWeight: 700, letterSpacing: 0.3,
     background: disabled ? (UI.brand + "55") : UI.brand, color: UI.onBrand,
     border: "none", borderRadius: 12, cursor: disabled ? "default" : "pointer",
@@ -740,7 +740,7 @@ function primary(disabled) {
   };
 }
 const blankLink = {
-  marginTop: 16, background: "transparent", border: "none", color: "#8f8f97",
+  marginTop: 10, background: "transparent", border: "none", color: "#8f8f97",
   fontSize: 13, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3,
 };
 // A prominent, unmistakable cancel button while generating (was a faint red text

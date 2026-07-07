@@ -57,9 +57,9 @@ const lab = { fontSize: 10, letterSpacing: 1.2, color: UI.muted, textTransform: 
 const opt = { color: "#5c5c64", letterSpacing: 0.3, textTransform: "none" };
 function sel(open) {
   return {
-    width: "100%", height: 46, borderRadius: 10, background: UI.surface2,
+    width: "100%", height: 42, borderRadius: 9, background: UI.surface2,
     border: "1px solid " + (open ? "#3a3a42" : UI.border), display: "flex", alignItems: "center",
-    padding: "0 15px", gap: 10, cursor: "pointer",
+    padding: "0 13px", gap: 10, cursor: "pointer",
   };
 }
 const pre = { fontSize: 10, letterSpacing: 1, color: UI.muted, textTransform: "uppercase" };
