@@ -66,30 +66,64 @@ const iconBtn = (enabled) => ({
   opacity: enabled ? 1 : 0.4, cursor: enabled ? "pointer" : "default",
 });
 
-// Live-presence avatar stack (collab phase 1): one coloured chip per other editor
-// in the deck, with a green "live" dot. Nothing renders when you're alone. The chip
-// colour matches that peer's cursor + selection outline on the canvas.
-function PresenceAvatars({ peers }) {
+// Live-presence avatar stack (collab): one coloured chip per other editor, with a
+// green "live" dot. Hovering a chip opens a card (who + where) with Jump / Follow;
+// the followed peer's chip gets a coloured ring. Nothing renders when you're alone.
+function PresenceAvatars({ peers, slideCount, followId, onJump, onFollow }) {
+  const [openId, setOpenId] = useState(null);
   if (!peers || !peers.length) return null;
   const shown = peers.slice(0, 4);
   const extra = peers.length - shown.length;
   return (
-    <div style={{ display: "flex", alignItems: "center", marginRight: 8 }} title={peers.map((p) => p.name).join(", ") + " editing"}>
-      {shown.map((p, i) => (
-        <div key={p.id} style={{
-          width: 26, height: 26, borderRadius: "50%", background: p.color, color: "#0a0a0a",
-          border: "2px solid " + UI.surface, marginLeft: i ? -8 : 0, position: "relative",
-          display: "grid", placeItems: "center", fontSize: 10, fontWeight: 700,
-        }}>
-          {initials(p.name)}
-          <span style={{ position: "absolute", right: -1, bottom: -1, width: 7, height: 7, borderRadius: "50%", background: "#38d39f", border: "2px solid " + UI.surface }} />
-        </div>
-      ))}
+    <div style={{ display: "flex", alignItems: "center", marginRight: 8, position: "relative" }}>
+      {shown.map((p, i) => {
+        const following = followId === p.id;
+        return (
+          <div key={p.id} style={{ position: "relative" }} onMouseEnter={() => setOpenId(p.id)} onMouseLeave={() => setOpenId((cur) => (cur === p.id ? null : cur))}>
+            <button
+              onClick={() => onJump(p)}
+              title={"Jump to " + p.name + (p.slide != null ? " · slide " + (p.slide + 1) : "")}
+              style={{
+                width: 26, height: 26, borderRadius: "50%", background: p.color, color: "#0a0a0a",
+                border: "2px solid " + UI.surface, marginLeft: i ? -8 : 0, padding: 0, cursor: "pointer",
+                display: "grid", placeItems: "center", fontSize: 10, fontWeight: 700,
+                boxShadow: following ? "0 0 0 2px " + UI.surface + ", 0 0 0 4px " + p.color : "none",
+              }}
+            >
+              {initials(p.name)}
+              <span style={{ position: "absolute", right: -1, bottom: -1, width: 7, height: 7, borderRadius: "50%", background: "#38d39f", border: "2px solid " + UI.surface }} />
+            </button>
+            {openId === p.id && (
+              <div onMouseLeave={() => setOpenId(null)} style={{ position: "absolute", top: 32, right: 0, zIndex: 60, width: 190, background: "rgba(20,20,24,0.98)", border: "1px solid #34343c", borderRadius: 9, padding: 10, boxShadow: "0 10px 30px rgba(0,0,0,0.55)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 600, color: "#eee" }}>
+                  <span style={{ width: 9, height: 9, borderRadius: "50%", background: p.color }} />{p.name}
+                </div>
+                <div style={{ fontSize: 11, color: UI.muted, marginTop: 4 }}>
+                  {p.slide != null ? "On slide " + (p.slide + 1) + (slideCount ? " / " + slideCount : "") : "In the deck"}
+                  {p.editing ? " · editing" : (p.selection && p.selection.length ? " · " + p.selection.length + " selected" : "")}
+                </div>
+                <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                  <button onClick={() => { onJump(p); setOpenId(null); }} style={cardBtn(true, p.color)}>→ Jump</button>
+                  <button onClick={() => { onFollow(p); setOpenId(null); }} style={cardBtn(followId === p.id, p.color)}>{followId === p.id ? "Following" : "◎ Follow"}</button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
       {extra > 0 && (
-        <div style={{ width: 26, height: 26, borderRadius: "50%", background: UI.surface2, color: UI.muted, border: "2px solid " + UI.surface, marginLeft: -8, display: "grid", placeItems: "center", fontSize: 10, fontWeight: 700 }}>+{extra}</div>
+        <div title={peers.slice(4).map((p) => p.name).join(", ")} style={{ width: 26, height: 26, borderRadius: "50%", background: UI.surface2, color: UI.muted, border: "2px solid " + UI.surface, marginLeft: -8, display: "grid", placeItems: "center", fontSize: 10, fontWeight: 700 }}>+{extra}</div>
       )}
     </div>
   );
+}
+function cardBtn(active, color) {
+  return {
+    flex: 1, height: 26, borderRadius: 6, fontSize: 11, cursor: "pointer",
+    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+    background: active ? color : UI.surface2, color: active ? "#0a0a0a" : "#dcdce2",
+    border: "1px solid " + (active ? color : UI.border), fontWeight: active ? 600 : 400,
+  };
 }
 
 // Left tool rail (spec §5). Photos is wired; Text/Elements drop pre-styled
@@ -174,6 +208,47 @@ export default function Studio() {
   }, [state.selectedId, state.selectedIds, state.slideIndex, state.editingId, reportSelection]);
   // Live edit sync (phase 2): publish my doc changes as ops and apply peers'.
   useSync({ deckId: projectId, doc: state.doc, dispatch, editingId: state.editingId, enabled: collabOn });
+
+  // Jump-to-peer + Follow (collab). Clicking a peer's avatar jumps to their slide;
+  // Follow keeps you on their slide as they move, until you edit or navigate away.
+  const [followId, setFollowId] = useState(null);
+  const lastFollow = useRef(null);            // the slide index follow last drove us to
+  const followPeer = peers.find((p) => p.id === followId) || null;
+  const jumpToPeer = (peer) => {
+    if (!peer || peer.slide == null) return;
+    const i = Math.max(0, Math.min(peer.slide, state.doc.slides.length - 1));
+    lastFollow.current = i;
+    dispatch({ type: "setSlide", index: i });
+  };
+  const toggleFollow = (peer) => {
+    if (!peer) return;
+    if (followId === peer.id) { setFollowId(null); return; }
+    setFollowId(peer.id);
+    lastFollow.current = state.slideIndex;    // baseline so we don't self-drop
+    jumpToPeer(peer);
+  };
+  // Track the followed peer's slide.
+  useEffect(() => {
+    if (!followPeer || followPeer.slide == null) return;
+    const i = Math.max(0, Math.min(followPeer.slide, state.doc.slides.length - 1));
+    if (i !== state.slideIndex) { lastFollow.current = i; dispatch({ type: "setSlide", index: i }); }
+  }, [followPeer, followPeer && followPeer.slide, state.doc.slides.length]);
+  // Drop follow when I navigate away myself, start editing, or the peer leaves.
+  useEffect(() => {
+    if (followId && state.slideIndex !== lastFollow.current) setFollowId(null);
+  }, [state.slideIndex]);
+  useEffect(() => {
+    if (followId && state.editingId) setFollowId(null);
+  }, [state.editingId]);
+  useEffect(() => {
+    if (followId && !peers.some((p) => p.id === followId)) setFollowId(null);
+  }, [peers, followId]);
+  // Peers grouped by the slide they're on, for the strip badges.
+  const peersBySlide = React.useMemo(() => {
+    const m = {};
+    for (const p of peers) if (p.slide != null) (m[p.slide] = m[p.slide] || []).push(p);
+    return m;
+  }, [peers]);
 
   // Optional demo deck for the FLAT-LAYERS image-path proof: ?demo=photos9 jumps
   // straight into the editor. Client-only (avoids SSR mismatch) and runs once.
@@ -733,7 +808,7 @@ export default function Studio() {
         <span style={{ fontSize: 11, color: UI.muted, marginRight: 4 }}>
           {state.doc.slides.length} slide{state.doc.slides.length === 1 ? "" : "s"}
         </span>
-        <PresenceAvatars peers={peers} />
+        <PresenceAvatars peers={peers} slideCount={state.doc.slides.length} followId={followId} onJump={jumpToPeer} onFollow={toggleFollow} />
         <button
           style={{ ...hbtn, opacity: fc && fc.loading ? 0.6 : 1 }}
           disabled={!!(fc && fc.loading)}
@@ -917,6 +992,15 @@ export default function Studio() {
             onAiWrite={handleAiWrite}
             canPaste={!!state.clipboard}
           />
+          {followPeer && (
+            <div style={{ position: "fixed", top: 62, left: "50%", transform: "translateX(-50%)", zIndex: 55, display: "flex", alignItems: "center", gap: 10, background: "rgba(20,26,23,0.97)", border: "1px solid " + followPeer.color, borderRadius: 20, padding: "7px 8px 7px 14px", fontSize: 12, color: "#e6f5ee", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+                <span style={{ width: 9, height: 9, borderRadius: "50%", background: followPeer.color }} />
+                Following <strong style={{ margin: "0 1px", color: "#fff" }}>{followPeer.name}</strong>
+              </span>
+              <button onClick={() => setFollowId(null)} style={{ height: 24, padding: "0 10px", borderRadius: 12, background: "rgba(255,255,255,0.08)", border: "1px solid " + followPeer.color, color: "#dfeee7", fontSize: 11, cursor: "pointer" }}>✕ Stop</button>
+            </div>
+          )}
           <Artboard
             slide={slide}
             selectedId={state.selectedId}
@@ -943,6 +1027,7 @@ export default function Studio() {
                 active={i === state.slideIndex}
                 canDelete={state.doc.slides.length > 1}
                 dragFrom={dragFrom}
+                peersHere={peersBySlide[i]}
                 onSelect={() => dispatch({ type: "setSlide", index: i })}
                 onReorder={(from, to) => dispatch({ type: "moveSlide", from, to })}
                 onDuplicate={() => dispatch({ type: "duplicateSlide", index: i })}
@@ -1210,9 +1295,10 @@ const miniBtn = {
 
 // A slide thumbnail in the strip, wrapped with drag-to-reorder + hover
 // duplicate/delete controls (spec §5). Keeps SlideThumb itself presentational.
-function SlideStripItem({ slide, index, active, canDelete, dragFrom, onSelect, onReorder, onDuplicate, onDelete }) {
+function SlideStripItem({ slide, index, active, canDelete, dragFrom, peersHere, onSelect, onReorder, onDuplicate, onDelete }) {
   const [hover, setHover] = useState(false);
   const [over, setOver] = useState(false);
+  const here = peersHere || [];
   return (
     <div
       draggable
@@ -1229,9 +1315,17 @@ function SlideStripItem({ slide, index, active, canDelete, dragFrom, onSelect, o
       onDragEnd={() => { dragFrom.current = null; setOver(false); }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ position: "relative", flexShrink: 0, borderRadius: 6, outline: over ? "2px solid " + UI.brand : "none", outlineOffset: 1 }}
+      style={{ position: "relative", flexShrink: 0, borderRadius: 6, outline: over ? "2px solid " + UI.brand : (here.length ? "2px solid " + here[0].color : "none"), outlineOffset: 1 }}
     >
       <SlideThumb slide={slide} index={index} active={active} onClick={onSelect} />
+      {/* collab: which peers are on this slide right now */}
+      {here.length > 0 && (
+        <div style={{ position: "absolute", top: -7, right: -6, display: "flex", pointerEvents: "none" }}>
+          {here.slice(0, 3).map((p, k) => (
+            <span key={p.id} title={p.name} style={{ width: 16, height: 16, marginLeft: k ? -6 : 0, borderRadius: "50%", background: p.color, color: "#0a0a0a", border: "2px solid " + UI.surface, fontSize: 8, fontWeight: 700, display: "grid", placeItems: "center" }}>{initials(p.name)}</span>
+          ))}
+        </div>
+      )}
       {hover && (
         <div style={{ position: "absolute", top: 2, left: 2, right: 2, display: "flex", justifyContent: "space-between", pointerEvents: "none" }}>
           <button title="Duplicate slide" onClick={(e) => { e.stopPropagation(); onDuplicate(); }} style={miniBtn}>⧉</button>
