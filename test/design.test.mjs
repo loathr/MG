@@ -62,3 +62,25 @@ test("applyLook is a no-op with no look", () => {
   const t = { elements: [] };
   assert.equal(applyLook(t, null), t);
 });
+
+// --- Design prompt: designBrand + chips ------------------------------------
+import { designBrand, DESIGN_CHIPS } from "../app/studio/design.js";
+
+test("designBrand folds a spec onto the brand, ignoring empty fields", () => {
+  const prev = { accent: "#e23744", secondary: "#e23744", headFont: "Georgia", bg: "#0c0c0c" };
+  const next = designBrand(prev, { accent: "#3a86ff", headFont: "Fraunces", bogus: "x", empty: "" });
+  assert.equal(next.accent, "#3a86ff");
+  assert.equal(next.headFont, "Fraunces");
+  assert.equal(next.secondary, "#e23744", "untouched field kept");
+  assert.equal(next.bg, "#0c0c0c");
+  assert.equal("bogus" in next, false, "unknown keys ignored");
+  assert.notEqual(next, prev, "new object");
+});
+
+test("DESIGN_CHIPS are well-formed preset specs", () => {
+  assert.ok(DESIGN_CHIPS.length >= 3);
+  for (const c of DESIGN_CHIPS) {
+    assert.ok(c.id && c.label && c.spec, c.id + " complete");
+    if (c.spec.accent) assert.match(c.spec.accent, /^#[0-9a-f]{6}$/i);
+  }
+});

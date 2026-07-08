@@ -31,6 +31,7 @@ import { onAuthChange, signOutCloud, getUserRole, bootstrapAdmin, getIdToken } f
 import { saveDeck, loadDeck, listDecks, deleteDeck, restoreDeck, purgeDeck, watchSharePulse } from "./firebaseStore";
 import { partitionDecks } from "./cloud";
 import { isMember } from "./clientbrand";
+import { DESIGN_CHIPS } from "./design";
 import { exportSlide, exportSlides } from "./export";
 import { exportDeckToDrive } from "./driveExport";
 import { verifyDeck } from "./verify";
@@ -158,6 +159,23 @@ export default function Studio() {
   const [delNote, setDelNote] = useState(null);     // transient "moved to Recently deleted · Undo" toast
   const [designMenu, setDesignMenu] = useState(false); // header Design menu open?
   const [designNote, setDesignNote] = useState(null);  // transient "Design copied/applied" toast
+  const [designPrompt, setDesignPrompt] = useState(""); // free-text restyle prompt
+  const [designBusy, setDesignBusy] = useState(false);
+  // Restyle the whole deck from a free-text description (AI; counts against the
+  // monthly limit). The spec is applied deterministically + undoably client-side.
+  const runDesignPrompt = async () => {
+    const prompt = designPrompt.trim();
+    if (!prompt || designBusy) return;
+    setDesignBusy(true);
+    try {
+      const token = cloud && user ? await getIdToken() : null;
+      const r = await fetch("/api/design", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, token ? { Authorization: "Bearer " + token } : {}), body: JSON.stringify({ prompt }) });
+      const data = await r.json().catch(() => null);
+      if (r.ok && data && data.spec) { dispatch({ type: "applyDesign", spec: data.spec }); setDesignMenu(false); setDesignNote("Deck restyled"); setDesignPrompt(""); }
+      else setDesignNote((data && data.error) || "Couldn't restyle");
+    } catch (e) { setDesignNote("Couldn't restyle"); }
+    setDesignBusy(false);
+  };
   // Reset re-flows the slide's content into its layout in the current brand — a
   // visual no-op if the slide hasn't drifted, so it can feel like nothing happened.
   // A short confirmation makes the action legible; the reset itself is undoable.
@@ -868,10 +886,24 @@ export default function Studio() {
           {designMenu && (
             <>
               <div onClick={() => setDesignMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-              <div style={{ position: "absolute", left: 0, top: 38, width: 214, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 8, padding: 6, zIndex: 50, boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}>
+              <div style={{ position: "absolute", left: 0, top: 38, width: 252, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 8, padding: 6, zIndex: 50, boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}>
+                <div style={dmHead}>Copy design</div>
                 <button style={dmItem} onClick={() => { dispatch({ type: "copyDesign" }); setDesignNote("Design copied"); }}><Copy size={13} /> Copy this page&apos;s design</button>
                 <button style={{ ...dmItem, opacity: state.designClip ? 1 : 0.4, cursor: state.designClip ? "pointer" : "default" }} disabled={!state.designClip} onClick={() => { dispatch({ type: "pasteDesign" }); setDesignMenu(false); setDesignNote("Design applied to this page"); }}><ClipboardPaste size={13} /> Apply to this page</button>
                 <button style={{ ...dmItem, opacity: state.designClip ? 1 : 0.4, cursor: state.designClip ? "pointer" : "default" }} disabled={!state.designClip} onClick={() => { dispatch({ type: "pasteDesign", all: true }); setDesignMenu(false); setDesignNote("Design applied to all pages"); }}><CopyPlus size={13} /> Apply to all pages</button>
+                <div style={{ borderTop: "1px solid " + UI.border, margin: "6px 2px" }} />
+                <div style={dmHead}>Restyle the deck</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, padding: "2px 4px 8px" }}>
+                  {DESIGN_CHIPS.map((c) => (
+                    <button key={c.id} style={dmChip} onClick={() => { dispatch({ type: "applyDesign", spec: c.spec }); setDesignMenu(false); setDesignNote("Deck restyled · " + c.label); }}>{c.label}</button>
+                  ))}
+                </div>
+                <div style={{ padding: "0 4px 4px" }}>
+                  <input value={designPrompt} onChange={(e) => setDesignPrompt(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") runDesignPrompt(); }} placeholder="Describe a look…" style={{ width: "100%", height: 32, background: UI.surface, border: "1px solid " + UI.border, borderRadius: 6, color: "#ddd", fontSize: 12, padding: "0 9px" }} />
+                  <button style={{ ...dmItem, justifyContent: "center", background: "#26262b", marginTop: 5, opacity: designBusy || !designPrompt.trim() ? 0.5 : 1 }} disabled={designBusy || !designPrompt.trim()} onClick={runDesignPrompt}>
+                    <Palette size={13} /> {designBusy ? "Restyling…" : "Restyle from prompt"}
+                  </button>
+                </div>
               </div>
             </>
           )}
@@ -1258,6 +1290,8 @@ const dmItem = {
   width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 9px", background: "transparent",
   border: "none", borderRadius: 6, color: "#dcdce2", fontSize: 12.5, cursor: "pointer", textAlign: "left",
 };
+const dmHead = { fontSize: 9.5, letterSpacing: 1, textTransform: "uppercase", color: "#7c7c84", fontWeight: 700, padding: "5px 6px 4px" };
+const dmChip = { fontSize: 11, padding: "5px 9px", borderRadius: 12, background: "#26262b", border: "1px solid #36363c", color: "#cfcfcf", cursor: "pointer" };
 const driveToast = {
   position: "fixed", right: 18, bottom: 18, zIndex: 70, width: 260,
   background: "#161619", border: "1px solid #2f2f37", borderRadius: 11, padding: "12px 14px",

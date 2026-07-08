@@ -962,3 +962,14 @@ test("pasteDesign all paints every slide; no-op without a copied design", () => 
   s = reducer(s, { type: "pasteDesign", all: true });
   assert.equal(s.doc.slides[1].elements.find((e) => e.id === "H1").color, "#00ff00", "slide 1 adopted the look");
 });
+
+test("applyDesign restyles the deck brand + re-themes (undoable)", () => {
+  let s = initStudio();
+  const wm = makeElement("text", { id: "WM", role: "wordmark", content: "LOATHR", color: s.doc.brand ? s.doc.brand.accent : "#e23744" });
+  s = Object.assign({}, s, { doc: Object.assign({}, s.doc, { brand: brandFromStyle("editorial"), slides: [Object.assign({}, s.doc.slides[0], { elements: [Object.assign({}, wm, { color: brandFromStyle("editorial").accent }) ] })] }) });
+  const past = s.past.length;
+  s = reducer(s, { type: "applyDesign", spec: { accent: "#3a86ff" } });
+  assert.equal(s.doc.brand.accent, "#3a86ff", "brand accent updated");
+  assert.equal(s.doc.slides[0].elements[0].color, "#3a86ff", "on-brand element re-themed");
+  assert.equal(s.past.length, past + 1, "undoable");
+});

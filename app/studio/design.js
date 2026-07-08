@@ -55,3 +55,25 @@ export function applyLook(slide, look) {
   if (look.frame != null) out.frame = look.frame;
   return out;
 }
+
+// ---- Design prompt: restyle the deck from a spec ---------------------------
+// A "design spec" is a small palette/type change: { accent, secondary, bg, ink,
+// labelFont, headFont, bodyFont, wordmark }. The store folds it onto the brand and
+// re-themes (rethemeDoc). Quick preset directions are deterministic specs (no
+// model); the free-text prompt yields one from /api/design.
+export const DESIGN_SPEC_KEYS = ["accent", "secondary", "bg", "ink", "labelFont", "headFont", "bodyFont", "wordmark"];
+
+// Fold a design spec onto a brand, ignoring empty fields → a NEW brand. Pure.
+export function designBrand(prevBrand, spec) {
+  const next = Object.assign({}, prevBrand || {});
+  for (const k of DESIGN_SPEC_KEYS) { if (spec && spec[k]) next[k] = spec[k]; }
+  return next;
+}
+
+// Deterministic one-tap directions (the chips) — no model, work offline.
+export const DESIGN_CHIPS = [
+  { id: "magazine", label: "Bold magazine",  spec: { accent: "#e23744", secondary: "#111111", headFont: "Georgia, serif" } },
+  { id: "minimal",  label: "Minimal",        spec: { accent: "#9aa0a6", secondary: "#9aa0a6" } },
+  { id: "news",     label: "Newspaper",      spec: { accent: "#c41e1e", secondary: "#c41e1e", headFont: "Georgia, serif", bodyFont: "Georgia, serif" } },
+  { id: "contrast", label: "High-contrast",  spec: { accent: "#ffd400", secondary: "#ffffff" } },
+];
