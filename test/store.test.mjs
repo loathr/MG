@@ -879,3 +879,47 @@ test("applyRemote clamps the slide index when a peer deletes slides", () => {
   assert.equal(s.doc.slides.length, 1);
   assert.equal(s.slideIndex, 0, "index clamped after the peer removed my slide");
 });
+
+// --- Client mode: brandMode toggle re-themes the deck (2b) -------------------
+function brandedDoc() {
+  const s = initStudio();
+  const brand = brandFromStyle("editorial"); // accent #e23744, wordmark default
+  const slide = {
+    id: "s1", w: 1080, h: 1350, background: { type: "color", color: brand.bg || "#0c0c0c" },
+    elements: [makeElement("text", { id: "wm", role: "wordmark", content: "LOATHR", color: brand.accent })],
+  };
+  return Object.assign({}, s, { doc: { id: "d", brand, slides: [slide] } });
+}
+const CB = { name: "Meridian", handle: "@meridian", accent1: "#3a86ff", accent2: "#f4b740" };
+
+test("setBrandMode client: folds the client identity in, stashes the LOATHR brand", () => {
+  let s = brandedDoc();
+  s = reducer(s, { type: "setClientBrand", clientBrand: CB });
+  s = reducer(s, { type: "setBrandMode", mode: "client" });
+  assert.equal(s.doc.brandMode, "client");
+  assert.equal(s.doc.brand.wordmark, "Meridian");     // LOATHR wordmark replaced
+  assert.equal(s.doc.brand.accent, "#3a86ff");        // accent1
+  assert.ok(s.doc.loathrBrand, "the LOATHR brand is stashed for restore");
+  assert.equal(s.doc.loathrBrand.wordmark || "LOATHR", "LOATHR");
+  // the wordmark ELEMENT was re-themed from the old accent to the new one
+  assert.equal(s.doc.slides[0].elements[0].color, "#3a86ff");
+});
+
+test("setBrandMode loathr: restores the stashed LOATHR brand", () => {
+  let s = brandedDoc();
+  const accent0 = s.doc.brand.accent;
+  s = reducer(s, { type: "setClientBrand", clientBrand: CB });
+  s = reducer(s, { type: "setBrandMode", mode: "client" });
+  s = reducer(s, { type: "setBrandMode", mode: "loathr" });
+  assert.equal(s.doc.brandMode, "loathr");
+  assert.equal(s.doc.brand.accent, accent0, "back to the LOATHR accent");
+  assert.equal(s.doc.slides[0].elements[0].color, accent0, "wordmark element restored");
+  assert.equal(s.doc.clientBrand.name, "Meridian", "the client brand is kept for next time");
+});
+
+test("setBrandMode is undoable (a MUTATES action)", () => {
+  let s = brandedDoc();
+  const past = s.past.length;
+  s = reducer(s, { type: "setBrandMode", mode: "client" });
+  assert.equal(s.past.length, past + 1);
+});

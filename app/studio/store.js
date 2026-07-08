@@ -12,6 +12,7 @@
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H, applyRunStyle, clearRunStyle, remapRuns, bakeDocHighlights, applyCorrectionToDoc, applyCoherenceFix } from "./model";
 import { expandGroups, toggleSelection, alignPatches, newGroupId } from "./group";
 import { applyOps } from "./sync";
+import { effectiveBrand, blankClientBrand } from "./clientbrand";
 import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements, closerMarksFor } from "./templates";
 import { brandFromStyle, getStyle, FONT_PRESETS } from "./styles";
 import { shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
@@ -506,6 +507,35 @@ function docReducer(state, a) {
       // Deck-wide re-theme: remap elements matching the previous brand to the new
       // one (see rethemeDoc). Elements the user edited off-brand are left alone.
       return Object.assign({}, state, { doc: rethemeDoc(state.doc, a.prev || {}, a.brand || {}) });
+    case "setBrandMode": {
+      // Client mode ON/OFF. ON folds the deck's clientBrand into the active brand
+      // (effectiveBrand) and re-themes; the LOATHR brand is stashed as loathrBrand
+      // so OFF restores it exactly. Guests are always "client" (Studio never sends
+      // "loathr" for them).
+      const cur = state.doc;
+      const mode = a.mode === "client" ? "client" : "loathr";
+      if (mode === "client") {
+        const loathrBrand = cur.loathrBrand || cur.brand;   // stash on first switch
+        const clientBrand = cur.clientBrand || blankClientBrand();
+        const next = effectiveBrand(loathrBrand, clientBrand, "client");
+        const staged = Object.assign({}, cur, { loathrBrand, clientBrand, brandMode: "client" });
+        return Object.assign({}, state, { doc: rethemeDoc(staged, cur.brand, next) });
+      }
+      const restore = cur.loathrBrand || cur.brand;
+      const staged = Object.assign({}, cur, { brandMode: "loathr" });
+      return Object.assign({}, state, { doc: rethemeDoc(staged, cur.brand, restore) });
+    }
+    case "setClientBrand": {
+      // Update the deck's client identity; in client mode, re-fold + re-theme live.
+      const cb = a.clientBrand || blankClientBrand();
+      if (state.doc.brandMode === "client") {
+        const loathrBrand = state.doc.loathrBrand || state.doc.brand;
+        const next = effectiveBrand(loathrBrand, cb, "client");
+        const staged = Object.assign({}, state.doc, { clientBrand: cb });
+        return Object.assign({}, state, { doc: rethemeDoc(staged, state.doc.brand, next) });
+      }
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { clientBrand: cb }) });
+    }
     case "setLogo":
       // Brand bookend: stamp the logo on the cover + closing slides only (see
       // stampLogo). After placement it's a normal, draggable element.
@@ -703,7 +733,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, duplicate: 1, cut: 1, paste: 1, update: 1, move: 1, moveMany: 1, setShare: 1, styleText: 1, delete: 1, deleteMany: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1, addFont: 1, removeFont: 1, applyCorrection: 1, applyCoherenceFix: 1, group: 1, ungroup: 1, align: 1 };
+const MUTATES = { add: 1, duplicate: 1, cut: 1, paste: 1, update: 1, move: 1, moveMany: 1, setShare: 1, styleText: 1, delete: 1, deleteMany: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1, addFont: 1, removeFont: 1, applyCorrection: 1, applyCoherenceFix: 1, group: 1, ungroup: 1, align: 1, setBrandMode: 1, setClientBrand: 1 };
 const BOUNDARY = { select: 1, selectMarquee: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1, crop: 1 };
 
 function snap(state) {
