@@ -31,6 +31,8 @@ export const SHAPE_PAPER_EAR = "#d8d2c0";
 
 // Thickness (px, artboard units) of the banner's top/bottom rules.
 export const BANNER_RULE = 4;
+// Thickness of the quote block's accent left rule.
+export const QUOTE_RULE = 8;
 
 // The 16-point seal/burst star in a 0..100 box (percentages). Shared verbatim by
 // the CSS clip-path and the canvas polygon so the silhouette matches exactly.
@@ -56,6 +58,10 @@ export const SHAPE_VARIANTS = [
   { id: "triangle", label: "Triangle", text: "!",   w: 210, h: 185, font: "Georgia, serif",                          size: 46, knockout: true },
   { id: "diamond",  label: "Diamond",  text: "NEW", w: 200, h: 200, font: "'Courier Prime', 'Courier New', monospace", size: 30, spacing: 1, knockout: true },
   { id: "hexagon",  label: "Hexagon",  text: "TIP", w: 220, h: 190, font: "'Courier Prime', 'Courier New', monospace", size: 34, spacing: 1, knockout: true },
+  { id: "ribbon",   label: "Ribbon",   text: "FEATURED", w: 380, h: 96,  font: "Georgia, serif",                      size: 34, knockout: true },
+  { id: "bookmark", label: "Bookmark", text: "SAVE", w: 150, h: 200, font: "'Courier Prime', 'Courier New', monospace", size: 28, spacing: 1, knockout: true },
+  { id: "arrowR",   label: "Callout",  text: "NEXT", w: 260, h: 120, font: "'Courier Prime', 'Courier New', monospace", size: 32, spacing: 1, knockout: true },
+  { id: "quote",    label: "Quote",    text: "A sharp line worth pulling.", w: 420, h: 176, font: "Georgia, serif", size: 34 },
 ];
 
 // Simple convex silhouettes (percent points in a 0..100 box), shared VERBATIM by
@@ -66,6 +72,9 @@ export const POLY_POINTS = {
   triangle: [[50, 0], [100, 100], [0, 100]],
   diamond:  [[50, 0], [100, 50], [50, 100], [0, 50]],
   hexagon:  [[25, 0], [75, 0], [100, 50], [75, 100], [25, 100], [0, 50]],
+  ribbon:   [[0, 0], [100, 0], [88, 50], [100, 100], [0, 100], [12, 50]], // banner with forked ends
+  bookmark: [[0, 0], [100, 0], [100, 100], [50, 82], [0, 100]],           // pennant / bookmark notch
+  arrowR:   [[0, 0], [75, 0], [100, 50], [75, 100], [0, 100]],            // right-pointing callout
 };
 // The polygon points for a shape, or null when it isn't a polygon silhouette.
 export function shapePolygon(el) { return (el && POLY_POINTS[el.shape]) || null; }
@@ -109,10 +118,14 @@ export function shapePaint(el) {
     case "triangle":
     case "diamond":
     case "hexagon":
+    case "ribbon":
+    case "bookmark":
+    case "arrowR":
     case "burst":
     case "pill":   p = { bg: fill, border: "none" }; break;
     case "note":   p = { bg: fill || SHAPE_PAPER, border: "none" }; break;
     case "banner": p = { bg: SHAPE_BACKING, border: "none", rule: fill }; break;
+    case "quote":  p = { bg: SHAPE_BACKING, border: "none", leftRule: fill }; break;
     case "stamp":  p = { bg: "transparent", border: fill, dashed: true }; break;
     case "tag":
     case "speech":
@@ -121,7 +134,8 @@ export function shapePaint(el) {
   }
   if (el.shapeBody != null) p.bg = el.shapeBody;
   if (el.shapeBorderC != null) {
-    if (p.rule != null) p.rule = el.shapeBorderC; // banner: the rule is the accent
+    if (p.rule != null) p.rule = el.shapeBorderC;          // banner: the rule is the accent
+    else if (p.leftRule != null) p.leftRule = el.shapeBorderC; // quote: the left bar is the accent
     else p.border = el.shapeBorderC;
   }
   // Border STYLE: an explicit el.shapeDash ("solid"|"dashed"|"dotted") wins, else
@@ -172,6 +186,10 @@ export function shapePad(el) {
     case "triangle": return { top: Math.round(h * 0.42), right: Math.round(w * 0.18), bottom: Math.round(h * 0.08), left: Math.round(w * 0.18) };
     case "diamond": { const p = Math.round(Math.min(w, h) * 0.26); return { top: p, right: p, bottom: p, left: p }; }
     case "hexagon":  return box(Math.round(h * 0.16), Math.round(w * 0.2));
+    case "ribbon":   return box(18, Math.round(w * 0.13));                 // clear the forked ends
+    case "bookmark": return { top: 22, right: 20, bottom: Math.round(h * 0.24), left: 20 }; // clear the bottom notch
+    case "arrowR":   return { top: 18, right: Math.round(w * 0.28), bottom: 18, left: 26 };  // clear the point
+    case "quote":    return { top: 22, right: 28, bottom: 22, left: 34 };  // clear the left rule
     case "tag":    return { top: 18, right: 26, bottom: 18, left: tagNotch(el) + 24 };
     case "banner": return box(18, 30);
     case "stamp":  return box(16, 26);

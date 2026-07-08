@@ -17,14 +17,27 @@ test("shapeVAlign maps the vertical text position to a flex value (default middl
   assert.equal(shapeVAlign({ vAlign: "bottom" }), "flex-end");
 });
 
-test("there are 11 shapes with unique ids and drop defaults", () => {
-  assert.equal(SHAPE_VARIANTS.length, 11);
+test("there are 15 shapes with unique ids and drop defaults", () => {
+  assert.equal(SHAPE_VARIANTS.length, 15);
   const ids = SHAPE_VARIANTS.map((v) => v.id);
-  assert.deepEqual([...new Set(ids)].sort(), ["banner", "burst", "cloud", "diamond", "hexagon", "note", "pill", "speech", "stamp", "tag", "triangle"]);
+  assert.deepEqual([...new Set(ids)].sort(), ["arrowR", "banner", "bookmark", "burst", "cloud", "diamond", "hexagon", "note", "pill", "quote", "ribbon", "speech", "stamp", "tag", "triangle"]);
   for (const v of SHAPE_VARIANTS) {
     assert.ok(v.w > 0 && v.h > 0, v.id + " has a size");
     assert.ok(v.text && v.font && v.size, v.id + " has text/font/size");
   }
+});
+
+test("1c bubbles: ribbon/bookmark/arrowR are filled polygons; quote has a left rule", () => {
+  for (const id of ["ribbon", "bookmark", "arrowR"]) {
+    const pts = shapePolygon({ shape: id });
+    assert.ok(Array.isArray(pts) && pts.length >= 4, id + " polygon");
+    for (const [x, y] of pts) assert.ok(x >= 0 && x <= 100 && y >= 0 && y <= 100, id + " in box");
+    assert.equal(shapePaint({ shape: id, shapeFill: "#123456" }).bg, "#123456");
+  }
+  // quote: dark plate + accent left rule (follows a Border override), no polygon
+  assert.equal(shapePolygon({ shape: "quote" }), null);
+  assert.equal(shapePaint({ shape: "quote", shapeFill: "#e23744" }).leftRule, "#e23744");
+  assert.equal(shapePaint({ shape: "quote", shapeFill: "#e23744", shapeBorderC: "#00ff00" }).leftRule, "#00ff00");
 });
 
 test("polygon shapes: points stay inside the 0..100 box, filled, no border", () => {

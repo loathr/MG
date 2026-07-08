@@ -3,7 +3,7 @@ import React from "react";
 import {
   shapePaint, shapeRadius, shapeBorderW, shapePolygon, tagNotch, speechTail,
   noteEar, hexA, shapeAccentColor, shapeTailColor,
-  BURST_POINTS, BANNER_RULE, SHAPE_PAPER_EAR,
+  BURST_POINTS, BANNER_RULE, QUOTE_RULE, SHAPE_PAPER_EAR,
 } from "./shapes";
 
 // The shape backing (no text) a text element wears. Fills its parent frame
@@ -47,6 +47,9 @@ export default function ShapeBacking({ el }) {
   if (variant === "banner") {
     box.borderTop = BANNER_RULE + "px solid " + (p.rule || el.shapeFill);
     box.borderBottom = BANNER_RULE + "px solid " + (p.rule || el.shapeFill);
+  }
+  if (variant === "quote") {
+    box.borderLeft = QUOTE_RULE + "px solid " + (p.leftRule || el.shapeFill);
   }
 
   return (

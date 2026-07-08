@@ -12,7 +12,7 @@ import { makeZip } from "./zip";
 import {
   shapePaint, shapeRadius, shapeBorderW, shapePad, shapePolygon, tagNotch, speechTail,
   noteEar, hexA, shapeAccentColor, shapeTailColor,
-  BURST_POINTS, BANNER_RULE, SHAPE_PAPER_EAR,
+  BURST_POINTS, BANNER_RULE, QUOTE_RULE, SHAPE_PAPER_EAR,
 } from "./shapes";
 
 function loadImage(src) {
@@ -315,6 +315,10 @@ function drawShapeBacking(ctx, el) {
       ctx.fillStyle = p.rule || el.shapeFill || "#e23744";
       ctx.fillRect(0, 0, w, BANNER_RULE);
       ctx.fillRect(0, h - BANNER_RULE, w, BANNER_RULE);
+    }
+    if (variant === "quote") {
+      ctx.fillStyle = p.leftRule || el.shapeFill || "#e23744";
+      ctx.fillRect(0, 0, QUOTE_RULE, h);
     }
   }
 
