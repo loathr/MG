@@ -4,6 +4,7 @@ import { ARTBOARD_W, ARTBOARD_H, imageTransform } from "./model";
 import RichText from "./RichText";
 import ShapeBacking from "./ShapeBacking";
 import { shapePad, shapeVAlign } from "./shapes";
+import { effectCss } from "./textfx";
 
 // A non-interactive, CSS-scaled miniature of a slide. Used by the slide strip
 // (SlideThumb) and the Create-screen style previews (StylePreview), so both are
@@ -41,6 +42,7 @@ function StaticElement({ el }) {
       textDecorationThickness: (el.underline || el.strike) ? "0.11em" : undefined,
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
+      ...effectCss(el),   // element-level text effect (shadow / glow) — mirrors Element.jsx
     };
     // Shaped text: backing behind, copy padded + centered on top (overflow:visible
     // so the tail / dog-ear / glow aren't clipped). Mirrors Element.jsx.

@@ -8,6 +8,7 @@
 // this module is SSR/build-safe (no top-level DOM access).
 // ============================================================================
 import { ARTBOARD_W, ARTBOARD_H, styledRuns, isUniformText, cropRect } from "./model";
+import { effectShadow } from "./textfx";
 import { makeZip } from "./zip";
 import {
   shapePaint, shapeRadius, shapeBorderW, shapePad, shapePolygon, tagNotch, speechTail,
@@ -464,9 +465,13 @@ export async function renderSlideToCanvas(slide) {
         ctx.restore();
       }
     } else if (el.type === "text") {
-      if (el.shape) { drawShapeBacking(ctx, el); drawShapedText(ctx, el); }
+      if (el.shape) drawShapeBacking(ctx, el);      // shape draws WITHOUT the text effect
+      const fx = effectShadow(el);
+      if (fx) { ctx.shadowColor = fx.color; ctx.shadowBlur = fx.blur; ctx.shadowOffsetX = fx.dx; ctx.shadowOffsetY = fx.dy; }
+      if (el.shape) drawShapedText(ctx, el);
       else if (isUniformText(el)) drawText(ctx, el);
       else drawRichText(ctx, el);
+      if (fx) { ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0; }
     }
     ctx.restore();
   }

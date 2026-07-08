@@ -4,6 +4,7 @@ import { UI } from "./theme";
 import FontSelect from "./FontSelect";
 import { FONT_OPTIONS } from "./styles";
 import { SHAPE_VARIANTS, shapePaint, shapeBorderW } from "./shapes";
+import { TEXT_EFFECTS } from "./textfx";
 import { fitShapeBox } from "./textfit";
 import { readImageFile } from "./imageFile";
 import { removeBackground } from "./bgRemove";
@@ -232,9 +233,16 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
           ))}
         </div>
         <div style={{ height: 8 }} />
-        {/* Clear the element's text EFFECTS (background · outline) and restore
-            Line/Track to defaults; the base text colour is left as-is. */}
-        <WBtn onClick={() => up({ textBg: null, textStroke: null, textStrokeWidth: 0, lineHeight: 1.1, letterSpacing: 0 })}>
+        {/* Element-level drop shadow / glow (textfx.js) — a coloured shadow behind
+            the whole text box, rendered live, in the strip, and on export. */}
+        <P2>
+          <SelectBtn value={el.effect || "none"} onChange={(v) => up({ effect: v })} title="Text effect" options={TEXT_EFFECTS.map((e) => [e.id, e.label])} />
+          <EffectField label="FX colour" value={el.effect && el.effect !== "none" ? (el.effectColor || "#000000") : null} fallback="#000000" onChange={(v) => up({ effectColor: v })} />
+        </P2>
+        <div style={{ height: 8 }} />
+        {/* Clear the element's text EFFECTS (background · outline · shadow) and
+            restore Line/Track to defaults; the base text colour is left as-is. */}
+        <WBtn onClick={() => up({ textBg: null, textStroke: null, textStrokeWidth: 0, effect: "none", lineHeight: 1.1, letterSpacing: 0 })}>
           <RotateCcw size={13} /> Reset text effects
         </WBtn>
       </Popover>}

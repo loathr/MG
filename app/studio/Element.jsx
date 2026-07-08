@@ -4,6 +4,7 @@ import RichText from "./RichText";
 import RichEditable from "./RichEditable";
 import ShapeBacking from "./ShapeBacking";
 import { shapePad, shapeVAlign } from "./shapes";
+import { effectCss } from "./textfx";
 import { imageTransform } from "./model";
 import { Move } from "lucide-react";
 
@@ -58,6 +59,7 @@ function ElementView({ element: el, isEditing, isCropping, onPointerDownBody, on
       wordBreak: "break-word",
       outline: "none",
       overflow: shaped ? "visible" : "hidden",
+      ...effectCss(el),   // element-level text effect (shadow / glow)
     };
     const textNode = isEditing ? (
       <RichEditable
