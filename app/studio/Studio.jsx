@@ -1347,7 +1347,7 @@ function ShapeTile({ v, accent, wrap, onPick }) {
 // Short, uniform preview text per shape so the swatches stay tidy (the dropped
 // element still uses the variant's full sample text).
 function shapeSample(v) {
-  return ({ speech: "Aa", cloud: "Aa", stamp: "OK", banner: "Aa", burst: "NEW", tag: "#1", pill: "SAVE", note: "Aa" })[v.id] || "Aa";
+  return ({ speech: "Aa", cloud: "Aa", stamp: "OK", banner: "Aa", burst: "NEW", tag: "#1", pill: "SAVE", note: "Aa", triangle: "!", diamond: "NEW", hexagon: "TIP" })[v.id] || "Aa";
 }
 
 const miniBtn = {

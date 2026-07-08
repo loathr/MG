@@ -10,7 +10,7 @@
 import { ARTBOARD_W, ARTBOARD_H, styledRuns, isUniformText, cropRect } from "./model";
 import { makeZip } from "./zip";
 import {
-  shapePaint, shapeRadius, shapeBorderW, shapePad, tagNotch, speechTail,
+  shapePaint, shapeRadius, shapeBorderW, shapePad, shapePolygon, tagNotch, speechTail,
   noteEar, hexA, shapeAccentColor, shapeTailColor,
   BURST_POINTS, BANNER_RULE, SHAPE_PAPER_EAR,
 } from "./shapes";
@@ -248,6 +248,17 @@ function tagPath(ctx, w, h, notch) {
   ctx.closePath();
 }
 
+// A convex silhouette from percent points (triangle / diamond / hexagon), the
+// canvas twin of ShapeBacking's polyClip so the PNG matches the canvas.
+function polyPath(ctx, w, h, points) {
+  ctx.beginPath();
+  points.forEach(([px, py], i) => {
+    const x = (px / 100) * w, y = (py / 100) * h;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+}
+
 // Draw a text element's SHAPE backing (local origin already at its top-left).
 // Shape only — the text is drawn on top by drawShapedText. Mirrors the CSS in
 // ShapeBacking.jsx off the same geometry helpers so the PNG matches the canvas.
@@ -258,8 +269,13 @@ function drawShapeBacking(ctx, el) {
   const radius = shapeRadius(el);
   const bw = shapeBorderW(el);
 
+  const poly = shapePolygon(el);
   if (variant === "burst") {
     burstPath(ctx, w, h);
+    ctx.fillStyle = p.bg;
+    ctx.fill();
+  } else if (poly) {
+    polyPath(ctx, w, h, poly);
     ctx.fillStyle = p.bg;
     ctx.fill();
   } else if (variant === "tag") {

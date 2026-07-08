@@ -53,7 +53,22 @@ export const SHAPE_VARIANTS = [
   { id: "tag",    label: "Tag",    text: "#1",           w: 240, h: 104, font: "'Courier Prime', 'Courier New', monospace", size: 36, spacing: 1 },
   { id: "pill",   label: "Pill",   text: "SAVE",         w: 240, h: 92,  font: "'Courier Prime', 'Courier New', monospace", size: 34, spacing: 3, knockout: true },
   { id: "note",   label: "Note",   text: "note to self", w: 280, h: 160, font: "Georgia, serif",                      size: 36, rotation: 2.5, paper: true },
+  { id: "triangle", label: "Triangle", text: "!",   w: 210, h: 185, font: "Georgia, serif",                          size: 46, knockout: true },
+  { id: "diamond",  label: "Diamond",  text: "NEW", w: 200, h: 200, font: "'Courier Prime', 'Courier New', monospace", size: 30, spacing: 1, knockout: true },
+  { id: "hexagon",  label: "Hexagon",  text: "TIP", w: 220, h: 190, font: "'Courier Prime', 'Courier New', monospace", size: 34, spacing: 1, knockout: true },
 ];
+
+// Simple convex silhouettes (percent points in a 0..100 box), shared VERBATIM by
+// the CSS clip-path (ShapeBacking) and the canvas polygon (export) — like
+// BURST_POINTS — so a polygon shape looks identical live, in the strip, and in
+// the exported PNG. Filled, knockout-text shapes (no border, matching burst).
+export const POLY_POINTS = {
+  triangle: [[50, 0], [100, 100], [0, 100]],
+  diamond:  [[50, 0], [100, 50], [50, 100], [0, 50]],
+  hexagon:  [[25, 0], [75, 0], [100, 50], [75, 100], [25, 100], [0, 50]],
+};
+// The polygon points for a shape, or null when it isn't a polygon silhouette.
+export function shapePolygon(el) { return (el && POLY_POINTS[el.shape]) || null; }
 
 export function shapeVariant(id) {
   return SHAPE_VARIANTS.find((v) => v.id === id) || SHAPE_VARIANTS[0];
@@ -91,6 +106,9 @@ export function shapePaint(el) {
   const fill = el.shapeFill || "#e23744";
   let p;
   switch (el.shape) {
+    case "triangle":
+    case "diamond":
+    case "hexagon":
     case "burst":
     case "pill":   p = { bg: fill, border: "none" }; break;
     case "note":   p = { bg: fill || SHAPE_PAPER, border: "none" }; break;
@@ -144,6 +162,11 @@ export function shapePad(el) {
   switch (el.shape) {
     case "pill":   return box(Math.round(h * 0.16), Math.round(h * 0.5));
     case "burst": { const p = Math.round(Math.min(w, h) * 0.24); return { top: p, right: p, bottom: p, left: p }; }
+    // Polygon silhouettes: keep the copy inside the shape's safe core. The
+    // triangle's core sits low (wide base), so it gets a tall top inset.
+    case "triangle": return { top: Math.round(h * 0.42), right: Math.round(w * 0.18), bottom: Math.round(h * 0.08), left: Math.round(w * 0.18) };
+    case "diamond": { const p = Math.round(Math.min(w, h) * 0.26); return { top: p, right: p, bottom: p, left: p }; }
+    case "hexagon":  return box(Math.round(h * 0.16), Math.round(w * 0.2));
     case "tag":    return { top: 18, right: 26, bottom: 18, left: tagNotch(el) + 24 };
     case "banner": return box(18, 30);
     case "stamp":  return box(16, 26);

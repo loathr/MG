@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import {
-  shapePaint, shapeRadius, shapeBorderW, tagNotch, speechTail,
+  shapePaint, shapeRadius, shapeBorderW, shapePolygon, tagNotch, speechTail,
   noteEar, hexA, shapeAccentColor, shapeTailColor,
   BURST_POINTS, BANNER_RULE, SHAPE_PAPER_EAR,
 } from "./shapes";
@@ -18,6 +18,9 @@ function burstClip() {
 function tagClip(notch) {
   return "polygon(" + notch + "px 0, 100% 0, 100% 100%, " + notch + "px 100%, 0 50%)";
 }
+function polyClip(points) {
+  return "polygon(" + points.map(([x, y]) => x + "% " + y + "%").join(",") + ")";
+}
 
 export default function ShapeBacking({ el }) {
   const p = shapePaint(el);
@@ -33,6 +36,8 @@ export default function ShapeBacking({ el }) {
     box.border = bw + "px " + (p.dashed ? "dashed " : "solid ") + p.border;
   }
   if (variant === "burst") { box.clipPath = burstClip(); box.borderRadius = 0; box.border = "none"; }
+  const poly = shapePolygon(el);
+  if (poly) { box.clipPath = polyClip(poly); box.borderRadius = 0; box.border = "none"; }
   if (variant === "tag") { box.clipPath = tagClip(tagNotch(el)); box.borderRadius = 0; }
   if (variant === "cloud") {
     box.boxShadow = "0 0 0 4px " + hexA(shapeAccentColor(el), 0.1);

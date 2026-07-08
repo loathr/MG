@@ -7,7 +7,7 @@ import {
   SHAPE_VARIANTS, SHAPE_BACKING, SHAPE_PAPER, BURST_POINTS, BANNER_RULE,
   shapeVariant, hasShape, shapeRadius, shapePaint, shapeBorderW, shapePad,
   tagNotch, speechTail, noteEar, hexA, shapeVAlign,
-  shapeAccentColor, shapeTailColor,
+  shapeAccentColor, shapeTailColor, POLY_POINTS, shapePolygon,
 } from "../app/studio/shapes.js";
 
 test("shapeVAlign maps the vertical text position to a flex value (default middle)", () => {
@@ -17,14 +17,32 @@ test("shapeVAlign maps the vertical text position to a flex value (default middl
   assert.equal(shapeVAlign({ vAlign: "bottom" }), "flex-end");
 });
 
-test("there are 8 shapes with unique ids and drop defaults", () => {
-  assert.equal(SHAPE_VARIANTS.length, 8);
+test("there are 11 shapes with unique ids and drop defaults", () => {
+  assert.equal(SHAPE_VARIANTS.length, 11);
   const ids = SHAPE_VARIANTS.map((v) => v.id);
-  assert.deepEqual([...new Set(ids)].sort(), ["banner", "burst", "cloud", "note", "pill", "speech", "stamp", "tag"]);
+  assert.deepEqual([...new Set(ids)].sort(), ["banner", "burst", "cloud", "diamond", "hexagon", "note", "pill", "speech", "stamp", "tag", "triangle"]);
   for (const v of SHAPE_VARIANTS) {
     assert.ok(v.w > 0 && v.h > 0, v.id + " has a size");
     assert.ok(v.text && v.font && v.size, v.id + " has text/font/size");
   }
+});
+
+test("polygon shapes: points stay inside the 0..100 box, filled, no border", () => {
+  for (const id of ["triangle", "diamond", "hexagon"]) {
+    const pts = shapePolygon({ shape: id });
+    assert.ok(Array.isArray(pts) && pts.length >= 3, id + " has a polygon");
+    for (const [x, y] of pts) { assert.ok(x >= 0 && x <= 100 && y >= 0 && y <= 100, id + " point in box"); }
+    // filled with the accent, knockout text (no outline) — matching burst
+    const p = shapePaint({ shape: id, shapeFill: "#123456" });
+    assert.equal(p.bg, "#123456");
+    assert.equal(p.border, "none");
+    assert.equal(shapeRadius({ shape: id }), 0);
+    // padding keeps text off the edges
+    const pad = shapePad({ shape: id, w: 200, h: 200 });
+    assert.ok(pad.top > 0 && pad.left > 0, id + " has inset padding");
+  }
+  assert.equal(shapePolygon({ shape: "speech" }), null); // non-polygon → null
+  assert.equal(shapePolygon(null), null);
 });
 
 test("shapeVariant returns the match, else the first (speech)", () => {
