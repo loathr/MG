@@ -33,7 +33,8 @@ export default function ShapeBacking({ el }) {
     background: p.bg, borderRadius: radius, overflow: "hidden",
   };
   if (p.border && p.border !== "none") {
-    box.border = bw + "px " + (p.dashed ? "dashed " : "solid ") + p.border;
+    // p.dash is a literal CSS border-style: solid | dashed | dotted.
+    box.border = bw + "px " + (p.dash || "solid") + " " + p.border;
   }
   if (variant === "burst") { box.clipPath = burstClip(); box.borderRadius = 0; box.border = "none"; }
   const poly = shapePolygon(el);

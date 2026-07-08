@@ -302,9 +302,14 @@ function drawShapeBacking(ctx, el) {
     if (p.border && p.border !== "none") {
       ctx.lineWidth = bw;
       ctx.strokeStyle = p.border;
-      if (p.dashed && ctx.setLineDash) ctx.setLineDash([14, 9]);
+      if (ctx.setLineDash) {
+        if (p.dash === "dashed") ctx.setLineDash([14, 9]);
+        else if (p.dash === "dotted") { ctx.setLineDash([1, Math.max(3, bw * 2)]); ctx.lineCap = "round"; }
+        else ctx.setLineDash([]);
+      }
       ctx.stroke();
       if (ctx.setLineDash) ctx.setLineDash([]);
+      ctx.lineCap = "butt";
     }
     if (variant === "banner") {
       ctx.fillStyle = p.rule || el.shapeFill || "#e23744";

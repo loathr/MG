@@ -124,6 +124,10 @@ export function shapePaint(el) {
     if (p.rule != null) p.rule = el.shapeBorderC; // banner: the rule is the accent
     else p.border = el.shapeBorderC;
   }
+  // Border STYLE: an explicit el.shapeDash ("solid"|"dashed"|"dotted") wins, else
+  // the stamp's long-standing dashed default. `dash` is a literal CSS border-style
+  // (ShapeBacking) and drives the canvas line-dash (export).
+  p.dash = el.shapeDash || (p.dashed ? "dashed" : "solid");
   return p;
 }
 
@@ -144,6 +148,7 @@ export function shapeTailColor(el) {
 // filled shape gains a thin outline once the user picks an explicit Border colour
 // (so the new control is visible there too; defaults stay 0 without it).
 export function shapeBorderW(el) {
+  if (el && el.shapeBorderWidth != null) return Math.max(0, Math.round(el.shapeBorderWidth)); // explicit override
   switch (el.shape) {
     case "stamp":  return 3;
     case "speech": return 3;

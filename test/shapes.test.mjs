@@ -106,10 +106,10 @@ test("B4 paint: shapeBody overrides the box, shapeBorderC overrides the outline"
 });
 
 test("B4 paint: absent overrides leave every variant's defaults untouched", () => {
-  // Byte-for-byte the pre-B4 result when neither field is present.
-  assert.deepEqual(shapePaint({ shape: "speech", shapeFill: "#e23744" }), { bg: SHAPE_BACKING, border: "#e23744" });
-  assert.deepEqual(shapePaint({ shape: "pill", shapeFill: "#e23744" }), { bg: "#e23744", border: "none" });
-  assert.deepEqual(shapePaint({ shape: "banner", shapeFill: "#e23744" }), { bg: SHAPE_BACKING, border: "none", rule: "#e23744" });
+  // The pre-B4 result plus the always-present `dash` style (solid by default).
+  assert.deepEqual(shapePaint({ shape: "speech", shapeFill: "#e23744" }), { bg: SHAPE_BACKING, border: "#e23744", dash: "solid" });
+  assert.deepEqual(shapePaint({ shape: "pill", shapeFill: "#e23744" }), { bg: "#e23744", border: "none", dash: "solid" });
+  assert.deepEqual(shapePaint({ shape: "banner", shapeFill: "#e23744" }), { bg: SHAPE_BACKING, border: "none", rule: "#e23744", dash: "solid" });
 });
 
 test("B4 paint: a banner Border override retints the rule, not a box border", () => {
@@ -122,6 +122,17 @@ test("B4 borderW: a filled shape gains a thin outline only once Border is picked
   assert.equal(shapeBorderW({ shape: "pill" }), 0);
   assert.ok(shapeBorderW({ shape: "pill", shapeBorderC: "#00ff00" }) > 0);
   assert.equal(shapeBorderW({ shape: "speech" }), 3); // outline variants unchanged
+});
+
+test("1b border override: explicit width + dash style", () => {
+  // shapeBorderWidth overrides the per-shape default (clamped, rounded, ≥0)
+  assert.equal(shapeBorderW({ shape: "speech", shapeBorderWidth: 8 }), 8);
+  assert.equal(shapeBorderW({ shape: "pill", shapeBorderWidth: 0 }), 0);
+  assert.equal(shapeBorderW({ shape: "speech", shapeBorderWidth: -4 }), 0);
+  // paint.dash reflects the style: default solid, stamp dashed, explicit wins
+  assert.equal(shapePaint({ shape: "speech", shapeFill: "#e23744" }).dash, "solid");
+  assert.equal(shapePaint({ shape: "stamp", shapeFill: "#e23744" }).dash, "dashed");
+  assert.equal(shapePaint({ shape: "speech", shapeFill: "#e23744", shapeDash: "dotted" }).dash, "dotted");
 });
 
 test("B4 tail/accent colours follow the override, else the brand fill", () => {

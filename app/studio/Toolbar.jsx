@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { UI } from "./theme";
 import FontSelect from "./FontSelect";
 import { FONT_OPTIONS } from "./styles";
-import { SHAPE_VARIANTS, shapePaint } from "./shapes";
+import { SHAPE_VARIANTS, shapePaint, shapeBorderW } from "./shapes";
 import { fitShapeBox } from "./textfit";
 import { readImageFile } from "./imageFile";
 import { removeBackground } from "./bgRemove";
@@ -314,6 +314,10 @@ function ShapePop({ el, up, dispatch, onClose }) {
               <button style={miniClear} onClick={() => up({ shapeBody: "transparent" })} title="No fill"><Ban size={13} /></button>
             </div>
             <EffectField label="Border" value={borderVal && borderVal !== "none" ? borderVal : null} fallback={UI.brand} onChange={(v) => up({ shapeBorderC: v })} />
+          </P2>
+          <P2>
+            <NumField label="Border w" value={shapeBorderW(el)} onChange={(v) => up({ shapeBorderWidth: Math.max(0, v) })} step={1} />
+            <SelectBtn value={el.shapeDash || "solid"} onChange={(v) => up({ shapeDash: v })} title="Border style" options={[["solid", "Solid"], ["dashed", "Dashed"], ["dotted", "Dotted"]]} />
           </P2>
           <P2><WBtn onClick={() => up(fitShapeBox(el, el.w))}><Maximize2 size={14} /> Fit to text</WBtn><WBtn danger onClick={() => { setShape(null); onClose(); }}><X size={14} /> Remove</WBtn></P2>
         </>
