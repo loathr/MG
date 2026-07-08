@@ -44,6 +44,28 @@ function Section({ title, sub, first, defaultOpen = false, children }) {
     </div>
   );
 }
+const cmRow = { display: "flex", alignItems: "center", gap: 9, background: "#131418", border: "1px solid #2a2f3a", borderRadius: 9, padding: "10px 11px", margin: "8px 0 4px" };
+const addAccent = { height: 28, padding: "0 11px", background: "#26262b", color: "#9a9aa2", border: "1px dashed #3a3a42", borderRadius: 7, fontSize: 11.5, cursor: "pointer" };
+// One accent colour swatch (native colour input), optionally clearable.
+function Swatch({ label, value, onChange, clearable, onClear }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+      <label style={{ position: "relative", width: 30, height: 30, borderRadius: 7, border: "1px solid #3a3a42", background: value, cursor: "pointer", overflow: "hidden" }}>
+        <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#3a86ff"} onChange={(e) => onChange(e.target.value)} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+      </label>
+      <span style={{ fontSize: 9.5, color: "#7c7c84" }}>{clearable ? <button type="button" onClick={onClear} title="Remove" style={{ background: "none", border: "none", color: "#8a8a92", cursor: "pointer", fontSize: 9.5, padding: 0 }}>{label} ✕</button> : label}</span>
+    </div>
+  );
+}
+// One font row for the client brand (label + picker).
+function FontRow({ label, value, options, onChange }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ fontSize: 11, color: "#8a8a92", width: 54, flexShrink: 0 }}>{label}</span>
+      <div style={{ flex: 1, minWidth: 0 }}><FontSelect title={label + " font"} value={value} options={options} onChange={onChange} /></div>
+    </div>
+  );
+}
 const lbl = { fontSize: 11, color: "#9a9a9a", marginBottom: 6, display: "block" };
 const sel = { width: "100%", height: 32, background: "#26262b", color: "#e8e8e8", border: "1px solid #36363c", borderRadius: 6, fontSize: 12.5, padding: "0 8px" };
 const inp = { width: "100%", height: 34, background: "#26262b", color: "#fff", border: "1px solid #36363c", borderRadius: 6, fontSize: 13, padding: "0 10px" };
@@ -108,7 +130,7 @@ function readLogoFile(file, cb) {
   reader.readAsDataURL(file);
 }
 
-export default function BrandPanel({ brand, category, family, slideFrame, onFamily, onApply, onLogo, onCaution, onFrame, onChrome, onResetAll, onClose, fonts, onUploadFont, onRemoveFont }) {
+export default function BrandPanel({ brand, category, family, slideFrame, onFamily, onApply, onLogo, onCaution, onFrame, onChrome, onResetAll, onClose, fonts, onUploadFont, onRemoveFont, member, brandMode, clientBrand, onBrandMode, onClientBrand }) {
   const [fontErr, setFontErr] = useState("");
   const [fontBusy, setFontBusy] = useState(false);
   const fontRef = useRef(null);
@@ -156,13 +178,56 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
     if (p) set({ labelFont: p.labelFont, headFont: p.headFont, bodyFont: p.bodyFont });
   };
 
+  const client = brandMode === "client";
+  const cb = clientBrand || {};
+  const setCB = (patch) => onClientBrand && onClientBrand(Object.assign({}, cb, patch));
   return (
     <div style={wrap}>
       <div style={head}>
-        <strong style={{ fontSize: 12, letterSpacing: 0.5 }}>Brand</strong>
+        <strong style={{ fontSize: 12, letterSpacing: 0.5 }}>{client ? "Branding" : "Brand"}</strong>
         <button style={xBtn} onClick={onClose} title="Close panel">×</button>
       </div>
       <div style={body}>
+        {/* Client mode toggle — members only. Guests never reach this (forced on,
+            hidden). Flipping it re-themes the deck (store.setBrandMode). */}
+        {member && onBrandMode && (
+          <div style={cmRow}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#e8e8ee" }}>Client mode</div>
+              <div style={{ fontSize: 10.5, color: client ? "#8bb6ff" : "#6a6a72", marginTop: 1 }}>{client ? "On · LOATHR branding hidden" : "Off · using LOATHR branding"}</div>
+            </div>
+            <button type="button" onClick={() => onBrandMode(client ? "loathr" : "client")} title="Toggle client branding"
+              style={{ marginLeft: "auto", width: 40, height: 23, borderRadius: 12, border: "none", cursor: "pointer", position: "relative", background: client ? "#2f5f9e" : "#3a3a42" }}>
+              <span style={{ position: "absolute", top: 2, [client ? "right" : "left"]: 2, width: 19, height: 19, borderRadius: "50%", background: "#fff" }} />
+            </button>
+          </div>
+        )}
+
+        {/* ---------- CLIENT BRANDING (client mode) ---------- */}
+        {client ? (
+          <div style={{ paddingTop: 4 }}>
+            <label style={lbl}>Brand name</label>
+            <input style={inp} value={cb.name || ""} placeholder="Your client's name" onChange={(e) => setCB({ name: e.target.value })} />
+            <label style={{ ...lbl, marginTop: 10 }}>Handle</label>
+            <input style={inp} value={cb.handle || ""} placeholder="@handle" onChange={(e) => setCB({ handle: e.target.value })} />
+            <label style={{ ...lbl, marginTop: 12 }}>Accents</label>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <Swatch label="1" value={cb.accent1 || "#3a86ff"} onChange={(v) => setCB({ accent1: v })} />
+              <Swatch label="2" value={cb.accent2 || "#f4b740"} onChange={(v) => setCB({ accent2: v })} />
+              {cb.accent3 != null
+                ? <Swatch label="3" value={cb.accent3 || "#e85d75"} onChange={(v) => setCB({ accent3: v })} clearable onClear={() => setCB({ accent3: null })} />
+                : <button type="button" style={addAccent} title="Add a third accent" onClick={() => setCB({ accent3: "#e85d75" })}>+ 3rd</button>}
+            </div>
+            <label style={{ ...lbl, marginTop: 14 }}>Fonts</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <FontRow label="Labels" value={cb.labelFont} options={fontOptions} onChange={(v) => setCB({ labelFont: v })} />
+              <FontRow label="Heading" value={cb.headFont} options={fontOptions} onChange={(v) => setCB({ headFont: v })} />
+              <FontRow label="Body" value={cb.bodyFont} options={fontOptions} onChange={(v) => setCB({ bodyFont: v })} />
+            </div>
+            <p style={{ fontSize: 10.5, color: "#6a6a72", marginTop: 14, lineHeight: 1.5 }}>Brand marks are the client&apos;s — LOATHR branding is hidden on this deck.</p>
+          </div>
+        ) : (
+        <>
         {/* ---------- LOOK ---------- */}
         <Section title="Look" first defaultOpen>
         {/* Style preset — switches the deck's cover/content layout AND its unique
@@ -387,6 +452,8 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
         ) : null}
         {cur.caution ? <button style={{ ...miniBtn, marginTop: 6 }} onClick={() => onCaution("")}>Remove</button> : null}
         </Section>
+        </>
+        )}
       </div>
     </div>
   );

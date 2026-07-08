@@ -30,6 +30,7 @@ import { initials } from "./presence";
 import { onAuthChange, signOutCloud, getUserRole, bootstrapAdmin, getIdToken } from "./firebaseClient";
 import { saveDeck, loadDeck, listDecks, deleteDeck, restoreDeck, purgeDeck, watchSharePulse } from "./firebaseStore";
 import { partitionDecks } from "./cloud";
+import { isMember } from "./clientbrand";
 import { exportSlide, exportSlides } from "./export";
 import { exportDeckToDrive } from "./driveExport";
 import { verifyDeck } from "./verify";
@@ -193,6 +194,10 @@ export default function Studio() {
   // A share link opened with EDIT access → the recipient gets the real editor and
   // saves back to the owner's deck through the token (not a read-only viewer).
   const sharedEdit = !!(sharedView && sharedView.access === "edit");
+  // Member (@loathr.com) vs guest — members get the Client-mode toggle; a guest
+  // deck is always client-branded. Cloud-off / signed-out counts as a member so
+  // the local dev experience is unchanged (no gating without accounts).
+  const member = !cloud || !user || isMember(user.email);
 
   // Live presence (collab phase 1): broadcast my cursor/selection and see other
   // signed-in editors on the same deck. A no-op (empty peers) when cloud is off,
@@ -855,6 +860,12 @@ export default function Studio() {
         <button style={iconBtn(state.future.length > 0)} disabled={state.future.length === 0} onClick={() => dispatch({ type: "redo" })} title="Redo (Ctrl/Cmd+Shift+Z)"><Redo2 size={16} /></button>
         <button style={iconBtn(true)} onClick={() => doReset(false)} title="Reset this slide to the brand look (undoable)"><RotateCcw size={16} /></button>
         <div style={{ flex: 1 }} />
+        {(state.doc.brandMode === "client") && (
+          <span style={{ fontSize: 11, color: "#8bb6ff", marginRight: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 9px", borderRadius: 12, background: "rgba(58,134,255,0.12)", border: "1px solid #34506f" }}
+            title="This deck is branded for a client — LOATHR branding is hidden.">
+            <Share2 size={12} /> Client mode
+          </span>
+        )}
         {sharedEdit && (
           <span style={{ fontSize: 11, color: "#cbb26a", marginRight: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 9px", borderRadius: 12, background: "rgba(203,178,106,0.12)", border: "1px solid rgba(203,178,106,0.4)" }}
             title="You're editing a deck shared with you by its owner. Changes save back to their deck.">
@@ -1029,6 +1040,11 @@ export default function Studio() {
             onChrome={(key, on) => dispatch({ type: "setChrome", key, on })}
             onResetAll={() => doReset(true)}
             onClose={() => setActivePanel(null)}
+            member={member}
+            brandMode={state.doc.brandMode || "loathr"}
+            clientBrand={state.doc.clientBrand}
+            onBrandMode={(m) => dispatch({ type: "setBrandMode", mode: m })}
+            onClientBrand={(cb) => dispatch({ type: "setClientBrand", clientBrand: cb })}
           />
         )}
         {activePanel === "caption" && (
