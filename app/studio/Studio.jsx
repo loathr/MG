@@ -28,7 +28,8 @@ import { usePresence } from "./usePresence";
 import { useSync } from "./useSync";
 import { initials } from "./presence";
 import { onAuthChange, signOutCloud, getUserRole, bootstrapAdmin, getIdToken } from "./firebaseClient";
-import { saveDeck, loadDeck, listDecks, deleteDeck, watchSharePulse } from "./firebaseStore";
+import { saveDeck, loadDeck, listDecks, deleteDeck, restoreDeck, purgeDeck, watchSharePulse } from "./firebaseStore";
+import { partitionDecks } from "./cloud";
 import { exportSlide, exportSlides } from "./export";
 import { exportDeckToDrive } from "./driveExport";
 import { verifyDeck } from "./verify";
@@ -152,6 +153,7 @@ export default function Studio() {
   const [genError, setGenError] = useState("");
   const [activePanel, setActivePanel] = useState("photos");
   const [resetNote, setResetNote] = useState(null); // transient "slide reset" confirmation
+  const [delNote, setDelNote] = useState(null);     // transient "moved to Recently deleted · Undo" toast
   // Reset re-flows the slide's content into its layout in the current brand — a
   // visual no-op if the slide hasn't drifted, so it can feel like nothing happened.
   // A short confirmation makes the action legible; the reset itself is undoable.
@@ -160,6 +162,7 @@ export default function Studio() {
     setResetNote(all ? "All slides reset to the brand look" : "Slide reset to the brand look");
   };
   useEffect(() => { if (!resetNote) return undefined; const t = setTimeout(() => setResetNote(null), 1900); return () => clearTimeout(t); }, [resetNote]);
+  useEffect(() => { if (!delNote) return undefined; const t = setTimeout(() => setDelNote(null), 6000); return () => clearTimeout(t); }, [delNote]);
   const [dlOpen, setDlOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [fc, setFc] = useState(null); // fact check: null | { loading, error, result, phase }
@@ -358,7 +361,14 @@ export default function Studio() {
   useEffect(() => {
     if (!cloud || !user || screen !== "projects") return;
     let live = true;
-    listDecks(user.uid).then((d) => { if (live) setProjects(d || []); });
+    listDecks(user.uid).then((d) => {
+      if (!live) return;
+      // Hard-delete anything that outlived the 24h Recently-deleted window, then
+      // show only what's left (live + still-recoverable).
+      const { active, deleted, expired } = partitionDecks(d || [], Date.now());
+      for (const p of expired) purgeDeck(user.uid, p.id);
+      setProjects(active.concat(deleted));
+    });
     return () => { live = false; };
   }, [cloud, user, screen]);
 
@@ -389,9 +399,27 @@ export default function Studio() {
     });
   };
   const newProject = () => { setProjectId(null); setScreen("create"); };
+  // Soft-delete → the deck moves to Recently deleted (kept 24h). Optimistically
+  // stamp deletedAt locally and offer an instant Undo; Restore/Delete-now live in
+  // the dashboard's Recently-deleted section.
   const removeProject = (id) => {
     if (!user) return;
-    deleteDeck(user.uid, id).then(() => setProjects((ps) => ps.filter((p) => p.id !== id)));
+    const now = Date.now();
+    const p = projects.find((x) => x.id === id);
+    setProjects((ps) => ps.map((x) => (x.id === id ? { ...x, deletedAt: now } : x)));
+    deleteDeck(user.uid, id, now);
+    setDelNote({ id, name: (p && p.name) || "Carousel" });
+  };
+  const restoreProject = (id) => {
+    if (!user) return;
+    setProjects((ps) => ps.map((x) => (x.id === id ? { ...x, deletedAt: null } : x)));
+    restoreDeck(user.uid, id);
+    setDelNote((n) => (n && n.id === id ? null : n));
+  };
+  const purgeProject = (id) => {
+    if (!user) return;
+    setProjects((ps) => ps.filter((x) => x.id !== id));
+    purgeDeck(user.uid, id);
   };
   const backToProjects = () => { setScreen("projects"); setSaveState("idle"); };
 
@@ -783,11 +811,15 @@ export default function Studio() {
         onOpen={openProject}
         onNew={newProject}
         onDelete={removeProject}
+        onRestore={restoreProject}
+        onPurge={purgeProject}
         email={(user && (user.email || user.displayName)) || ""}
         onSignOut={() => signOutCloud()}
         isAdmin={role === "admin"}
         onAdmin={() => setScreen("admin")}
         nowMs={Date.now()}
+        delNote={delNote}
+        onUndoDelete={() => { if (delNote) restoreProject(delNote.id); }}
       />
     );
   }

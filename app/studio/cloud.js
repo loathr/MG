@@ -173,6 +173,44 @@ export function groupCollapsedByDefault(group) {
 }
 
 // "2h ago" relative label for the Projects list. Pure — nowMs is passed in.
+// ---- Recently deleted (soft-delete recycle bin) ----------------------------
+// A deleted deck rests in "Recently deleted" for 24h, then clears for good. Pure
+// helpers so the split + countdown are unit-tested; firebaseStore does the IO.
+export const RECYCLE_TTL = 24 * 60 * 60 * 1000; // 24 hours in ms
+
+// Split a deck list into { active, deleted, expired } by their deletedAt stamp.
+//   active  — no deletedAt (live decks)
+//   deleted — deletedAt within the TTL (shown in Recently deleted, newest first)
+//   expired — deletedAt older than the TTL (caller hard-deletes these)
+// Pure; nowMs is passed in.
+export function partitionDecks(decks, nowMs, ttl) {
+  const t = ttl || RECYCLE_TTL;
+  const active = [], deleted = [], expired = [];
+  for (const p of decks || []) {
+    if (!p || !p.deletedAt) { active.push(p); continue; }
+    if (nowMs - p.deletedAt >= t) expired.push(p);
+    else deleted.push(p);
+  }
+  deleted.sort((a, b) => (b.deletedAt || 0) - (a.deletedAt || 0)); // most-recently-deleted first
+  return { active, deleted, expired };
+}
+
+// Milliseconds left before a deleted deck clears (0 once expired). Pure.
+export function deleteTimeLeft(deletedAt, nowMs, ttl) {
+  if (!deletedAt) return 0;
+  return Math.max(0, (deletedAt + (ttl || RECYCLE_TTL)) - nowMs);
+}
+
+// Human countdown for the Recently-deleted card, e.g. "22h left" / "45m left".
+// "<1m left" in the final minute, "clearing…" at zero. Pure.
+export function formatTimeLeft(ms) {
+  if (ms <= 0) return "clearing…";
+  const m = Math.floor(ms / 60000);
+  if (m >= 60) return Math.floor(m / 60) + "h left";
+  if (m >= 1) return m + "m left";
+  return "<1m left";
+}
+
 export function relativeTime(ms, nowMs) {
   if (!ms || !nowMs || nowMs < ms) return "just now";
   const s = Math.floor((nowMs - ms) / 1000);

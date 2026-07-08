@@ -220,11 +220,29 @@ export async function listDecks(uid) {
   const snap = await fs.getDocs(q);
   return snap.docs.map((s) => {
     const r = s.data() || {};
-    return { id: s.id, name: r.name || "Untitled carousel", slideCount: r.slideCount || 0, updatedAt: r.updatedAt || 0 };
+    // deletedAt (soft-delete stamp) rides along so the dashboard can split live
+    // decks from the Recently-deleted bin. Absent/null = a live deck.
+    return { id: s.id, name: r.name || "Untitled carousel", slideCount: r.slideCount || 0, updatedAt: r.updatedAt || 0, deletedAt: r.deletedAt || null };
   });
 }
 
-export async function deleteDeck(uid, id) {
+// Soft-delete: stamp deletedAt so the deck moves to "Recently deleted" (kept for
+// 24h) instead of vanishing. restoreDeck clears it; purgeDeck removes it for good.
+export async function deleteDeck(uid, id, nowMs) {
+  const d = await db(); if (!d || !uid || !id) return;
+  const fs = await import("firebase/firestore");
+  await fs.setDoc(fs.doc(d, "users", uid, "decks", id), { deletedAt: nowMs || Date.now() }, { merge: true });
+}
+
+// Restore a soft-deleted deck (clear the stamp).
+export async function restoreDeck(uid, id) {
+  const d = await db(); if (!d || !uid || !id) return;
+  const fs = await import("firebase/firestore");
+  await fs.setDoc(fs.doc(d, "users", uid, "decks", id), { deletedAt: fs.deleteField() }, { merge: true });
+}
+
+// Permanently remove a deck (the "Delete now" action and the 24h auto-purge).
+export async function purgeDeck(uid, id) {
   const d = await db(); if (!d || !uid || !id) return;
   const fs = await import("firebase/firestore");
   await fs.deleteDoc(fs.doc(d, "users", uid, "decks", id));

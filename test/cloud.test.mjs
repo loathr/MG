@@ -2,7 +2,7 @@
 // deck (de)serialization + the relative-time label. No firebase here.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cloudConfig, isCloudEnabled, projectRecord, docFromRecord, relativeTime, collectImageData, imageKey, rewriteImages, bucketByTime, groupDecks, groupCollapsedByDefault } from "../app/studio/cloud.js";
+import { cloudConfig, isCloudEnabled, projectRecord, docFromRecord, relativeTime, collectImageData, imageKey, rewriteImages, bucketByTime, groupDecks, groupCollapsedByDefault, partitionDecks, deleteTimeLeft, formatTimeLeft, RECYCLE_TTL } from "../app/studio/cloud.js";
 
 const FIREBASE_ENV = [
   "NEXT_PUBLIC_FIREBASE_API_KEY", "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
@@ -183,4 +183,34 @@ test("collectImageData + rewriteImages cover slide.content.image (the re-flow so
   assert.equal(out.slides[0].content.image.credit, "c", "non-image fields preserved");
   // no data: URL left behind → the doc no longer bloats past Firestore's cap
   assert.equal(collectImageData(out).length, 0);
+});
+
+// ---- Recently deleted (soft-delete recycle bin) ----------------------------
+const HR = 60 * 60 * 1000;
+test("partitionDecks splits active / deleted / expired by deletedAt", () => {
+  const now = 1_000_000_000;
+  const decks = [
+    { id: "a", updatedAt: now },                       // active
+    { id: "b", deletedAt: now - 2 * HR },              // deleted 2h ago → in bin
+    { id: "c", deletedAt: now - 1 * HR },              // deleted 1h ago → in bin
+    { id: "d", deletedAt: now - 30 * HR },             // 30h ago → expired
+  ];
+  const { active, deleted, expired } = partitionDecks(decks, now);
+  assert.deepEqual(active.map((p) => p.id), ["a"]);
+  assert.deepEqual(deleted.map((p) => p.id), ["c", "b"]); // newest-deleted first
+  assert.deepEqual(expired.map((p) => p.id), ["d"]);
+});
+
+test("deleteTimeLeft counts down to zero at the TTL", () => {
+  const now = 1_000_000_000;
+  assert.equal(deleteTimeLeft(now - 2 * HR, now), RECYCLE_TTL - 2 * HR);
+  assert.equal(deleteTimeLeft(now - 30 * HR, now), 0, "past the TTL → 0");
+  assert.equal(deleteTimeLeft(null, now), 0);
+});
+
+test("formatTimeLeft renders hours / minutes / edges", () => {
+  assert.equal(formatTimeLeft(22 * HR), "22h left");
+  assert.equal(formatTimeLeft(45 * 60 * 1000), "45m left");
+  assert.equal(formatTimeLeft(30 * 1000), "<1m left");
+  assert.equal(formatTimeLeft(0), "clearing…");
 });
