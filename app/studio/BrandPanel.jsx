@@ -57,6 +57,19 @@ function Swatch({ label, value, onChange, clearable, onClear }) {
     </div>
   );
 }
+// A row of segmented option pills (footer align / scope).
+function Pills({ value, onChange, options }) {
+  return (
+    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+      {options.map(([v, l]) => (
+        <button key={v} type="button" onClick={() => onChange(v)}
+          style={{ fontSize: 11, padding: "5px 9px", borderRadius: 7, cursor: "pointer",
+            background: value === v ? "#fff" : "#26262b", color: value === v ? "#0a0a0a" : "#bdbdc4",
+            border: "1px solid " + (value === v ? "#fff" : "#36363c"), fontWeight: value === v ? 600 : 400 }}>{l}</button>
+      ))}
+    </div>
+  );
+}
 // One font row for the client brand (label + picker).
 function FontRow({ label, value, options, onChange }) {
   return (
@@ -224,6 +237,23 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
               <FontRow label="Heading" value={cb.headFont} options={fontOptions} onChange={(v) => setCB({ headFont: v })} />
               <FontRow label="Body" value={cb.bodyFont} options={fontOptions} onChange={(v) => setCB({ bodyFont: v })} />
             </div>
+
+            <label style={{ ...lbl, marginTop: 14 }}>Footer</label>
+            <Pills value={(cb.footer && cb.footer.align) || "left"} onChange={(v) => setCB({ footer: Object.assign({ scope: "coverclose" }, cb.footer, { align: v }) })}
+              options={[["none", "None"], ["left", "Left"], ["center", "Center"], ["right", "Right"]]} />
+            <div style={{ height: 6 }} />
+            <Pills value={(cb.footer && cb.footer.scope) || "coverclose"} onChange={(v) => setCB({ footer: Object.assign({ align: "left" }, cb.footer, { scope: v }) })}
+              options={[["every", "Every"], ["coverclose", "Cover + close"], ["cover", "Cover only"]]} />
+
+            <label style={{ ...lbl, marginTop: 14, display: "flex", alignItems: "center" }}>
+              Closeout slide
+              <button type="button" title="Toggle closeout slide" onClick={() => setCB({ closeout: Object.assign({ cta: "Follow for more →" }, cb.closeout, { on: !(cb.closeout && cb.closeout.on) }) })}
+                style={{ marginLeft: "auto", width: 36, height: 21, borderRadius: 11, border: "none", cursor: "pointer", position: "relative", background: (cb.closeout && cb.closeout.on) ? "#2f6f52" : "#3a3a42" }}>
+                <span style={{ position: "absolute", top: 2, [(cb.closeout && cb.closeout.on) ? "right" : "left"]: 2, width: 17, height: 17, borderRadius: "50%", background: "#fff" }} />
+              </button>
+            </label>
+            <input style={inp} value={(cb.closeout && cb.closeout.cta) || ""} placeholder="Closing call-to-action" onChange={(e) => setCB({ closeout: Object.assign({ on: true }, cb.closeout, { cta: e.target.value }) })} />
+
             <p style={{ fontSize: 10.5, color: "#6a6a72", marginTop: 14, lineHeight: 1.5 }}>Brand marks are the client&apos;s — LOATHR branding is hidden on this deck.</p>
           </div>
         ) : (
