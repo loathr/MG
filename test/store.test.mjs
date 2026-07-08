@@ -923,3 +923,42 @@ test("setBrandMode is undoable (a MUTATES action)", () => {
   s = reducer(s, { type: "setBrandMode", mode: "client" });
   assert.equal(s.past.length, past + 1);
 });
+
+// --- Copy design (look only) -----------------------------------------------
+test("copyDesign stashes the slide's look; pasteDesign paints it (undoable)", () => {
+  let s = initStudio();
+  // slide 0: a styled heading; slide 1: a plain heading with its own words
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "H0", role: "heading", content: "A", color: "#ff0000", fontFamily: "Georgia" }) });
+  s = reducer(s, { type: "addSlide" });
+  s = reducer(s, { type: "setSlide", index: 1 });
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "H1", role: "heading", content: "KEEP ME", color: "#111111", fontFamily: "Helvetica" }) });
+  // copy slide 0's design, apply to slide 1
+  s = reducer(s, { type: "setSlide", index: 0 });
+  s = reducer(s, { type: "copyDesign" });
+  assert.ok(s.designClip, "look stashed");
+  s = reducer(s, { type: "setSlide", index: 1 });
+  const past = s.past.length;
+  s = reducer(s, { type: "pasteDesign" });
+  const h1 = s.doc.slides[1].elements.find((e) => e.id === "H1");
+  assert.equal(h1.color, "#ff0000", "heading colour adopted");
+  assert.equal(h1.fontFamily, "Georgia", "font adopted");
+  assert.equal(h1.content, "KEEP ME", "text kept");
+  assert.equal(s.past.length, past + 1, "paste is undoable");
+});
+
+test("pasteDesign all paints every slide; no-op without a copied design", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "H0", role: "heading", content: "A", color: "#00ff00" }) });
+  s = reducer(s, { type: "addSlide" });
+  s = reducer(s, { type: "setSlide", index: 1 });
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "H1", role: "heading", content: "B", color: "#000000" }) });
+  // no design copied yet → paste is a no-op
+  const before = s;
+  s = reducer(s, { type: "pasteDesign", all: true });
+  assert.equal(s.doc, before.doc, "no-op without a copied design");
+  // copy slide 0, apply to all
+  s = reducer(s, { type: "setSlide", index: 0 });
+  s = reducer(s, { type: "copyDesign" });
+  s = reducer(s, { type: "pasteDesign", all: true });
+  assert.equal(s.doc.slides[1].elements.find((e) => e.id === "H1").color, "#00ff00", "slide 1 adopted the look");
+});

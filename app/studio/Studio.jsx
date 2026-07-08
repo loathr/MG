@@ -41,6 +41,7 @@ import {
   Type, Shapes, Image as ImageIcon, LayoutTemplate, Palette, Captions,
   Undo2, Redo2, RotateCcw, RotateCw, ShieldCheck, Share2, Download,
   ChevronDown, ChevronRight, CornerDownLeft, Eye, Workflow, Copy, Check,
+  ClipboardPaste, CopyPlus,
 } from "lucide-react";
 
 const hbtn = {
@@ -155,6 +156,8 @@ export default function Studio() {
   const [activePanel, setActivePanel] = useState("photos");
   const [resetNote, setResetNote] = useState(null); // transient "slide reset" confirmation
   const [delNote, setDelNote] = useState(null);     // transient "moved to Recently deleted · Undo" toast
+  const [designMenu, setDesignMenu] = useState(false); // header Design menu open?
+  const [designNote, setDesignNote] = useState(null);  // transient "Design copied/applied" toast
   // Reset re-flows the slide's content into its layout in the current brand — a
   // visual no-op if the slide hasn't drifted, so it can feel like nothing happened.
   // A short confirmation makes the action legible; the reset itself is undoable.
@@ -164,6 +167,7 @@ export default function Studio() {
   };
   useEffect(() => { if (!resetNote) return undefined; const t = setTimeout(() => setResetNote(null), 1900); return () => clearTimeout(t); }, [resetNote]);
   useEffect(() => { if (!delNote) return undefined; const t = setTimeout(() => setDelNote(null), 6000); return () => clearTimeout(t); }, [delNote]);
+  useEffect(() => { if (!designNote) return undefined; const t = setTimeout(() => setDesignNote(null), 1900); return () => clearTimeout(t); }, [designNote]);
   const [dlOpen, setDlOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [fc, setFc] = useState(null); // fact check: null | { loading, error, result, phase }
@@ -859,6 +863,19 @@ export default function Studio() {
         <button style={iconBtn(state.past.length > 0)} disabled={state.past.length === 0} onClick={() => dispatch({ type: "undo" })} title="Undo (Ctrl/Cmd+Z)"><Undo2 size={16} /></button>
         <button style={iconBtn(state.future.length > 0)} disabled={state.future.length === 0} onClick={() => dispatch({ type: "redo" })} title="Redo (Ctrl/Cmd+Shift+Z)"><Redo2 size={16} /></button>
         <button style={iconBtn(true)} onClick={() => doReset(false)} title="Reset this slide to the brand look (undoable)"><RotateCcw size={16} /></button>
+        <div style={{ position: "relative" }}>
+          <button style={hbtn} onClick={() => setDesignMenu((o) => !o)} title="Copy a page's design onto other pages"><Palette size={14} /> Design</button>
+          {designMenu && (
+            <>
+              <div onClick={() => setDesignMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+              <div style={{ position: "absolute", left: 0, top: 38, width: 214, background: UI.surface2, border: "1px solid " + UI.border, borderRadius: 8, padding: 6, zIndex: 50, boxShadow: "0 8px 24px rgba(0,0,0,0.45)" }}>
+                <button style={dmItem} onClick={() => { dispatch({ type: "copyDesign" }); setDesignNote("Design copied"); }}><Copy size={13} /> Copy this page&apos;s design</button>
+                <button style={{ ...dmItem, opacity: state.designClip ? 1 : 0.4, cursor: state.designClip ? "pointer" : "default" }} disabled={!state.designClip} onClick={() => { dispatch({ type: "pasteDesign" }); setDesignMenu(false); setDesignNote("Design applied to this page"); }}><ClipboardPaste size={13} /> Apply to this page</button>
+                <button style={{ ...dmItem, opacity: state.designClip ? 1 : 0.4, cursor: state.designClip ? "pointer" : "default" }} disabled={!state.designClip} onClick={() => { dispatch({ type: "pasteDesign", all: true }); setDesignMenu(false); setDesignNote("Design applied to all pages"); }}><CopyPlus size={13} /> Apply to all pages</button>
+              </div>
+            </>
+          )}
+        </div>
         <div style={{ flex: 1 }} />
         {(state.doc.brandMode === "client") && (
           <span style={{ fontSize: 11, color: "#8bb6ff", marginRight: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 9px", borderRadius: 12, background: "rgba(58,134,255,0.12)", border: "1px solid #34506f" }}
@@ -1173,6 +1190,9 @@ export default function Studio() {
       {resetNote && (
         <div style={resetToast}><RotateCcw size={14} /> {resetNote}</div>
       )}
+      {designNote && (
+        <div style={resetToast}><Palette size={14} /> {designNote}</div>
+      )}
 
       {/* Google Drive export status toast (deploy-only feature). */}
       {drive && (
@@ -1233,6 +1253,10 @@ const resetToast = {
   display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 15px", borderRadius: 10,
   background: "#12201a", border: "1px solid #2b5a3c", color: "#a8d8a8", fontSize: 12.5, fontWeight: 600,
   boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+};
+const dmItem = {
+  width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 9px", background: "transparent",
+  border: "none", borderRadius: 6, color: "#dcdce2", fontSize: 12.5, cursor: "pointer", textAlign: "left",
 };
 const driveToast = {
   position: "fixed", right: 18, bottom: 18, zIndex: 70, width: 260,

@@ -13,6 +13,7 @@ import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOA
 import { expandGroups, toggleSelection, alignPatches, newGroupId } from "./group";
 import { applyOps } from "./sync";
 import { effectiveBrand, blankClientBrand } from "./clientbrand";
+import { captureLook, applyLook } from "./design";
 import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements, closerMarksFor } from "./templates";
 import { brandFromStyle, getStyle, FONT_PRESETS } from "./styles";
 import { shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
@@ -372,6 +373,22 @@ function docReducer(state, a) {
       const el = (state.doc.slides[state.slideIndex].elements || []).find((e) => e.id === (a.id || state.selectedId));
       if (!el) return state;
       return Object.assign({}, state, { clipboard: Object.assign({}, el), clipboardFrom: state.slideIndex });
+    }
+    case "copyDesign": {
+      // Stash the current slide's LOOK (design.captureLook) in a design clipboard —
+      // not a doc change, so no undo frame.
+      const slide = state.doc.slides[state.slideIndex];
+      if (!slide) return state;
+      return Object.assign({}, state, { designClip: captureLook(slide) });
+    }
+    case "pasteDesign": {
+      // Paint the stashed look onto this slide, or every slide (a.all). Undoable
+      // (MUTATES). Keeps each slide's own text/images/geometry.
+      const look = state.designClip;
+      if (!look) return state;
+      const i = state.slideIndex;
+      const slides = state.doc.slides.map((s, idx) => (a.all || idx === i ? applyLook(s, look) : s));
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { slides }) });
     }
     case "cut": {
       // Copy to the clipboard AND remove the element (undoable — see MUTATES).
@@ -733,7 +750,7 @@ function docReducer(state, a) {
 
 // Actions that change the document (undoable) vs. interaction boundaries that
 // just reset the coalescing tag so the next edit starts a fresh undo step.
-const MUTATES = { add: 1, duplicate: 1, cut: 1, paste: 1, update: 1, move: 1, moveMany: 1, setShare: 1, styleText: 1, delete: 1, deleteMany: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1, addFont: 1, removeFont: 1, applyCorrection: 1, applyCoherenceFix: 1, group: 1, ungroup: 1, align: 1, setBrandMode: 1, setClientBrand: 1 };
+const MUTATES = { add: 1, duplicate: 1, cut: 1, paste: 1, update: 1, move: 1, moveMany: 1, setShare: 1, styleText: 1, delete: 1, deleteMany: 1, setBg: 1, setShape: 1, raise: 1, lower: 1, addSlide: 1, duplicateSlide: 1, deleteSlide: 1, moveSlide: 1, applyBrand: 1, setLogo: 1, setCaution: 1, setChrome: 1, setFrame: 1, detachPhoto: 1, imageToBackground: 1, setLayout: 1, setFamily: 1, resetSlideToBrand: 1, addFont: 1, removeFont: 1, applyCorrection: 1, applyCoherenceFix: 1, group: 1, ungroup: 1, align: 1, setBrandMode: 1, setClientBrand: 1, pasteDesign: 1 };
 const BOUNDARY = { select: 1, selectMarquee: 1, deselect: 1, edit: 1, endEdit: 1, setSlide: 1, crop: 1 };
 
 function snap(state) {
