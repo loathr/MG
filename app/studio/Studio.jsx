@@ -52,6 +52,13 @@ const hbtn = {
   display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
 };
 
+// Format a save timestamp as a short local wall-clock time, e.g. "2:14 PM", so the
+// save indicator reads "Saved to owner · 2:14 PM" (no ambiguity that it persisted).
+function formatSavedAt(ms) {
+  try { return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
+  catch (e) { return ""; }
+}
+
 // Share-link Copy button that confirms the click: swaps to a green "Copied!" for
 // ~1.5s, then reverts. Owns its own copied state so it drops into the inline
 // share panel without threading state through Studio.
@@ -202,6 +209,7 @@ export default function Studio() {
   const [projects, setProjects] = useState([]);    // the user's saved decks (list meta)
   const [projectId, setProjectId] = useState(null);// current deck's Firestore id
   const [saveState, setSaveState] = useState("idle"); // "idle" | "saving" | "saved"
+  const [savedAt, setSavedAt] = useState(null);       // ms of the last successful save (shows a timestamp)
   const [shareOpen, setShareOpen] = useState(false);  // Share-link popover (Tier A)
   const [sharedView, setSharedView] = useState(null); // opened via a share link: { deck, s, access, name }
   const [adminView, setAdminView] = useState(null);   // admin opened someone's deck read-only: { name, error }
@@ -393,7 +401,7 @@ export default function Studio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ doc: state.doc }),
       })
-        .then((r) => setSaveState(r.ok ? "saved" : "idle"))
+        .then((r) => { if (r.ok) setSavedAt(Date.now()); setSaveState(r.ok ? "saved" : "idle"); })
         .catch(() => setSaveState("idle"));
     }, 1200);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
@@ -422,7 +430,7 @@ export default function Studio() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       saveDeck(user.uid, projectId, state.doc, { name: projectName, now: Date.now(), onUploading: () => setSaveState("uploading") })
-        .then((id) => { if (id && !projectId) setProjectId(id); setSaveState("saved"); })
+        .then((id) => { if (id && !projectId) setProjectId(id); setSavedAt(Date.now()); setSaveState("saved"); })
         .catch(() => setSaveState("idle"));
     }, 1200);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
@@ -946,9 +954,10 @@ export default function Studio() {
         )}
         {cloud ? (
           <span style={{ fontSize: 11, color: saveState === "saved" ? "#7ed09a" : UI.muted, marginRight: 8, display: "inline-flex", alignItems: "center", gap: 5 }}
-            title={sharedEdit ? (saveState === "saved" ? "Saved to the owner's deck" : "Saving to the owner's deck…") : (saveState === "saved" ? "Saved to your account" : "Saving…")}>
+            title={sharedEdit ? (saveState === "saved" ? "Saved to the owner's deck" + (savedAt ? " at " + formatSavedAt(savedAt) : "") : "Saving to the owner's deck…") : (saveState === "saved" ? "Saved to your account" + (savedAt ? " at " + formatSavedAt(savedAt) : "") : "Saving…")}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: saveState === "saved" ? "#7ed09a" : UI.muted }} />
-            {saveState === "uploading" ? "Uploading images…" : saveState === "saving" ? "Saving…" : (sharedEdit ? "Saved to owner" : "Saved to cloud")}
+            {saveState === "uploading" ? "Uploading images…" : saveState === "saving" ? "Saving…"
+              : (sharedEdit ? "Saved to owner" : "Saved to cloud") + (saveState === "saved" && savedAt ? " · " + formatSavedAt(savedAt) : "")}
           </span>
         ) : null}
         <span style={{ fontSize: 11, color: UI.muted, marginRight: 4 }}>
