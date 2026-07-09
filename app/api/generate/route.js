@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyRequest, unauthorized, forbidden, quotaExceeded } from "../_auth";
-import { meterGenerate } from "../adminStore";
+import { meterGenerate, logGeneration } from "../adminStore";
 
 // Vercel kills serverless functions after their maxDuration regardless of
 // streaming. Editorial generations with Claude Opus + web_search routinely take
@@ -101,6 +101,22 @@ export async function POST(request) {
 
     if (body.tools) {
       payload.tools = body.tools;
+    }
+
+    // Per-generation audit log: only the main carousel generation sends an `audit`
+    // hint (topic/style/slides/mode — already sanitized, no doc text). Log it against
+    // the VERIFIED identity, metadata only. Awaited so the write lands before the
+    // (possibly streamed) response returns; fail-open inside logGeneration.
+    if (auth.gated && auth.uid && body.audit) {
+      await logGeneration(auth.uid, {
+        email: auth.email,
+        topic: body.audit.topic,
+        style: body.audit.style,
+        slides: body.audit.slides,
+        mode: body.audit.mode,
+        guest: auth.isGuest,
+        model: payload.model,
+      });
     }
 
     // Adaptive thinking + effort (output_config) — forwarded so the studio

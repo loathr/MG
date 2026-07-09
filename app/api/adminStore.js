@@ -160,6 +160,45 @@ export async function relayLive(deckId, presentedToken, payload) {
   }
 }
 
+// --- per-generation audit log -------------------------------------------------
+// Log ONE metered generation. Metadata + a TRUNCATED topic label only — never the
+// uploaded document text or the full model prompt (privacy by design). The CALLER
+// passes the VERIFIED uid + email (a client can't spoof identity). Fail-open: an
+// audit-write blip never blocks a generation. Server-side (Admin SDK).
+export async function logGeneration(uid, entry) {
+  const d = await db();
+  if (!d || !uid) return;
+  try {
+    const e = entry || {};
+    const slides = Number(e.slides);
+    await d.collection("auditLog").add({
+      uid,
+      email: String(e.email || "").slice(0, 200),
+      topic: String(e.topic || "").slice(0, 120),   // truncated label, not the doc/prompt
+      style: String(e.style || "").slice(0, 40),
+      slides: Number.isFinite(slides) ? slides : null,
+      model: String(e.model || "").slice(0, 60),
+      mode: ["topic", "document", "restyle"].includes(e.mode) ? e.mode : "topic",
+      guest: !!e.guest,
+      ts: Date.now(),
+    });
+  } catch (x) { /* best-effort — never block generation on the audit write */ }
+}
+
+// Admin only: recent audit rows, newest first, capped (default 200, max 500).
+// Fail-open to []. The CALLER MUST have verified admin.
+export async function listAuditLog(limit) {
+  const d = await db();
+  if (!d) return [];
+  try {
+    const n = Math.min(500, Math.max(1, Number(limit) || 200));
+    const snap = await d.collection("auditLog").orderBy("ts", "desc").limit(n).get();
+    const rows = [];
+    snap.forEach((doc) => { const r = doc.data() || {}; rows.push(Object.assign({ id: doc.id }, r)); });
+    return rows;
+  } catch (e) { return []; }
+}
+
 // The RAW stored monthly limit from users/{uid}.limits.monthly, or null when unset
 // (so the caller can apply the policy default via effectiveMonthlyLimit).
 async function accountLimit(d, uid) {

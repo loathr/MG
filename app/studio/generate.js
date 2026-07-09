@@ -432,6 +432,9 @@ export async function runPrompt(prompt, opts) {
   }
   if (o.webSearch !== false) payload.tools = [WEB_SEARCH_TOOL];
   if (stream) payload.stream = true;
+  // Audit hint (main carousel generation only) — sanitized metadata the gated route
+  // logs against the verified identity; never the document text or full prompt.
+  if (o.audit) payload.audit = o.audit;
 
   // Attach the Firebase ID token when signed in, so the gated route accepts the
   // call. null (cloud disabled / signed out) → no header, route stays open.
@@ -470,7 +473,8 @@ export async function generateCarousel(topic, opts) {
   const sourceDoc = o.sourceDoc ? String(o.sourceDoc) : "";
   const webSearch = sourceDoc ? false : (o.webSearch !== false);
   const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch, ground: o.ground, slides: o.slides, tone: o.tone, voice: o.voice, sourceDoc, route: o.route, unbranded: o.unbranded, fidelity: o.fidelity });
-  let text = await runPrompt(prompt, { model: o.model, webSearch, stream: o.stream, signal: o.signal, onPhase: o.onPhase });
+  let text = await runPrompt(prompt, { model: o.model, webSearch, stream: o.stream, signal: o.signal, onPhase: o.onPhase,
+    audit: { topic, style: o.style, slides: o.slides, mode: sourceDoc ? "document" : "topic" } });
   // Polish pass (opt-in): a second editor pass tightens the spine, arc, and
   // transitions. Best-effort — any failure keeps the draft, so a flaky revise
   // never fails the whole generation. Reports a "polishing" phase for the UI.

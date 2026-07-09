@@ -15,6 +15,9 @@ export default function AdminConsole({ onBack, selfUid, nowMs, onOpenDeck }) {
   const [data, setData] = useState(null); // { accounts, decks, period, totals }
   const [requests, setRequests] = useState([]); // access-request queue
   const [reqRole, setReqRole] = useState({}); // uid -> role to grant on approve
+  const [audit, setAudit] = useState([]); // per-generation audit log
+  const [auditFilter, setAuditFilter] = useState("all"); // all | topic | document | restyle
+  const [auditQuery, setAuditQuery] = useState("");
   const [tab, setTab] = useState("accounts");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
@@ -41,6 +44,11 @@ export default function AdminConsole({ onBack, selfUid, nowMs, onOpenDeck }) {
     authFetch("/api/admin/requests")
       .then((r) => (r.ok ? r.json() : { requests: [] }))
       .then((d) => setRequests((d && d.requests) || []))
+      .catch(() => {});
+    // The per-generation audit log (best-effort — feeds the Audit tab).
+    authFetch("/api/admin/audit")
+      .then((r) => (r.ok ? r.json() : { rows: [] }))
+      .then((d) => setAudit((d && d.rows) || []))
       .catch(() => {});
   }, [authFetch]);
   useEffect(() => { load(); }, [load]);
@@ -111,6 +119,12 @@ export default function AdminConsole({ onBack, selfUid, nowMs, onOpenDeck }) {
   const accounts = data ? sortAccounts(data.accounts) : [];
   const totals = data ? workspaceTotals(data.accounts) : { accounts: 0, admins: 0, generationsThisMonth: 0, overLimit: 0 };
   const pendingCount = requests.filter((r) => r.status === "pending").length;
+  const auditRows = audit.filter((a) => {
+    if (auditFilter !== "all" && (a.mode || "topic") !== auditFilter) return false;
+    const q = auditQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (a.email || "").toLowerCase().includes(q) || (a.topic || "").toLowerCase().includes(q);
+  });
   const nameByUid = {};
   for (const a of (data ? data.accounts : [])) nameByUid[a.uid] = a.name || a.email || a.uid;
 
@@ -132,7 +146,7 @@ export default function AdminConsole({ onBack, selfUid, nowMs, onOpenDeck }) {
         </div>
 
         <div style={tabs}>
-          {[["accounts", "Accounts"], ["requests", "Requests"], ["usage", "Usage"], ["decks", "All decks"]].map(([k, lab]) => (
+          {[["accounts", "Accounts"], ["requests", "Requests"], ["audit", "Audit"], ["usage", "Usage"], ["decks", "All decks"]].map(([k, lab]) => (
             <button key={k} type="button" onClick={() => setTab(k)} style={{ ...tabBtn, ...(tab === k ? tabOn : null) }}>
               {lab}{k === "requests" && pendingCount > 0 ? <span style={tabBadge}>{pendingCount}</span> : null}
             </button>
@@ -240,6 +254,45 @@ export default function AdminConsole({ onBack, selfUid, nowMs, onOpenDeck }) {
             {requests.length === 0 ? <div style={foot}>No access requests. External accounts that sign in will appear here to approve or deny.</div>
               : <div style={foot}>{pendingCount} pending · approving adds the address to the allow-list and sets the role · decided requests are kept for audit</div>}
           </div>
+        )}
+
+        {tab === "audit" && (
+          <>
+            <div style={auditBar}>
+              {[["all", "All"], ["topic", "Topic"], ["document", "Document"], ["restyle", "Restyle"]].map(([k, lab]) => (
+                <button key={k} type="button" onClick={() => setAuditFilter(k)} style={{ ...fbtn, ...(auditFilter === k ? fbtnOn : null) }}>{lab}</button>
+              ))}
+              <input value={auditQuery} onChange={(e) => setAuditQuery(e.target.value)} placeholder="Search account or topic…" style={auditSearch} />
+            </div>
+            <div style={panel}>
+              <div style={{ ...row, ...headRow }}>
+                <span style={aWho}>Account</span><span style={aTopic}>Topic / label</span><span style={aMeta}>Style · slides · model</span><span style={aWhen}>When</span>
+              </div>
+              {auditRows.map((a) => (
+                <div key={a.id} style={row}>
+                  <span style={aWho}>
+                    <span style={{ ...av, width: 28, height: 28, background: avColor(a.uid || a.email) }}>{(a.email || "?").slice(0, 1).toUpperCase()}</span>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={nm}>{(a.email || "account").split("@")[0]}</span>
+                      <span style={em}>{a.email}</span>
+                    </span>
+                  </span>
+                  <span style={aTopic} title={a.topic}>
+                    {a.topic || <span style={{ color: "#6f6f77" }}>—</span>}
+                    {a.guest ? <span style={{ ...auditPill, ...apGuest }}>guest</span> : null}
+                    {a.mode && a.mode !== "topic" ? <span style={{ ...auditPill, ...(a.mode === "document" ? apDoc : apRestyle) }}>{a.mode}</span> : null}
+                  </span>
+                  <span style={aMeta}>{[cap(a.style || ""), a.slides != null ? a.slides : "—", shortModel(a.model)].filter((x) => x !== "").join(" · ")}</span>
+                  <span style={aWhen}>{a.ts ? relativeTime(a.ts, nowMs) : "—"}</span>
+                </div>
+              ))}
+              {auditRows.length === 0 ? (
+                <div style={foot}>{audit.length === 0 ? "No generations logged yet. Each metered generation records a row here." : "No rows match this filter."}</div>
+              ) : (
+                <div style={foot}>{auditRows.length} of {audit.length} generation{audit.length === 1 ? "" : "s"} · newest first · metadata + truncated topic only</div>
+              )}
+            </div>
+          </>
         )}
 
         {data && tab === "usage" && (
@@ -363,6 +416,20 @@ const guestTag = { fontSize: 10, background: "#2b2140", color: "#c3a6ff", border
 const stTag = { fontSize: 10, borderRadius: 5, padding: "1px 6px", marginLeft: 6, fontWeight: 600 };
 const stApproved = { background: "#13291d", color: "#8fe0ab" };
 const stDenied = { background: "#2a1618", color: "#ff9a8a" };
+// Audit tab
+const auditBar = { display: "flex", gap: 8, marginBottom: 12, alignItems: "center" };
+const fbtn = { fontSize: 12, padding: "6px 11px", borderRadius: 8, background: "#1b1b1f", border: "1px solid #2a2a30", color: "#bdbdc4", cursor: "pointer" };
+const fbtnOn = { background: "#26262e", color: "#fff", borderColor: "#3a3a42" };
+const auditSearch = { flex: 1, height: 32, background: "#161619", border: "1px solid #2a2a31", borderRadius: 8, color: "#e8e8e8", fontSize: 12.5, padding: "0 11px", outline: "none" };
+const aWho = { flex: 1.5, display: "flex", alignItems: "center", gap: 10, minWidth: 0 };
+const aTopic = { flex: 2.4, minWidth: 0, fontSize: 12.5, color: "#dcdce2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+const aMeta = { width: 170, fontSize: 11.5, color: "#8a8a90" };
+const aWhen = { width: 90, fontSize: 12, color: "#8a8a90" };
+const auditPill = { fontSize: 9.5, borderRadius: 5, padding: "1px 6px", marginLeft: 6, fontWeight: 600 };
+const apGuest = { background: "#2b2140", color: "#c3a6ff" };
+const apDoc = { background: "#13293a", color: "#8fd0ff" };
+const apRestyle = { background: "#132a1c", color: "#8fe0ab" };
+const shortModel = (m) => { const s = String(m || ""); if (/opus/i.test(s)) return "Opus 4.8"; if (/haiku/i.test(s)) return "Haiku"; if (/sonnet/i.test(s)) return "Sonnet"; return s ? s.slice(0, 14) : ""; };
 const actBtn = { fontSize: 11.5, color: "#cfcfd4", background: "#1c1c20", border: "1px solid #2c2c32", borderRadius: 7, padding: "5px 9px", cursor: "pointer", whiteSpace: "nowrap" };
 const actDanger = { color: "#ff9a8a", borderColor: "#5a3030", background: "#241819" };
 const openBtn = { fontSize: 11, color: "#cfcfd4", background: "#1c1c20", border: "1px solid #2c2c32", borderRadius: 6, padding: "4px 10px", cursor: "pointer" };

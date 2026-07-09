@@ -106,6 +106,13 @@ service cloud.firestore {
     match /config/{docId} {
       allow read, write: if false;
     }
+    // Per-generation audit log: written by the gated generate/design routes and read
+    // by the admin console, ONLY server-side (Admin SDK). Never client-accessible —
+    // it carries account emails. A Firestore TTL policy on `ts` is recommended so
+    // rows auto-reap (e.g. 90 days).
+    match /auditLog/{id} {
+      allow read, write: if false;
+    }
   }
 }
 ```

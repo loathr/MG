@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyRequest, unauthorized, forbidden, quotaExceeded } from "../_auth";
-import { meterGenerate } from "../adminStore";
+import { meterGenerate, logGeneration } from "../adminStore";
 
 // POST /api/design — turn a short design description into a small, structured
 // "design spec" (palette + fonts) the client folds onto the deck brand
@@ -35,6 +35,12 @@ export async function POST(request) {
   try { body = await request.json(); } catch (e) { return NextResponse.json({ error: "bad request" }, { status: 400 }); }
   const prompt = String((body && body.prompt) || "").slice(0, 400).trim();
   if (!prompt) return NextResponse.json({ error: "empty prompt" }, { status: 400 });
+
+  // Audit the restyle against the verified identity (metadata + the look prompt as
+  // the topic label). Fail-open inside logGeneration.
+  if (auth.gated && auth.uid) {
+    await logGeneration(auth.uid, { email: auth.email, topic: prompt, mode: "restyle", guest: auth.isGuest, model: "claude-opus-4-8" });
+  }
 
   const sys = "You are a brand designer. Given a short look/mood description for an editorial Instagram carousel, reply with ONLY a compact JSON object choosing a palette and type. Keys (all optional, omit rather than guess): accent (#rrggbb), secondary (#rrggbb), bg (#rrggbb, the deck background), ink (#rrggbb, main text), headFont, bodyFont, labelFont (CSS font-family strings from common web/Google fonts). No prose, no code fences.";
   try {
