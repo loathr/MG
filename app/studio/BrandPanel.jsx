@@ -1,6 +1,8 @@
 "use client";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { UI } from "./theme";
+import { loadKits, saveKits, upsertKit, removeKit } from "./brandkits";
+import { uid } from "./model";
 import { brandFromStyle, EDITORIAL_PALETTES, paletteBrand, BRAND_FONT, FONT_OPTIONS, FONT_PRESETS, activePresetId, STYLE_LIST } from "./styles";
 import { cautionFor } from "./categories";
 import { uploadedFontGroup, fontFamilyValue } from "./fonts";
@@ -45,6 +47,7 @@ function Section({ title, sub, first, defaultOpen = false, children }) {
   );
 }
 const cmRow = { display: "flex", alignItems: "center", gap: 9, background: "#131418", border: "1px solid #2a2f3a", borderRadius: 9, padding: "10px 11px", margin: "8px 0 4px" };
+const kitChip = { display: "inline-flex", alignItems: "center", gap: 8, background: "#101012", border: "1px solid #2c2c34", borderRadius: 9, padding: "6px 9px" };
 const addAccent = { height: 28, padding: "0 11px", background: "#26262b", color: "#9a9aa2", border: "1px dashed #3a3a42", borderRadius: 7, fontSize: 11.5, cursor: "pointer" };
 // One accent colour swatch (native colour input), optionally clearable.
 function Swatch({ label, value, onChange, clearable, onClear }) {
@@ -194,6 +197,16 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
   const client = brandMode === "client";
   const cb = clientBrand || {};
   const setCB = (patch) => onClientBrand && onClientBrand(Object.assign({}, cb, patch));
+  // Saved brand kits (localStorage). Loaded once; save/apply/remove update both.
+  const [kits, setKits] = useState([]);
+  useEffect(() => { setKits(loadKits()); }, []);
+  const persistKits = (next) => { setKits(next); saveKits(next); };
+  const saveCurrentKit = () => {
+    const name = (cb.name || "").trim() || ("Brand " + (kits.length + 1));
+    const next = upsertKit(kits, { id: uid("kit"), name, brand: Object.assign({}, cb, { name }) });
+    persistKits(next);
+  };
+  const applyKit = (k) => onClientBrand && onClientBrand(Object.assign({}, k.brand));
   return (
     <div style={wrap}>
       <div style={head}>
@@ -219,6 +232,25 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
         {/* ---------- CLIENT BRANDING (client mode) ---------- */}
         {client ? (
           <div style={{ paddingTop: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+              <label style={{ ...lbl, marginBottom: 0 }}>Your brands</label>
+              <button type="button" onClick={saveCurrentKit} style={{ marginLeft: "auto", fontSize: 11, color: "#7fb2ff", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>💾 Save current</button>
+            </div>
+            {kits.length > 0 ? (
+              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 12 }}>
+                {kits.map((k) => (
+                  <div key={k.id} style={kitChip}>
+                    <button type="button" onClick={() => applyKit(k)} title={"Apply " + k.name} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: "#dcdce2", fontSize: 11.5, padding: 0 }}>
+                      <span style={{ display: "flex", gap: 2 }}>
+                        {[k.brand && k.brand.accent1, k.brand && k.brand.accent2, k.brand && k.brand.accent3].filter(Boolean).slice(0, 3).map((c, i) => <span key={i} style={{ width: 10, height: 10, borderRadius: 3, background: c }} />)}
+                      </span>
+                      {k.name}
+                    </button>
+                    <button type="button" onClick={() => persistKits(removeKit(kits, k.id))} title="Remove" style={{ background: "none", border: "none", color: "#7a7a82", cursor: "pointer", fontSize: 12, padding: 0, lineHeight: 1 }}>×</button>
+                  </div>
+                ))}
+              </div>
+            ) : <div style={{ fontSize: 10.5, color: "#6a6a72", marginBottom: 12 }}>Save a brand to reuse it on future decks.</div>}
             <label style={lbl}>Brand name</label>
             <input style={inp} value={cb.name || ""} placeholder="Your client's name" onChange={(e) => setCB({ name: e.target.value })} />
             <label style={{ ...lbl, marginTop: 10 }}>Handle</label>
