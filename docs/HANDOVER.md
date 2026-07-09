@@ -5,15 +5,15 @@ maker). Read this end-to-end before touching code. For the original as-built
 architecture and rationale, `docs/STUDIO_REBUILD.md` is the deeper reference;
 this file is the *current* working state on top of it.
 
-- **Dev branch:** `claude/handover-docs-lxchp0`
+- **Dev branch:** `claude/handover-docs-review-h9qhlp`
 - **Promotion:** every shipped change is promoted to production `main` with
-  `git push origin claude/handover-docs-lxchp0:main` (there is **no PR** in this
-  flow — main is updated directly after the gate passes).
-- **HEAD at this writing:** `05129e8` · **Tests:** 367 passing · **Build:** clean
+  `git push origin claude/handover-docs-review-h9qhlp:main` (there is **no PR** in
+  this flow — main is updated directly after the gate passes).
+- **HEAD at this writing:** `b7aca2c` · **Tests:** 503 passing · **Build:** clean
   (Next 16 / Turbopack).
 
 > **Branch note:** the task harness may name a *different* dev branch. Ignore it —
-> all work lives on `claude/handover-docs-lxchp0` and is mirrored to `main`.
+> all work lives on `claude/handover-docs-review-h9qhlp` and is mirrored to `main`.
 
 ---
 
@@ -34,7 +34,7 @@ this file is the *current* working state on top of it.
    with:
    ```
    Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
-   Claude-Session: https://claude.ai/code/session_01JmXpnbwNLB8gBbvhx82a2Y
+   Claude-Session: https://claude.ai/code/session_01Cqsoj6QNUx4DHPUzMT7YnP
    ```
    Local `%G?` shows `N` (no `allowedSignersFile` configured in the sandbox) —
    verify signing by checking the raw `gpgsig` header
@@ -50,7 +50,7 @@ this file is the *current* working state on top of it.
 
 ## ▶️ PROMPT FOR THE NEW SESSION (start here)
 
-> You are continuing **LOATHR Studio** on branch `claude/handover-docs-lxchp0`,
+> You are continuing **LOATHR Studio** on branch `claude/handover-docs-review-h9qhlp`,
 > promoting each shipped change to `main`. Read this handover first.
 >
 > The app is a mature Next.js 16 carousel maker: a generation pipeline (Opus 4.8
@@ -175,66 +175,83 @@ admin deck viewer via `onBack`/`admin` props).
 
 ## 🧾 What happened THIS SESSION (conversation → work → commits)
 
-Chronological, mapping each user request to what shipped. All gated, signed, and
-promoted to `main`.
+Grouped by cluster, newest last. All gated (`npm test` + `npm run build`), signed,
+and promoted to `main`. The product name shown to users is **loathrdotcom**.
 
-1. **Voice/tone richness** — "run that comparison": A/B of two personas; then a
-   per-persona **structural `shape` exemplar** for all 10 voices so decks diverge
-   in shape, not just wording. `1e447f8`; Create screen de-duplicated Voice/Tone
-   `54ea561`.
-2. **Trending + region** — chose fan-out + honest scope note + image guard
-   (`c0deb70`); later "remove pictures / prioritize depth" reversed the
-   thumbnail-first sort → `rankItems` richness-first (`caa79e8`); region scope now
-   truly leads with in-region items (`09029b0`, `preserveOrder`).
-3. **Highlight editability** — bake the generated marker into a real run so it's
-   editable/removable (`effb53d`); removing it clears the knockout colour so text
-   re-integrates (`8d137f2`).
-4. **Fact-check** — sourced one-tap corrections, Apply / Apply-all-verified
-   (`7e30267`).
-5. **Stick-man loader** — replaced walk/run with 6 "working" tasks
-   (Painter/Typist/Builder/Digger/Sweeper/Dancer) (`4a608d4`).
-6. **Photos tile stacking** — absolute-position img + grid `alignItems:start`
-   (`50ffcef`).
-7. **People image search** — entity-first (Wikipedia/Wikidata/Commons, badges)
-   (`65048a8`); deeper relevance-ranked stock + fuller gallery (`5bafd76`); fixed
-   two regressions — lowercase queries + the invalid Wikidata pipe (`7ef701f`);
-   added Commons **depicts** P180 (`8f07f7c`).
-8. **Google Drive export + live onSnapshot viewer** — both deploy-only (`735c8af`);
-   Drive error decoding surfaces the real 403 fix (`988dbb3`).
-9. **Coherence + Polish** — the **Polish (revise) pass** + **Coherence check**
-   tool (`453b8f4`); one-tap **rewrite / cut / merge** fixes (`12fae8c`); the
-   check also critiques the **cover hook** (`6186cb4`).
-10. **Domain lock** — sign-in restricted to `@loathr.com` (three layers: client
-    sign-in, server `verifyRequest`, `authCore` policy) (`1a0779c`).
-11. **Text-edit font size** — per-span nudge accumulates on the span not the
-    element base (`40cddf1`, `sizeSpan` reads `.fontSize`); the toolbar size box
-    is now typeable (`754bd06`).
-12. **Admin account decisions** — **Suspend/Reactivate** (reversible Firebase Auth
-    `disabled` flag) + **Remove** (permanent `deleteUser` + optional Firestore
-    purge), self-target refused, type-the-email confirm, admin-gated
-    `/api/admin/account` (`94b8c9a`).
-13. **Admin can see other generations** — the All-decks rows open a **read-only
-    viewer** of any user's deck via admin-gated `/api/admin/deck` (Admin SDK
-    bypasses rules); reuses `SharedViewer` with an "Admin view · read-only" badge;
-    stays on the admin screen so autosave never mirrors the deck into the admin's
-    own account (`05129e8`). **Built read-only** — duplicate / edit-in-place and a
-    per-generation audit log were offered but not built (see below).
+**Editor / create-screen polish (earlier in the arc):** create-screen reflow to the
+topic pipeline + merged rail (`96f2e29`, `0d0f6a7`, `e5c6d44`); flag-derived deck
+palette (`7e678ef`); text-case toggle + Enter-inserts-newline (`cfe3ae1`);
+font-aware resize — corners scale type, edges reflow (`20d8813`); unified image
+transform, past-edge + scroll zoom (`180b1c7`); slide-reset toast + the two reset
+buttons differentiated (`0f1291e`, `e7ce000`); **picture-disappearance fix** —
+offload `slide.content.image` too (`8f1e5f0`).
 
-Earlier in the same session arc (UI/editor polish): lucide icon sweep, brand
-accordion, copy/paste elements, rotating topic suggestions, true crop, uniform
-photo tiles, create→dashboard routing.
+1. **Element grouping** — multi-select, marquee, group/ungroup, align, group-drag
+   (`a59ad62`; `group.js` pure core).
+2. **Real-time collaboration** — presence (cursors/selection/name+initials,
+   `presence.js`/`usePresence`, `cbddc61`); edit-sync core `diffDocs`/`applyOps`
+   (`025b648`) wired with advisory locks (`c794968`); jump-to-peer + Follow +
+   slide-strip badges (`b79a8a5`).
+3. **Share-as-edit** — edit links open the real editor and save back through the
+   token (server write-back `writeShared`, image offload; was view-only) (`779e4c0`);
+   hardened: body cap + documented collab Firestore rules (`d6db912`).
+4. **Selection handles** slimmed (`c641f5d`); shapes can shrink to a hairline
+   (`f681f15`).
+5. **Recently deleted** — 24h soft-delete recycle bin on the dashboard (`c98e025`).
+6. **Shapes + effects** — triangle/diamond/hexagon (`22f0afc`), border width +
+   solid/dashed/dotted (`ea9c25e`), ribbon/bookmark/callout/quote (`0556076`),
+   element drop-shadow & glow (`a083727`, `textfx.js`). All three renderers
+   (Element/StaticSlide/export) kept in sync via `ShapeBacking` + `export.js`.
+7. **Self-branding / Client mode** — the big cluster:
+   - Core model `clientBrand` + `brandMode` (`d7d4008`, `clientbrand.js`), store
+     `setBrandMode`/`setClientBrand` re-theme via `effectiveBrand` (`034cd87`),
+     Brand-panel toggle + form (`e6bc368`), footer/closeout (`853d57d`).
+   - **Copy design** (paint one page's look onto this/all pages — `762b9ee`,
+     `design.js`), **Design prompt** (preset restyles + AI restyle via
+     `/api/design` — `a6aa8cd`), **Brand kits** (save/reuse — `b00bdf6`,
+     `brandkits.js`).
+   - **Guest create screen** — document-first, Editorial-locked, collapsed, with
+     self-branding on the create screen; members reach the same via a **Client-mode
+     toggle** (`06d03f0`, `55a3c9c`; shared `ClientBrandForm.jsx`).
+   - **Logo upload + placement** (corner + which slides) and **page-number options**
+     (`55a3c9c`, `54be218`; `stampLogo` placement-aware + new `stampPageNumbers`).
+8. **Source fidelity** — verbatim ↔ reworded slider for document uploads
+   (`de6d085`, `FIDELITY_LEVELS`).
+9. **Access gate (external / non-team accounts)** — the whole cluster:
+   - **Individual-account allowlist** on top of the domain lock, Gmail dot/plus-safe
+     (`3db3ab3`, `ALLOWED_EMAILS` + `normalizeEmail`).
+   - **Guest monthly cap** — `GUEST_MONTHLY_LIMIT = 9`; `effectiveMonthlyLimit(role,
+     stored, isGuest)`; `isGuest` threaded through `verifyRequest`→`meterGenerate`
+     (`0349fd2`; member-vs-guest = email domain, `isMemberEmail`).
+   - **Request-access + admin approval** — external sign-ins hit a request screen
+     (not a hard wall); `accessRequests/{uid}` queue; admin **Requests** tab
+     approve/deny; approval adds to a runtime allowlist (`config/allowlist`) +
+     sets role (`f5db0e1`; `/api/access/*`, `/api/admin/requests`, `verifyIdentity`).
+10. **Anonymous shared-editor live sync** — a token-authorized relay
+    (`/api/shared/live`, `relayLive`) lets share-link editors (no account)
+    broadcast cursor + ops and see peers, sharing one room with signed-in members;
+    adaptive, visibility-gated short-poll (`livesync.js`, `useSharedLive`) keeps a
+    solo guest near-silent (`9b867fe`).
+11. **Per-generation audit log** — every metered generation writes `auditLog/{id}`
+    (metadata + truncated topic ONLY — never doc text/prompt); admin **Audit** tab
+    (filter + search); `logGeneration`/`listAuditLog`, `/api/admin/audit` (`b7aca2c`).
 
 ---
 
 ## ⏭ Open / offered-but-unbuilt
 
-- **Admin deck viewer — scope options** (offered, awaiting a call): currently
+- **Admin deck viewer — write scope** (offered, awaiting a call): the viewer is
   **read-only**. Could add **duplicate into the admin's own account** and/or
-  **edit-in-place**; and a **per-generation audit log** (prompt + timestamp on
-  every generate — a new Firestore write path + a privacy decision).
-- **"Copied!" confirmation** on the Share-link Copy button (offered, not built).
-- Deferred-by-design (low): more premium layouts, recent-projects shelf, grid
-  snapping, News "breaking" deck mode.
+  **edit-in-place**. (The per-generation audit log this once listed is now built —
+  `b7aca2c`.)
+- **Client-mode white-label footer gap** (known, minor): the generated LOATHR
+  *footer running text* (role `footer`, content "LOATHR") is not auto-stripped when
+  a member toggles a deck into client mode — only the wordmark/logo/page-numbers are
+  managed. A guest deck is generated then immediately set to client mode, so this is
+  mostly a member-round-trip edge. Client **page numbers** replace the `pageno`
+  chrome cleanly; the running footer text would need the same strip-in-client-mode
+  treatment.
+- Deferred-by-design (low): more premium layouts, recent-projects shelf.
 
 ## 🚀 Deploy-side actions owed by the user (NOT code — can't be done in-sandbox)
 
@@ -243,14 +260,21 @@ deploy. Track them in `docs/VERIFY.md` and `docs/CLOUD_SETUP.md`:
 
 1. **Redeploy from `main`** to pick up this session's features (several screenshot
    diagnoses traced to a stale deploy, not a code bug).
-2. **Firebase Admin credentials** must be configured on the deploy, or the admin
-   lifecycle/viewer routes safely no-op.
-3. Confirm the **`@loathr.com`** sign-in bounce (a non-loathr Google account is
-   signed out + rejected).
-4. Confirm **people image search** returns real photos (Wikimedia reachable).
-5. **Enable the Drive API + consent the `drive.file` scope** (the 403 was config,
+2. **Firebase Admin credentials** must be configured on the deploy, or the admin /
+   gate / access-request / live-relay routes safely no-op.
+3. **Firestore security rules** — add every collection now documented in
+   `CLOUD_SETUP.md`: `sharePulse`, `presence`, `edits` (+ the anon-relay note),
+   `accessRequests` (self-create only), `config` (server-only), `auditLog`
+   (server-only). Recommended TTLs: `edits/{deckId}/stream` on `ts`, `auditLog` on
+   `ts` (~90 days).
+4. **Access gate env** — `ALLOWED_EMAILS` (individual accounts seed) and, if the
+   team domain differs, `MEMBER_EMAIL_DOMAINS`; confirm the **request-access** flow
+   (external Google account → request screen → admin **Requests** tab → approve →
+   entry as a guest).
+5. Confirm the **`@loathr.com`** sign-in behaviour and the **guest 9/month cap**.
+6. Confirm **people image search** returns real photos (Wikimedia reachable).
+7. **Enable the Drive API + consent the `drive.file` scope** (the 403 was config,
    not code).
-6. Add the **`sharePulse` Firestore rule** (documented in `CLOUD_SETUP.md`).
 
 ---
 
@@ -259,7 +283,7 @@ deploy. Track them in `docs/VERIFY.md` and `docs/CLOUD_SETUP.md`:
 - **Network:** only the Anthropic API proxy is reachable. Firebase, Google OAuth/
   Drive, Wikimedia, stock, and news feeds all return `000`/`403` in-sandbox — do
   not retry policy denials; reason from code + unit tests instead.
-- **Gate:** `npm test` (**367 passing**) — `node --import ./test/register.mjs
+- **Gate:** `npm test` (**503 passing**) — `node --import ./test/register.mjs
   --test test/*.test.mjs` (node:test, extensionless ESM). Plus `npm run build`
   (Next 16 / Turbopack).
 - **Mocks:** a `.cjs` writes an HTML file into the session scratchpad; send it
@@ -274,6 +298,9 @@ deploy. Track them in `docs/VERIFY.md` and `docs/CLOUD_SETUP.md`:
   `test/register.mjs`).
 - Artboard 1080×1350; slide = background + flat element list (FLAT-LAYERS §3).
 - Roles: viewer/editor/admin (Firebase custom claims); Firestore `users/{uid}/
-  decks`; `shares/{deckId}` + `sharePulse/{deckId}` for share links.
-- Today's date reference in-session: **2026-07-06**. User email:
+  decks`; `shares/{deckId}` + `sharePulse/{deckId}` for share links; `presence/` +
+  `edits/` (collab), `accessRequests/` + `config/allowlist` (access gate),
+  `auditLog/` (audit). Member vs guest = email domain (`isMemberEmail`); guests get
+  client branding + a 9/month cap.
+- Today's date reference in-session: **2026-07-09**. User email:
   `loathr@loathr.com`.
