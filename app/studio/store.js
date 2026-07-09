@@ -12,7 +12,7 @@
 import { sampleDoc, blankSlide, cloneSlide, makeElement, uid, ARTBOARD_W, ARTBOARD_H, applyRunStyle, clearRunStyle, remapRuns, bakeDocHighlights, applyCorrectionToDoc, applyCoherenceFix } from "./model";
 import { expandGroups, toggleSelection, alignPatches, newGroupId } from "./group";
 import { applyOps } from "./sync";
-import { effectiveBrand, blankClientBrand } from "./clientbrand";
+import { effectiveBrand, blankClientBrand, footerOnSlide } from "./clientbrand";
 import { captureLook, applyLook, designBrand } from "./design";
 import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements, closerMarksFor } from "./templates";
 import { brandFromStyle, getStyle, FONT_PRESETS } from "./styles";
@@ -24,7 +24,7 @@ const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
 // renderLayout), so they must be carried over when a slide is re-rendered by a
 // layout change or a brand reset — otherwise the cover wordmark, the content
 // footer + page number, and the logo vanish.
-const CHROME_ROLES = { logo: 1, wordmark: 1, footer: 1, footrule: 1, pageno: 1, frame: 1 };
+const CHROME_ROLES = { logo: 1, wordmark: 1, footer: 1, footrule: 1, pageno: 1, frame: 1, cfooter: 1 };
 function carryChrome(slide, patch) {
   const chrome = (slide.elements || []).filter((e) => CHROME_ROLES[e.role]);
   // The frame is a near-full-bleed (transparent-interior) rect, so it must sit at
@@ -205,17 +205,19 @@ export function stampLogo(doc, logo, opts) {
   const pos = (opts && opts.pos) || "tr";
   const onSlide = (i) => scope === "every" ? true : scope === "cover" ? i === 0 : (i === 0 || i === n - 1);
   const place = (w, h) => {
-    const right = ARTBOARD_W - LOGO_M - w, bottom = ARTBOARD_H - LOGO_M - h;
+    const right = ARTBOARD_W - LOGO_M - w, bottom = ARTBOARD_H - LOGO_M - h, cx = Math.round((ARTBOARD_W - w) / 2);
     if (pos === "tl") return { x: LOGO_M, y: LOGO_M };
+    if (pos === "tc") return { x: cx, y: LOGO_M };
     if (pos === "bl") return { x: LOGO_M, y: bottom };
     if (pos === "br") return { x: right, y: bottom };
     return { x: right, y: LOGO_M }; // tr
   };
+  const topPos = pos === "tl" || pos === "tc" || pos === "tr";
   const slides = doc.slides.map((s, i) => {
     const here = lg && onSlide(i);
     // Logo wins a TOP cover corner: the cover wordmark steps aside so they don't stack.
     let els = (s.elements || []).filter((e) => e.role !== "logo");
-    if (here && i === 0 && (pos === "tl" || pos === "tr")) els = els.filter((e) => e.role !== "wordmark");
+    if (here && i === 0 && topPos) els = els.filter((e) => e.role !== "wordmark");
     if (here) {
       const p = place(lg.w, lg.h);
       els = els.concat(makeElement("image", {
@@ -252,6 +254,38 @@ export function stampPageNumbers(doc, opts) {
     return Object.assign({}, s, { elements: els });
   });
   return Object.assign({}, doc, { slides, brand: Object.assign({}, doc.brand, { pageNumbers: on, pageNumSide: side }) });
+}
+
+// The CLIENT running footer (role "cfooter"): brand text OR a small logo on the
+// bottom of the chosen slides, per the client's footer config (content / align /
+// scope). Independent of the LOATHR footer machinery (distinct role), so it survives
+// rebuildContentFooter. "off" (or no logo when content=logo) strips it. Text defaults
+// to "name · @handle" when the client hasn't typed a custom footer line. A normal,
+// editable element afterward.
+export function stampClientFooter(doc, brand) {
+  const f = (brand && brand.footer) || {};
+  const content = f.content === "text" || f.content === "logo" ? f.content : "off";
+  const align = f.align === "left" ? "left" : f.align === "right" ? "right" : "center";
+  const scope = f.scope || "every";
+  const n = doc.slides.length, Y = 1262;
+  const muted = (brand && brand.muted) || "#8a8a90";
+  const font = (brand && brand.bodyFont) || "Helvetica, Arial, sans-serif";
+  const text = (f.text && String(f.text).trim()) || [brand && brand.wordmark, brand && brand.handle].filter(Boolean).join(" · ");
+  const logo = brand && brand.logo && brand.logo.src ? brand.logo : null;
+  const slides = doc.slides.map((s, i) => {
+    let els = (s.elements || []).filter((e) => e.role !== "cfooter");
+    const show = content !== "off" && footerOnSlide(scope, i, n, i === n - 1);
+    if (show && content === "logo" && logo) {
+      const w = 120, h = 38;
+      const x = align === "left" ? LOGO_M : align === "right" ? ARTBOARD_W - LOGO_M - w : Math.round((ARTBOARD_W - w) / 2);
+      els = els.concat(makeElement("image", { id: uid("cfooter"), role: "cfooter", src: logo.src, thumb: logo.src, x, y: Y - 6, w, h, fit: "contain", radius: 0 }));
+    } else if (show && content === "text" && text) {
+      const W = ARTBOARD_W - 2 * LOGO_M;
+      els = els.concat(makeElement("text", { id: uid("cfooter"), role: "cfooter", x: LOGO_M, y: Y, w: W, h: 30, content: text, fontSize: 20, fontWeight: 400, color: muted, align, letterSpacing: 1, lineHeight: 1, fontFamily: font }));
+    }
+    return Object.assign({}, s, { elements: els });
+  });
+  return Object.assign({}, doc, { slides });
 }
 
 // Rebuild the CONTENT-slide running footer (footrule + LOATHR text + template page
@@ -630,6 +664,7 @@ function docReducer(state, a) {
         out = stampLogo(out, next.logo || null, { scope: next.logoScope, pos: next.logoPos });
         out = rebuildContentFooter(out, next, { footer: false, pageno: false });   // drop LOATHR footer + template page numbers
         out = stampPageNumbers(out, { on: next.pageNumbers, side: next.pageNumSide });
+        out = stampClientFooter(out, next); // client running footer (text / logo / off)
         out = Object.assign({}, out, { fonts: mergeDocFonts(out.fonts, clientBrand.fonts) }); // embed the client's uploaded fonts
         return Object.assign({}, state, { doc: out });
       }
@@ -640,6 +675,7 @@ function docReducer(state, a) {
       let out = rethemeDoc(staged, cur.brand, restore);
       out = stampLogo(out, restore.logo || null);
       out = rebuildContentFooter(out, restore, { footer: true, pageno: true });
+      out = stampClientFooter(out, restore); // restore has no footer → strips the client footer
       return Object.assign({}, state, { doc: out });
     }
     case "setClientBrand": {
@@ -655,6 +691,7 @@ function docReducer(state, a) {
         out = stampLogo(out, next.logo || null, { scope: next.logoScope, pos: next.logoPos });
         out = rebuildContentFooter(out, next, { footer: false, pageno: false });
         out = stampPageNumbers(out, { on: next.pageNumbers, side: next.pageNumSide });
+        out = stampClientFooter(out, next); // client running footer (text / logo / off)
         out = Object.assign({}, out, { fonts: mergeDocFonts(out.fonts, cb.fonts) }); // embed the client's uploaded fonts
         return Object.assign({}, state, { doc: out });
       }

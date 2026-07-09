@@ -2,7 +2,7 @@
 // stampLogo (scope + corner) and stampPageNumbers (on/off + side).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { stampLogo, stampPageNumbers, rebuildContentFooter, reducer, initStudio } from "../app/studio/store.js";
+import { stampLogo, stampPageNumbers, rebuildContentFooter, stampClientFooter, reducer, initStudio } from "../app/studio/store.js";
 import { ARTBOARD_W, ARTBOARD_H, makeElement } from "../app/studio/model.js";
 import { brandFromStyle } from "../app/studio/styles.js";
 
@@ -26,6 +26,41 @@ test("stampLogo scope=every, pos=bl: every slide, bottom-left", () => {
   const e = d.slides[2].elements.find((el) => el.role === "logo");
   assert.equal(e.x, 80);                                      // left
   assert.equal(e.y, ARTBOARD_H - 80 - 160);                   // bottom
+});
+
+test("stampLogo pos=tc: top-center on the cover (x centered), wordmark steps aside", () => {
+  const doc = { brand: {}, slides: [{ elements: [{ role: "wordmark", content: "X" }] }, { elements: [] }, { elements: [] }, { elements: [] }] };
+  const d = stampLogo(doc, { src: "x", w: 160, h: 160 }, { scope: "cover", pos: "tc" });
+  const lg = d.slides[0].elements.find((e) => e.role === "logo");
+  assert.equal(lg.x, Math.round((ARTBOARD_W - 160) / 2));      // centered X
+  assert.equal(lg.y, 80);                                       // top margin
+  assert.equal(d.slides[0].elements.some((e) => e.role === "wordmark"), false); // wordmark stepped aside
+  assert.equal(d.brand.logoPos, "tc");
+});
+
+test("stampClientFooter: text footer on content slides, sided; off strips it", () => {
+  const doc = { brand: {}, slides: [{ elements: [] }, { elements: [] }, { elements: [] }, { elements: [] }] };
+  const brand = { muted: "#888", footer: { content: "text", text: "Acme · @acme", align: "right", scope: "every" } };
+  const on = stampClientFooter(doc, brand);
+  const foots = on.slides.map((s) => (s.elements.find((e) => e.role === "cfooter") || {}).content || null);
+  assert.deepEqual(foots, ["Acme · @acme", "Acme · @acme", "Acme · @acme", "Acme · @acme"]); // scope every
+  assert.equal(on.slides[1].elements.find((e) => e.role === "cfooter").align, "right");
+  // off strips every cfooter
+  const off = stampClientFooter(on, { footer: { content: "off" } });
+  assert.equal(off.slides.every((s) => !s.elements.some((e) => e.role === "cfooter")), true);
+});
+
+test("stampClientFooter: logo footer places an image; falls back to name·handle text", () => {
+  const doc = { brand: {}, slides: [{ elements: [] }, { elements: [] }] };
+  const logoBrand = { logo: { src: "L" }, footer: { content: "logo", align: "center", scope: "every" } };
+  const d = stampClientFooter(doc, logoBrand);
+  const el = d.slides[0].elements.find((e) => e.role === "cfooter");
+  assert.equal(el.type, "image");
+  assert.equal(el.src, "L");
+  // text content defaults to wordmark · handle when no explicit footer.text
+  const t = stampClientFooter(doc, { wordmark: "Acme", handle: "@acme", footer: { content: "text", scope: "cover" } });
+  assert.equal(t.slides[0].elements.find((e) => e.role === "cfooter").content, "Acme · @acme");
+  assert.equal(t.slides[1].elements.some((e) => e.role === "cfooter"), false); // scope cover → slide 0 only
 });
 
 test("stampLogo scope=cover: cover only", () => {

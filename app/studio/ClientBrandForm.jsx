@@ -50,16 +50,20 @@ export function Pills({ value, onChange, options }) {
     </div>
   );
 }
-// A 2×2 corner picker for logo placement (tl / tr / bl / br).
-const CORNERS = [["tl", "top", "left"], ["tr", "top", "right"], ["bl", "bottom", "left"], ["br", "bottom", "right"]];
+// A corner picker for logo placement — the four corners plus top-center.
 export function CornerPicker({ value, onChange }) {
+  const dot = (id, title, pos) => (
+    <button key={id} type="button" title={title} onClick={() => onChange(id)}
+      style={Object.assign({ position: "absolute", width: 16, height: 16, borderRadius: 4, cursor: "pointer",
+        background: value === id ? "#6d3bd1" : "#2a2a33", border: "1px solid " + (value === id ? "#8b5cf0" : "#3a3a42") }, pos)} />
+  );
   return (
-    <div style={{ position: "relative", width: 70, height: 70, borderRadius: 8, border: "1px solid #34343c", background: "#1a1a1e" }}>
-      {CORNERS.map(([id, v, h]) => (
-        <button key={id} type="button" title={v + "-" + h} onClick={() => onChange(id)}
-          style={{ position: "absolute", [v]: 6, [h]: 6, width: 16, height: 16, borderRadius: 4, cursor: "pointer",
-            background: value === id ? "#6d3bd1" : "#2a2a33", border: "1px solid " + (value === id ? "#8b5cf0" : "#3a3a42") }} />
-      ))}
+    <div style={{ position: "relative", width: 84, height: 70, borderRadius: 8, border: "1px solid #34343c", background: "#1a1a1e" }}>
+      {dot("tl", "top-left", { top: 6, left: 6 })}
+      {dot("tc", "top-center", { top: 6, left: "50%", transform: "translateX(-50%)" })}
+      {dot("tr", "top-right", { top: 6, right: 6 })}
+      {dot("bl", "bottom-left", { bottom: 6, left: 6 })}
+      {dot("br", "bottom-right", { bottom: 6, right: 6 })}
     </div>
   );
 }
@@ -186,11 +190,27 @@ export default function ClientBrandFields({ cb, setCB, fontOptions, onAddImage }
       )}
 
       <label style={{ ...lbl, marginTop: 14 }}>Footer</label>
-      <Pills value={(cb.footer && cb.footer.align) || "left"} onChange={(v) => setCB({ footer: Object.assign({ scope: "coverclose" }, cb.footer, { align: v }) })}
-        options={[["none", "None"], ["left", "Left"], ["center", "Center"], ["right", "Right"]]} />
-      <div style={{ height: 6 }} />
-      <Pills value={(cb.footer && cb.footer.scope) || "coverclose"} onChange={(v) => setCB({ footer: Object.assign({ align: "left" }, cb.footer, { scope: v }) })}
-        options={[["every", "Every"], ["coverclose", "Cover + close"], ["cover", "Cover only"]]} />
+      <div style={miniLbl}>Show</div>
+      <Pills value={(cb.footer && cb.footer.content) || "off"} onChange={(v) => setCB({ footer: Object.assign({}, cb.footer, { content: v }) })}
+        options={[["text", "Brand text"], ["logo", "Logo"], ["off", "Off"]]} />
+      {(cb.footer && cb.footer.content) === "text" && (
+        <>
+          <div style={miniLbl}>Footer text</div>
+          <input style={inp} value={(cb.footer && cb.footer.text) || ""}
+            placeholder={[cb.name, cb.handle].filter(Boolean).join(" · ") || "Your footer line"}
+            onChange={(e) => setCB({ footer: Object.assign({}, cb.footer, { text: e.target.value }) })} />
+        </>
+      )}
+      {(cb.footer && cb.footer.content) && cb.footer.content !== "off" && (
+        <>
+          <div style={miniLbl}>Align</div>
+          <Pills value={(cb.footer && cb.footer.align) || "center"} onChange={(v) => setCB({ footer: Object.assign({}, cb.footer, { align: v }) })}
+            options={[["left", "Left"], ["center", "Center"], ["right", "Right"]]} />
+          <div style={miniLbl}>On slides</div>
+          <Pills value={(cb.footer && cb.footer.scope) || "every"} onChange={(v) => setCB({ footer: Object.assign({}, cb.footer, { scope: v }) })}
+            options={[["every", "Every"], ["coverclose", "Cover + close"], ["cover", "Cover"]]} />
+        </>
+      )}
 
       <label style={{ ...lbl, marginTop: 14, display: "flex", alignItems: "center" }}>
         Page numbers

@@ -29,11 +29,13 @@ export function brandModeFor(doc, isMemberFlag) {
 export function blankClientBrand() {
   return {
     name: "", handle: "", logo: null,
-    logoPos: "tr",          // tl | tr | bl | br — which corner the logo sits in
+    logoPos: "tr",          // tl | tc | tr | bl | br — which corner the logo sits in
     logoScope: "coverclose", // cover | coverclose | every — which slides carry it
     accent1: "#3a86ff", accent2: "#f4b740", accent3: null,
     labelFont: null, headFont: null, bodyFont: null,
-    footer: { align: "left", scope: "coverclose" }, // none|left|center|right × every|coverclose|cover
+    // Running footer: content ("text" | "logo" | "off") × align (left|center|right)
+    // × scope (every|coverclose|cover). `text` is the footer label ("" → name · @handle).
+    footer: { content: "off", text: "", align: "center", scope: "every" },
     pageNumbers: false,     // show page numbers on content slides
     pageNumSide: "right",   // left | right
     closeout: { on: false, cta: "Follow for more →" },

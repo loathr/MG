@@ -26,7 +26,7 @@ test("normalizeClientBrand fills a partial kit from defaults", () => {
   assert.equal(n.name, "Meridian");
   assert.equal(n.accent1, "#111");
   assert.equal(n.accent2, blankClientBrand().accent2);   // default kept
-  assert.deepEqual(n.footer, { align: "left", scope: "coverclose" });
+  assert.deepEqual(n.footer, { content: "off", text: "", align: "center", scope: "every" });
   assert.equal(n.closeout.on, false);
   // null-safe
   assert.deepEqual(normalizeClientBrand(null), blankClientBrand());
