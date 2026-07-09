@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { UI } from "./theme";
 import { relativeTime, groupDecks, groupCollapsedByDefault, partitionDecks, deleteTimeLeft, formatTimeLeft } from "./cloud";
-import { Settings, LogOut, Plus, Search, Trash2, MoreHorizontal, FolderOpen, ChevronDown, ChevronRight, RotateCcw, Clock } from "lucide-react";
+import { Settings, LogOut, Plus, Search, Trash2, MoreHorizontal, FolderOpen, ChevronDown, ChevronRight, RotateCcw, Clock, Eye } from "lucide-react";
 
 // "Your carousels" — the signed-in landing screen (cloud only). A grid of the
 // user's saved decks (metadata only, from listDecks) grouped by recency (or by
@@ -14,7 +14,7 @@ import { Settings, LogOut, Plus, Search, Trash2, MoreHorizontal, FolderOpen, Che
 // Shown only when the cloud layer is enabled.
 const COLLAPSE_KEY = "loathr:deckGroups:collapsed";
 
-export default function ProjectsScreen({ projects, onOpen, onNew, onDelete, onRestore, onPurge, email, onSignOut, isAdmin, onAdmin, nowMs, delNote, onUndoDelete }) {
+export default function ProjectsScreen({ projects, onOpen, onNew, onDelete, onRestore, onPurge, email, onSignOut, isAdmin, onAdmin, viewAsGuest, onViewAsGuest, nowMs, delNote, onUndoDelete }) {
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState("recency");     // "recency" | "month"
   const [acctOpen, setAcctOpen] = useState(false);
@@ -68,6 +68,7 @@ export default function ProjectsScreen({ projects, onOpen, onNew, onDelete, onRe
                   <div style={acctRole}>{isAdmin ? "Admin · workspace owner" : "Member"}</div>
                 </div>
                 {isAdmin && <button type="button" onClick={() => { setAcctOpen(false); onAdmin && onAdmin(); }} style={mi(true)}><Settings size={14} /> Admin console</button>}
+                {isAdmin && onViewAsGuest && <button type="button" onClick={() => { setAcctOpen(false); const next = !viewAsGuest; onViewAsGuest(next); if (next && onNew) onNew(); }} style={mi(false)}><Eye size={14} /> {viewAsGuest ? "Exit guest preview" : "View as guest"}</button>}
                 <button type="button" onClick={() => { setAcctOpen(false); onSignOut && onSignOut(); }} style={mi(false, true)}><LogOut size={14} /> Sign out</button>
               </div>
             )}

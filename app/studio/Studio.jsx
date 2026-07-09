@@ -59,6 +59,20 @@ function formatSavedAt(ms) {
   catch (e) { return ""; }
 }
 
+// Admin-only "View as guest" indicator — a fixed top-center pill shown while an
+// admin is previewing the guest experience, with an always-visible way out. The
+// preview is UI-only; the account stays a member (see Studio.member derivation).
+function GuestPreviewBanner({ onExit }) {
+  return (
+    <div style={{ position: "fixed", top: 8, left: "50%", transform: "translateX(-50%)", zIndex: 90, display: "inline-flex", alignItems: "center", gap: 9, padding: "5px 7px 5px 13px", borderRadius: 999, background: "linear-gradient(90deg,#2a2410,#171308)", border: "1px solid #574a1c", boxShadow: "0 6px 20px rgba(0,0,0,0.45)" }}>
+      <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#e6c34a", flexShrink: 0 }} />
+      <span style={{ fontSize: 12, color: "#e6cf8a", fontWeight: 600 }}>Viewing as guest</span>
+      <span style={{ fontSize: 11, color: "#b8a566" }}>preview · account unaffected</span>
+      <button type="button" onClick={onExit} style={{ fontSize: 11.5, fontWeight: 700, color: "#0a0a0a", background: "#e6c34a", border: "none", borderRadius: 999, padding: "5px 11px", cursor: "pointer" }}>Exit preview</button>
+    </div>
+  );
+}
+
 // Share-link Copy button that confirms the click: swaps to a green "Copied!" for
 // ~1.5s, then reverts. Owns its own copied state so it drops into the inline
 // share panel without threading state through Studio.
@@ -206,6 +220,7 @@ export default function Studio() {
   const cloud = isCloudEnabled();
   const [user, setUser] = useState(null);          // signed-in Firebase user
   const [role, setRole] = useState(null);          // signed-in user's role claim (admin gate)
+  const [viewAsGuest, setViewAsGuest] = useState(false); // admin-only: preview the guest experience
   const [projects, setProjects] = useState([]);    // the user's saved decks (list meta)
   const [projectId, setProjectId] = useState(null);// current deck's Firestore id
   const [saveState, setSaveState] = useState("idle"); // "idle" | "saving" | "saved"
@@ -230,7 +245,11 @@ export default function Studio() {
   // Member (@loathr.com) vs guest — members get the Client-mode toggle; a guest
   // deck is always client-branded. Cloud-off / signed-out counts as a member so
   // the local dev experience is unchanged (no gating without accounts).
-  const member = !cloud || !user || isMember(user.email);
+  // Admins can preview the guest experience without changing their account:
+  // `viewAsGuest` forces `member` false in the UI (client-side only — the server
+  // still treats them as a member for quota/branding). Gated on the admin role.
+  const realMember = !cloud || !user || isMember(user.email);
+  const member = realMember && !(viewAsGuest && role === "admin");
 
   // Live presence (collab phase 1): broadcast my cursor/selection and see other
   // signed-in editors on the same deck. A no-op (empty peers) when cloud is off,
@@ -906,6 +925,8 @@ export default function Studio() {
         onSignOut={() => signOutCloud()}
         isAdmin={role === "admin"}
         onAdmin={() => setScreen("admin")}
+        viewAsGuest={viewAsGuest}
+        onViewAsGuest={role === "admin" ? setViewAsGuest : null}
         nowMs={Date.now()}
         delNote={delNote}
         onUndoDelete={() => { if (delNote) restoreProject(delNote.id); }}
@@ -914,11 +935,17 @@ export default function Studio() {
   }
 
   if (screen === "create") {
-    return <CreateScreen onGenerate={handleGenerate} onBlank={startBlank} generating={generating} phase={genPhase} onCancel={cancelGenerate} error={genError} onBack={cloud && user ? backToProjects : null} member={member} />;
+    return (
+      <>
+        {viewAsGuest && role === "admin" && <GuestPreviewBanner onExit={() => setViewAsGuest(false)} />}
+        <CreateScreen onGenerate={handleGenerate} onBlank={startBlank} generating={generating} phase={genPhase} onCancel={cancelGenerate} error={genError} onBack={cloud && user ? backToProjects : null} member={member} />
+      </>
+    );
   }
 
   return (
     <div style={{ position: "fixed", inset: 0, display: "flex", flexDirection: "column", background: UI.bg, color: UI.text, fontFamily: "Helvetica, Arial, sans-serif" }}>
+      {viewAsGuest && role === "admin" && <GuestPreviewBanner onExit={() => setViewAsGuest(false)} />}
       <header style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", background: UI.surface, borderBottom: "1px solid " + UI.border, flexShrink: 0 }}>
         <span style={{ display: "flex", alignItems: "baseline", gap: 5, marginRight: 2 }}>
           <span style={{ fontFamily: "'Courier Prime', 'Courier New', monospace", fontWeight: 700, fontSize: 17, letterSpacing: 0.5, color: "#fff" }}>
