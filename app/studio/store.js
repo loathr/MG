@@ -191,25 +191,67 @@ export function rethemeDoc(doc, prev, next) {
   return Object.assign({}, doc, { brand: b, slides });
 }
 
-// Stamp/replace/remove the brand logo on a doc's bookend slides (cover = first,
-// closer = last). Strips any prior logo from EVERY slide first, then re-adds it
-// to the bookends as a draggable, role-tagged image. `null`/empty clears it.
-export function stampLogo(doc, logo) {
+// Stamp/replace/remove the brand logo, PLACEMENT-AWARE. `opts.scope` picks which
+// slides carry it — "cover" | "coverclose" (default, the bookends) | "every" — and
+// `opts.pos` the corner — "tl" | "tr" (default) | "bl" | "br". Strips any prior logo
+// from EVERY slide first, then re-adds it as a draggable, role-tagged image. Called
+// with no opts (setLogo / carryBrandKit) it reproduces the old bookends+top-right.
+// `null`/empty clears it.
+const LOGO_M = 80; // margin from the artboard edge
+export function stampLogo(doc, logo, opts) {
   const lg = logo && logo.src ? logo : null;
   const n = doc.slides.length;
-  const onBookend = (i) => i === 0 || i === n - 1;
+  const scope = (opts && opts.scope) || "coverclose";
+  const pos = (opts && opts.pos) || "tr";
+  const onSlide = (i) => scope === "every" ? true : scope === "cover" ? i === 0 : (i === 0 || i === n - 1);
+  const place = (w, h) => {
+    const right = ARTBOARD_W - LOGO_M - w, bottom = ARTBOARD_H - LOGO_M - h;
+    if (pos === "tl") return { x: LOGO_M, y: LOGO_M };
+    if (pos === "bl") return { x: LOGO_M, y: bottom };
+    if (pos === "br") return { x: right, y: bottom };
+    return { x: right, y: LOGO_M }; // tr
+  };
   const slides = doc.slides.map((s, i) => {
-    // Logo wins the cover corner: when a logo is stamped, the cover wordmark steps aside.
-    const els = (s.elements || []).filter((e) => e.role !== "logo" && !(lg && i === 0 && e.role === "wordmark"));
-    if (lg && onBookend(i)) {
-      els.push(makeElement("image", {
+    const here = lg && onSlide(i);
+    // Logo wins a TOP cover corner: the cover wordmark steps aside so they don't stack.
+    let els = (s.elements || []).filter((e) => e.role !== "logo");
+    if (here && i === 0 && (pos === "tl" || pos === "tr")) els = els.filter((e) => e.role !== "wordmark");
+    if (here) {
+      const p = place(lg.w, lg.h);
+      els = els.concat(makeElement("image", {
         id: uid("logo"), role: "logo", src: lg.src, thumb: lg.src,
-        x: ARTBOARD_W - 80 - lg.w, y: 60, w: lg.w, h: lg.h, fit: "contain", radius: 0,
+        x: p.x, y: p.y, w: lg.w, h: lg.h, fit: "contain", radius: 0,
       }));
     }
     return Object.assign({}, s, { elements: els });
   });
-  return Object.assign({}, doc, { slides, brand: Object.assign({}, doc.brand, { logo: lg }) });
+  return Object.assign({}, doc, { slides, brand: Object.assign({}, doc.brand, { logo: lg, logoScope: scope, logoPos: pos }) });
+}
+
+// Client page numbers on CONTENT slides (not the cover or closer). Replaces the
+// deck's page-number chrome (role "pageno") with the client's choice: `opts.on`
+// toggles them, `opts.side` ("left" | "right") sides them. Off → strips them (a
+// white-label deck with no numbers). Numbered by 1-based slide position, so the
+// second slide reads "2". A normal, editable text element afterward.
+export function stampPageNumbers(doc, opts) {
+  const on = !!(opts && opts.on);
+  const side = (opts && opts.side) === "left" ? "left" : "right";
+  const n = doc.slides.length;
+  const W = 200, muted = (doc.brand && doc.brand.muted) || "#8a8a90";
+  const font = (doc.brand && doc.brand.bodyFont) || "Helvetica, Arial, sans-serif";
+  const x = side === "left" ? LOGO_M : ARTBOARD_W - LOGO_M - W;
+  const slides = doc.slides.map((s, i) => {
+    let els = (s.elements || []).filter((e) => e.role !== "pageno");
+    if (on && i > 0 && i < n - 1) {
+      els = els.concat(makeElement("text", {
+        id: uid("pageno"), role: "pageno", x, y: 1262, w: W, h: 30,
+        content: String(i + 1), fontSize: 20, fontWeight: 400, color: muted,
+        align: side, letterSpacing: 2, lineHeight: 1, fontFamily: font,
+      }));
+    }
+    return Object.assign({}, s, { elements: els });
+  });
+  return Object.assign({}, doc, { slides, brand: Object.assign({}, doc.brand, { pageNumbers: on, pageNumSide: side }) });
 }
 
 // Carry a user's brand kit from the previous deck onto a freshly generated one.
@@ -545,9 +587,12 @@ function docReducer(state, a) {
         const clientBrand = cur.clientBrand || blankClientBrand();
         const next = effectiveBrand(loathrBrand, clientBrand, "client");
         const staged = Object.assign({}, cur, { loathrBrand, clientBrand, brandMode: "client" });
-        // Stamp the client logo on the bookends (or strip the LOATHR one when the
-        // client has none) — rethemeDoc only recolours, it doesn't place the logo.
-        return Object.assign({}, state, { doc: stampLogo(rethemeDoc(staged, cur.brand, next), next.logo || null) });
+        // rethemeDoc only recolours; place the logo (per the client's corner + scope)
+        // and the client page numbers (per side / off) as chrome elements.
+        let out = rethemeDoc(staged, cur.brand, next);
+        out = stampLogo(out, next.logo || null, { scope: next.logoScope, pos: next.logoPos });
+        out = stampPageNumbers(out, { on: next.pageNumbers, side: next.pageNumSide });
+        return Object.assign({}, state, { doc: out });
       }
       const restore = cur.loathrBrand || cur.brand;
       const staged = Object.assign({}, cur, { brandMode: "loathr" });
@@ -561,8 +606,11 @@ function docReducer(state, a) {
         const loathrBrand = state.doc.loathrBrand || state.doc.brand;
         const next = effectiveBrand(loathrBrand, cb, "client");
         const staged = Object.assign({}, state.doc, { clientBrand: cb });
-        // Re-stamp the client logo live as it's uploaded/changed/removed.
-        return Object.assign({}, state, { doc: stampLogo(rethemeDoc(staged, state.doc.brand, next), next.logo || null) });
+        // Re-stamp the logo + page numbers live as they're edited (placement, side, on/off).
+        let out = rethemeDoc(staged, state.doc.brand, next);
+        out = stampLogo(out, next.logo || null, { scope: next.logoScope, pos: next.logoPos });
+        out = stampPageNumbers(out, { on: next.pageNumbers, side: next.pageNumSide });
+        return Object.assign({}, state, { doc: out });
       }
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { clientBrand: cb }) });
     }

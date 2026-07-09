@@ -13,6 +13,7 @@ const inp = { width: "100%", height: 34, background: "#26262b", color: "#fff", b
 const addAccent = { height: 28, padding: "0 11px", background: "#26262b", color: "#9a9aa2", border: "1px dashed #3a3a42", borderRadius: 7, fontSize: 11.5, cursor: "pointer" };
 const logoBox = { width: 48, height: 48, flexShrink: 0, borderRadius: 9, border: "1.5px dashed #45454c", background: "#1a1a1e", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden", padding: 0 };
 const logoClear = { background: "none", border: "none", color: "#8a8a92", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline", textUnderlineOffset: 2 };
+const miniLbl = { fontSize: 9.5, letterSpacing: 0.5, textTransform: "uppercase", color: "#7c7c84", marginBottom: 6 };
 
 // One accent colour swatch (native colour input), optionally clearable.
 export function Swatch({ label, value, onChange, clearable, onClear }) {
@@ -38,6 +39,20 @@ export function Pills({ value, onChange, options }) {
     </div>
   );
 }
+// A 2×2 corner picker for logo placement (tl / tr / bl / br).
+const CORNERS = [["tl", "top", "left"], ["tr", "top", "right"], ["bl", "bottom", "left"], ["br", "bottom", "right"]];
+export function CornerPicker({ value, onChange }) {
+  return (
+    <div style={{ position: "relative", width: 70, height: 70, borderRadius: 8, border: "1px solid #34343c", background: "#1a1a1e" }}>
+      {CORNERS.map(([id, v, h]) => (
+        <button key={id} type="button" title={v + "-" + h} onClick={() => onChange(id)}
+          style={{ position: "absolute", [v]: 6, [h]: 6, width: 16, height: 16, borderRadius: 4, cursor: "pointer",
+            background: value === id ? "#6d3bd1" : "#2a2a33", border: "1px solid " + (value === id ? "#8b5cf0" : "#3a3a42") }} />
+      ))}
+    </div>
+  );
+}
+
 // One font row for the client brand (label + picker).
 export function FontRow({ label, value, options, onChange }) {
   return (
@@ -74,6 +89,19 @@ export default function ClientBrandFields({ cb, setCB, fontOptions }) {
         <input ref={logoRef} type="file" accept="image/*" style={{ display: "none" }}
           onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; onLogo(f); }} />
       </div>
+      {cb.logo && (
+        <div style={{ display: "flex", gap: 16, alignItems: "flex-start", marginTop: 10 }}>
+          <div>
+            <div style={miniLbl}>Position</div>
+            <CornerPicker value={cb.logoPos || "tr"} onChange={(v) => setCB({ logoPos: v })} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={miniLbl}>Show logo on</div>
+            <Pills value={cb.logoScope || "coverclose"} onChange={(v) => setCB({ logoScope: v })}
+              options={[["cover", "Cover"], ["coverclose", "Cover + close"], ["every", "Every"]]} />
+          </div>
+        </div>
+      )}
       <label style={{ ...lbl, marginTop: 12 }}>Brand name</label>
       <input style={inp} value={cb.name || ""} placeholder="Your client's name" onChange={(e) => setCB({ name: e.target.value })} />
       <label style={{ ...lbl, marginTop: 10 }}>Handle</label>
@@ -99,6 +127,18 @@ export default function ClientBrandFields({ cb, setCB, fontOptions }) {
       <div style={{ height: 6 }} />
       <Pills value={(cb.footer && cb.footer.scope) || "coverclose"} onChange={(v) => setCB({ footer: Object.assign({ align: "left" }, cb.footer, { scope: v }) })}
         options={[["every", "Every"], ["coverclose", "Cover + close"], ["cover", "Cover only"]]} />
+
+      <label style={{ ...lbl, marginTop: 14, display: "flex", alignItems: "center" }}>
+        Page numbers
+        <button type="button" title="Show page numbers on content slides" onClick={() => setCB({ pageNumbers: !cb.pageNumbers })}
+          style={{ marginLeft: "auto", width: 36, height: 21, borderRadius: 11, border: "none", cursor: "pointer", position: "relative", background: cb.pageNumbers ? "#2f6f52" : "#3a3a42" }}>
+          <span style={{ position: "absolute", top: 2, [cb.pageNumbers ? "right" : "left"]: 2, width: 17, height: 17, borderRadius: "50%", background: "#fff" }} />
+        </button>
+      </label>
+      {cb.pageNumbers && (
+        <Pills value={cb.pageNumSide === "left" ? "left" : "right"} onChange={(v) => setCB({ pageNumSide: v })}
+          options={[["left", "Left"], ["right", "Right"]]} />
+      )}
 
       <label style={{ ...lbl, marginTop: 14, display: "flex", alignItems: "center" }}>
         Closeout slide

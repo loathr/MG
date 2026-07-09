@@ -39,11 +39,15 @@ test("effectiveBrand: loathr mode returns the base brand untouched", () => {
 
 test("effectiveBrand: client mode folds the client identity into the brand shape", () => {
   const base = { wordmark: "LOATHR", accent: "#e23744", secondary: "#e23744", headFont: "Georgia", labelFont: "L", bodyFont: "B" };
-  const cb = { name: "Meridian", handle: "@meridian", logo: "logo.png", accent1: "#3a86ff", accent2: "#f4b740", accent3: "#e85d75", headFont: "Fraunces" };
+  const cb = { name: "Meridian", handle: "@meridian", logo: "logo.png", logoPos: "bl", logoScope: "every", pageNumbers: true, pageNumSide: "left", accent1: "#3a86ff", accent2: "#f4b740", accent3: "#e85d75", headFont: "Fraunces" };
   const e = effectiveBrand(base, cb, "client");
   assert.equal(e.wordmark, "Meridian");            // LOATHR wordmark replaced
   assert.equal(e.handle, "@meridian");
-  assert.deepEqual(e.logo, { src: "logo.png" });
+  assert.deepEqual(e.logo, { src: "logo.png", w: 160, h: 160 }); // default contain-box
+  assert.equal(e.logoPos, "bl");                   // placement folds through
+  assert.equal(e.logoScope, "every");
+  assert.equal(e.pageNumbers, true);               // page-number options fold through
+  assert.equal(e.pageNumSide, "left");
   assert.equal(e.accent, "#3a86ff");
   assert.equal(e.secondary, "#f4b740");
   assert.equal(e.accent3, "#e85d75");

@@ -29,9 +29,13 @@ export function brandModeFor(doc, isMemberFlag) {
 export function blankClientBrand() {
   return {
     name: "", handle: "", logo: null,
+    logoPos: "tr",          // tl | tr | bl | br — which corner the logo sits in
+    logoScope: "coverclose", // cover | coverclose | every — which slides carry it
     accent1: "#3a86ff", accent2: "#f4b740", accent3: null,
     labelFont: null, headFont: null, bodyFont: null,
     footer: { align: "left", scope: "coverclose" }, // none|left|center|right × every|coverclose|cover
+    pageNumbers: false,     // show page numbers on content slides
+    pageNumSide: "right",   // left | right
     closeout: { on: false, cta: "Follow for more →" },
   };
 }
@@ -43,9 +47,13 @@ export function normalizeClientBrand(cb) {
   if (!cb) return base;
   return {
     name: cb.name || "", handle: cb.handle || "", logo: cb.logo || null,
+    logoPos: cb.logoPos || base.logoPos,
+    logoScope: cb.logoScope || base.logoScope,
     accent1: cb.accent1 || base.accent1, accent2: cb.accent2 || base.accent2, accent3: cb.accent3 || null,
     labelFont: cb.labelFont || null, headFont: cb.headFont || null, bodyFont: cb.bodyFont || null,
     footer: Object.assign({}, base.footer, cb.footer || {}),
+    pageNumbers: !!cb.pageNumbers,
+    pageNumSide: cb.pageNumSide === "left" ? "left" : "right",
     closeout: Object.assign({}, base.closeout, cb.closeout || {}),
   };
 }
@@ -61,7 +69,12 @@ export function effectiveBrand(baseBrand, clientBrand, mode) {
   return Object.assign({}, b, {
     wordmark: c.name || "",                          // "" → the chrome shows no LOATHR wordmark
     handle: c.handle || "",
-    logo: c.logo ? { src: c.logo } : null,
+    // A square contain-box (data-URL logos carry no intrinsic size); fit:"contain"
+    // in stampLogo letterboxes any aspect ratio, and it's a normal draggable/resizable
+    // element afterward.
+    logo: c.logo ? { src: c.logo, w: 160, h: 160 } : null,
+    logoPos: c.logoPos,
+    logoScope: c.logoScope,
     accent: c.accent1,
     secondary: c.accent2 || c.accent1,
     accent3: c.accent3 || null,
@@ -69,6 +82,8 @@ export function effectiveBrand(baseBrand, clientBrand, mode) {
     headFont: c.headFont || b.headFont,
     bodyFont: c.bodyFont || b.bodyFont,
     footer: c.footer,
+    pageNumbers: c.pageNumbers,
+    pageNumSide: c.pageNumSide,
     closeout: c.closeout,
     clientMode: true,
   });
