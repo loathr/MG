@@ -71,6 +71,26 @@ export function stripCites(text) {
   return String(text == null ? "" : text).replace(/<\/?cite[^>]*>/g, "");
 }
 
+// Source fidelity: how closely a document-built deck follows the source's WORDING,
+// from verbatim to a full editorial rewrite. Five ordered stops; "balanced" is the
+// default and adds NO directive (the SOURCE DOCUMENT block is already balanced), so
+// an unset/balanced value keeps the prompt byte-identical to before. Pure.
+export const FIDELITY_LEVELS = ["verbatim", "mostly-verbatim", "balanced", "mostly-reworded", "reworded"];
+export function fidelityDirective(level) {
+  switch (level) {
+    case "verbatim":
+      return "SOURCE FIDELITY — VERBATIM: use the document's EXACT wording wherever a sentence can stand as a slide; quote its lines, figures and phrasing directly; do not paraphrase or embellish — only trim to fit the format.";
+    case "mostly-verbatim":
+      return "SOURCE FIDELITY — MOSTLY VERBATIM: keep the document's own wording and quotes for the key lines; tighten only lightly where the format demands it.";
+    case "mostly-reworded":
+      return "SOURCE FIDELITY — MOSTLY REWORDED: keep the facts, figures and any standout quotes, but rewrite the prose in a punchy, original editorial voice.";
+    case "reworded":
+      return "SOURCE FIDELITY — REWORDED: keep only the facts, figures and named quotes; rewrite everything else fully in a bold, original editorial voice — do NOT mirror the document's phrasing.";
+    default:
+      return ""; // "balanced" / unset → no extra directive
+  }
+}
+
 // Build the generation prompt. The category supplies the voice (persona +
 // brief), the content-slide role labels, and the CTA; `opts.seed` selects the
 // angle/voice (defaults to a hash of the topic), and `opts.today` anchors "now".
@@ -132,6 +152,10 @@ export function buildPrompt(topic, categoryKey, opts) {
   const toneLegacy = !toneRich && o.tone && TONE_DESC[o.tone] ? TONE_DESC[o.tone] : "";
   // Document → carousel: the pasted/extracted source the deck is built FROM.
   const sourceDoc = o.sourceDoc ? String(o.sourceDoc).trim() : "";
+  // How faithfully to follow the source's wording (verbatim ↔ reworded). Only
+  // meaningful with a document; "balanced" (the default) adds nothing so the
+  // existing prompt is byte-identical.
+  const fidelityLine = sourceDoc ? fidelityDirective(o.fidelity) : "";
   // White-label: strip every LOATHR mark from the GENERATED copy — no @handle in
   // the caption cta, no "invite the follow" closer, no brand sign-off. Default
   // (unbranded=false) keeps the prompt byte-identical to before.
@@ -158,6 +182,7 @@ export function buildPrompt(topic, categoryKey, opts) {
     sourceDoc
       ? "SOURCE DOCUMENT — build the ENTIRE carousel from the material below. Distill ITS key points into the cover, content slides, and closer; stay faithful to it and do NOT invent facts, figures, names, quotes, or events it does not contain. Do NOT web-search — this document is the source. Where the material is thin for a slide, summarise or reframe what's there rather than fabricate. Preserve the document's own facts and terminology.\n\"\"\"\n" + sourceDoc + "\n\"\"\""
       : research,
+    fidelityLine || null,
     routeLine,
     brandingLine,
     ground ? "Grounded source — build the deck on these specific facts, verifying and expanding them with search (correct anything outdated): \"" + ground + "\"" + (groundSrc ? " [" + groundSrc + "]" : "") : null,
@@ -444,7 +469,7 @@ export async function generateCarousel(topic, opts) {
   // truth), regardless of the quick-draft toggle.
   const sourceDoc = o.sourceDoc ? String(o.sourceDoc) : "";
   const webSearch = sourceDoc ? false : (o.webSearch !== false);
-  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch, ground: o.ground, slides: o.slides, tone: o.tone, voice: o.voice, sourceDoc, route: o.route, unbranded: o.unbranded });
+  const prompt = buildPrompt(topic, o.category, { seed: o.seed, today: o.today != null ? o.today : todayISO(), webSearch, ground: o.ground, slides: o.slides, tone: o.tone, voice: o.voice, sourceDoc, route: o.route, unbranded: o.unbranded, fidelity: o.fidelity });
   let text = await runPrompt(prompt, { model: o.model, webSearch, stream: o.stream, signal: o.signal, onPhase: o.onPhase });
   // Polish pass (opt-in): a second editor pass tightens the spine, arc, and
   // transitions. Best-effort — any failure keeps the draft, so a flaky revise

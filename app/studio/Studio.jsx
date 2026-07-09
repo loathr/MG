@@ -585,7 +585,7 @@ export default function Studio() {
   // fonts / wordmark + logo) carries onto the freshly generated deck (§5).
   // The call is cancellable (AbortController) and reports coarse progress
   // (searching → writing); a "quick draft" skips the web search for speed.
-  const handleGenerate = async ({ style, category, topic, quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded, flag }) => {
+  const handleGenerate = async ({ style, category, topic, quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded, flag, fidelity }) => {
     if (generating) return;
     const prevDoc = state.doc;
     const ac = new AbortController();
@@ -595,7 +595,7 @@ export default function Studio() {
     setGenerating(true); setGenError(""); setGenPhase((quickDraft || sourceDoc) ? "writing" : "searching");
     try {
       const doc = await generateCarousel(topic, {
-        style, category, webSearch: !quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded, signal: ac.signal, onPhase: setGenPhase,
+        style, category, webSearch: !quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded, fidelity, signal: ac.signal, onPhase: setGenPhase,
       });
       // Flag palette (opt-in): an explicit Scope country, else one detected in the
       // topic, tints the deck's accent/secondary from that country's flag (bg/ink

@@ -5,7 +5,22 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildPrompt, hashStr, stripCites, foldStreamEvent, parseSlides, parseCaption, buildRevisePrompt,
+  fidelityDirective, FIDELITY_LEVELS,
 } from "../app/studio/generate.js";
+
+test("source fidelity: directive per level; balanced/unset add nothing", () => {
+  assert.deepEqual(FIDELITY_LEVELS, ["verbatim", "mostly-verbatim", "balanced", "mostly-reworded", "reworded"]);
+  assert.match(fidelityDirective("verbatim"), /VERBATIM/);
+  assert.match(fidelityDirective("reworded"), /REWORDED/);
+  assert.equal(fidelityDirective("balanced"), "");
+  assert.equal(fidelityDirective(undefined), "");
+  // fidelity only threads into the prompt WITH a document, and never for balanced
+  const withDoc = (f) => buildPrompt("x", "editorial", { seed: 1, today: "2026-01-01", sourceDoc: "Some source material.", fidelity: f });
+  assert.match(withDoc("verbatim"), /SOURCE FIDELITY — VERBATIM/);
+  assert.doesNotMatch(withDoc("balanced"), /SOURCE FIDELITY/);
+  // no document → fidelity is ignored entirely
+  assert.doesNotMatch(buildPrompt("x", "editorial", { seed: 1, today: "2026-01-01", fidelity: "verbatim" }), /SOURCE FIDELITY/);
+});
 
 test("buildPrompt threads voice/date/JSON shape; web-search rule only when enabled", () => {
   const base = { seed: 3, today: "2026-06-26" };

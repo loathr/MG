@@ -9,6 +9,7 @@ import RouteSelect from "./RouteSelect";
 import { routeFraming, getBeat, REGIONS, URGENCY, ANGLES, EMPHASIS, MODES, framingPrompt, countriesForRegion, classifyTopicScope, beatsForDesk } from "./trending";
 import { VOICES as PERSONAS, TONES as RICH_TONES } from "./voices";
 import { readDocFile } from "./docsource";
+import { FIDELITY_LEVELS } from "./generate";
 import StickLoader from "./StickLoader";
 import RefinePanel from "./RefinePanel";
 import { PRESETS, activePreset } from "./presets";
@@ -75,6 +76,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   // Source mode: a short "topic" or a full "document" the deck is built from.
   const [srcMode, setSrcMode] = useState("topic");   // "topic" | "doc"
   const [docSrc, setDocSrc] = useState(null);        // { name, text, words } from a file
+  const [fidelity, setFidelity] = useState("balanced"); // source fidelity (doc mode)
   const [pasteText, setPasteText] = useState("");    // pasted material
   const [docErr, setDocErr] = useState("");
   const [docBusy, setDocBusy] = useState(false);
@@ -187,7 +189,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     const t = srcMode === "doc"
       ? ((docSrc && docSrc.name.replace(/\.[^.]+$/, "")) || "Your document")
       : topic.trim();
-    onGenerate({ style: desk, category: voice, topic: t, quickDraft, polish, ground: seed, slides, tone, voice: persona, sourceDoc, route: buildRoute(), unbranded, flag: flagPalette });
+    onGenerate({ style: desk, category: voice, topic: t, quickDraft, polish, ground: seed, slides, tone, voice: persona, sourceDoc, route: buildRoute(), unbranded, flag: flagPalette, fidelity: sourceDoc ? fidelity : undefined });
   };
 
   // Load a dropped/picked document → extract its text (txt/md/pdf).
@@ -401,6 +403,16 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
                 <button type="button" style={docX} onClick={() => setDocSrc(null)} title="Remove"><X size={13} /></button></div>
             ) : null}
             {docErr ? <div style={docErrBox}>{docErr}</div> : null}
+            {/* Source fidelity — how closely the deck follows the document's wording.
+                Only meaningful once there's material to build from. */}
+            {sourceDoc ? (
+              <div style={fidWrap}>
+                <div style={fidHead}><span>Source fidelity</span><span style={fidVal}>{FIDELITY_LABELS[fidelity]}</span></div>
+                <input type="range" min={0} max={FIDELITY_LEVELS.length - 1} step={1} value={FIDELITY_LEVELS.indexOf(fidelity)}
+                  onChange={(e) => setFidelity(FIDELITY_LEVELS[+e.target.value])} style={{ width: "100%", accentColor: UI.select, cursor: "pointer" }} />
+                <div style={fidEnds}><span>Verbatim · keep its words</span><span>Reworded · editorial rewrite</span></div>
+              </div>
+            ) : null}
           </div>
         )}
         {/* One scoped rail directly under the topic: browse Trending when nothing's
@@ -661,6 +673,11 @@ const docPaste = { width: "100%", boxSizing: "border-box", minHeight: 100, backg
 const docChip = { display: "inline-flex", alignItems: "center", gap: 8, background: "#1c1c22", border: "1px solid #34343c", borderRadius: 9, padding: "8px 12px", marginTop: 11, fontSize: 12.5, color: "#cdbcff" };
 const docX = { background: "transparent", border: "none", color: "#8a8a90", cursor: "pointer", fontSize: 12, marginLeft: 4 };
 const docErrBox = { fontSize: 11.5, color: "#ffb3a6", marginTop: 9, lineHeight: 1.4 };
+const FIDELITY_LABELS = { verbatim: "Verbatim", "mostly-verbatim": "Mostly verbatim", balanced: "Balanced", "mostly-reworded": "Mostly reworded", reworded: "Reworded" };
+const fidWrap = { marginTop: 14, paddingTop: 13, borderTop: "1px solid #2a2a32" };
+const fidHead = { display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: 12.5, fontWeight: 600, color: "#dcdce2", marginBottom: 9 };
+const fidVal = { fontSize: 12, color: UI.select, fontWeight: 600 };
+const fidEnds = { display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 10.5, color: "#7c7c84" };
 const vtRow = { display: "flex", gap: 11, width: "100%", marginTop: 10, position: "relative", zIndex: 5 };
 const vtBtn = (accent) => ({ width: "100%", height: 46, background: accent ? "#16121f" : "#141417", border: "1px solid " + (accent ? "#3a2f5e" : "#26262c"), borderRadius: 11, display: "flex", alignItems: "center", padding: "0 15px", justifyContent: "space-between", cursor: "pointer" });
 const vtL = { display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-start", minWidth: 0 };
