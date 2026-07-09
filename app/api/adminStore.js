@@ -103,6 +103,63 @@ export async function writeShared(deckId, presentedToken, doc) {
   }
 }
 
+// Live-sync relay for ANONYMOUS share-link editors (one round-trip: publish my
+// cursor + ops, receive everyone else's). Authorised by the share token (the token
+// IS the capability, like writeShared) — never a user session. Reads/writes the SAME
+// presence/{deckId}/peers + edits/{deckId}/stream the signed-in path uses, via the
+// Admin SDK (bypassing the auth-only rules). `since` is the caller's op cursor:
+//   • omitted/null (first poll) → no history replayed; cursor set to now.
+//   • a number → new batches strictly after it.
+// My presence is stamped anon:true. Fail-open to an empty room on any error so a blip
+// never breaks the editor. Returns { ok, peers, batches, cursor }.
+export async function relayLive(deckId, presentedToken, payload) {
+  const d = await db();
+  if (!d || !deckId) return { ok: false, access: "none" };
+  const sessionId = payload && payload.sessionId;
+  if (!sessionId) return { ok: false, access: "none" };
+  try {
+    const idxSnap = await d.doc("shares/" + deckId).get();
+    if (!idxSnap.exists) return { ok: false, access: "none" };
+    const access = resolveShared(idxSnap.data(), presentedToken);
+    if (access !== "edit") return { ok: false, access };   // view / none can't collaborate
+    const now = Date.now();
+    // Publish my presence (best-effort) — cursor / selection / slide, anon-stamped.
+    if (payload.presence) {
+      try { await d.doc("presence/" + deckId + "/peers/" + sessionId).set(Object.assign({}, payload.presence, { anon: true, ts: now }), { merge: true }); } catch (e) { /* best-effort */ }
+    }
+    // Leaving → drop my presence and skip the rest.
+    if (payload.leave) {
+      try { await d.doc("presence/" + deckId + "/peers/" + sessionId).delete(); } catch (e) { /* best-effort */ }
+      return { ok: true, access: "edit", peers: {}, batches: [], cursor: payload.since || now };
+    }
+    // Append my ops (best-effort).
+    if (Array.isArray(payload.ops) && payload.ops.length) {
+      try { await d.collection("edits/" + deckId + "/stream").add({ from: sessionId, ops: payload.ops, ts: now }); } catch (e) { /* best-effort */ }
+    }
+    // Read the room's presence (everyone but me).
+    const peers = {};
+    try {
+      const pSnap = await d.collection("presence/" + deckId + "/peers").get();
+      pSnap.forEach((s) => { if (s.id !== sessionId) peers[s.id] = s.data(); });
+    } catch (e) { /* empty room on error */ }
+    // Read new op batches since the caller's cursor. First poll (since null) skips
+    // history (cursor = now), mirroring the signed-in watchEdits joinedAt behaviour.
+    let batches = [];
+    let cursor = now;
+    if (payload.since != null) {
+      const sinceTs = Number(payload.since) || 0;
+      cursor = sinceTs;
+      try {
+        const eSnap = await d.collection("edits/" + deckId + "/stream").where("ts", ">", sinceTs).get();
+        eSnap.forEach((s) => { const dd = s.data() || {}; if (dd.from !== sessionId) { batches.push({ from: dd.from, ops: dd.ops, ts: dd.ts }); if ((dd.ts || 0) > cursor) cursor = dd.ts; } });
+      } catch (e) { /* no new ops on error */ }
+    }
+    return { ok: true, access: "edit", peers, batches, cursor };
+  } catch (e) {
+    return { ok: false, access: "none", error: true };
+  }
+}
+
 // The RAW stored monthly limit from users/{uid}.limits.monthly, or null when unset
 // (so the caller can apply the policy default via effectiveMonthlyLimit).
 async function accountLimit(d, uid) {

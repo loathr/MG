@@ -44,6 +44,7 @@ export function toPeer(id, raw) {
     selection,
     editing: !!r.editing,           // holds an element open for edit (advisory lock)
     slide: r.slide == null ? null : r.slide,
+    anon: !!r.anon,                 // an anonymous share-link editor (no account)
     ts: r.ts || 0,
   };
 }

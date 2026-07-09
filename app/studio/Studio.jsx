@@ -26,6 +26,7 @@ import AdminConsole from "./AdminConsole";
 import { isCloudEnabled } from "./cloud";
 import { usePresence } from "./usePresence";
 import { useSync } from "./useSync";
+import { useSharedLive } from "./useSharedLive";
 import { initials } from "./presence";
 import { onAuthChange, signOutCloud, getUserRole, bootstrapAdmin, getIdToken } from "./firebaseClient";
 import { saveDeck, loadDeck, listDecks, deleteDeck, restoreDeck, purgeDeck, watchSharePulse } from "./firebaseStore";
@@ -225,11 +226,24 @@ export default function Studio() {
   // signed-in editors on the same deck. A no-op (empty peers) when cloud is off,
   // nobody's signed in, or we're in a read-only share view.
   const collabOn = cloud && !!user && screen === "editor" && !sharedView;
-  const { peers, reportCursor, reportSelection } = usePresence({
+  const signedInLive = usePresence({
     deckId: projectId,
     user,
     enabled: collabOn,
   });
+  // Anonymous share-link editors have no Firebase auth, so they can't use the
+  // Firestore onSnapshot presence/sync path — they short-poll a token-authorized
+  // relay instead (same peers/reporters surface). Keyed on the OWNER's deck id so
+  // guests + members share one room. A no-op unless we're in an edit share.
+  const anonLive = useSharedLive({
+    deckId: sharedView ? sharedView.deck : null,
+    token: sharedView ? sharedView.s : null,
+    doc: state.doc,
+    dispatch,
+    editingId: state.editingId,
+    enabled: sharedEdit,
+  });
+  const { peers, reportCursor, reportSelection } = sharedEdit ? anonLive : signedInLive;
   // Publish my selection + current slide + an editing (advisory-lock) flag whenever
   // any of them changes.
   useEffect(() => {

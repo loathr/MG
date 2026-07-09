@@ -109,6 +109,15 @@ service cloud.firestore {
   }
 }
 ```
+> **Anonymous share-link editors** never touch these collections from the client
+> (the rules require auth). They collaborate live through the token-authorized relay
+> `POST /api/shared/live` (Admin SDK), which reads/writes the SAME
+> `presence/{deckId}/peers` + `edits/{deckId}/stream` docs on their behalf after
+> verifying the share token grants edit — so a guest and the signed-in owner/members
+> share one room. Their presence records are stamped `anon:true`; the client short-
+> polls the relay (adaptive, visibility-gated cadence) instead of `onSnapshot`. No
+> rule change is needed for anonymous editors — the relay is the only writer for them.
+>
 > Baseline for a trusted workspace: any signed-in member can read/write presence
 > and edits. To lock collaboration to a specific deck's members, AND in a check
 > that the deck is actually shared, e.g. `exists(/databases/$(database)/documents/shares/$(deckId))`,

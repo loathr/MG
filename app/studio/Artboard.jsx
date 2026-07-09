@@ -530,7 +530,7 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
             <svg width="18" height="18" viewBox="0 0 18 18" style={{ display: "block", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))" }}>
               <path d="M2 2 L2 15 L6 11 L9 17 L11 16 L8 10 L14 10 Z" fill={pr.color} stroke="#0a0a0a" strokeWidth="0.6" />
             </svg>
-            <span style={{ position: "absolute", left: 14, top: 13, fontSize: 10, fontWeight: 600, color: "#0a0a0a", background: pr.color, padding: "2px 7px", borderRadius: "4px 8px 8px 8px", whiteSpace: "nowrap" }}>{pr.name}</span>
+            <span style={{ position: "absolute", left: 14, top: 13, fontSize: 10, fontWeight: 600, color: "#0a0a0a", background: pr.color, padding: "2px 7px", borderRadius: "4px 8px 8px 8px", whiteSpace: "nowrap" }}>{pr.name}{pr.anon ? <span style={{ opacity: 0.7, fontWeight: 500 }}> · via link</span> : ""}</span>
           </div>
         ))}
       </div>
