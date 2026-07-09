@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   ROLES, DEFAULT_ROLE, CAPABILITIES, normalizeRole, can, isAdmin, roleFromClaims,
-  usagePeriodKey, quotaCheck, DEFAULT_MONTHLY_LIMIT, effectiveMonthlyLimit,
+  usagePeriodKey, quotaCheck, DEFAULT_MONTHLY_LIMIT, GUEST_MONTHLY_LIMIT, effectiveMonthlyLimit,
 } from "../app/studio/authority.js";
 
 test("effectiveMonthlyLimit: non-admins default to the preset (75); admins unlimited", () => {
@@ -21,6 +21,24 @@ test("effectiveMonthlyLimit: non-admins default to the preset (75); admins unlim
   assert.equal(effectiveMonthlyLimit("admin", 10), 0);
   // junk stored value falls back to the default for a non-admin
   assert.equal(effectiveMonthlyLimit("editor", "abc"), 75);
+});
+
+test("effectiveMonthlyLimit: guests default to the tighter 9/month preset", () => {
+  assert.equal(GUEST_MONTHLY_LIMIT, 9);
+  // guest, no stored limit → the guest preset (9), not the member 75
+  assert.equal(effectiveMonthlyLimit("editor", null, true), 9);
+  assert.equal(effectiveMonthlyLimit("editor", undefined, true), 9);
+  assert.equal(effectiveMonthlyLimit("viewer", null, true), 9);
+  // junk stored value falls back to the GUEST default for a guest
+  assert.equal(effectiveMonthlyLimit("editor", "abc", true), 9);
+  // an admin's explicit cap overrides the guest preset (both directions honored)
+  assert.equal(effectiveMonthlyLimit("editor", 30, true), 30);
+  assert.equal(effectiveMonthlyLimit("editor", 0, true), 0);
+  // a guest promoted to admin is still unlimited
+  assert.equal(effectiveMonthlyLimit("admin", null, true), 0);
+  // isGuest omitted/false keeps the member default
+  assert.equal(effectiveMonthlyLimit("editor", null, false), 75);
+  assert.equal(effectiveMonthlyLimit("editor", null), 75);
 });
 
 test("effectiveMonthlyLimit feeds quotaCheck: a fresh non-admin gets 75 generations", () => {

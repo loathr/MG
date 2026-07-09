@@ -80,6 +80,27 @@ export function emailAllowed(email, env) {
   return doms.includes(norm.slice(at + 1));
 }
 
+// The team-MEMBER email domains — the loathr.com team accounts that get full
+// branding and the higher default quota. Distinct from the sign-in allow-list: an
+// account allowed to sign in that ISN'T a member (e.g. a select individually
+// allow-listed Gmail, or an allowed non-member domain) is an external GUEST, with
+// guest branding + the tighter guest quota. MEMBER_EMAIL_DOMAINS (comma list) or
+// the single MEMBER_EMAIL_DOMAIN, defaulting to "loathr.com". Pure.
+export function memberEmailDomains(env) {
+  const e = env || (typeof process !== "undefined" ? process.env : {}) || {};
+  const raw = e.MEMBER_EMAIL_DOMAINS || e.MEMBER_EMAIL_DOMAIN || "loathr.com";
+  return String(raw).split(",").map((d) => d.trim().toLowerCase().replace(/^@/, "")).filter(Boolean);
+}
+
+// Is this verified email a team MEMBER (vs an external guest)? A member's domain is
+// in the member-domain list; individually allow-listed guests are NOT members. Pure.
+export function isMemberEmail(email, env) {
+  const norm = normalizeEmail(email);
+  const at = norm.lastIndexOf("@");
+  if (at < 0) return false;
+  return memberEmailDomains(env).includes(norm.slice(at + 1));
+}
+
 // Is this (verified) uid the one-time bootstrap admin — the escape hatch that lets
 // the FIRST admin self-promote before any admin exists to assign roles? Gated only
 // by the server-only BOOTSTRAP_ADMIN_UID env var. Pure → unit-tested; shared by the

@@ -50,21 +50,26 @@ export function roleFromClaims(claims) {
 }
 
 // --- usage / quota ----------------------------------------------------------
-// The default monthly generation cap applied to every NON-admin account that an
-// admin hasn't given an explicit limit. Admins are always unlimited.
+// The default monthly generation cap applied to every NON-admin MEMBER account that
+// an admin hasn't given an explicit limit. Admins are always unlimited.
 export const DEFAULT_MONTHLY_LIMIT = 75;
+// External GUEST accounts (allowed to sign in, but not team members) get a tighter
+// default cap — 9 carousels a month — until an admin sets them an explicit limit.
+export const GUEST_MONTHLY_LIMIT = 9;
 
 // The limit actually enforced for an account, folding in the policy default:
 //   • admin                      → 0 (unlimited)
-//   • non-admin, no stored limit → DEFAULT_MONTHLY_LIMIT (the preset)
+//   • non-admin, no stored limit → GUEST_MONTHLY_LIMIT for guests, else DEFAULT (preset)
 //   • non-admin, stored 0        → 0 (an admin explicitly granted unlimited)
 //   • non-admin, stored N>0      → N (an admin's explicit cap)
-// `stored` is the raw users/{uid}.limits.monthly (null/undefined when unset). Pure.
-export function effectiveMonthlyLimit(role, stored) {
+// `stored` is the raw users/{uid}.limits.monthly (null/undefined when unset).
+// `isGuest` picks the guest preset when no explicit limit is stored. Pure.
+export function effectiveMonthlyLimit(role, stored, isGuest) {
   if (isAdmin(role)) return 0;
-  if (stored == null) return DEFAULT_MONTHLY_LIMIT;
+  const preset = isGuest ? GUEST_MONTHLY_LIMIT : DEFAULT_MONTHLY_LIMIT;
+  if (stored == null) return preset;
   const n = Number(stored);
-  return Number.isFinite(n) && n >= 0 ? n : DEFAULT_MONTHLY_LIMIT;
+  return Number.isFinite(n) && n >= 0 ? n : preset;
 }
 
 // The metering bucket key for a timestamp (monthly, UTC). Pass the time in so

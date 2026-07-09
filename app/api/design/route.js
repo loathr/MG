@@ -25,7 +25,7 @@ export async function POST(request) {
   const auth = await verifyRequest(request);
   if (!auth.ok) return auth.forbidden ? forbidden(auth.reason) : unauthorized(auth.reason);
   if (auth.gated && auth.uid) {
-    const quota = await meterGenerate(auth.uid, Date.now(), auth.role);
+    const quota = await meterGenerate(auth.uid, Date.now(), auth.role, auth.isGuest);
     if (!quota.allowed) return quotaExceeded(quota.remaining);
   }
   const apiKey = process.env.ANTHROPIC_API_KEY;

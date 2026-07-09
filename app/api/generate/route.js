@@ -77,7 +77,7 @@ export async function POST(request) {
   // account's monthly generations and refuse once it's at its cap. No limit set
   // (or no admin store) → unlimited, as today.
   if (auth.gated && auth.uid) {
-    const quota = await meterGenerate(auth.uid, Date.now(), auth.role);
+    const quota = await meterGenerate(auth.uid, Date.now(), auth.role, auth.isGuest);
     if (!quota.allowed) return quotaExceeded(quota.remaining);
   }
 

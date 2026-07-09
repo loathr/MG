@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseBearer, adminCredentials, authGateEnabled, emailAllowed, allowedEmailDomains } from "./authCore";
+import { parseBearer, adminCredentials, authGateEnabled, emailAllowed, allowedEmailDomains, isMemberEmail } from "./authCore";
 import { roleFromClaims } from "../studio/authority";
 
 // Route-level auth verifier. firebase-admin is loaded LAZILY and only when the
@@ -37,7 +37,9 @@ export async function verifyRequest(request) {
     }
     // The `role` custom claim (set by an admin) rides in the verified token, so
     // the gate / admin routes read authority off the same source the rules do.
-    return { ok: true, uid: decoded.uid, role: roleFromClaims(decoded), gated: true };
+    // `isGuest` marks an allowed non-member (external) account — the metering uses
+    // it to apply the tighter guest monthly cap.
+    return { ok: true, uid: decoded.uid, role: roleFromClaims(decoded), isGuest: !isMemberEmail(decoded.email), gated: true };
   } catch (e) {
     return { ok: false, gated: true, reason: (e && e.message) || "invalid token" };
   }

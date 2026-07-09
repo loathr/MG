@@ -3,7 +3,7 @@
 // decision + header parsing.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseBearer, adminCredentials, authGateEnabled, isBootstrapAdmin, allowedEmailDomains, emailAllowed, normalizeEmail, allowedEmails } from "../app/api/authCore.js";
+import { parseBearer, adminCredentials, authGateEnabled, isBootstrapAdmin, allowedEmailDomains, emailAllowed, normalizeEmail, allowedEmails, memberEmailDomains, isMemberEmail } from "../app/api/authCore.js";
 
 test("allowedEmailDomains: defaults to loathr.com; env overrides (comma list, strips @)", () => {
   assert.deepEqual(allowedEmailDomains({}), ["loathr.com"]);                                  // default
@@ -41,6 +41,19 @@ test("allowedEmails + emailAllowed: individual accounts pass on top of the domai
   assert.equal(emailAllowed("sam@loathr.com", env), true);     // domain still works
   // …but a NON-listed gmail is still rejected (gmail.com never opened wholesale)
   assert.equal(emailAllowed("stranger@gmail.com", env), false);
+});
+
+test("memberEmailDomains + isMemberEmail: loathr.com is a member, allowed guests are not", () => {
+  assert.deepEqual(memberEmailDomains({}), ["loathr.com"]);                                 // default
+  assert.deepEqual(memberEmailDomains({ MEMBER_EMAIL_DOMAINS: "loathr.com, acme.io" }), ["loathr.com", "acme.io"]);
+  assert.deepEqual(memberEmailDomains({ MEMBER_EMAIL_DOMAIN: "@Team.co" }), ["team.co"]);   // single, lowered, @stripped
+  // a team member (member domain) → true; an external / individually-allowed gmail → false
+  assert.equal(isMemberEmail("sam@loathr.com", {}), true);
+  assert.equal(isMemberEmail("SAM@LOATHR.COM", {}), true);      // case-insensitive
+  assert.equal(isMemberEmail("guest@gmail.com", {}), false);    // allowed guest is NOT a member
+  assert.equal(isMemberEmail("notanemail", {}), false);
+  assert.equal(isMemberEmail("", {}), false);
+  assert.equal(isMemberEmail("x@acme.io", { MEMBER_EMAIL_DOMAINS: "acme.io" }), true);
 });
 
 test("isBootstrapAdmin: only the exact BOOTSTRAP_ADMIN_UID matches", () => {

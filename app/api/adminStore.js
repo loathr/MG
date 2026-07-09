@@ -5,7 +5,7 @@
 // authority.js; this module only does the Firestore/Auth I/O around them, and
 // fails OPEN on any error so a metering blip can never block generation.
 
-import { adminCredentials } from "./authCore";
+import { adminCredentials, isMemberEmail } from "./authCore";
 import { quotaCheck, usagePeriodKey, normalizeRole, effectiveMonthlyLimit } from "../studio/authority";
 import { resolveShared } from "../studio/sharing";
 import { collectImageData, imageKey, rewriteImages } from "../studio/cloud";
@@ -108,12 +108,12 @@ async function accountLimit(d, uid) {
 // increment the usage counter at usage/{uid}/months/{period}. Returns the
 // quotaCheck result ({ allowed, remaining, … }). Fail-open on any Firestore error.
 // `role` folds in the policy default: non-admins with no explicit limit get the
-// preset (DEFAULT_MONTHLY_LIMIT); admins are unlimited.
-export async function meterGenerate(uid, nowMs, role) {
+// preset (guests GUEST_MONTHLY_LIMIT, members DEFAULT_MONTHLY_LIMIT); admins unlimited.
+export async function meterGenerate(uid, nowMs, role, isGuest) {
   const d = await db();
   if (!d || !uid) return { allowed: true, unlimited: true };
   try {
-    const limit = effectiveMonthlyLimit(role, await accountLimit(d, uid));
+    const limit = effectiveMonthlyLimit(role, await accountLimit(d, uid), isGuest);
     const period = usagePeriodKey(nowMs);
     const ref = d.doc("usage/" + uid + "/months/" + period);
     const snap = await ref.get();
@@ -199,14 +199,17 @@ export async function listAccounts(nowMs) {
         } catch (e) { /* default 0 */ }
       }
       const role = normalizeRole(u.customClaims && u.customClaims.role);
+      const guest = !isMemberEmail(u.email);
       rows.push({
         uid: u.uid,
         email: u.email || "",
         name: u.displayName || (u.email ? u.email.split("@")[0] : "Account"),
         role,
-        // The EFFECTIVE cap the console shows + enforces: policy default (75) for a
-        // non-admin with no explicit limit, unlimited for admins, else the set value.
-        limit: effectiveMonthlyLimit(role, stored),
+        guest, // external (non-member) account — gets the tighter guest default cap
+        // The EFFECTIVE cap the console shows + enforces: policy default (members 75,
+        // guests 9) for a non-admin with no explicit limit, unlimited for admins,
+        // else the admin-set value.
+        limit: effectiveMonthlyLimit(role, stored, guest),
         used,
         disabled: !!u.disabled, // suspended accounts can't sign in
         lastActive: (u.metadata && (u.metadata.lastSignInTime || u.metadata.lastRefreshTime)) || null,
