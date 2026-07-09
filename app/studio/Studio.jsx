@@ -242,6 +242,7 @@ export default function Studio() {
     dispatch,
     editingId: state.editingId,
     enabled: sharedEdit,
+    user, // a signed-in share-link editor shows their real name, not "Guest"
   });
   const { peers, reportCursor, reportSelection } = sharedEdit ? anonLive : signedInLive;
   // Publish my selection + current slide + an editing (advisory-lock) flag whenever

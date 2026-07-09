@@ -123,9 +123,12 @@ export async function relayLive(deckId, presentedToken, payload) {
     const access = resolveShared(idxSnap.data(), presentedToken);
     if (access !== "edit") return { ok: false, access };   // view / none can't collaborate
     const now = Date.now();
-    // Publish my presence (best-effort) — cursor / selection / slide, anon-stamped.
+    // Publish my presence (best-effort) — cursor / selection / slide. The editor
+    // may be a signed-in user (real name, anon:false) or a truly anonymous visitor
+    // (anon:true); default to anonymous only when the client didn't say.
     if (payload.presence) {
-      try { await d.doc("presence/" + deckId + "/peers/" + sessionId).set(Object.assign({}, payload.presence, { anon: true, ts: now }), { merge: true }); } catch (e) { /* best-effort */ }
+      const presence = Object.assign({ anon: true }, payload.presence, { ts: now });
+      try { await d.doc("presence/" + deckId + "/peers/" + sessionId).set(presence, { merge: true }); } catch (e) { /* best-effort */ }
     }
     // Leaving → drop my presence and skip the rest.
     if (payload.leave) {

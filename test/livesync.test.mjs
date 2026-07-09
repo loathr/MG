@@ -2,7 +2,7 @@
 // shared-editor live layer (guest identity, op collection, adaptive poll cadence).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { guestIdentity, collectOps, pollDelay } from "../app/studio/livesync.js";
+import { guestIdentity, sharedIdentity, collectOps, pollDelay } from "../app/studio/livesync.js";
 import { peerColor } from "../app/studio/presence.js";
 
 test("guestIdentity: Guest name, stable color from the session id, anon flag", () => {
@@ -11,6 +11,25 @@ test("guestIdentity: Guest name, stable color from the session id, anon flag", (
   assert.equal(g.anon, true);
   assert.equal(g.color, peerColor("anon_abc"));           // deterministic
   assert.equal(guestIdentity("anon_abc").color, g.color); // same session → same colour
+});
+
+test("sharedIdentity: signed-in editors show their real name (not Guest); anonymous falls back", () => {
+  // Display name wins.
+  const a = sharedIdentity({ uid: "u1", displayName: "George Okoro", email: "george@gmail.com" }, "anon_x");
+  assert.equal(a.name, "George Okoro");
+  assert.equal(a.anon, false);
+  assert.equal(a.color, peerColor("u1"));                 // stable colour from uid
+  // No display name → the email's local part (never the domain).
+  const bare = sharedIdentity({ uid: "u2", email: "maria.lopez@acme.io" }, "anon_y");
+  assert.equal(bare.name, "maria.lopez");
+  assert.equal(bare.anon, false);
+  // Truly anonymous (no account) → Guest.
+  const g = sharedIdentity(null, "anon_z");
+  assert.equal(g.name, "Guest");
+  assert.equal(g.anon, true);
+  assert.equal(g.color, peerColor("anon_z"));
+  // An empty user object is treated as anonymous.
+  assert.equal(sharedIdentity({}, "anon_w").name, "Guest");
 });
 
 test("collectOps: flattens peer batches, skips my own, advances the cursor", () => {

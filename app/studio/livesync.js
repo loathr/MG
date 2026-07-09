@@ -13,6 +13,21 @@ export function guestIdentity(sessionId) {
   return { name: "Guest", color: peerColor(sessionId), anon: true };
 }
 
+// The identity a shared-link editor publishes. A SIGNED-IN editor shows their real
+// name (display name, else the email's local part) + a stable colour from their uid,
+// and is NOT anonymous — so peers see the person, not "Guest". A visitor with no
+// account falls back to guestIdentity. Pure.
+export function sharedIdentity(user, sessionId) {
+  if (user && (user.displayName || user.email || user.uid)) {
+    return {
+      name: user.displayName || (user.email ? String(user.email).split("@")[0] : "Someone"),
+      color: peerColor(user.uid || user.email || sessionId),
+      anon: false,
+    };
+  }
+  return guestIdentity(sessionId);
+}
+
 // Flatten the relay's returned op batches into a single op list to apply, skipping
 // my own batches, and advancing the since-cursor to the newest batch timestamp seen.
 // `prevCursor` is carried so the cursor never goes backwards on an empty poll. Pure.

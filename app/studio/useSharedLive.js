@@ -12,16 +12,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { uid } from "./model";
 import { livePeers } from "./presence";
 import { diffDocs, applyOps } from "./sync";
-import { guestIdentity, collectOps, pollDelay } from "./livesync";
+import { sharedIdentity, collectOps, pollDelay } from "./livesync";
 
 const TTL = 15000;         // a peer with no heartbeat for this long is "gone"
 const HEARTBEAT_MS = 4000; // force a presence write at least this often (liveness)
 const ACTIVE_MS = 3000;    // "active" window after a cursor/selection change
 
-export function useSharedLive({ deckId, token, doc, dispatch, editingId, enabled }) {
+export function useSharedLive({ deckId, token, doc, dispatch, editingId, enabled, user }) {
   const sessionId = useRef(null);
   if (!sessionId.current) sessionId.current = uid("anon");
-  const me = useMemo(() => guestIdentity(sessionId.current), []);
+  // A share-link editor who IS signed in shows their real name + a stable colour from
+  // their uid (like any peer); only a truly anonymous visitor falls back to "Guest".
+  const me = useMemo(() => sharedIdentity(user, sessionId.current), [user]);
   const on = !!(enabled && deckId && token && doc);
 
   const [records, setRecords] = useState({});
@@ -65,7 +67,7 @@ export function useSharedLive({ deckId, token, doc, dispatch, editingId, enabled
       let presence = null;
       if (sig !== lastPresence.current.sig || now - lastPresence.current.ts >= HEARTBEAT_MS) {
         lastPresence.current = { sig, ts: now };
-        presence = { uid: sessionId.current, name: me.name, color: me.color, cursor: l.cursor, selection: l.selection, slide: l.slide, editing: l.editing };
+        presence = { uid: sessionId.current, name: me.name, color: me.color, anon: me.anon, cursor: l.cursor, selection: l.selection, slide: l.slide, editing: l.editing };
       }
 
       // Ops: everything peers haven't seen since my last publish (coalesced).
