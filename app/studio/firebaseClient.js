@@ -27,12 +27,30 @@ function allowedDomainsClient() {
   const raw = (typeof process !== "undefined" && process.env && process.env.NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS) || "loathr.com";
   return String(raw).split(",").map((d) => d.trim().toLowerCase().replace(/^@/, "")).filter(Boolean);
 }
+// Gmail-canonical normalisation (mirror of authCore.normalizeEmail) so the client
+// gate matches the server: dot/plus-insensitive for gmail, lowercased/trimmed else.
+function normalizeEmailClient(email) {
+  const s = String(email || "").trim().toLowerCase();
+  const at = s.lastIndexOf("@");
+  if (at < 0) return s;
+  let local = s.slice(0, at), domain = s.slice(at + 1);
+  local = local.split("+")[0];
+  if (domain === "googlemail.com") domain = "gmail.com";
+  if (domain === "gmail.com") local = local.replace(/\./g, "");
+  return local + "@" + domain;
+}
+// Individually allow-listed addresses (NEXT_PUBLIC_ALLOWED_EMAILS), normalised.
+function allowedEmailsClient() {
+  const raw = (typeof process !== "undefined" && process.env && process.env.NEXT_PUBLIC_ALLOWED_EMAILS) || "";
+  return String(raw).split(",").map((x) => normalizeEmailClient(x)).filter((x) => x.includes("@"));
+}
 function emailAllowedClient(email) {
+  const norm = normalizeEmailClient(email);
+  if (allowedEmailsClient().includes(norm)) return true;   // select individual accounts
   const doms = allowedDomainsClient();
   if (!doms.length) return true;
-  const s = String(email || "").toLowerCase();
-  const at = s.lastIndexOf("@");
-  return at >= 0 && doms.includes(s.slice(at + 1));
+  const at = norm.lastIndexOf("@");
+  return at >= 0 && doms.includes(norm.slice(at + 1));
 }
 
 // Open the Google sign-in popup; resolves the signed-in user (or null if cloud

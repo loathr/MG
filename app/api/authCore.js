@@ -43,16 +43,41 @@ export function allowedEmailDomains(env) {
   return String(raw).split(",").map((d) => d.trim().toLowerCase().replace(/^@/, "")).filter(Boolean);
 }
 
-// Is this verified email allowed to use the app? True when its domain is in the
-// allowed list. An empty allow-list (ALLOWED_EMAIL_DOMAINS="") means no restriction;
+// Normalise an email for allow-list comparison: lowercased + trimmed, and — for
+// Gmail — the dot-insensitive, plus-suffix-stripped canonical form (so
+// "jane.doe+news@gmail.com" and "janedoe@gmail.com" are the same mailbox and can't
+// be used to sneak past or duplicate an allow-listed account). Pure.
+export function normalizeEmail(email) {
+  const s = String(email || "").trim().toLowerCase();
+  const at = s.lastIndexOf("@");
+  if (at < 0) return s;
+  let local = s.slice(0, at), domain = s.slice(at + 1);
+  local = local.split("+")[0];
+  if (domain === "googlemail.com") domain = "gmail.com";
+  if (domain === "gmail.com") local = local.replace(/\./g, "");
+  return local + "@" + domain;
+}
+
+// Individually allow-listed email addresses (the "select Gmail accounts" escape
+// hatch on top of the domain lock): comma-separated ALLOWED_EMAILS, normalised.
+// Empty by default. Pure.
+export function allowedEmails(env) {
+  const e = env || (typeof process !== "undefined" ? process.env : {}) || {};
+  return String(e.ALLOWED_EMAILS || "").split(",").map((x) => normalizeEmail(x)).filter((x) => x.includes("@"));
+}
+
+// Is this verified email allowed to use the app? Allowed when the exact (normalised)
+// address is individually allow-listed, OR its domain is in the domain list. An
+// empty domain list (ALLOWED_EMAIL_DOMAINS="*" or "") means no domain restriction;
 // a missing/malformed email is rejected when a restriction is set. Pure.
 export function emailAllowed(email, env) {
+  const norm = normalizeEmail(email);
+  if (allowedEmails(env).includes(norm)) return true;   // select individual accounts
   const doms = allowedEmailDomains(env);
   if (!doms.length) return true;
-  const s = String(email || "").toLowerCase();
-  const at = s.lastIndexOf("@");
+  const at = norm.lastIndexOf("@");
   if (at < 0) return false;
-  return doms.includes(s.slice(at + 1));
+  return doms.includes(norm.slice(at + 1));
 }
 
 // Is this (verified) uid the one-time bootstrap admin — the escape hatch that lets

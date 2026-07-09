@@ -3,7 +3,7 @@
 // decision + header parsing.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseBearer, adminCredentials, authGateEnabled, isBootstrapAdmin, allowedEmailDomains, emailAllowed } from "../app/api/authCore.js";
+import { parseBearer, adminCredentials, authGateEnabled, isBootstrapAdmin, allowedEmailDomains, emailAllowed, normalizeEmail, allowedEmails } from "../app/api/authCore.js";
 
 test("allowedEmailDomains: defaults to loathr.com; env overrides (comma list, strips @)", () => {
   assert.deepEqual(allowedEmailDomains({}), ["loathr.com"]);                                  // default
@@ -22,6 +22,25 @@ test("emailAllowed: only the allowed domain passes; wrong domain / missing @ rej
   // the "*" wildcard disables the restriction (any signed-in account allowed)
   assert.deepEqual(allowedEmailDomains({ ALLOWED_EMAIL_DOMAINS: "*" }), []);
   assert.equal(emailAllowed("anyone@gmail.com", { ALLOWED_EMAIL_DOMAINS: "*" }), true);
+});
+
+test("normalizeEmail: gmail dot/plus-insensitive, others lowercased/trimmed", () => {
+  assert.equal(normalizeEmail("  JANE.Doe+news@Gmail.com "), "janedoe@gmail.com");
+  assert.equal(normalizeEmail("a.b.c@googlemail.com"), "abc@gmail.com");
+  assert.equal(normalizeEmail("First.Last@acme.io"), "first.last@acme.io"); // dots kept off-gmail
+  assert.equal(normalizeEmail("no-at"), "no-at");
+});
+
+test("allowedEmails + emailAllowed: individual accounts pass on top of the domain lock", () => {
+  const env = { ALLOWED_EMAILS: "Jane.Doe@gmail.com, bob+x@gmail.com" };
+  assert.deepEqual(allowedEmails(env), ["janedoe@gmail.com", "bob@gmail.com"]);
+  // domain lock still @loathr.com, but these individual gmail accounts are allowed…
+  assert.equal(emailAllowed("janedoe@gmail.com", env), true);
+  assert.equal(emailAllowed("jane.doe@gmail.com", env), true); // dot variant → same mailbox
+  assert.equal(emailAllowed("bob@gmail.com", env), true);
+  assert.equal(emailAllowed("sam@loathr.com", env), true);     // domain still works
+  // …but a NON-listed gmail is still rejected (gmail.com never opened wholesale)
+  assert.equal(emailAllowed("stranger@gmail.com", env), false);
 });
 
 test("isBootstrapAdmin: only the exact BOOTSTRAP_ADMIN_UID matches", () => {

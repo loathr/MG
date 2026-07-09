@@ -193,6 +193,17 @@ gated API route (`emailAllowed` in `authCore.js`). To change or widen it:
 | `NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS` (client) | the SAME value, so the sign-in screen rejects to match the server |
 Set both to the same thing. Leave unset to keep the `@loathr.com` default.
 
+**Allow SELECT outside accounts (e.g. specific Gmail addresses).** `gmail.com` is
+public, so never add it to the domain list. Instead allow individual addresses on
+top of the domain lock:
+| Var | Value |
+| --- | --- |
+| `ALLOWED_EMAILS` (server) | comma list of exact addresses, e.g. `jane@gmail.com,bob@acme.io` |
+| `NEXT_PUBLIC_ALLOWED_EMAILS` (client) | the SAME value |
+An address passes if it's individually listed OR its domain is allowed. Gmail is
+matched **dot/plus-insensitive** (`jane.doe+news@gmail.com` == `janedoe@gmail.com`),
+so an allow-listed Gmail can't be dodged or duplicated with dotted aliases.
+
 Defense in depth (optional): mirror it in the Firestore rules so storage is locked
 too — add a helper and require it on the user/deck/pulse writes:
 ```
