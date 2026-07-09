@@ -3,7 +3,7 @@
 // decision + header parsing.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseBearer, adminCredentials, authGateEnabled, isBootstrapAdmin, allowedEmailDomains, emailAllowed, normalizeEmail, allowedEmails, memberEmailDomains, isMemberEmail } from "../app/api/authCore.js";
+import { parseBearer, adminCredentials, authGateEnabled, isBootstrapAdmin, allowedEmailDomains, emailAllowed, normalizeEmail, allowedEmails, memberEmailDomains, isMemberEmail, emailAllowedWith, ACCESS_STATUS } from "../app/api/authCore.js";
 
 test("allowedEmailDomains: defaults to loathr.com; env overrides (comma list, strips @)", () => {
   assert.deepEqual(allowedEmailDomains({}), ["loathr.com"]);                                  // default
@@ -41,6 +41,25 @@ test("allowedEmails + emailAllowed: individual accounts pass on top of the domai
   assert.equal(emailAllowed("sam@loathr.com", env), true);     // domain still works
   // …but a NON-listed gmail is still rejected (gmail.com never opened wholesale)
   assert.equal(emailAllowed("stranger@gmail.com", env), false);
+});
+
+test("emailAllowedWith: the runtime-approved allow-list extends the env/domain rule", () => {
+  const env = {}; // domain lock @loathr.com, no env ALLOWED_EMAILS
+  // domain still passes without any stored list
+  assert.equal(emailAllowedWith("sam@loathr.com", env, []), true);
+  // a stranger gmail is rejected until it's in the stored (approved) list…
+  assert.equal(emailAllowedWith("guest@gmail.com", env, []), false);
+  assert.equal(emailAllowedWith("guest@gmail.com", env, ["guest@gmail.com"]), true);
+  // stored addresses are normalized too (gmail dot/plus variants collapse)
+  assert.equal(emailAllowedWith("gu.est+x@gmail.com", env, ["guest@gmail.com"]), true);
+  assert.equal(emailAllowedWith("guest@gmail.com", env, ["Gu.est@googlemail.com"]), true);
+  // null/empty stored list is safe
+  assert.equal(emailAllowedWith("sam@loathr.com", env, null), true);
+  assert.equal(emailAllowedWith("nobody@elsewhere.com", env, ["a@b.com"]), false);
+});
+
+test("ACCESS_STATUS enumerates the request lifecycle", () => {
+  assert.deepEqual(ACCESS_STATUS, ["none", "pending", "approved", "denied"]);
 });
 
 test("memberEmailDomains + isMemberEmail: loathr.com is a member, allowed guests are not", () => {

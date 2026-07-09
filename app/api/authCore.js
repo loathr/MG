@@ -80,6 +80,20 @@ export function emailAllowed(email, env) {
   return doms.includes(norm.slice(at + 1));
 }
 
+// Access-request lifecycle states, shared client + server so the strings can't
+// drift. "none" = never requested; the rest are the accessRequests/{uid}.status.
+export const ACCESS_STATUS = ["none", "pending", "approved", "denied"];
+
+// Is this email allowed, folding a runtime-persisted allow-list (the addresses an
+// admin approved in the console, stored at config/allowlist.emails[]) on top of the
+// env allow-list + domain rule? `stored` is an array of raw/normalized addresses.
+// Pure — the caller reads `stored` from Firestore and passes it in.
+export function emailAllowedWith(email, env, stored) {
+  if (emailAllowed(email, env)) return true;
+  const norm = normalizeEmail(email);
+  return (stored || []).map((x) => normalizeEmail(x)).includes(norm);
+}
+
 // The team-MEMBER email domains — the loathr.com team accounts that get full
 // branding and the higher default quota. Distinct from the sign-in allow-list: an
 // account allowed to sign in that ISN'T a member (e.g. a select individually

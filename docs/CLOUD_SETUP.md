@@ -91,6 +91,21 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.from is string;
       allow update, delete: if false;
     }
+    // Access requests (external sign-ups awaiting admin approval): a signed-in user
+    // may create/refresh ONLY their own pending request (uid == doc id) and read
+    // their own status; the DECISION (status/role) is written server-side (Admin SDK,
+    // /api/admin/requests) — so a requester can't self-approve or read the queue.
+    match /accessRequests/{uid} {
+      allow read:   if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow create: if request.auth != null && request.auth.uid == uid
+                       && request.resource.data.status == 'pending';
+      allow update, delete: if false; // approve/deny is Admin-SDK only
+    }
+    // Runtime allow-list (the addresses admins approve, extending the env seed):
+    // written + read ONLY server-side by the gate/console (Admin SDK bypasses rules).
+    match /config/{docId} {
+      allow read, write: if false;
+    }
   }
 }
 ```
@@ -182,16 +197,20 @@ The server gate (`/api/generate` requiring a token) turns on only when the
 `FIREBASE_*` admin creds are present (`authCore.adminCredentials`). So you can ship
 public auth first and add server gating once the service account is in.
 
-**Sign-in domain lock (default `@loathr.com`).** Sign-in is restricted to one or
+**Sign-in domain lock (default `@loathr.com`).** Access is restricted to one or
 more email domains — **`loathr.com` by default**, so a configured deploy is locked
-to `@loathr.com` with no extra setup. An outside Google account is signed straight
-back out at the sign-in screen (client check) and rejected with **403** on every
-gated API route (`emailAllowed` in `authCore.js`). To change or widen it:
+to `@loathr.com` with no extra setup. An outside Google account can still *sign in*
+(a bare Firebase session grants nothing) but is **not allowed**: it's rejected with
+**403** on every gated API route (`emailAllowed` in `authCore.js`) and the app routes
+it to the **request-access screen** instead of the editor (see below). To change or
+widen the domain lock:
 | Var | Value |
 | --- | --- |
 | `ALLOWED_EMAIL_DOMAINS` (server) | comma list, e.g. `loathr.com,acme.io` — or `*` to allow any signed-in account |
-| `NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS` (client) | the SAME value, so the sign-in screen rejects to match the server |
-Set both to the same thing. Leave unset to keep the `@loathr.com` default.
+
+Leave unset to keep the `@loathr.com` default. (The old `NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS`
+client mirror is no longer needed — the client no longer decides access; the server
+does, via `/api/access/status`.)
 
 **Allow SELECT outside accounts (e.g. specific Gmail addresses).** `gmail.com` is
 public, so never add it to the domain list. Instead allow individual addresses on
@@ -199,10 +218,22 @@ top of the domain lock:
 | Var | Value |
 | --- | --- |
 | `ALLOWED_EMAILS` (server) | comma list of exact addresses, e.g. `jane@gmail.com,bob@acme.io` |
-| `NEXT_PUBLIC_ALLOWED_EMAILS` (client) | the SAME value |
 An address passes if it's individually listed OR its domain is allowed. Gmail is
 matched **dot/plus-insensitive** (`jane.doe+news@gmail.com` == `janedoe@gmail.com`),
-so an allow-listed Gmail can't be dodged or duplicated with dotted aliases.
+so an allow-listed Gmail can't be dodged or duplicated with dotted aliases. `ALLOWED_EMAILS`
+is the **bootstrap seed**; admins add more addresses at runtime by approving requests
+(persisted in Firestore `config/allowlist`, merged with the env seed at the gate).
+
+**Request access + admin approval.** An allowed account enters straight away. Any
+other signed-in account lands on a **Request access** screen (optional note). The
+request is stored at `accessRequests/{uid}` (server-side; a requester can only create
+their own pending doc). Admins review it in the console's **Requests** tab and
+**Approve** (adds the email to the allow-list + sets a role) or **Deny**. On the
+requester's next check, `/api/access/status` reports `approved` / `pending` / `denied`.
+Approval grants sign-in + a role only — **member-vs-guest still follows the email
+domain**, so an approved external account is a *guest* (9/mo, client branding, never
+the loathr team). Routes: `POST /api/access/request`, `GET /api/access/status`,
+`GET|POST /api/admin/requests`.
 
 Defense in depth (optional): mirror it in the Firestore rules so storage is locked
 too — add a helper and require it on the user/deck/pulse writes:

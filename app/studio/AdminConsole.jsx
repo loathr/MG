@@ -13,6 +13,8 @@ import { workspaceTotals, accountUsageState, sortAccounts } from "./adminModel";
 // line of defence. All reads/writes carry the Firebase ID token.
 export default function AdminConsole({ onBack, selfUid, nowMs, onOpenDeck }) {
   const [data, setData] = useState(null); // { accounts, decks, period, totals }
+  const [requests, setRequests] = useState([]); // access-request queue
+  const [reqRole, setReqRole] = useState({}); // uid -> role to grant on approve
   const [tab, setTab] = useState("accounts");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
@@ -35,6 +37,11 @@ export default function AdminConsole({ onBack, selfUid, nowMs, onOpenDeck }) {
       .then((d) => setData(d))
       .catch((e) => setErr(e.message || "Failed to load."))
       .finally(() => setLoading(false));
+    // The access-request queue loads alongside (best-effort — it only feeds a tab).
+    authFetch("/api/admin/requests")
+      .then((r) => (r.ok ? r.json() : { requests: [] }))
+      .then((d) => setRequests((d && d.requests) || []))
+      .catch(() => {});
   }, [authFetch]);
   useEffect(() => { load(); }, [load]);
 
@@ -61,6 +68,24 @@ export default function AdminConsole({ onBack, selfUid, nowMs, onOpenDeck }) {
     finally { setBusy((b) => ({ ...b, [uid]: false })); }
   };
 
+  // Approve / deny an access request. Approve adds the email to the allow-list +
+  // sets the chosen role (server-side); the row flips to the decided state in place.
+  const decideRequest = async (uid, decision) => {
+    const key = "req:" + uid;
+    setBusy((b) => ({ ...b, [key]: true }));
+    try {
+      const role = reqRole[uid] || "editor";
+      const r = await authFetch("/api/admin/requests", { method: "POST", body: JSON.stringify({ uid, decision, role }) });
+      if (r.ok) {
+        const j = await r.json();
+        const status = (j && j.status) || (decision === "approve" ? "approved" : "denied");
+        setRequests((rs) => rs.map((x) => (x.uid === uid ? { ...x, status, role: decision === "approve" ? role : x.role, decidedAt: nowMs } : x)));
+        if (decision === "approve") load(); // refresh accounts so the newly-allowed account shows
+      } else setErr("Couldn't update the request.");
+    } catch (e) { setErr("Couldn't update the request."); }
+    finally { setBusy((b) => ({ ...b, [key]: false })); }
+  };
+
   // Suspend / reactivate (reversible) an account.
   const setDisabled = async (uid, disabled) => {
     setBusy((b) => ({ ...b, [uid]: true }));
@@ -85,6 +110,7 @@ export default function AdminConsole({ onBack, selfUid, nowMs, onOpenDeck }) {
 
   const accounts = data ? sortAccounts(data.accounts) : [];
   const totals = data ? workspaceTotals(data.accounts) : { accounts: 0, admins: 0, generationsThisMonth: 0, overLimit: 0 };
+  const pendingCount = requests.filter((r) => r.status === "pending").length;
   const nameByUid = {};
   for (const a of (data ? data.accounts : [])) nameByUid[a.uid] = a.name || a.email || a.uid;
 
@@ -106,8 +132,10 @@ export default function AdminConsole({ onBack, selfUid, nowMs, onOpenDeck }) {
         </div>
 
         <div style={tabs}>
-          {[["accounts", "Accounts"], ["usage", "Usage"], ["decks", "All decks"]].map(([k, lab]) => (
-            <button key={k} type="button" onClick={() => setTab(k)} style={{ ...tabBtn, ...(tab === k ? tabOn : null) }}>{lab}</button>
+          {[["accounts", "Accounts"], ["requests", "Requests"], ["usage", "Usage"], ["decks", "All decks"]].map(([k, lab]) => (
+            <button key={k} type="button" onClick={() => setTab(k)} style={{ ...tabBtn, ...(tab === k ? tabOn : null) }}>
+              {lab}{k === "requests" && pendingCount > 0 ? <span style={tabBadge}>{pendingCount}</span> : null}
+            </button>
           ))}
         </div>
 
@@ -167,6 +195,50 @@ export default function AdminConsole({ onBack, selfUid, nowMs, onOpenDeck }) {
               );
             })}
             <div style={foot}>{accounts.length} account{accounts.length === 1 ? "" : "s"} · role &amp; limit changes apply on the member&rsquo;s next sign-in / token refresh</div>
+          </div>
+        )}
+
+        {tab === "requests" && (
+          <div style={panel}>
+            <div style={{ ...row, ...headRow }}>
+              <span style={rReq}>Requester</span><span style={rNote}>Note</span><span style={rWhen}>Requested</span><span style={rAct}>Grant as / decision</span>
+            </div>
+            {requests.map((rq) => {
+              const pend = rq.status === "pending";
+              return (
+                <div key={rq.uid} style={{ ...row, ...(pend ? null : { opacity: 0.6 }) }}>
+                  <span style={rReq}>
+                    <span style={{ ...av, background: avColor(rq.uid) }}>{(rq.name || rq.email || "?").slice(0, 1).toUpperCase()}</span>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={nm}>
+                        {rq.email || rq.name || rq.uid.slice(0, 8)}
+                        {pend ? <span style={guestTag}>guest</span> : <span style={{ ...stTag, ...(rq.status === "approved" ? stApproved : stDenied) }}>{rq.status}</span>}
+                      </span>
+                      <span style={em}>{pend ? "Google account" : (rq.status === "approved" ? "granted as " + cap(rq.role || "editor") : "denied") + (rq.decidedAt ? " · " + relativeTime(rq.decidedAt, nowMs) : "")}</span>
+                    </span>
+                  </span>
+                  <span style={rNote}>{rq.note ? <span style={{ fontStyle: "italic" }}>&ldquo;{rq.note}&rdquo;</span> : <span style={{ color: "#6f6f77" }}>— no note —</span>}</span>
+                  <span style={rWhen}>{rq.requestedAt ? relativeTime(rq.requestedAt, nowMs) : "—"}</span>
+                  <span style={rAct}>
+                    {pend ? (
+                      <>
+                        <select value={reqRole[rq.uid] || "editor"} disabled={!!busy["req:" + rq.uid]} onChange={(e) => setReqRole((m) => ({ ...m, [rq.uid]: e.target.value }))} style={{ ...roleSel, width: 82 }}>
+                          {ROLES.map((r) => <option key={r} value={r} style={{ color: "#111" }}>{cap(r)}</option>)}
+                        </select>
+                        <button type="button" disabled={!!busy["req:" + rq.uid]} onClick={() => decideRequest(rq.uid, "approve")} style={approveBtn}>Approve</button>
+                        <button type="button" disabled={!!busy["req:" + rq.uid]} onClick={() => decideRequest(rq.uid, "deny")} style={{ ...actBtn, ...actDanger }}>Deny</button>
+                      </>
+                    ) : rq.status === "denied" ? (
+                      <button type="button" disabled={!!busy["req:" + rq.uid]} onClick={() => decideRequest(rq.uid, "approve")} style={actBtn}>Approve now</button>
+                    ) : (
+                      <span style={{ fontSize: 11, color: "#6f6f77" }}>account added</span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+            {requests.length === 0 ? <div style={foot}>No access requests. External accounts that sign in will appear here to approve or deny.</div>
+              : <div style={foot}>{pendingCount} pending · approving adds the address to the allow-list and sets the role · decided requests are kept for audit</div>}
           </div>
         )}
 
@@ -272,6 +344,7 @@ const statL = { fontSize: 11.5, color: "#7d7d85", marginTop: 3 };
 const tabs = { display: "flex", gap: 4, marginBottom: 16, borderBottom: "1px solid #232327" };
 const tabBtn = { fontSize: 13, padding: "9px 14px", color: "#8a8a90", background: "transparent", border: "none", borderBottom: "2px solid transparent", marginBottom: -1, cursor: "pointer" };
 const tabOn = { color: "#fff", borderBottomColor: "#fff", fontWeight: 600 };
+const tabBadge = { display: "inline-block", minWidth: 17, height: 17, lineHeight: "17px", borderRadius: 9, background: "#6d3bd1", color: "#fff", fontSize: 10.5, fontWeight: 700, padding: "0 5px", marginLeft: 7, textAlign: "center" };
 const panel = { background: "#141417", border: "1px solid #232327", borderRadius: 12, overflow: "hidden" };
 const row = { display: "flex", alignItems: "center", gap: 12, padding: "13px 16px", borderBottom: "1px solid #1c1c20", fontSize: 13 };
 const headRow = { fontSize: 10.5, letterSpacing: "0.06em", textTransform: "uppercase", color: "#6f6f77", fontWeight: 600 };
@@ -281,6 +354,15 @@ const cLim = { width: 130, display: "flex", alignItems: "center", gap: 7 };
 const cUse = { flex: 1.3, minWidth: 150 };
 const cLast = { width: 96, fontSize: 12, color: "#8a8a90" };
 const cAct = { width: 150, display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" };
+const rReq = { flex: 2, display: "flex", alignItems: "center", gap: 11, minWidth: 0 };
+const rNote = { flex: 2.4, fontSize: 12, color: "#b6b6be", lineHeight: 1.45, minWidth: 0 };
+const rWhen = { width: 96, fontSize: 12, color: "#8a8a90" };
+const rAct = { width: 230, display: "flex", alignItems: "center", gap: 7, justifyContent: "flex-end" };
+const approveBtn = { fontSize: 11.5, fontWeight: 600, color: "#fff", background: "#2f7d4f", border: "1px solid #3a9563", borderRadius: 7, padding: "6px 12px", cursor: "pointer", whiteSpace: "nowrap" };
+const guestTag = { fontSize: 10, background: "#2b2140", color: "#c3a6ff", borderRadius: 5, padding: "1px 6px", marginLeft: 6, fontWeight: 600 };
+const stTag = { fontSize: 10, borderRadius: 5, padding: "1px 6px", marginLeft: 6, fontWeight: 600 };
+const stApproved = { background: "#13291d", color: "#8fe0ab" };
+const stDenied = { background: "#2a1618", color: "#ff9a8a" };
 const actBtn = { fontSize: 11.5, color: "#cfcfd4", background: "#1c1c20", border: "1px solid #2c2c32", borderRadius: 7, padding: "5px 9px", cursor: "pointer", whiteSpace: "nowrap" };
 const actDanger = { color: "#ff9a8a", borderColor: "#5a3030", background: "#241819" };
 const openBtn = { fontSize: 11, color: "#cfcfd4", background: "#1c1c20", border: "1px solid #2c2c32", borderRadius: 6, padding: "4px 10px", cursor: "pointer" };

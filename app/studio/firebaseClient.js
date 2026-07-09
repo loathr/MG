@@ -21,54 +21,48 @@ async function authInstance() {
   return _authPromise;
 }
 
-// The email domains allowed to sign in (client-side mirror of the server gate):
-// NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS (comma-separated), default "loathr.com".
-function allowedDomainsClient() {
-  const raw = (typeof process !== "undefined" && process.env && process.env.NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS) || "loathr.com";
-  return String(raw).split(",").map((d) => d.trim().toLowerCase().replace(/^@/, "")).filter(Boolean);
-}
-// Gmail-canonical normalisation (mirror of authCore.normalizeEmail) so the client
-// gate matches the server: dot/plus-insensitive for gmail, lowercased/trimmed else.
-function normalizeEmailClient(email) {
-  const s = String(email || "").trim().toLowerCase();
-  const at = s.lastIndexOf("@");
-  if (at < 0) return s;
-  let local = s.slice(0, at), domain = s.slice(at + 1);
-  local = local.split("+")[0];
-  if (domain === "googlemail.com") domain = "gmail.com";
-  if (domain === "gmail.com") local = local.replace(/\./g, "");
-  return local + "@" + domain;
-}
-// Individually allow-listed addresses (NEXT_PUBLIC_ALLOWED_EMAILS), normalised.
-function allowedEmailsClient() {
-  const raw = (typeof process !== "undefined" && process.env && process.env.NEXT_PUBLIC_ALLOWED_EMAILS) || "";
-  return String(raw).split(",").map((x) => normalizeEmailClient(x)).filter((x) => x.includes("@"));
-}
-function emailAllowedClient(email) {
-  const norm = normalizeEmailClient(email);
-  if (allowedEmailsClient().includes(norm)) return true;   // select individual accounts
-  const doms = allowedDomainsClient();
-  if (!doms.length) return true;
-  const at = norm.lastIndexOf("@");
-  return at >= 0 && doms.includes(norm.slice(at + 1));
-}
-
-// Open the Google sign-in popup; resolves the signed-in user (or null if cloud
-// is disabled). Rejects an account outside the allowed domain (default @loathr.com)
-// — signs it straight back out and throws a clear message the sign-in screen shows,
-// so an outside Google account can never enter the app. Throws on a real auth
-// failure too (the caller surfaces it).
+// Open the Google sign-in popup; resolves the signed-in user (or null if cloud is
+// disabled). It NO LONGER blocks an outside account here — access is decided
+// server-side (the allow-list now includes admin-approved addresses the client
+// can't see), so AuthGate reads /api/access/status after sign-in and routes an
+// unapproved account to the request-access screen rather than the editor. A signed-
+// in-but-unapproved session grants nothing: every gated route re-checks the list.
+// Throws only on a real auth failure (the caller surfaces it).
 export async function signInWithGoogle() {
   const auth = await authInstance();
   if (!auth) return null;
-  const { GoogleAuthProvider, signInWithPopup, signOut } = await import("firebase/auth");
+  const { GoogleAuthProvider, signInWithPopup } = await import("firebase/auth");
   const res = await signInWithPopup(auth, new GoogleAuthProvider());
-  if (!emailAllowedClient(res.user && res.user.email)) {
-    try { await signOut(auth); } catch (e) { /* ignore */ }
-    const doms = allowedDomainsClient().map((d) => "@" + d).join(" or ");
-    throw new Error("Only " + doms + " accounts can sign in.");
-  }
   return res.user;
+}
+
+// This account's server-side access status ("approved" | "pending" | "denied" |
+// "none"), used by AuthGate to gate the app. Cloud off / no token → approved (the
+// open local path). Fail-safe to "none" (the request screen) on any error.
+export async function fetchAccessStatus() {
+  const token = await getIdToken();
+  if (!token) return { status: "approved" };
+  try {
+    const res = await fetch("/api/access/status", { headers: { Authorization: "Bearer " + token } });
+    if (!res.ok) return { status: "none" };
+    return await res.json();
+  } catch (e) { return { status: "none" }; }
+}
+
+// Lodge (or refresh) this account's own pending access request, with an optional
+// note to the admin. Returns the new { status }. Fail-safe to "none".
+export async function requestAccess(note) {
+  const token = await getIdToken();
+  if (!token) return { status: "none" };
+  try {
+    const res = await fetch("/api/access/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify({ note: note || "" }),
+    });
+    if (!res.ok) return { status: "none" };
+    return await res.json();
+  } catch (e) { return { status: "none" }; }
 }
 
 // Google OAuth access token for the Drive REST API. Re-runs the Google popup

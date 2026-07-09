@@ -5,8 +5,8 @@
 // authority.js; this module only does the Firestore/Auth I/O around them, and
 // fails OPEN on any error so a metering blip can never block generation.
 
-import { adminCredentials, isMemberEmail } from "./authCore";
-import { quotaCheck, usagePeriodKey, normalizeRole, effectiveMonthlyLimit } from "../studio/authority";
+import { adminCredentials, isMemberEmail, emailAllowedWith, normalizeEmail } from "./authCore";
+import { quotaCheck, usagePeriodKey, normalizeRole, effectiveMonthlyLimit, ROLES, DEFAULT_ROLE } from "../studio/authority";
 import { resolveShared } from "../studio/sharing";
 import { collectImageData, imageKey, rewriteImages } from "../studio/cloud";
 
@@ -21,6 +21,16 @@ async function db() {
     _db = getFirestore(app);
   }
   return _db;
+}
+
+// The Admin Auth instance (for setting custom claims), or null when unconfigured.
+async function adminAuth() {
+  const creds = adminCredentials();
+  if (!creds) return null;
+  const { getApps, initializeApp, cert } = await import("firebase-admin/app");
+  const app = getApps().length ? getApps()[0] : initializeApp({ credential: cert(creds) });
+  const { getAuth } = await import("firebase-admin/auth");
+  return getAuth(app);
 }
 
 // The Admin Storage bucket for server-side image offload (shared-edit write-back).
@@ -149,6 +159,122 @@ export async function readShared(deckId, presentedToken) {
   } catch (e) {
     return { access: "none", error: true };
   }
+}
+
+// --- access requests + runtime allow-list -------------------------------------
+// The runtime-persisted allow-list the console manages via approvals, at
+// config/allowlist.emails[]. Merged with the env ALLOWED_EMAILS seed AT THE GATE
+// (emailAllowedWith), so env stays the bootstrap seed and approvals extend it live.
+// Fail-open to [] (env list still applies) so a read blip never blocks a member.
+export async function storedAllowedEmails() {
+  const d = await db();
+  if (!d) return [];
+  try {
+    const snap = await d.doc("config/allowlist").get();
+    const data = snap.exists ? snap.data() : null;
+    return data && Array.isArray(data.emails) ? data.emails : [];
+  } catch (e) { return []; }
+}
+
+// Create/refresh THIS user's own pending access request (the only write a
+// not-yet-allowed account can make). No-op to "approved" if they're already
+// allow-listed. Returns { status }. Server-side; the requester can't read the queue.
+export async function createAccessRequest(uid, info) {
+  const d = await db();
+  if (!d || !uid) return { status: "none" };
+  try {
+    const ref = d.doc("accessRequests/" + uid);
+    const snap = await ref.get();
+    const prev = snap.exists ? snap.data() : null;
+    if (prev && prev.status === "approved") return { status: "approved" };
+    if (prev && prev.status === "denied") return { status: "denied" }; // a denial isn't self-reopenable
+    const now = Date.now();
+    await ref.set({
+      email: (info && info.email) || "",
+      name: (info && info.name) || "",
+      note: String((info && info.note) || "").slice(0, 500),
+      status: "pending",
+      requestedAt: (prev && prev.requestedAt) || now,
+      updatedAt: now,
+    }, { merge: true });
+    return { status: "pending" };
+  } catch (e) { return { status: "none", error: true }; }
+}
+
+// This user's own access status, folding the allow-list in: an allow-listed email
+// (env or approved) reads "approved" even with no request doc. Else the request
+// doc's status, or "none". `email` is the verified token email. Fail-open to none.
+export async function accessStatus(uid, email) {
+  const stored = await storedAllowedEmails();
+  if (emailAllowedWith(email, undefined, stored)) return { status: "approved" };
+  const d = await db();
+  if (!d || !uid) return { status: "none" };
+  try {
+    const snap = await d.doc("accessRequests/" + uid).get();
+    if (!snap.exists) return { status: "none" };
+    const r = snap.data() || {};
+    return { status: r.status || "none", note: r.note || "" };
+  } catch (e) { return { status: "none", error: true }; }
+}
+
+// Admin only: every access request (pending first, then recently decided), for the
+// console's Requests tab. Fail-open to []. The CALLER MUST have verified admin.
+export async function listAccessRequests() {
+  const d = await db();
+  if (!d) return [];
+  try {
+    const snap = await d.collection("accessRequests").get();
+    const rows = [];
+    snap.forEach((doc) => {
+      const r = doc.data() || {};
+      rows.push({
+        uid: doc.id, email: r.email || "", name: r.name || "", note: r.note || "",
+        status: r.status || "pending", role: r.role || null,
+        requestedAt: r.requestedAt || 0, decidedAt: r.decidedAt || 0, decidedBy: r.decidedBy || null,
+      });
+    });
+    // pending on top, then most-recently-decided.
+    rows.sort((a, b) => {
+      if ((a.status === "pending") !== (b.status === "pending")) return a.status === "pending" ? -1 : 1;
+      return (b.decidedAt || b.requestedAt || 0) - (a.decidedAt || a.requestedAt || 0);
+    });
+    return rows;
+  } catch (e) { return []; }
+}
+
+// Admin only: approve or deny a pending request. APPROVE adds the (normalized) email
+// to config/allowlist.emails[], sets the account's role custom claim (mirrored to
+// users/{uid}.role), and flips the request to approved. DENY just flips to denied.
+// Member-vs-guest still follows the email domain — approval never grants member
+// status, only sign-in + role. The CALLER MUST have verified admin. Returns { ok }.
+export async function decideAccessRequest(targetUid, decision, role, deciderUid) {
+  const d = await db();
+  if (!d || !targetUid) return { ok: false };
+  const approve = decision === "approve";
+  try {
+    const ref = d.doc("accessRequests/" + targetUid);
+    const snap = await ref.get();
+    if (!snap.exists) return { ok: false, error: "no such request" };
+    const req = snap.data() || {};
+    const now = Date.now();
+    if (approve) {
+      const email = normalizeEmail(req.email || "");
+      const grantRole = ROLES.includes(role) ? role : DEFAULT_ROLE;
+      if (email.includes("@")) {
+        const { FieldValue } = await import("firebase-admin/firestore");
+        await d.doc("config/allowlist").set({ emails: FieldValue.arrayUnion(email) }, { merge: true });
+      }
+      try {
+        const auth = await adminAuth();
+        if (auth) await auth.setCustomUserClaims(targetUid, { role: grantRole });
+        await d.doc("users/" + targetUid).set({ role: grantRole }, { merge: true });
+      } catch (e) { /* claim best-effort; the allow-list entry is the gate */ }
+      await ref.set({ status: "approved", role: grantRole, decidedAt: now, decidedBy: deciderUid || null }, { merge: true });
+      return { ok: true, status: "approved" };
+    }
+    await ref.set({ status: "denied", decidedAt: now, decidedBy: deciderUid || null }, { merge: true });
+    return { ok: true, status: "denied" };
+  } catch (e) { return { ok: false, error: true }; }
 }
 
 // --- Admin console readers/writers (admin-only; the CALLER verifies admin) ----
