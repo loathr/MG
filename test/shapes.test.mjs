@@ -8,6 +8,7 @@ import {
   shapeVariant, hasShape, shapeRadius, shapePaint, shapeBorderW, shapePad,
   tagNotch, speechTail, noteEar, hexA, shapeVAlign,
   shapeAccentColor, shapeTailColor, POLY_POINTS, shapePolygon,
+  fitTextSize, pointedShape,
 } from "../app/studio/shapes.js";
 
 test("shapeVAlign maps the vertical text position to a flex value (default middle)", () => {
@@ -216,4 +217,32 @@ test("hexA converts #rrggbb to rgba and falls back to brand red", () => {
 
 test("BANNER_RULE is a sane positive thickness", () => {
   assert.ok(BANNER_RULE > 0 && BANNER_RULE < 20);
+});
+
+test("pointedShape marks tapered silhouettes only", () => {
+  for (const id of ["triangle", "diamond", "hexagon", "burst", "bookmark", "arrowR", "ribbon"]) assert.equal(pointedShape(id), true, id);
+  for (const id of ["speech", "cloud", "banner", "pill", "tag", "note", "stamp", "quote"]) assert.equal(pointedShape(id), false, id);
+});
+
+test("fitTextSize: off / unshaped returns the element's own font size", () => {
+  assert.equal(fitTextSize({ fontSize: 40, shape: "triangle", content: "hi" }), 40); // fitText not set
+  assert.equal(fitTextSize({ fontSize: 40, fitText: true, content: "hi" }), 40);      // no shape
+  assert.equal(fitTextSize({ fontSize: 40, fitText: true, shape: "triangle", content: "   " }), 40); // blank copy
+});
+
+test("fitTextSize: short copy keeps its size, long copy shrinks to fit the box", () => {
+  const big = { shape: "diamond", fitText: true, w: 200, h: 200, fontSize: 30, lineHeight: 1.15, content: "NEW" };
+  assert.equal(fitTextSize(big), 30);                              // fits as-is
+  const wordy = { ...big, content: "A much longer headline that cannot possibly fit at full size" };
+  const fitted = fitTextSize(wordy);
+  assert.ok(fitted < 30, "long copy shrinks below the base size");
+  assert.ok(fitted >= 12, "never below the floor");
+});
+
+test("fitTextSize: more copy => a smaller size (monotonic), never below the floor", () => {
+  const el = (content) => fitTextSize({ shape: "triangle", fitText: true, w: 210, h: 185, fontSize: 46, lineHeight: 1.12, content });
+  const one = el("!");
+  const many = el("one two three four five six seven eight nine ten eleven twelve");
+  assert.ok(one >= many, "less text is never smaller than more text");
+  assert.equal(el("x".repeat(400)), 12, "an impossible amount floors at the minimum");
 });

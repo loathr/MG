@@ -3,7 +3,7 @@ import React from "react";
 import RichText from "./RichText";
 import RichEditable from "./RichEditable";
 import ShapeBacking from "./ShapeBacking";
-import { shapePad, shapeVAlign } from "./shapes";
+import { shapePad, shapeVAlign, fitTextSize } from "./shapes";
 import { effectCss } from "./textfx";
 import { imageTransform } from "./model";
 import { Move } from "lucide-react";
@@ -45,7 +45,7 @@ function ElementView({ element: el, isEditing, isCropping, onPointerDownBody, on
       width: "100%",
       height: shaped ? "auto" : "100%",
       fontFamily: el.fontFamily,
-      fontSize: el.fontSize,
+      fontSize: shaped ? fitTextSize(el) : el.fontSize,
       fontWeight: el.fontWeight,
       fontStyle: el.italic ? "italic" : "normal",
       color: el.color,

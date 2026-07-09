@@ -3,7 +3,7 @@ import React from "react";
 import { ARTBOARD_W, ARTBOARD_H, imageTransform } from "./model";
 import RichText from "./RichText";
 import ShapeBacking from "./ShapeBacking";
-import { shapePad, shapeVAlign } from "./shapes";
+import { shapePad, shapeVAlign, fitTextSize } from "./shapes";
 import { effectCss } from "./textfx";
 
 // A non-interactive, CSS-scaled miniature of a slide. Used by the slide strip
@@ -30,7 +30,7 @@ function StaticElement({ el }) {
   if (el.type === "text") {
     const typography = {
       fontFamily: el.fontFamily,
-      fontSize: el.fontSize,
+      fontSize: el.shape ? fitTextSize(el) : el.fontSize,
       fontWeight: el.fontWeight,
       fontStyle: el.italic ? "italic" : "normal",
       color: el.color,

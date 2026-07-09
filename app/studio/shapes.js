@@ -200,6 +200,65 @@ export function shapePad(el) {
   }
 }
 
+// Pointed / tapered silhouettes whose usable core is much smaller than their
+// bounding box — text overflows the point unless it shrinks to fit. "Fit text"
+// defaults ON for these when a shape is applied (store.setShape).
+const POINTED = { triangle: 1, diamond: 1, hexagon: 1, burst: 1, bookmark: 1, arrowR: 1, ribbon: 1 };
+export function pointedShape(id) { return !!POINTED[id]; }
+
+// Fit-text-to-SHAPE (the inverse of fitShapeBox, which grows the box to the
+// text): when `el.fitText` is on, shrink the font so the copy stays inside the
+// shape's safe inner box (shapePad-inset) instead of spilling past a pointed
+// edge. PURE + deterministic — a light average-glyph-advance model, no DOM /
+// canvas — so the three renderers (live, thumb, PNG export) all compute the SAME
+// size and stay in lockstep. Returns the element's own fontSize when off / unset.
+export function fitTextSize(el) {
+  const base = (el && el.fontSize) || 32;
+  if (!el || !el.fitText || !el.shape) return base;
+  const text = String(el.content || "");
+  if (!text.trim()) return base;
+  const pad = shapePad(el);
+  const innerW = Math.max(8, (el.w || 100) - pad.left - pad.right);
+  const innerH = Math.max(8, (el.h || 100) - pad.top - pad.bottom);
+  const lh = el.lineHeight || 1.12;
+  const ls = el.letterSpacing || 0;
+  const paras = text.split("\n");
+  // Average glyph advance as a fraction of the font size (empirical for the
+  // sans / serif / mono faces the shapes use); bold copy reads a touch wider.
+  const k = el.fontWeight && el.fontWeight >= 600 ? 0.56 : 0.52;
+  // Greedy word-wrap line count for a given characters-per-line budget.
+  const countLines = (perLine) => {
+    let lines = 0;
+    for (const para of paras) {
+      const words = para.split(/\s+/).filter(Boolean);
+      if (!words.length) { lines += 1; continue; }   // a blank paragraph = one line
+      let cur = 0;
+      for (const w of words) {
+        const need = w.length;
+        if (need > perLine) {                         // a token longer than the line breaks (break-word)
+          if (cur > 0) { lines += 1; cur = 0; }
+          lines += Math.ceil(need / perLine) - 1;
+          cur = need % perLine || perLine;
+          continue;
+        }
+        if (cur === 0) cur = need;
+        else if (cur + 1 + need <= perLine) cur += 1 + need;
+        else { lines += 1; cur = need; }
+      }
+      lines += 1;                                     // the paragraph's last open line
+    }
+    return Math.max(1, lines);
+  };
+  const fits = (fs) => {
+    const perLine = Math.max(1, Math.floor(innerW / (fs * k + ls)));
+    return countLines(perLine) * lh * fs <= innerH;
+  };
+  let fs = Math.round(base);
+  const MIN = 12;
+  while (fs > MIN && !fits(fs)) fs -= 1;
+  return Math.max(MIN, fs);
+}
+
 // Vertical placement of a shaped element's copy within its box. Default middle
 // (the long-standing behaviour); top/bottom let the text sit against an edge.
 // CSS flex value for the DOM renderers; the export computes the same from vAlign.

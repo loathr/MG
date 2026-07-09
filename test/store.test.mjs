@@ -340,6 +340,19 @@ test("switching from a knockout shape to an outline shape restores the text colo
   assert.equal(el.priorColor, undefined);
 });
 
+test("setShape defaults 'Fit text' on for pointed shapes, off for the rest, and clears it on removal", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "add", element: makeElement("text", { id: "F", content: "NEW", color: "#ffffff" }) });
+  s = reducer(s, { type: "setShape", id: "F", shape: "triangle" });   // pointed
+  assert.equal(cur(s).elements.find((e) => e.id === "F").fitText, true);
+  s = reducer(s, { type: "setShape", id: "F", shape: "banner" });     // not pointed → re-seeded off
+  assert.equal(cur(s).elements.find((e) => e.id === "F").fitText, undefined);
+  s = reducer(s, { type: "setShape", id: "F", shape: "diamond" });    // pointed again
+  assert.equal(cur(s).elements.find((e) => e.id === "F").fitText, true);
+  s = reducer(s, { type: "setShape", id: "F", shape: null });          // remove
+  assert.equal(cur(s).elements.find((e) => e.id === "F").fitText, undefined);
+});
+
 test("setShape ignores non-text elements", () => {
   let s = initStudio();
   s = reducer(s, { type: "add", element: makeElement("rect", { id: "R" }) });

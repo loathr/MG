@@ -16,7 +16,7 @@ import { effectiveBrand, blankClientBrand, footerOnSlide } from "./clientbrand";
 import { captureLook, applyLook, designBrand } from "./design";
 import { reflowSlide, cautionElement, frameElements, coverWordmark, footerElements, closerMarksFor } from "./templates";
 import { brandFromStyle, getStyle, FONT_PRESETS } from "./styles";
-import { shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
+import { shapeVariant, pointedShape, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
 
 const HISTORY_CAP = 80; // bound memory: keep the most recent N undo frames
 
@@ -575,11 +575,15 @@ function docReducer(state, a) {
           if (!shape) {
             if (n.priorColor != null) n.color = n.priorColor;
             delete n.shape; delete n.shapeFill; delete n.tailSide; delete n.priorColor;
-            delete n.shapeBody; delete n.shapeBorderC;
+            delete n.shapeBody; delete n.shapeBorderC; delete n.fitText;
             return n;
           }
           const v = shapeVariant(shape);
           n.shape = shape;
+          // Pointed silhouettes overflow easily — default "Fit text" on so the
+          // copy shrinks inside the point (the toolbar toggle lets the user turn
+          // it off). Like the shapeFill reset, a variant switch re-seeds this.
+          if (pointedShape(shape)) n.fitText = true; else delete n.fitText;
           n.tailSide = e.tailSide || "left";
           n.shapeFill = v.paper ? SHAPE_PAPER : accent;
           // Drop any prior Fill/Border overrides so a fresh variant starts from

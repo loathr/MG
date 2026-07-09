@@ -11,7 +11,7 @@ import { ARTBOARD_W, ARTBOARD_H, styledRuns, isUniformText, cropRect } from "./m
 import { effectShadow } from "./textfx";
 import { makeZip } from "./zip";
 import {
-  shapePaint, shapeRadius, shapeBorderW, shapePad, shapePolygon, tagNotch, speechTail,
+  shapePaint, shapeRadius, shapeBorderW, shapePad, shapePolygon, tagNotch, speechTail, fitTextSize,
   noteEar, hexA, shapeAccentColor, shapeTailColor,
   BURST_POINTS, BANNER_RULE, QUOTE_RULE, SHAPE_PAPER_EAR,
 } from "./shapes";
@@ -351,7 +351,7 @@ function drawShapeBacking(ctx, el) {
 function drawShapedText(ctx, el) {
   const pad = shapePad(el);
   const innerW = Math.max(1, el.w - pad.left - pad.right);
-  const fs = el.fontSize || 16;
+  const fs = fitTextSize(el);
   const fam = el.fontFamily || "Georgia, serif";
   const fontOf = (t) => (t.italic ? "italic " : "") + (t.fontWeight || 400) + " " + (t.fontSize || fs) + "px " + fam;
   ctx.textBaseline = "top";

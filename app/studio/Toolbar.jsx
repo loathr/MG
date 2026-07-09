@@ -14,7 +14,7 @@ import {
   Type, Image as ImageIcon, Square, Minus, AlignLeft, AlignCenter, AlignRight,
   Ban, Sparkles, Crop, Check, RotateCcw, Eraser, FlipHorizontal2, FlipVertical2,
   Contrast, Replace, ImageDown, MoreHorizontal, ChevronDown, ArrowUp, ArrowDown,
-  Copy, CopyPlus, ClipboardPaste, Trash2, Link2, X, Maximize2,
+  Copy, CopyPlus, ClipboardPaste, Trash2, Link2, X, Maximize2, Minimize2,
 } from "lucide-react";
 
 // The element-type badge glyph (top-left of the bar) as a line icon.
@@ -327,7 +327,13 @@ function ShapePop({ el, up, dispatch, onClose }) {
             <NumField label="Border w" value={shapeBorderW(el)} onChange={(v) => up({ shapeBorderWidth: Math.max(0, v) })} step={1} />
             <SelectBtn value={el.shapeDash || "solid"} onChange={(v) => up({ shapeDash: v })} title="Border style" options={[["solid", "Solid"], ["dashed", "Dashed"], ["dotted", "Dotted"]]} />
           </P2>
-          <P2><WBtn onClick={() => up(fitShapeBox(el, el.w))}><Maximize2 size={14} /> Fit to text</WBtn><WBtn danger onClick={() => { setShape(null); onClose(); }}><X size={14} /> Remove</WBtn></P2>
+          {/* Shrink the copy to sit inside the shape (vs. growing the box to the text). */}
+          <P2>
+            <ToggleBtn on={!!el.fitText} onClick={() => up({ fitText: !el.fitText })} title="Auto-shrink the text to stay inside the shape">
+              <Minimize2 size={14} /> Fit text to shape
+            </ToggleBtn>
+          </P2>
+          <P2><WBtn onClick={() => up(fitShapeBox(el, el.w))}><Maximize2 size={14} /> Fit box to text</WBtn><WBtn danger onClick={() => { setShape(null); onClose(); }}><X size={14} /> Remove</WBtn></P2>
         </>
       )}
     </Popover>
@@ -429,6 +435,10 @@ function EffectField({ label, value, fallback, onChange }) {
   return <label style={{ ...pField, cursor: "pointer", position: "relative", overflow: "hidden" }}><span style={pLab}>{label}</span><span style={{ width: 16, height: 16, borderRadius: 4, marginLeft: "auto", border: "1px solid #555", background: on ? value : "repeating-conic-gradient(#3a3a40 0% 25%, #1c1c20 0% 50%) 50% / 8px 8px" }} /><input type="color" value={hexish(value || fallback)} onChange={(e) => onChange(e.target.value)} style={{ position: "absolute", inset: 0, opacity: 0 }} /></label>;
 }
 function WBtn({ children, onClick, danger, disabled }) { return <button onClick={disabled ? undefined : onClick} disabled={disabled} style={{ ...wBtn, color: danger ? "#ff8a8a" : UI.text, opacity: disabled ? 0.4 : 1, cursor: disabled ? "default" : "pointer" }}>{children}</button>; }
+// A full-width on/off toggle button — filled brand when on, hollow when off.
+function ToggleBtn({ children, on, onClick, title }) {
+  return <button onClick={onClick} title={title} style={{ ...wBtn, flex: 1, justifyContent: "center", background: on ? UI.brand : wBtn.background, color: on ? UI.onBrand : UI.text, borderColor: on ? UI.brand : UI.border }}>{children}</button>;
+}
 
 // A short label for an element in the tether picker (native <option> text, so it's
 // a word not an icon): a content hint for text, a type name otherwise.
