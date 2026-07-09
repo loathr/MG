@@ -16,9 +16,12 @@ import { PRESETS, activePreset } from "./presets";
 import {
   PenLine, FileText, X, ChevronDown, ChevronRight, Sparkles, Zap, ArrowLeft, RefreshCw,
   Scroll, Swords, KeyRound, Clapperboard, BarChart3, MessageCircle, Headphones, Shirt, Mic, Gem,
-  ArrowRightLeft, MapPin, Flag,
+  ArrowRightLeft, MapPin, Flag, Palette, Lock,
 } from "lucide-react";
 import { effectiveCountry } from "./flag";
+import { blankClientBrand } from "./clientbrand";
+import ClientBrandFields from "./ClientBrandForm";
+import { FONT_OPTIONS } from "./styles";
 
 // Voice-id → lucide icon (voices.js stores the name; this maps it to a component
 // so the data module stays JSX-free). Rendered in the Voice picker.
@@ -58,7 +61,12 @@ function deskLabel(key) {
   return s ? s.label : key;
 }
 
-export default function CreateScreen({ onGenerate, onBlank, generating, phase, onCancel, error, onBack }) {
+export default function CreateScreen({ onGenerate, onBlank, generating, phase, onCancel, error, onBack, member = true }) {
+  // Guests (external / non-team) get a simpler create screen: document-first, the
+  // desk locked to Editorial, the discovery sections folded away, and their OWN
+  // branding right here (self-branding = forced client mode). Members are unchanged
+  // except an opt-in Client-mode banner that reveals the same branding block.
+  const guest = !member;
   const [desk, setDesk] = useState(DEFAULT_STYLE);
   // Voice follows the desk until the user overrides it under Advanced; after that
   // it's theirs and switching desk leaves it alone.
@@ -74,7 +82,15 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   // writing category; "auto" keeps the seeded default. Threaded as `voice`.
   const [persona, setPersona] = useState("auto");
   // Source mode: a short "topic" or a full "document" the deck is built from.
-  const [srcMode, setSrcMode] = useState("topic");   // "topic" | "doc"
+  // Guests default to document-first (their primary flow); members start on topic.
+  const [srcMode, setSrcMode] = useState(guest ? "doc" : "topic");   // "topic" | "doc"
+  // Self-branding / Client mode on the create screen. Guests are always in it (their
+  // own branding, no LOATHR); members opt in via the banner. `cbrand` is a clientBrand
+  // shape (clientbrand.js), applied to the freshly generated deck at generation time.
+  const [clientMode, setClientMode] = useState(guest);
+  const [cbrand, setCbrand] = useState(() => blankClientBrand());
+  const setCB = (patch) => setCbrand((c) => Object.assign({}, c, patch));
+  const [brandOpen, setBrandOpen] = useState(false); // "Your branding" accordion
   const [docSrc, setDocSrc] = useState(null);        // { name, text, words } from a file
   const [fidelity, setFidelity] = useState("balanced"); // source fidelity (doc mode)
   const [pasteText, setPasteText] = useState("");    // pasted material
@@ -189,7 +205,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     const t = srcMode === "doc"
       ? ((docSrc && docSrc.name.replace(/\.[^.]+$/, "")) || "Your document")
       : topic.trim();
-    onGenerate({ style: desk, category: voice, topic: t, quickDraft, polish, ground: seed, slides, tone, voice: persona, sourceDoc, route: buildRoute(), unbranded, flag: flagPalette, fidelity: sourceDoc ? fidelity : undefined });
+    onGenerate({ style: desk, category: voice, topic: t, quickDraft, polish, ground: seed, slides, tone, voice: persona, sourceDoc, route: buildRoute(), unbranded, flag: flagPalette, fidelity: sourceDoc ? fidelity : undefined, clientMode, clientBrand: clientMode ? cbrand : null });
   };
 
   // Load a dropped/picked document → extract its text (txt/md/pdf).
@@ -267,32 +283,57 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
       <div style={col}>
         <div style={brand}>loathrdotcom</div>
 
-        <div style={label}>Desk</div>
-        <div style={gallery}>
-          {STYLE_LIST.map((s) => {
-            const on = desk === s.key;
-            return (
-              <button key={s.key} type="button" onClick={() => pickDesk(s.key)} style={card(on)} title={s.blurb}>
-                <div style={{ borderRadius: 5, overflow: "hidden", lineHeight: 0, width: 122, height: 74 }}>
-                  <StylePreview style={s} width={122} />
-                </div>
-                <div style={cardLabel(on)}>{s.label}</div>
-                <div style={voiceLine(on)}>{getCategory(DESK_VOICE[s.key]).label}</div>
-              </button>
-            );
-          })}
-        </div>
+        {/* Members: opt-in Client-mode banner — swaps LOATHR branding for a
+            client's own (the same self-branding a guest gets). Guests never see it
+            (they're always in client mode, under the hood). */}
+        {member && (
+          <button type="button" onClick={() => { setClientMode((v) => !v); if (!clientMode) setBrandOpen(true); }} style={cmBanner(clientMode)}>
+            <span style={cmIcon(clientMode)}><Palette size={15} /></span>
+            <span style={cmTxt(clientMode)}>{clientMode
+              ? <><b>Client mode on</b> — this deck uses the client&rsquo;s branding, not LOATHR&rsquo;s.</>
+              : <>Making this for a client? <b>Client mode</b> swaps LOATHR branding for theirs — same tools.</>}</span>
+            <span style={cmBtn(clientMode)}>{clientMode ? "Exit" : "Client mode"}</span>
+          </button>
+        )}
 
-        <div style={{ ...label, marginTop: 12 }}>What&apos;s it about?</div>
-        {/* Source mode — a short topic, or a full document the deck is built from */}
+        {guest ? (
+          // Guests are Editorial-only — a quiet locked badge names the look, no picker.
+          <div style={deskBadge} title="Editorial look"><Lock size={11} /> Editorial</div>
+        ) : (
+          <>
+            <div style={label}>Desk</div>
+            <div style={gallery}>
+              {STYLE_LIST.map((s) => {
+                const on = desk === s.key;
+                return (
+                  <button key={s.key} type="button" onClick={() => pickDesk(s.key)} style={card(on)} title={s.blurb}>
+                    <div style={{ borderRadius: 5, overflow: "hidden", lineHeight: 0, width: 122, height: 74 }}>
+                      <StylePreview style={s} width={122} />
+                    </div>
+                    <div style={cardLabel(on)}>{s.label}</div>
+                    <div style={voiceLine(on)}>{getCategory(DESK_VOICE[s.key]).label}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        <div style={{ ...label, marginTop: 12 }}>{guest ? "Start from" : "What's it about?"}</div>
+        {/* Source mode — a short topic, or a full document the deck is built from.
+            Guests lead with the document (their primary flow); members lead with topic. */}
         <div style={modeRow}>
-          <button type="button" onClick={() => setSrcMode("topic")} style={modeBtn(srcMode === "topic")}><PenLine size={14} /> Topic</button>
-          <button type="button" onClick={() => setSrcMode("doc")} style={modeBtn(srcMode === "doc")}><FileText size={14} /> From a document</button>
+          {(guest ? ["doc", "topic"] : ["topic", "doc"]).map((m) => (
+            <button key={m} type="button" onClick={() => setSrcMode(m)} style={modeBtn(srcMode === m)}>
+              {m === "topic" ? <><PenLine size={14} /> {guest ? "A topic" : "Topic"}</> : <><FileText size={14} /> {guest ? "A document" : "From a document"}</>}
+            </button>
+          ))}
         </div>
         {/* Scope (all desks) — sits directly ABOVE the topic so the sector/region
             context is set BEFORE you type or pick a topic, and everything below
             (refiner, the merged Trending & related rail, generation) is scoped by
-            it. Urgency is News-only. */}
+            it. Urgency is News-only. Hidden for guests (their screen stays lean). */}
+        {!guest && (
         <div style={{ width: "100%", marginBottom: 12, textAlign: "left" }}>
           <div style={scopeLab}>Scope <span style={opt}>— optional · sector · region · country</span></div>
           <div style={scopeRow}>
@@ -330,6 +371,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             </div>
           )}
         </div>
+        )}
         {srcMode === "topic" ? (
           <>
             <div style={{ position: "relative", width: "100%" }}>
@@ -377,15 +419,17 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
                 </div>
               </div>
             )}
-            <RefinePanel
-              topic={topic}
-              decided={refineDecided}
-              scope={{ region, country, beat }}
-              onPickAngle={pickAngle}
-              onPickTopic={pickRefinedTopic}
-              onLock={lockTopic}
-              onEdit={editTopic}
-            />
+            {!guest && (
+              <RefinePanel
+                topic={topic}
+                decided={refineDecided}
+                scope={{ region, country, beat }}
+                onPickAngle={pickAngle}
+                onPickTopic={pickRefinedTopic}
+                onLock={lockTopic}
+                onEdit={editTopic}
+              />
+            )}
           </>
         ) : (
           <div style={docZone} onDragOver={(e) => e.preventDefault()}
@@ -415,6 +459,29 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             ) : null}
           </div>
         )}
+
+        {/* Self-branding accordion — shown when in client mode (guests always;
+            members when they flip the banner). Applies the client's identity to the
+            generated deck via effectiveBrand (store setClientBrand + setBrandMode). */}
+        {clientMode && (
+          <div style={brandAcc}>
+            <button type="button" onClick={() => setBrandOpen((v) => !v)} style={brandAccHead(brandOpen)}>
+              {brandOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              <Palette size={13} style={{ marginLeft: 2 }} />
+              <span style={brandAccTitle}>{guest ? "Your branding" : "Client branding"}</span>
+              <span style={brandAccSub}>{brandOpen ? "applied to every slide" : "logo · colours · fonts"}</span>
+            </button>
+            {brandOpen && (
+              <div style={brandAccBody}>
+                <ClientBrandFields cb={cbrand} setCB={setCB} fontOptions={FONT_OPTIONS} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Discovery rail + Quick start — members only; a guest's screen stays lean. */}
+        {!guest && (
+        <>
         {/* One scoped rail directly under the topic: browse Trending when nothing's
             typed, "Trending & related" (topic-seeded) once a topic is present —
             the merge of the old Trending pill + the refiner's related list. */}
@@ -455,6 +522,8 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             </div>
           </div>
         )}
+        </>
+        )}
 
         {/* Voice (persona) + Tone — compact pickers, applied to BOTH modes */}
         <div style={vtRow}>
@@ -488,8 +557,11 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             )}
           </div>
         </div>
-        {/* Options — opt-in; the default path never opens it. Holds voice/tone (+
-            desk framing), the white-label toggle, and quick-draft. */}
+        {/* Options — opt-in; the default path never opens it. Holds the white-label
+            toggle, desk framing, and quick-draft. Hidden for guests (no LOATHR
+            branding to strip, and their screen stays lean). */}
+        {!guest && (
+        <>
         <button type="button" onClick={() => setAdvanced((v) => !v)} style={advToggle}>
           {advanced ? <ChevronDown size={14} style={{ verticalAlign: "-2px" }} /> : <ChevronRight size={14} style={{ verticalAlign: "-2px" }} />} Options{(unbranded ? " · white-label" : "") + (quickDraft ? " · quick draft" : "") + (polish ? " · polish" : "")}
         </button>
@@ -536,6 +608,8 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             )}
             <div style={vHint}>Keeps the {deskLabel(desk)} look — only how it&apos;s written changes.</div>
           </div>
+        )}
+        </>
         )}
 
         <div style={lenWrap}>
@@ -594,6 +668,26 @@ const backBtn = { position: "absolute", left: 18, top: 16, zIndex: 5, display: "
 const brand = { fontSize: 13, letterSpacing: 4, color: "#cfcfcf", fontWeight: 700, marginBottom: 16 };
 const label = { fontSize: 12, letterSpacing: 1, color: "#8f8f97", marginBottom: 9, textTransform: "uppercase" };
 const gallery = { display: "flex", gap: 9, justifyContent: "center", flexWrap: "wrap" };
+// Guest desk lock — a quiet non-interactive badge naming the (Editorial) look.
+const deskBadge = { display: "inline-flex", alignItems: "center", gap: 6, height: 30, padding: "0 12px", margin: "0 auto 2px", borderRadius: 8, background: "#161619", border: "1px solid #2a2a31", color: "#9a9aa2", fontSize: 12, fontWeight: 600 };
+// Client-mode banner (members) — opt into client/self branding from the create screen.
+function cmBanner(on) {
+  return { display: "flex", alignItems: "center", gap: 11, width: "100%", maxWidth: 520, margin: "0 auto 14px", padding: "10px 12px", borderRadius: 11, cursor: "pointer", textAlign: "left",
+    background: on ? "linear-gradient(90deg,#132a1c 0%,#101814 100%)" : "linear-gradient(90deg,#1a1330 0%,#141018 100%)",
+    border: "1px solid " + (on ? "#2f6a45" : "#3a2f5e") };
+}
+function cmIcon(on) { return { width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", background: on ? "#2f7d4f" : "#6d3bd1" }; }
+function cmTxt(on) { return { flex: 1, fontSize: 12, lineHeight: 1.4, color: on ? "#a9e0c0" : "#cbbdf0" }; }
+function cmBtn(on) { return { flexShrink: 0, fontSize: 11.5, fontWeight: 700, borderRadius: 8, padding: "7px 13px", color: on ? "#cfcfd4" : "#fff", background: on ? "#26262e" : "#6d3bd1", border: "none" }; }
+// Self-branding accordion on the create screen.
+const brandAcc = { width: "100%", maxWidth: 520, margin: "12px auto 0" };
+function brandAccHead(open) {
+  return { width: "100%", display: "flex", alignItems: "center", gap: 7, padding: "11px 13px", cursor: "pointer", textAlign: "left",
+    background: "#141417", border: "1px solid #26262c", borderRadius: open ? "11px 11px 0 0" : 11, color: "#7c7c84" };
+}
+const brandAccTitle = { fontSize: 12.5, fontWeight: 600, color: "#dcdce2" };
+const brandAccSub = { fontSize: 11, color: "#7c7c84", marginLeft: "auto" };
+const brandAccBody = { border: "1px solid #232329", borderTop: "none", background: "#131316", borderRadius: "0 0 11px 11px", padding: 14, textAlign: "left" };
 // Length control (default-visible, dashed "NEW" box).
 const lenWrap = { width: "100%", maxWidth: 520, border: "1px dashed #3a3a42", borderRadius: 12, padding: 10, marginTop: 12, position: "relative" };
 const lenBadge = { position: "absolute", top: -9, left: 14, background: UI.brand, color: UI.onBrand, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, padding: "1px 7px", borderRadius: 5 };

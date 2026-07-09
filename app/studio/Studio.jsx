@@ -585,7 +585,7 @@ export default function Studio() {
   // fonts / wordmark + logo) carries onto the freshly generated deck (§5).
   // The call is cancellable (AbortController) and reports coarse progress
   // (searching → writing); a "quick draft" skips the web search for speed.
-  const handleGenerate = async ({ style, category, topic, quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded, flag, fidelity }) => {
+  const handleGenerate = async ({ style, category, topic, quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded, flag, fidelity, clientMode, clientBrand }) => {
     if (generating) return;
     const prevDoc = state.doc;
     const ac = new AbortController();
@@ -612,6 +612,14 @@ export default function Studio() {
         }
       }
       dispatch({ type: "loadDoc", doc: outDoc });
+      // Self-branding / Client mode: a guest deck (or a member who flipped Client
+      // mode on the create screen) carries its own identity. Store the clientBrand,
+      // then switch to client mode — setBrandMode folds it into the brand + re-themes
+      // (effectiveBrand), so every renderer emits the client's marks, not LOATHR's.
+      if (clientMode) {
+        dispatch({ type: "setClientBrand", clientBrand: clientBrand || undefined });
+        dispatch({ type: "setBrandMode", mode: "client" });
+      }
       // White-label: strip every LOATHR mark from the freshly generated deck so it
       // renders brand-free from the first frame (the prompt already kept the COPY
       // brand-free; this removes the template chrome marks).
@@ -852,7 +860,7 @@ export default function Studio() {
   }
 
   if (screen === "create") {
-    return <CreateScreen onGenerate={handleGenerate} onBlank={startBlank} generating={generating} phase={genPhase} onCancel={cancelGenerate} error={genError} onBack={cloud && user ? backToProjects : null} />;
+    return <CreateScreen onGenerate={handleGenerate} onBlank={startBlank} generating={generating} phase={genPhase} onCancel={cancelGenerate} error={genError} onBack={cloud && user ? backToProjects : null} member={member} />;
   }
 
   return (

@@ -9,6 +9,7 @@ import { uploadedFontGroup, fontFamilyValue } from "./fonts";
 import { Link2, ChevronDown, ChevronRight } from "lucide-react";
 import FontSelect from "./FontSelect";
 import StylePreview from "./StylePreview";
+import ClientBrandFields from "./ClientBrandForm";
 
 // Brand panel (spec §7), reorganized into four sections — Look · Type · Brand
 // marks · Closing. Deck-wide and undoable; re-themes by matching the current
@@ -48,40 +49,6 @@ function Section({ title, sub, first, defaultOpen = false, children }) {
 }
 const cmRow = { display: "flex", alignItems: "center", gap: 9, background: "#131418", border: "1px solid #2a2f3a", borderRadius: 9, padding: "10px 11px", margin: "8px 0 4px" };
 const kitChip = { display: "inline-flex", alignItems: "center", gap: 8, background: "#101012", border: "1px solid #2c2c34", borderRadius: 9, padding: "6px 9px" };
-const addAccent = { height: 28, padding: "0 11px", background: "#26262b", color: "#9a9aa2", border: "1px dashed #3a3a42", borderRadius: 7, fontSize: 11.5, cursor: "pointer" };
-// One accent colour swatch (native colour input), optionally clearable.
-function Swatch({ label, value, onChange, clearable, onClear }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-      <label style={{ position: "relative", width: 30, height: 30, borderRadius: 7, border: "1px solid #3a3a42", background: value, cursor: "pointer", overflow: "hidden" }}>
-        <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#3a86ff"} onChange={(e) => onChange(e.target.value)} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
-      </label>
-      <span style={{ fontSize: 9.5, color: "#7c7c84" }}>{clearable ? <button type="button" onClick={onClear} title="Remove" style={{ background: "none", border: "none", color: "#8a8a92", cursor: "pointer", fontSize: 9.5, padding: 0 }}>{label} ✕</button> : label}</span>
-    </div>
-  );
-}
-// A row of segmented option pills (footer align / scope).
-function Pills({ value, onChange, options }) {
-  return (
-    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-      {options.map(([v, l]) => (
-        <button key={v} type="button" onClick={() => onChange(v)}
-          style={{ fontSize: 11, padding: "5px 9px", borderRadius: 7, cursor: "pointer",
-            background: value === v ? "#fff" : "#26262b", color: value === v ? "#0a0a0a" : "#bdbdc4",
-            border: "1px solid " + (value === v ? "#fff" : "#36363c"), fontWeight: value === v ? 600 : 400 }}>{l}</button>
-      ))}
-    </div>
-  );
-}
-// One font row for the client brand (label + picker).
-function FontRow({ label, value, options, onChange }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ fontSize: 11, color: "#8a8a92", width: 54, flexShrink: 0 }}>{label}</span>
-      <div style={{ flex: 1, minWidth: 0 }}><FontSelect title={label + " font"} value={value} options={options} onChange={onChange} /></div>
-    </div>
-  );
-}
 const lbl = { fontSize: 11, color: "#9a9a9a", marginBottom: 6, display: "block" };
 const sel = { width: "100%", height: 32, background: "#26262b", color: "#e8e8e8", border: "1px solid #36363c", borderRadius: 6, fontSize: 12.5, padding: "0 8px" };
 const inp = { width: "100%", height: 34, background: "#26262b", color: "#fff", border: "1px solid #36363c", borderRadius: 6, fontSize: 13, padding: "0 10px" };
@@ -251,41 +218,7 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
                 ))}
               </div>
             ) : <div style={{ fontSize: 10.5, color: "#6a6a72", marginBottom: 12 }}>Save a brand to reuse it on future decks.</div>}
-            <label style={lbl}>Brand name</label>
-            <input style={inp} value={cb.name || ""} placeholder="Your client's name" onChange={(e) => setCB({ name: e.target.value })} />
-            <label style={{ ...lbl, marginTop: 10 }}>Handle</label>
-            <input style={inp} value={cb.handle || ""} placeholder="@handle" onChange={(e) => setCB({ handle: e.target.value })} />
-            <label style={{ ...lbl, marginTop: 12 }}>Accents</label>
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <Swatch label="1" value={cb.accent1 || "#3a86ff"} onChange={(v) => setCB({ accent1: v })} />
-              <Swatch label="2" value={cb.accent2 || "#f4b740"} onChange={(v) => setCB({ accent2: v })} />
-              {cb.accent3 != null
-                ? <Swatch label="3" value={cb.accent3 || "#e85d75"} onChange={(v) => setCB({ accent3: v })} clearable onClear={() => setCB({ accent3: null })} />
-                : <button type="button" style={addAccent} title="Add a third accent" onClick={() => setCB({ accent3: "#e85d75" })}>+ 3rd</button>}
-            </div>
-            <label style={{ ...lbl, marginTop: 14 }}>Fonts</label>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <FontRow label="Labels" value={cb.labelFont} options={fontOptions} onChange={(v) => setCB({ labelFont: v })} />
-              <FontRow label="Heading" value={cb.headFont} options={fontOptions} onChange={(v) => setCB({ headFont: v })} />
-              <FontRow label="Body" value={cb.bodyFont} options={fontOptions} onChange={(v) => setCB({ bodyFont: v })} />
-            </div>
-
-            <label style={{ ...lbl, marginTop: 14 }}>Footer</label>
-            <Pills value={(cb.footer && cb.footer.align) || "left"} onChange={(v) => setCB({ footer: Object.assign({ scope: "coverclose" }, cb.footer, { align: v }) })}
-              options={[["none", "None"], ["left", "Left"], ["center", "Center"], ["right", "Right"]]} />
-            <div style={{ height: 6 }} />
-            <Pills value={(cb.footer && cb.footer.scope) || "coverclose"} onChange={(v) => setCB({ footer: Object.assign({ align: "left" }, cb.footer, { scope: v }) })}
-              options={[["every", "Every"], ["coverclose", "Cover + close"], ["cover", "Cover only"]]} />
-
-            <label style={{ ...lbl, marginTop: 14, display: "flex", alignItems: "center" }}>
-              Closeout slide
-              <button type="button" title="Toggle closeout slide" onClick={() => setCB({ closeout: Object.assign({ cta: "Follow for more →" }, cb.closeout, { on: !(cb.closeout && cb.closeout.on) }) })}
-                style={{ marginLeft: "auto", width: 36, height: 21, borderRadius: 11, border: "none", cursor: "pointer", position: "relative", background: (cb.closeout && cb.closeout.on) ? "#2f6f52" : "#3a3a42" }}>
-                <span style={{ position: "absolute", top: 2, [(cb.closeout && cb.closeout.on) ? "right" : "left"]: 2, width: 17, height: 17, borderRadius: "50%", background: "#fff" }} />
-              </button>
-            </label>
-            <input style={inp} value={(cb.closeout && cb.closeout.cta) || ""} placeholder="Closing call-to-action" onChange={(e) => setCB({ closeout: Object.assign({ on: true }, cb.closeout, { cta: e.target.value }) })} />
-
+            <ClientBrandFields cb={cb} setCB={setCB} fontOptions={fontOptions} />
             <p style={{ fontSize: 10.5, color: "#6a6a72", marginTop: 14, lineHeight: 1.5 }}>Brand marks are the client&apos;s — LOATHR branding is hidden on this deck.</p>
           </div>
         ) : (
