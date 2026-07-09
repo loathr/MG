@@ -48,7 +48,34 @@ function Section({ title, sub, first, defaultOpen = false, children }) {
   );
 }
 const cmRow = { display: "flex", alignItems: "center", gap: 9, background: "#131418", border: "1px solid #2a2f3a", borderRadius: 9, padding: "10px 11px", margin: "8px 0 4px" };
-const kitChip = { display: "inline-flex", alignItems: "center", gap: 8, background: "#101012", border: "1px solid #2c2c34", borderRadius: 9, padding: "6px 9px" };
+// "Your brands" collapsible section + rich kit cards.
+const kitHead = { display: "flex", alignItems: "center" };
+const kitHeadBtn = { display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left" };
+const kitCount = { fontSize: 10, fontWeight: 700, color: "#c3a6ff", background: "#1a1526", border: "1px solid #3a2f5e", borderRadius: 9, padding: "0 6px", lineHeight: "16px", height: 16, marginLeft: 2 };
+const kitCard = { display: "flex", gap: 10, alignItems: "center", background: "#101012", border: "1px solid #2c2c34", borderRadius: 10, padding: "9px 10px" };
+const kitLogo = { width: 38, height: 38, flexShrink: 0, borderRadius: 8, background: "#17131f", border: "1px solid #2a2440", display: "flex", alignItems: "center", justifyContent: "center", color: "#cdbcff", fontSize: 11, fontWeight: 800, overflow: "hidden" };
+const kitName = { fontSize: 12.5, fontWeight: 700, color: "#eaeaea", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+const kitHandle = { fontSize: 10, color: "#8a8a92", fontWeight: 400 };
+const kitMeta = { display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" };
+const kitPill = { fontSize: 9, letterSpacing: 0.3, borderRadius: 5, padding: "1px 6px", border: "1px solid #2c2c32", color: "#9a9aa2", background: "#1c1c22" };
+const kitPillF = { color: "#cdbcff", borderColor: "#3a2f5e", background: "#1a1526" };
+const kitPillI = { color: "#8fd0ff", borderColor: "#274a5e", background: "#132330" };
+const kitApply = { fontSize: 10.5, fontWeight: 700, color: "#fff", background: "#6d3bd1", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer" };
+const kitDel = { fontSize: 10, color: "#8a8a92", background: "none", border: "none", cursor: "pointer", padding: 0 };
+// Up to two initials for the logo fallback.
+function kitInitials(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  return ((parts[0][0] || "") + (parts.length > 1 ? parts[1][0] || "" : "")).toUpperCase() || "?";
+}
+// A readable label for a font value: an uploaded font shows its saved name; else the
+// first family in the CSS value (quotes stripped).
+function kitFontLabel(value, fonts) {
+  const v = String(value || "");
+  const upl = (fonts || []).find((f) => v.indexOf(f.family) >= 0);
+  if (upl) return upl.name;
+  return v.split(",")[0].replace(/['"]/g, "").trim() || v;
+}
 const lbl = { fontSize: 11, color: "#9a9a9a", marginBottom: 6, display: "block" };
 const sel = { width: "100%", height: 32, background: "#26262b", color: "#e8e8e8", border: "1px solid #36363c", borderRadius: 6, fontSize: 12.5, padding: "0 8px" };
 const inp = { width: "100%", height: 34, background: "#26262b", color: "#fff", border: "1px solid #36363c", borderRadius: 6, fontSize: 13, padding: "0 10px" };
@@ -166,6 +193,7 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
   const setCB = (patch) => onClientBrand && onClientBrand(Object.assign({}, cb, patch));
   // Saved brand kits (localStorage). Loaded once; save/apply/remove update both.
   const [kits, setKits] = useState([]);
+  const [kitsOpen, setKitsOpen] = useState(false); // "Your brands" accordion (folds the rich cards away)
   useEffect(() => { setKits(loadKits()); }, []);
   const persistKits = (next) => { setKits(next); saveKits(next); };
   const saveCurrentKit = () => {
@@ -199,25 +227,54 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
         {/* ---------- CLIENT BRANDING (client mode) ---------- */}
         {client ? (
           <div style={{ paddingTop: 4 }}>
-            <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-              <label style={{ ...lbl, marginBottom: 0 }}>Your brands</label>
-              <button type="button" onClick={saveCurrentKit} style={{ marginLeft: "auto", fontSize: 11, color: "#7fb2ff", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>💾 Save current</button>
-            </div>
-            {kits.length > 0 ? (
-              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 12 }}>
-                {kits.map((k) => (
-                  <div key={k.id} style={kitChip}>
-                    <button type="button" onClick={() => applyKit(k)} title={"Apply " + k.name} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: "#dcdce2", fontSize: 11.5, padding: 0 }}>
-                      <span style={{ display: "flex", gap: 2 }}>
-                        {[k.brand && k.brand.accent1, k.brand && k.brand.accent2, k.brand && k.brand.accent3].filter(Boolean).slice(0, 3).map((c, i) => <span key={i} style={{ width: 10, height: 10, borderRadius: 3, background: c }} />)}
-                      </span>
-                      {k.name}
-                    </button>
-                    <button type="button" onClick={() => persistKits(removeKit(kits, k.id))} title="Remove" style={{ background: "none", border: "none", color: "#7a7a82", cursor: "pointer", fontSize: 12, padding: 0, lineHeight: 1 }}>×</button>
-                  </div>
-                ))}
+            {/* "Your brands" — a foldable section so a stack of rich kit cards never
+                crowds the panel. Collapsed shows count + accent preview + Save. */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={kitHead}>
+                <button type="button" onClick={() => setKitsOpen((o) => !o)} style={kitHeadBtn} title={kitsOpen ? "Collapse" : "Expand"}>
+                  <span style={{ color: kitsOpen ? "#c9c9d0" : "#8a8a92", width: 12 }}>{kitsOpen ? "▾" : "▸"}</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.1, color: "#b7b7bf", textTransform: "uppercase" }}>Your brands</span>
+                  {kits.length > 0 ? <span style={kitCount}>{kits.length}</span> : null}
+                  {!kitsOpen && kits.length > 0 && (
+                    <span style={{ display: "flex", gap: 3, marginLeft: 4 }}>
+                      {kits.slice(0, 4).map((k) => <span key={k.id} style={{ width: 9, height: 9, borderRadius: 2, background: (k.brand && k.brand.accent1) || "#3a86ff" }} />)}
+                    </span>
+                  )}
+                </button>
+                <button type="button" onClick={saveCurrentKit} style={{ marginLeft: "auto", fontSize: 11, color: "#7fb2ff", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }} title="Save the current brand as a reusable kit">💾 Save</button>
               </div>
-            ) : <div style={{ fontSize: 10.5, color: "#6a6a72", marginBottom: 12 }}>Save a brand to reuse it on future decks.</div>}
+              {kitsOpen && (
+                kits.length > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+                    {kits.map((k) => {
+                      const b = k.brand || {};
+                      const accents = [b.accent1, b.accent2, b.accent3].filter(Boolean).slice(0, 3);
+                      const nFonts = (b.fonts || []).length, nImgs = (b.images || []).length;
+                      return (
+                        <div key={k.id} style={kitCard}>
+                          <div style={kitLogo}>
+                            {b.logo ? <img src={b.logo} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} /> : <span>{kitInitials(k.name || b.name)}</span>}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={kitName}>{k.name}{b.handle ? <span style={kitHandle}>{b.handle}</span> : null}</div>
+                            <div style={kitMeta}>
+                              {accents.length ? <span style={{ display: "flex", gap: 3 }}>{accents.map((c, i) => <span key={i} style={{ width: 11, height: 11, borderRadius: 3, background: c }} />)}</span> : null}
+                              {b.headFont ? <span style={{ fontSize: 10, color: "#b6b6be", fontFamily: b.headFont, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 84 }}>{kitFontLabel(b.headFont, b.fonts)}</span> : null}
+                              {nFonts ? <span style={{ ...kitPill, ...kitPillF }}>{nFonts} font{nFonts === 1 ? "" : "s"}</span> : null}
+                              {nImgs ? <span style={{ ...kitPill, ...kitPillI }}>{nImgs} img{nImgs === 1 ? "" : "s"}</span> : null}
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
+                            <button type="button" onClick={() => applyKit(k)} style={kitApply} title={"Apply " + k.name}>Apply</button>
+                            <button type="button" onClick={() => persistKits(removeKit(kits, k.id))} style={kitDel} title="Remove">Remove</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : <div style={{ fontSize: 10.5, color: "#6a6a72", marginTop: 8 }}>Save a brand to reuse it on future decks.</div>
+              )}
+            </div>
             <ClientBrandFields cb={cb} setCB={setCB} fontOptions={fontOptions} onAddImage={onAddImage} />
             <p style={{ fontSize: 10.5, color: "#6a6a72", marginTop: 14, lineHeight: 1.5 }}>Brand marks are the client&apos;s — LOATHR branding is hidden on this deck.</p>
           </div>
