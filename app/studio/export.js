@@ -7,7 +7,7 @@
 // Browser-only: every entry point is called from a click handler, so importing
 // this module is SSR/build-safe (no top-level DOM access).
 // ============================================================================
-import { ARTBOARD_W, ARTBOARD_H, styledRuns, isUniformText, cropRect } from "./model";
+import { ARTBOARD_W, ARTBOARD_H, styledRuns, isUniformText, cropRect, elementPolygon } from "./model";
 import { effectShadow } from "./textfx";
 import { makeZip } from "./zip";
 import {
@@ -263,6 +263,37 @@ function polyPath(ctx, w, h, points) {
 // Draw a text element's SHAPE backing (local origin already at its top-left).
 // Shape only — the text is drawn on top by drawShapedText. Mirrors the CSS in
 // ShapeBacking.jsx off the same geometry helpers so the PNG matches the canvas.
+// Draw a pure vector primitive (ellipse or free polygon) — the canvas mirror of
+// VectorShape.jsx, off the same elementPolygon() points, so a circle/triangle/
+// arrow exports byte-faithfully to what the canvas shows. Fill + stroke + dash
+// map 1:1 to the DOM's Fill / Border / Border-style controls.
+function drawVectorShape(ctx, el) {
+  const w = el.w, h = el.h;
+  const hasFill = el.fill && el.fill !== "none";
+  const hasStroke = el.stroke && el.stroke !== "none";
+  const sw = el.strokeWidth || 1;
+  ctx.beginPath();
+  if (el.type === "ellipse") {
+    ctx.ellipse(w / 2, h / 2, Math.max(0.01, w / 2), Math.max(0.01, h / 2), 0, 0, Math.PI * 2);
+  } else {
+    const poly = elementPolygon(el) || [];
+    poly.forEach(([x, y], i) => { const px = x * w, py = y * h; if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); });
+    ctx.closePath();
+  }
+  if (hasFill) { ctx.fillStyle = el.fill; ctx.fill(); }
+  if (hasStroke) {
+    ctx.lineWidth = sw;
+    ctx.strokeStyle = el.stroke;
+    ctx.lineJoin = "round";
+    if (el.dash === "dashed") ctx.setLineDash([sw * 2.5, sw * 2]);
+    else if (el.dash === "dotted") { ctx.setLineDash([sw, sw * 1.6]); ctx.lineCap = "round"; }
+    else ctx.setLineDash([]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineCap = "butt";
+  }
+}
+
 function drawShapeBacking(ctx, el) {
   const p = shapePaint(el);
   const variant = el.shape || "speech";
@@ -420,6 +451,8 @@ export async function renderSlideToCanvas(slide) {
         ctx.stroke();
         ctx.setLineDash([]);
       }
+    } else if (el.type === "ellipse" || elementPolygon(el)) {
+      drawVectorShape(ctx, el);
     } else if (el.type === "line") {
       if (el.dash && el.dash !== "solid") {
         ctx.strokeStyle = el.fill || "#ffffff";

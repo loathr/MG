@@ -14,6 +14,7 @@ import FormatBar from "./FormatBar";
 import SlideThumb from "./SlideThumb";
 import StaticSlide from "./StaticSlide";
 import ShapeBacking from "./ShapeBacking";
+import VectorShape from "./VectorShape";
 import { UI } from "./theme";
 import { SHAPE_VARIANTS, shapeVariant, SHAPE_PAPER, SHAPE_PAPER_INK } from "./shapes";
 import PhotosPanel from "./PhotosPanel";
@@ -728,12 +729,17 @@ export default function Studio() {
       y: Math.round((ARTBOARD_H - preset.h) / 2),
     }, preset)) });
   };
-  const addRect = () => dispatch({ type: "add", element: makeElement("rect", {
-    x: Math.round((ARTBOARD_W - 300) / 2), y: Math.round((ARTBOARD_H - 200) / 2), w: 300, h: 200,
-  }) });
-  const addLine = () => dispatch({ type: "add", element: makeElement("line", {
-    x: Math.round((ARTBOARD_W - 360) / 2), y: Math.round(ARTBOARD_H / 2), w: 360, h: 6, fill: "#ffffff",
-  }) });
+  // Drop a pure vector primitive (Elements ▸ Shapes) centred on the board. Filled
+  // shapes seed with the deck accent so they theme with the deck; the line stays a
+  // white rule. VECTOR_SHAPES lists every primitive + its drop size.
+  const addVector = (s) => {
+    const w = s.w, h = s.h;
+    const props = { x: Math.round((ARTBOARD_W - w) / 2), y: Math.round((ARTBOARD_H - h) / 2), w, h };
+    if (s.type === "line") { props.fill = "#ffffff"; props.y = Math.round(ARTBOARD_H / 2); }
+    else props.fill = (state.doc.brand && state.doc.brand.accent) || "#e23744";
+    if (s.type === "rect") props.radius = 0;
+    dispatch({ type: "add", element: makeElement(s.type, props) });
+  };
 
   // Tap a shape in the Elements panel: WRAP the selected text element in it, or —
   // when no text is selected — drop a fresh editable text box already wearing it.
@@ -1145,8 +1151,11 @@ export default function Studio() {
         {activePanel === "elements" && (
           <SidePanel title="Elements" onClose={() => setActivePanel(null)}>
             <Collapsible title="Shapes">
-              <PanelButton onClick={addRect}>Rectangle</PanelButton>
-              <PanelButton onClick={addLine}>Line / divider</PanelButton>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 }}>
+                {VECTOR_SHAPES.map((s) => (
+                  <VectorTile key={s.type} s={s} accent={(state.doc.brand && state.doc.brand.accent) || UI.brand} onPick={addVector} />
+                ))}
+              </div>
             </Collapsible>
             <Collapsible title="Bubbles &amp; notes" defaultOpen={false}>
               <div style={{ fontSize: 11, color: selectedIsText ? UI.brand : UI.muted, lineHeight: 1.45, marginBottom: 4 }}>
@@ -1480,6 +1489,48 @@ function Collapsible({ title, defaultOpen = true, children }) {
       </button>
       {open && children}
     </div>
+  );
+}
+
+// The pure vector primitives in the Elements ▸ Shapes grid (siblings of the
+// rectangle) + their drop sizes. Rendered as a uniform tile grid via VectorTile.
+const VECTOR_SHAPES = [
+  { type: "rect",     label: "Rectangle", w: 300, h: 200 },
+  { type: "ellipse",  label: "Circle",    w: 260, h: 260 },
+  { type: "triangle", label: "Triangle",  w: 260, h: 230 },
+  { type: "diamond",  label: "Diamond",   w: 240, h: 240 },
+  { type: "pentagon", label: "Pentagon",  w: 240, h: 230 },
+  { type: "hexagon",  label: "Hexagon",   w: 270, h: 234 },
+  { type: "star",     label: "Star",      w: 250, h: 238 },
+  { type: "arrow",    label: "Arrow",     w: 320, h: 180 },
+  { type: "line",     label: "Line",      w: 360, h: 6 },
+];
+
+// A grid swatch for a vector primitive — a small, aspect-correct preview of the
+// real VectorShape (rect/line drawn inline) above a label, matching ShapeTile.
+function VectorTile({ s, accent, onPick }) {
+  const PW = 62, PH = 34;
+  const el = { type: s.type, w: s.w, h: s.type === "line" ? 6 : s.h, fill: s.type === "line" ? "#cfcfcf" : accent, stroke: "none", strokeWidth: 0, radius: 0, opacity: 1 };
+  const sc = Math.min(PW / el.w, PH / el.h, 1);
+  const [hover, setHover] = React.useState(false);
+  const preview = s.type === "rect"
+    ? <div style={{ width: "100%", height: "100%", background: accent, borderRadius: 3 }} />
+    : s.type === "line"
+      ? <div style={{ position: "absolute", top: "50%", left: 0, width: "100%", height: 4, background: "#cfcfcf", transform: "translateY(-50%)" }} />
+      : <VectorShape el={el} />;
+  return (
+    <button onClick={() => onPick(s)} title={"Add " + s.label}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, height: 66,
+        background: hover ? UI.hover : UI.surface2, border: "1px solid " + (hover ? UI.brand : UI.border),
+        borderRadius: 8, cursor: "pointer", overflow: "hidden", transition: "border-color .12s, background .12s" }}>
+      <div style={{ position: "relative", width: el.w * sc, height: el.h * sc }}>
+        <div style={{ position: "absolute", top: 0, left: 0, width: el.w, height: el.h, transform: "scale(" + sc + ")", transformOrigin: "top left" }}>
+          {preview}
+        </div>
+      </div>
+      <span style={{ fontSize: 10, color: UI.muted, letterSpacing: 0.2 }}>{s.label}</span>
+    </button>
   );
 }
 

@@ -3,9 +3,10 @@ import React from "react";
 import RichText from "./RichText";
 import RichEditable from "./RichEditable";
 import ShapeBacking from "./ShapeBacking";
+import VectorShape from "./VectorShape";
 import { shapePad, shapeVAlign, fitTextSize } from "./shapes";
 import { effectCss } from "./textfx";
-import { imageTransform } from "./model";
+import { imageTransform, elementPolygon } from "./model";
 import { Move } from "lucide-react";
 
 // One element. Wrapped in React.memo so it re-renders only when its own object
@@ -120,6 +121,8 @@ function ElementView({ element: el, isEditing, isCropping, onPointerDownBody, on
         border: el.stroke && el.stroke !== "none" ? (el.strokeWidth || 1) + "px " + (el.dash || "solid") + " " + el.stroke : "none",
       }} />
     );
+  } else if (el.type === "ellipse" || elementPolygon(el)) {
+    inner = <VectorShape el={el} />;
   } else if (el.type === "line") {
     inner = (el.dash && el.dash !== "solid")
       ? <div style={{ width: "100%", height: "100%", boxSizing: "border-box", borderTop: el.h + "px " + el.dash + " " + el.fill, background: "transparent" }} />

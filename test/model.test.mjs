@@ -10,6 +10,7 @@ import {
   bakeHighlight, bakeDocHighlights, clearHighlightRuns, correctionSite, applyCorrectionToDoc,
   applyRewriteToDoc, applyCoherenceFix, coherenceFixApplicable,
   cropRect, imageTransform, cropAnchor, reframeCrop, applyCase,
+  ELEMENT_POLY, elementPolygon, isVectorShape,
 } from "../app/studio/model.js";
 
 test("cropRect: no crop = centred cover band; zoom shrinks the source window", () => {
@@ -80,6 +81,34 @@ test("makeElement merges type defaults with overrides", () => {
   assert.equal(t.fontFamily, ELEMENT_DEFAULTS.text.fontFamily); // default kept
   assert.equal(t.locked, false);
   assert.equal(makeElement("rect", {}).fill, ELEMENT_DEFAULTS.rect.fill);
+});
+
+test("vector primitives: defaults, polygon points, and the rect-style predicate", () => {
+  // Each new primitive seeds the same Fill / Border model as the rectangle.
+  for (const type of ["ellipse", "triangle", "arrow", "star", "diamond", "pentagon", "hexagon"]) {
+    const el = makeElement(type, {});
+    assert.equal(el.type, type);
+    assert.equal(el.fill, "#e23744");
+    assert.equal(el.stroke, "none");
+    assert.equal(el.strokeWidth, 0);
+    assert.equal(isVectorShape(el), true, type + " is a vector shape");
+  }
+  assert.equal(isVectorShape(makeElement("rect", {})), true);   // rect too
+  assert.equal(isVectorShape(makeElement("ellipse", {})), true);
+  assert.equal(isVectorShape(makeElement("line", {})), false);  // line is not fill/border
+  assert.equal(isVectorShape(makeElement("text", {})), false);
+  assert.equal(isVectorShape(null), false);
+  // Polygon primitives expose fraction points (0..1) shared by all three renderers;
+  // ellipse has none (it's drawn as a radius, not a polygon).
+  for (const type of ["triangle", "arrow", "star", "diamond", "pentagon", "hexagon"]) {
+    const pts = elementPolygon({ type });
+    assert.ok(Array.isArray(pts) && pts.length >= 3, type + " has a polygon");
+    for (const [x, y] of pts) assert.ok(x >= 0 && x <= 1 && y >= 0 && y <= 1, type + " point in 0..1 box");
+  }
+  assert.equal(elementPolygon({ type: "ellipse" }), null);
+  assert.equal(elementPolygon({ type: "rect" }), null);
+  assert.equal(elementPolygon(null), null);
+  assert.equal(Object.keys(ELEMENT_POLY).length, 6);
 });
 
 test("a text element can carry shape fields (the text-shape backing)", () => {

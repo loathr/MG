@@ -9,7 +9,7 @@ import { fitShapeBox } from "./textfit";
 import { readImageFile } from "./imageFile";
 import { removeBackground } from "./bgRemove";
 import { WRITE_KINDS, WRITE_KIND_ORDER } from "./aitext";
-import { clearHighlightRuns } from "./model";
+import { clearHighlightRuns, isVectorShape } from "./model";
 import {
   Type, Image as ImageIcon, Square, Minus, AlignLeft, AlignCenter, AlignRight,
   Ban, Sparkles, Crop, Check, RotateCcw, Eraser, FlipHorizontal2, FlipVertical2,
@@ -156,19 +156,19 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
         </>
       )}
 
-      {(el.type === "rect" || el.type === "line") && (
+      {(isVectorShape(el) || el.type === "line") && (
         <>
           <ColorBtn title={el.type === "line" ? "Colour" : "Fill"} value={el.fill && el.fill !== "none" ? el.fill : "#ffffff"} dim={!el.fill || el.fill === "none"} onChange={(v) => up({ fill: v })}
             glyph={<span style={{ width: 16, height: 16, borderRadius: 4, background: el.fill && el.fill !== "none" ? el.fill : "#444", border: "1px solid #555" }} />}
-            extra={el.type === "rect" ? <button style={miniClear} onClick={() => up({ fill: "none" })} title="No fill"><Ban size={13} /></button> : undefined} />
-          {el.type === "rect" && (
+            extra={el.type !== "line" ? <button style={miniClear} onClick={() => up({ fill: "none" })} title="No fill"><Ban size={13} /></button> : undefined} />
+          {el.type !== "line" && (
             <>
-              <ColorBtn title="Stroke" value={el.stroke && el.stroke !== "none" ? el.stroke : "#ffffff"} dim={!el.stroke || el.stroke === "none"}
+              <ColorBtn title="Border" value={el.stroke && el.stroke !== "none" ? el.stroke : "#ffffff"} dim={!el.stroke || el.stroke === "none"}
                 onChange={(v) => up({ stroke: v, strokeWidth: el.strokeWidth || 2 })}
                 glyph={<span style={{ width: 16, height: 16, borderRadius: 4, border: "2px solid " + (el.stroke && el.stroke !== "none" ? el.stroke : "#666"), boxSizing: "border-box" }} />}
-                extra={<button style={miniClear} onClick={() => up({ stroke: "none", strokeWidth: 0 })} title="No stroke"><Ban size={13} /></button>} />
+                extra={<button style={miniClear} onClick={() => up({ stroke: "none", strokeWidth: 0 })} title="No border"><Ban size={13} /></button>} />
               <NumBtn label="Width" value={el.strokeWidth || 0} onChange={(n) => up({ strokeWidth: Math.max(0, n), stroke: n > 0 ? (el.stroke && el.stroke !== "none" ? el.stroke : "#ffffff") : "none" })} />
-              <NumBtn label="Radius" value={el.radius || 0} onChange={(n) => up({ radius: Math.max(0, n) })} />
+              {el.type === "rect" && <NumBtn label="Radius" value={el.radius || 0} onChange={(n) => up({ radius: Math.max(0, n) })} />}
             </>
           )}
           {el.type === "line" && <NumBtn label="Weight" value={Math.round(el.h) || 0} onChange={(n) => up({ h: Math.max(1, Math.round(n)) })} />}

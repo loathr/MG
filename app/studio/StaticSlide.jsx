@@ -1,8 +1,9 @@
 "use client";
 import React from "react";
-import { ARTBOARD_W, ARTBOARD_H, imageTransform } from "./model";
+import { ARTBOARD_W, ARTBOARD_H, imageTransform, elementPolygon } from "./model";
 import RichText from "./RichText";
 import ShapeBacking from "./ShapeBacking";
+import VectorShape from "./VectorShape";
 import { shapePad, shapeVAlign, fitTextSize } from "./shapes";
 import { effectCss } from "./textfx";
 
@@ -74,6 +75,9 @@ function StaticElement({ el }) {
   if (el.type === "rect") {
     return <div style={{ ...frame, background: el.fill, borderRadius: el.radius || 0,
       border: el.stroke && el.stroke !== "none" ? (el.strokeWidth || 1) + "px " + (el.dash || "solid") + " " + el.stroke : undefined, boxSizing: "border-box" }} />;
+  }
+  if (el.type === "ellipse" || elementPolygon(el)) {
+    return <div style={{ ...frame, overflow: "visible" }}><VectorShape el={el} /></div>;
   }
   if (el.type === "line") {
     return (el.dash && el.dash !== "solid")

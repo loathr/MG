@@ -41,10 +41,38 @@ export const ELEMENT_DEFAULTS = {
   image: { src: "", thumb: "", fit: "cover", opacity: 1, radius: 0 },
   rect: { fill: "#e23744", stroke: "none", strokeWidth: 0, radius: 0, opacity: 1 },
   line: { fill: "#ffffff", opacity: 1 },
+  // Pure vector primitives (Elements ▸ Shapes), siblings of rect: same Fill /
+  // Border (stroke) / Border-style (dash) / opacity model, drawn as an ellipse or
+  // a free polygon. They distort freely on resize (circle → oval, etc.).
+  ellipse:  { fill: "#e23744", stroke: "none", strokeWidth: 0, opacity: 1 },
+  triangle: { fill: "#e23744", stroke: "none", strokeWidth: 0, opacity: 1 },
+  arrow:    { fill: "#e23744", stroke: "none", strokeWidth: 0, opacity: 1 },
+  star:     { fill: "#e23744", stroke: "none", strokeWidth: 0, opacity: 1 },
+  diamond:  { fill: "#e23744", stroke: "none", strokeWidth: 0, opacity: 1 },
+  pentagon: { fill: "#e23744", stroke: "none", strokeWidth: 0, opacity: 1 },
+  hexagon:  { fill: "#e23744", stroke: "none", strokeWidth: 0, opacity: 1 },
   // A text element may also wear a SHAPE backing (bubble / banner / tag / burst /
   // …) — see shapes.js. The shape lives on the text element as `shape` (variant
   // id) + `shapeFill` + `tailSide`; it is not a separate element type.
 };
+
+// Polygon silhouettes (fraction points in a 0..1 box) for the free-polygon vector
+// primitives — shared VERBATIM by the live canvas (Element SVG), the thumbnail
+// (StaticSlide SVG) and the PNG export (canvas path), so a triangle/arrow looks
+// identical everywhere. preserveAspectRatio:none in the SVG lets them distort with
+// the box (a stretched triangle), matching the export's point×[w,h] mapping.
+export const ELEMENT_POLY = {
+  triangle: [[0.5, 0], [1, 1], [0, 1]],
+  diamond:  [[0.5, 0], [1, 0.5], [0.5, 1], [0, 0.5]],
+  pentagon: [[0.5, 0.02], [0.98, 0.38], [0.8, 0.98], [0.2, 0.98], [0.02, 0.38]],
+  hexagon:  [[0.25, 0], [0.75, 0], [1, 0.5], [0.75, 1], [0.25, 1], [0, 0.5]],
+  star:     [[0.5, 0], [0.61, 0.35], [0.98, 0.35], [0.68, 0.57], [0.79, 0.91], [0.5, 0.7], [0.21, 0.91], [0.32, 0.57], [0.02, 0.35], [0.39, 0.35]],
+  arrow:    [[0, 0.32], [0.6, 0.32], [0.6, 0.08], [1, 0.5], [0.6, 0.92], [0.6, 0.68], [0, 0.68]],
+};
+// The polygon points for a vector primitive, or null when it isn't one.
+export function elementPolygon(el) { return (el && ELEMENT_POLY[el.type]) || null; }
+// Does this element type carry the rect-style Fill / Border / Border-style model?
+export function isVectorShape(el) { return !!el && (el.type === "rect" || el.type === "ellipse" || !!(el.type && ELEMENT_POLY[el.type])); }
 
 export function makeElement(type, props) {
   const base = {
