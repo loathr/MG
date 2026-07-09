@@ -997,7 +997,15 @@ export default function Studio() {
                           <input readOnly value={url} onFocus={(e) => e.target.select()} style={{ flex: 1, minWidth: 0, height: 30, background: "#1d1d20", border: "1px solid " + UI.border, borderRadius: 6, color: "#ddd", fontSize: 11, padding: "0 8px" }} />
                           <ShareCopyButton url={url} />
                         </div>
-                        <button style={{ ...hbtn, marginTop: 7, fontSize: 11 }} onClick={rotate} title="Invalidate the old link and make a new one"><RotateCw size={13} /> Reset link</button>
+                        <div style={{ display: "flex", gap: 6, marginTop: 7 }}>
+                          <button style={{ ...hbtn, flex: 1, fontSize: 11, justifyContent: "center" }} onClick={rotate} title="Invalidate the old link and make a new one"><RotateCw size={13} /> Reset link</button>
+                          <button style={{ ...hbtn, flex: 1, fontSize: 11, justifyContent: "center", color: "#ff9a8a", borderColor: "#5a3030", background: "#241819" }}
+                            onClick={() => { setLevel("none"); setShareOpen(false); }}
+                            title="Turn the link off — no one holding it can view or edit anymore">
+                            <X size={13} /> Stop sharing
+                          </button>
+                        </div>
+                        <div style={{ fontSize: 10.5, color: UI.muted, marginTop: 6, lineHeight: 1.4 }}>Stop sharing turns the link off (re-enable to reuse it); Reset link makes a new one and kills the old.</div>
                       </>
                     )}
                   </div>
