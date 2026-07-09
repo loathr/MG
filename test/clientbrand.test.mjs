@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   isMember, brandModeFor, blankClientBrand, normalizeClientBrand,
-  effectiveBrand, footerOnSlide,
+  effectiveBrand, footerOnSlide, applyClientImages,
 } from "../app/studio/clientbrand.js";
 
 test("isMember: loathr.com by default, honours a custom domain list", () => {
@@ -61,6 +61,33 @@ test("effectiveBrand: client mode folds the client identity into the brand shape
 test("effectiveBrand: an empty client name yields no wordmark (LOATHR hidden)", () => {
   const e = effectiveBrand({ wordmark: "LOATHR" }, blankClientBrand(), "client");
   assert.equal(e.wordmark, "");
+});
+
+test("applyClientImages: cover/closer role images become the first/last slide backgrounds", () => {
+  const doc = { slides: [{ elements: [] }, { elements: [] }, { elements: [] }] };
+  const cb = { images: [
+    { src: "cov.png", thumb: "cov-t.png", role: "cover" },
+    { src: "clo.png", role: "closer" },
+    { src: "lib.png", role: null },
+  ] };
+  const out = applyClientImages(doc, cb);
+  assert.equal(out.slides[0].background.type, "image");
+  assert.equal(out.slides[0].background.src, "cov.png");
+  assert.equal(out.slides[0].background.thumb, "cov-t.png");
+  assert.ok(out.slides[0].background.scrim > 0);            // auto-scrimmed for legibility
+  assert.equal(out.slides[2].background.src, "clo.png");    // closer = last slide
+  assert.equal(out.slides[1].background, undefined);        // content slide untouched
+  assert.notEqual(out, doc, "returns a new doc");
+  // No role → no change (pure no-op).
+  assert.equal(applyClientImages(doc, { images: [{ src: "x", role: null }] }), doc);
+  assert.equal(applyClientImages(doc, {}), doc);
+  assert.equal(applyClientImages({ slides: [] }, cb).slides.length, 0);
+});
+
+test("normalizeClientBrand: sourcePhotos defaults on, honours an explicit off", () => {
+  assert.equal(normalizeClientBrand({}).sourcePhotos, true);
+  assert.equal(normalizeClientBrand({ sourcePhotos: false }).sourcePhotos, false);
+  assert.equal(blankClientBrand().sourcePhotos, true);
 });
 
 test("footerOnSlide: scope rules (none / every / cover / coverclose)", () => {

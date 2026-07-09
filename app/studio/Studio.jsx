@@ -32,7 +32,7 @@ import { initials } from "./presence";
 import { onAuthChange, signOutCloud, getUserRole, bootstrapAdmin, getIdToken } from "./firebaseClient";
 import { saveDeck, loadDeck, listDecks, deleteDeck, restoreDeck, purgeDeck, watchSharePulse } from "./firebaseStore";
 import { partitionDecks } from "./cloud";
-import { isMember } from "./clientbrand";
+import { isMember, applyClientImages } from "./clientbrand";
 import { DESIGN_CHIPS } from "./design";
 import { exportSlide, exportSlides } from "./export";
 import { exportDeckToDrive } from "./driveExport";
@@ -659,7 +659,7 @@ export default function Studio() {
   // fonts / wordmark + logo) carries onto the freshly generated deck (§5).
   // The call is cancellable (AbortController) and reports coarse progress
   // (searching → writing); a "quick draft" skips the web search for speed.
-  const handleGenerate = async ({ style, category, topic, quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded, flag, fidelity, clientMode, clientBrand }) => {
+  const handleGenerate = async ({ style, category, topic, quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded, flag, fidelity, clientMode, clientBrand, sourcePhotos }) => {
     if (generating) return;
     const prevDoc = state.doc;
     const ac = new AbortController();
@@ -669,7 +669,12 @@ export default function Studio() {
     setGenerating(true); setGenError(""); setGenPhase((quickDraft || sourceDoc) ? "writing" : "searching");
     try {
       const doc = await generateCarousel(topic, {
-        style, category, webSearch: !quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded, fidelity, signal: ac.signal, onPhase: setGenPhase,
+        style, category, webSearch: !quickDraft, polish, ground, slides, tone, voice, sourceDoc, route, unbranded, fidelity,
+        // Content-slide photos (existing `photos` gate on fetchSlideImages): false
+        // keeps them text-only — the client "Source stock photos" toggle. Cover/
+        // closer brand images are applied below regardless of this.
+        photos: sourcePhotos !== false,
+        signal: ac.signal, onPhase: setGenPhase,
       });
       // Flag palette (opt-in): an explicit Scope country, else one detected in the
       // topic, tints the deck's accent/secondary from that country's flag (bg/ink
@@ -685,6 +690,10 @@ export default function Studio() {
           }
         }
       }
+      // Client brand images: place the cover / closer images (role-tagged) as those
+      // slides' backgrounds before the deck loads — a client's own image always wins
+      // over a sourced one. Content slides are untouched (governed by sourcePhotos).
+      if (clientMode && clientBrand) outDoc = applyClientImages(outDoc, clientBrand);
       dispatch({ type: "loadDoc", doc: outDoc });
       // Self-branding / Client mode: a guest deck (or a member who flipped Client
       // mode on the create screen) carries its own identity. Store the clientBrand,

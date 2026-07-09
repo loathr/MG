@@ -25,6 +25,11 @@ const xBtn = { background: "none", border: "none", color: "#7a7a82", cursor: "po
 const imgUp = { width: "100%", height: 34, marginTop: 4, background: "#1a1a1e", color: "#cfcfcf", border: "1px dashed #45454c", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
 const imgThumb = { position: "relative", width: 52, height: 52, borderRadius: 8, overflow: "hidden", border: "1px solid #2c2c32", cursor: "pointer" };
 const imgRm = { position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#2a1618", color: "#ff9a8a", border: "1.5px solid #131316", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 };
+const roleBadge = { position: "absolute", left: 4, top: 4, fontSize: 8, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", color: "#fff", padding: "1px 5px", borderRadius: 4 };
+const roleSeg = { display: "flex", marginTop: 5, border: "1px solid #34343c", borderRadius: 6, overflow: "hidden" };
+const roleSegBtn = { flex: 1, fontSize: 9, textAlign: "center", padding: "3px 0", color: "#bcbcc2", background: "transparent", border: "none", cursor: "pointer", borderLeft: "1px solid #2a2a30" };
+const roleSegOn = { background: "#fff", color: "#0a0a0a", fontWeight: 700 };
+const srcToggle = { display: "flex", alignItems: "center", background: "#12131a", border: "1px solid #24242c", borderRadius: 9, padding: "9px 11px", fontSize: 12.5, color: "#dcdcdc", fontWeight: 600 };
 
 // One accent colour swatch (native colour input), optionally clearable.
 export function Swatch({ label, value, onChange, clearable, onClear }) {
@@ -124,6 +129,13 @@ export default function ClientBrandFields({ cb, setCB, fontOptions, onAddImage }
     readImageFile(file, (img) => { if (img) setCB({ images: (cb.images || []).concat({ src: img.src, thumb: img.thumb, name: img.name }) }); });
   };
   const removeImage = (i) => setCB({ images: (cb.images || []).filter((_, k) => k !== i) });
+  // Assign an image to the cover / closer slot (one image per slot): toggling a
+  // role off clears it; setting it steals the slot from any other image.
+  const setImageRole = (i, role) => {
+    const list = cb.images || [];
+    const next = list[i] && list[i].role === role ? null : role;
+    setCB({ images: list.map((im, k) => (k === i ? Object.assign({}, im, { role: next }) : (next && im.role === next ? Object.assign({}, im, { role: null }) : im))) });
+  };
 
   return (
     <>
@@ -237,16 +249,47 @@ export default function ClientBrandFields({ cb, setCB, fontOptions, onAddImage }
       <button type="button" style={imgUp} onClick={() => imgRef.current && imgRef.current.click()}>Upload images…</button>
       <input ref={imgRef} type="file" accept="image/*" multiple style={{ display: "none" }}
         onChange={(e) => { const fs = Array.from(e.target.files || []); e.target.value = ""; fs.forEach(onImage); }} />
-      <div style={fontHint}>.jpg · .png · .webp — downscaled on device.{onAddImage ? " Tap one to drop it on the current slide." : " Saved with your brand for reuse."}</div>
+      <div style={fontHint}>.jpg · .png · .webp — downscaled on device.{onAddImage ? " Tap one to drop it on the current slide." : " Set one as the cover or closer background."}</div>
       {(cb.images || []).length > 0 && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-          {cb.images.map((im, i) => (
-            <div key={i} style={imgThumb} title={onAddImage ? "Add to slide" : im.name} onClick={onAddImage ? () => onAddImage(im) : undefined}>
-              <img src={im.thumb || im.src} alt={im.name || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              <button type="button" style={imgRm} title="Remove" onClick={(e) => { e.stopPropagation(); removeImage(i); }}>✕</button>
-            </div>
-          ))}
-        </div>
+        onAddImage ? (
+          // Editor context: simple tap-to-drop thumbs.
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            {cb.images.map((im, i) => (
+              <div key={i} style={imgThumb} title="Add to slide" onClick={() => onAddImage(im)}>
+                <img src={im.thumb || im.src} alt={im.name || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <button type="button" style={imgRm} title="Remove" onClick={(e) => { e.stopPropagation(); removeImage(i); }}>✕</button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          // Create context: each image carries a Cover / Closer / — role chip.
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
+            {cb.images.map((im, i) => (
+              <div key={i} style={{ width: 72 }}>
+                <div style={{ ...imgThumb, width: 72, height: 56, cursor: "default" }}>
+                  <img src={im.thumb || im.src} alt={im.name || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  {im.role && <span style={{ ...roleBadge, background: im.role === "cover" ? "#3a86ff" : "#e85d75" }}>{im.role === "cover" ? "Cover" : "Closer"}</span>}
+                  <button type="button" style={imgRm} title="Remove" onClick={(e) => { e.stopPropagation(); removeImage(i); }}>✕</button>
+                </div>
+                <div style={roleSeg}>
+                  {[["cover", "Cover"], ["closer", "Closer"], [null, "—"]].map(([r, l]) => (
+                    <button key={l} type="button" title={r ? "Use as the " + l.toLowerCase() : "Unused"}
+                      onClick={() => setImageRole(i, r)} style={{ ...roleSegBtn, ...(((im.role || null) === r) ? roleSegOn : null) }}>{l}</button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+      {!onAddImage && (
+        <label style={{ ...srcToggle, marginTop: 12 }}>
+          <span>Source stock photos<small style={{ display: "block", fontSize: 10, color: "#7c7c84", fontWeight: 400, marginTop: 1 }}>{cb.sourcePhotos !== false ? "Content slides get sourced photos" : "Content slides stay text-only"}</small></span>
+          <button type="button" title="Toggle sourcing photos for content slides" onClick={() => setCB({ sourcePhotos: !(cb.sourcePhotos !== false) })}
+            style={{ marginLeft: "auto", width: 36, height: 21, borderRadius: 11, border: "none", cursor: "pointer", position: "relative", flexShrink: 0, background: (cb.sourcePhotos !== false) ? "#2f6f52" : "#3a3a42" }}>
+            <span style={{ position: "absolute", top: 2, [(cb.sourcePhotos !== false) ? "right" : "left"]: 2, width: 17, height: 17, borderRadius: "50%", background: "#fff" }} />
+          </button>
+        </label>
       )}
     </>
   );

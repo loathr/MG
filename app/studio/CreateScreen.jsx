@@ -206,7 +206,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
     const t = srcMode === "doc"
       ? ((docSrc && docSrc.name.replace(/\.[^.]+$/, "")) || "Your document")
       : topic.trim();
-    onGenerate({ style: desk, category: voice, topic: t, quickDraft, polish, ground: seed, slides, tone, voice: persona, sourceDoc, route: buildRoute(), unbranded, flag: flagPalette, fidelity: sourceDoc ? fidelity : undefined, clientMode, clientBrand: clientMode ? cbrand : null });
+    onGenerate({ style: desk, category: voice, topic: t, quickDraft, polish, ground: seed, slides, tone, voice: persona, sourceDoc, route: buildRoute(), unbranded, flag: flagPalette, fidelity: sourceDoc ? fidelity : undefined, clientMode, clientBrand: clientMode ? cbrand : null, sourcePhotos: clientMode ? (cbrand.sourcePhotos !== false) : true });
   };
 
   // Load a dropped/picked document → extract its text (txt/md/pdf).

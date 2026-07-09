@@ -10,6 +10,8 @@
 // logo / accent / fonts / footer), so the existing chrome functions produce client
 // branding with no per-call branching. No React, no firebase — fully unit-tested.
 
+import { imageBackground } from "./model";
+
 // Member = signed in with an email on one of the member domains (default loathr.com).
 export function isMember(email, memberDomains) {
   const doms = (memberDomains && memberDomains.length ? memberDomains : ["loathr.com"]).map((d) => String(d).toLowerCase());
@@ -40,7 +42,11 @@ export function blankClientBrand() {
     pageNumSide: "right",   // left | right
     closeout: { on: false, cta: "Follow for more →" },
     fonts: [],              // uploaded brand fonts {id,name,family,dataUrl} — embedded + presaved
-    images: [],             // uploaded brand images {src,thumb,name} — a reusable library
+    // Uploaded brand images {src,thumb,name,role} — a reusable library. `role`
+    // ("cover" | "closer" | null) places the image as that slide's background at
+    // generation (applyClientImages); null = library only.
+    images: [],
+    sourcePhotos: true,     // source stock photos for CONTENT slides (false = text-only)
   };
 }
 
@@ -61,7 +67,25 @@ export function normalizeClientBrand(cb) {
     closeout: Object.assign({}, base.closeout, cb.closeout || {}),
     fonts: Array.isArray(cb.fonts) ? cb.fonts : [],
     images: Array.isArray(cb.images) ? cb.images : [],
+    sourcePhotos: cb.sourcePhotos !== false,
   };
+}
+
+// Place a client's role-tagged brand images onto the deck: the "cover" image
+// becomes the first slide's background, the "closer" image the last slide's,
+// both auto-scrimmed so the generated type stays readable. Pure — a new doc,
+// untouched when no image carries a role. Content slides are never touched here
+// (their photos are governed by the sourcePhotos flag at generation).
+export function applyClientImages(doc, clientBrand) {
+  const imgs = (clientBrand && clientBrand.images) || [];
+  const cover = imgs.find((i) => i && i.role === "cover");
+  const closer = imgs.find((i) => i && i.role === "closer");
+  if ((!cover && !closer) || !doc || !Array.isArray(doc.slides) || !doc.slides.length) return doc;
+  const bg = (im) => imageBackground({ url: im.src, thumb: im.thumb || im.src }, 0.45);
+  const slides = doc.slides.slice();
+  if (cover) slides[0] = Object.assign({}, slides[0], { background: bg(cover) });
+  if (closer) { const li = slides.length - 1; slides[li] = Object.assign({}, slides[li], { background: bg(closer) }); }
+  return Object.assign({}, doc, { slides });
 }
 
 // Fold a clientBrand into the base brand shape when in client mode, so the chrome
