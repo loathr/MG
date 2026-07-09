@@ -1125,6 +1125,7 @@ export default function Studio() {
             clientBrand={state.doc.clientBrand}
             onBrandMode={(m) => dispatch({ type: "setBrandMode", mode: m })}
             onClientBrand={(cb) => dispatch({ type: "setClientBrand", clientBrand: cb })}
+            onAddImage={(im) => addPhotoElement({ url: im.src, thumb: im.thumb })}
           />
         )}
         {activePanel === "caption" && (

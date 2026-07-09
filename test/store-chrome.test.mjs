@@ -94,6 +94,18 @@ test("setBrandMode round-trip: client mode strips the LOATHR footer, loathr rest
   assert.equal(s.doc.brandMode, "loathr");
 });
 
+test("setClientBrand embeds the client's uploaded fonts into doc.fonts", () => {
+  let s = initStudio();
+  s = reducer(s, { type: "loadDoc", doc: { brand: brandFromStyle("editorial"), brandMode: "loathr", fonts: [], slides: [{ style: "editorial", elements: [] }, { style: "editorial", elements: [] }] } });
+  const cb = { name: "Acme", fonts: [{ id: "f1", name: "Acme Sans", family: "AcmeSans", dataUrl: "data:font/woff2;base64,AA" }] };
+  s = reducer(s, { type: "setClientBrand", clientBrand: cb });
+  assert.equal(s.doc.fonts.length, 1);
+  assert.equal(s.doc.fonts[0].id, "f1");
+  // idempotent — re-applying the same font doesn't duplicate it
+  s = reducer(s, { type: "setClientBrand", clientBrand: cb });
+  assert.equal(s.doc.fonts.length, 1);
+});
+
 test("stampPageNumbers left side + off", () => {
   const left = stampPageNumbers(doc4(), { on: true, side: "left" });
   assert.equal(left.slides[1].elements.find((e) => e.role === "pageno").x, 80);

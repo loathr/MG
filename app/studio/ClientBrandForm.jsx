@@ -1,6 +1,9 @@
 "use client";
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import FontSelect from "./FontSelect";
+import { uid } from "./model";
+import { readFontFile, fontFileError, uploadedFontGroup, registerFont, registerDocFonts } from "./fonts";
+import { readImageFile } from "./imageFile";
 
 // The client-brand (self-branding) field block — name · handle · up to three
 // accents · label/heading/body fonts · footer placement · closeout slide. Shared by
@@ -14,6 +17,14 @@ const addAccent = { height: 28, padding: "0 11px", background: "#26262b", color:
 const logoBox = { width: 48, height: 48, flexShrink: 0, borderRadius: 9, border: "1.5px dashed #45454c", background: "#1a1a1e", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden", padding: 0 };
 const logoClear = { background: "none", border: "none", color: "#8a8a92", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline", textUnderlineOffset: 2 };
 const miniLbl = { fontSize: 9.5, letterSpacing: 0.5, textTransform: "uppercase", color: "#7c7c84", marginBottom: 6 };
+const fontUp = { width: "100%", height: 34, marginTop: 8, background: "#201a2e", color: "#cdbcff", border: "1px dashed #4a3a6e", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
+const fontHint = { fontSize: 10, color: "#6f6f77", marginTop: 6, lineHeight: 1.45 };
+const errText = { fontSize: 11, color: "#ffb3a6", marginTop: 6, lineHeight: 1.4 };
+const fontItem = { display: "flex", alignItems: "center", gap: 8, background: "#26262b", border: "1px solid #34343c", borderRadius: 6, padding: "5px 6px 5px 9px" };
+const xBtn = { background: "none", border: "none", color: "#7a7a82", cursor: "pointer", fontSize: 12, padding: 0, lineHeight: 1 };
+const imgUp = { width: "100%", height: 34, marginTop: 4, background: "#1a1a1e", color: "#cfcfcf", border: "1px dashed #45454c", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
+const imgThumb = { position: "relative", width: 52, height: 52, borderRadius: 8, overflow: "hidden", border: "1px solid #2c2c32", cursor: "pointer" };
+const imgRm = { position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#2a1618", color: "#ff9a8a", border: "1.5px solid #131316", fontSize: 9, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 };
 
 // One accent colour swatch (native colour input), optionally clearable.
 export function Swatch({ label, value, onChange, clearable, onClear }) {
@@ -64,8 +75,23 @@ export function FontRow({ label, value, options, onChange }) {
 }
 
 // The full client-brand field block (no kits row — the Brand panel adds that above).
-export default function ClientBrandFields({ cb, setCB, fontOptions }) {
+// `onAddImage(img)` (optional) is called when a brand image is tapped in the editor —
+// it drops the image onto the current slide; on the create screen it's omitted and
+// the images are just the saved library.
+export default function ClientBrandFields({ cb, setCB, fontOptions, onAddImage }) {
   const logoRef = useRef(null);
+  const fontRef = useRef(null);
+  const imgRef = useRef(null);
+  const [fontErr, setFontErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  // Uploaded brand fonts sit at the top of every picker (Labels/Heading/Body).
+  const uplGroup = uploadedFontGroup(cb.fonts);
+  const fopts = uplGroup ? [uplGroup].concat(fontOptions || []) : (fontOptions || []);
+  // Keep the uploaded fonts registered with the browser so previews + the deck render
+  // them (also re-registers after a brand kit is applied).
+  useEffect(() => { registerDocFonts(cb.fonts); }, [cb.fonts]);
+
   // Read a picked image into a data: URL — stored on cb.logo, stamped on the deck's
   // cover + close bookends via effectiveBrand → store.stampLogo.
   const onLogo = (file) => {
@@ -74,6 +100,27 @@ export default function ClientBrandFields({ cb, setCB, fontOptions }) {
     reader.onload = () => setCB({ logo: reader.result });
     reader.readAsDataURL(file);
   };
+  // Upload a brand font → validate, embed (data URL), register, add to cb.fonts.
+  const onFont = async (file) => {
+    if (!file) return;
+    const err = fontFileError(file);
+    if (err) { setFontErr(err); return; }
+    setFontErr(""); setBusy(true);
+    try {
+      const entry = await readFontFile(file, uid("font"));
+      await registerFont(entry);
+      setCB({ fonts: (cb.fonts || []).concat(entry) });
+    } catch (e) { setFontErr((e && e.message) || "Couldn't read that font."); }
+    finally { setBusy(false); }
+  };
+  const removeFont = (id) => setCB({ fonts: (cb.fonts || []).filter((f) => f.id !== id) });
+  // Upload a brand image → downscaled {src,thumb,name}, added to the library.
+  const onImage = (file) => {
+    if (!file) return;
+    readImageFile(file, (img) => { if (img) setCB({ images: (cb.images || []).concat({ src: img.src, thumb: img.thumb, name: img.name }) }); });
+  };
+  const removeImage = (i) => setCB({ images: (cb.images || []).filter((_, k) => k !== i) });
+
   return (
     <>
       <label style={lbl}>Logo</label>
@@ -116,10 +163,27 @@ export default function ClientBrandFields({ cb, setCB, fontOptions }) {
       </div>
       <label style={{ ...lbl, marginTop: 14 }}>Fonts</label>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <FontRow label="Labels" value={cb.labelFont} options={fontOptions} onChange={(v) => setCB({ labelFont: v })} />
-        <FontRow label="Heading" value={cb.headFont} options={fontOptions} onChange={(v) => setCB({ headFont: v })} />
-        <FontRow label="Body" value={cb.bodyFont} options={fontOptions} onChange={(v) => setCB({ bodyFont: v })} />
+        <FontRow label="Labels" value={cb.labelFont} options={fopts} onChange={(v) => setCB({ labelFont: v })} />
+        <FontRow label="Heading" value={cb.headFont} options={fopts} onChange={(v) => setCB({ headFont: v })} />
+        <FontRow label="Body" value={cb.bodyFont} options={fopts} onChange={(v) => setCB({ bodyFont: v })} />
       </div>
+      <button type="button" style={fontUp} disabled={busy} onClick={() => fontRef.current && fontRef.current.click()}>
+        {busy ? "Adding…" : "⬆ Upload a font…"}
+      </button>
+      <input ref={fontRef} type="file" accept=".ttf,.otf,.woff,.woff2,font/*" style={{ display: "none" }}
+        onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; onFont(f); }} />
+      <div style={fontHint}>.ttf · .otf · .woff · .woff2 — up to 600 KB. Embedded in the deck so it exports.</div>
+      {fontErr ? <div style={errText}>{fontErr}</div> : null}
+      {(cb.fonts || []).length > 0 && (
+        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+          {cb.fonts.map((f) => (
+            <div key={f.id} style={fontItem}>
+              <span style={{ flex: 1, fontSize: 13, color: "#eaeaea", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "'" + f.family + "', sans-serif" }}>{f.name}</span>
+              <button type="button" style={xBtn} title="Remove font" onClick={() => removeFont(f.id)}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
 
       <label style={{ ...lbl, marginTop: 14 }}>Footer</label>
       <Pills value={(cb.footer && cb.footer.align) || "left"} onChange={(v) => setCB({ footer: Object.assign({ scope: "coverclose" }, cb.footer, { align: v }) })}
@@ -148,6 +212,22 @@ export default function ClientBrandFields({ cb, setCB, fontOptions }) {
         </button>
       </label>
       <input style={inp} value={(cb.closeout && cb.closeout.cta) || ""} placeholder="Closing call-to-action" onChange={(e) => setCB({ closeout: Object.assign({ on: true }, cb.closeout, { cta: e.target.value }) })} />
+
+      <label style={{ ...lbl, marginTop: 14 }}>Brand images</label>
+      <button type="button" style={imgUp} onClick={() => imgRef.current && imgRef.current.click()}>⬆ Upload images…</button>
+      <input ref={imgRef} type="file" accept="image/*" multiple style={{ display: "none" }}
+        onChange={(e) => { const fs = Array.from(e.target.files || []); e.target.value = ""; fs.forEach(onImage); }} />
+      <div style={fontHint}>.jpg · .png · .webp — downscaled on device.{onAddImage ? " Tap one to drop it on the current slide." : " Saved with your brand for reuse."}</div>
+      {(cb.images || []).length > 0 && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+          {cb.images.map((im, i) => (
+            <div key={i} style={imgThumb} title={onAddImage ? "Add to slide" : im.name} onClick={onAddImage ? () => onAddImage(im) : undefined}>
+              <img src={im.thumb || im.src} alt={im.name || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <button type="button" style={imgRm} title="Remove" onClick={(e) => { e.stopPropagation(); removeImage(i); }}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }

@@ -261,6 +261,15 @@ export function stampPageNumbers(doc, opts) {
 // LOATHR mode ({footer:true, pageno:true}) restores it. Cover/closer slides are left
 // alone (their wordmark is handled by the re-theme). Page numbers are content-1-based
 // like generation. Pure; shares templates.footerElements with the generator + setChrome.
+// Merge a client brand's uploaded fonts into the deck's font list (dedupe by id), so
+// they embed in the doc (persist + export) and Studio's registerDocFonts effect picks
+// them up. Pure.
+function mergeDocFonts(docFonts, add) {
+  const have = new Set((docFonts || []).map((f) => f && f.id));
+  const extra = (add || []).filter((f) => f && f.id && !have.has(f.id));
+  return extra.length ? (docFonts || []).concat(extra) : (docFonts || []);
+}
+
 export function rebuildContentFooter(doc, brand, opts) {
   const showFooter = !(opts && opts.footer === false);
   const showPage = !(opts && opts.pageno === false);
@@ -621,6 +630,7 @@ function docReducer(state, a) {
         out = stampLogo(out, next.logo || null, { scope: next.logoScope, pos: next.logoPos });
         out = rebuildContentFooter(out, next, { footer: false, pageno: false });   // drop LOATHR footer + template page numbers
         out = stampPageNumbers(out, { on: next.pageNumbers, side: next.pageNumSide });
+        out = Object.assign({}, out, { fonts: mergeDocFonts(out.fonts, clientBrand.fonts) }); // embed the client's uploaded fonts
         return Object.assign({}, state, { doc: out });
       }
       const restore = cur.loathrBrand || cur.brand;
@@ -645,9 +655,10 @@ function docReducer(state, a) {
         out = stampLogo(out, next.logo || null, { scope: next.logoScope, pos: next.logoPos });
         out = rebuildContentFooter(out, next, { footer: false, pageno: false });
         out = stampPageNumbers(out, { on: next.pageNumbers, side: next.pageNumSide });
+        out = Object.assign({}, out, { fonts: mergeDocFonts(out.fonts, cb.fonts) }); // embed the client's uploaded fonts
         return Object.assign({}, state, { doc: out });
       }
-      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { clientBrand: cb }) });
+      return Object.assign({}, state, { doc: Object.assign({}, state.doc, { clientBrand: cb, fonts: mergeDocFonts(state.doc.fonts, cb.fonts) }) });
     }
     case "setLogo":
       // Brand bookend: stamp the logo on the cover + closing slides only (see

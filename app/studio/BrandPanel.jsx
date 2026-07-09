@@ -113,7 +113,7 @@ function readLogoFile(file, cb) {
   reader.readAsDataURL(file);
 }
 
-export default function BrandPanel({ brand, category, family, slideFrame, onFamily, onApply, onLogo, onCaution, onFrame, onChrome, onResetAll, onClose, fonts, onUploadFont, onRemoveFont, member, brandMode, clientBrand, onBrandMode, onClientBrand }) {
+export default function BrandPanel({ brand, category, family, slideFrame, onFamily, onApply, onLogo, onCaution, onFrame, onChrome, onResetAll, onClose, fonts, onUploadFont, onRemoveFont, member, brandMode, clientBrand, onBrandMode, onClientBrand, onAddImage }) {
   const [fontErr, setFontErr] = useState("");
   const [fontBusy, setFontBusy] = useState(false);
   const fontRef = useRef(null);
@@ -218,7 +218,7 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
                 ))}
               </div>
             ) : <div style={{ fontSize: 10.5, color: "#6a6a72", marginBottom: 12 }}>Save a brand to reuse it on future decks.</div>}
-            <ClientBrandFields cb={cb} setCB={setCB} fontOptions={fontOptions} />
+            <ClientBrandFields cb={cb} setCB={setCB} fontOptions={fontOptions} onAddImage={onAddImage} />
             <p style={{ fontSize: 10.5, color: "#6a6a72", marginTop: 14, lineHeight: 1.5 }}>Brand marks are the client&apos;s — LOATHR branding is hidden on this deck.</p>
           </div>
         ) : (

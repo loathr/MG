@@ -37,6 +37,8 @@ export function blankClientBrand() {
     pageNumbers: false,     // show page numbers on content slides
     pageNumSide: "right",   // left | right
     closeout: { on: false, cta: "Follow for more →" },
+    fonts: [],              // uploaded brand fonts {id,name,family,dataUrl} — embedded + presaved
+    images: [],             // uploaded brand images {src,thumb,name} — a reusable library
   };
 }
 
@@ -55,6 +57,8 @@ export function normalizeClientBrand(cb) {
     pageNumbers: !!cb.pageNumbers,
     pageNumSide: cb.pageNumSide === "left" ? "left" : "right",
     closeout: Object.assign({}, base.closeout, cb.closeout || {}),
+    fonts: Array.isArray(cb.fonts) ? cb.fonts : [],
+    images: Array.isArray(cb.images) ? cb.images : [],
   };
 }
 
