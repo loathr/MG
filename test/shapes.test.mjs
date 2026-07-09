@@ -18,13 +18,25 @@ test("shapeVAlign maps the vertical text position to a flex value (default middl
   assert.equal(shapeVAlign({ vAlign: "bottom" }), "flex-end");
 });
 
-test("there are 15 shapes with unique ids and drop defaults", () => {
-  assert.equal(SHAPE_VARIANTS.length, 15);
+test("there are 23 shapes with unique ids and drop defaults", () => {
+  assert.equal(SHAPE_VARIANTS.length, 23);
   const ids = SHAPE_VARIANTS.map((v) => v.id);
-  assert.deepEqual([...new Set(ids)].sort(), ["arrowR", "banner", "bookmark", "burst", "cloud", "diamond", "hexagon", "note", "pill", "quote", "ribbon", "speech", "stamp", "tag", "triangle"]);
+  assert.deepEqual([...new Set(ids)].sort(), ["arrowL", "arrowR", "arrowU", "banner", "bookmark", "burst", "chevron", "cloud", "diamond", "hexagon", "note", "octagon", "paral", "pentagon", "pill", "plus", "quote", "ribbon", "speech", "stamp", "star5", "tag", "triangle"]);
   for (const v of SHAPE_VARIANTS) {
     assert.ok(v.w > 0 && v.h > 0, v.id + " has a size");
     assert.ok(v.text && v.font && v.size, v.id + " has text/font/size");
+  }
+});
+
+test("new polygon shapes: valid points in the 0..100 box, filled + inset", () => {
+  for (const id of ["star5", "pentagon", "octagon", "chevron", "arrowL", "arrowU", "paral", "plus"]) {
+    const pts = shapePolygon({ shape: id });
+    assert.ok(Array.isArray(pts) && pts.length >= 3, id + " has a polygon");
+    for (const [x, y] of pts) assert.ok(x >= 0 && x <= 100 && y >= 0 && y <= 100, id + " point in box");
+    assert.equal(shapePaint({ shape: id, shapeFill: "#123456" }).bg, "#123456"); // filled with the accent
+    assert.equal(shapePaint({ shape: id, shapeFill: "#123456" }).border, "none");
+    const pad = shapePad({ shape: id, w: 220, h: 200 });
+    assert.ok(pad.top > 0 && pad.left > 0 && pad.right > 0 && pad.bottom > 0, id + " insets the text");
   }
 });
 

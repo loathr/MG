@@ -62,6 +62,14 @@ export const SHAPE_VARIANTS = [
   { id: "bookmark", label: "Bookmark", text: "SAVE", w: 150, h: 200, font: "'Courier Prime', 'Courier New', monospace", size: 28, spacing: 1, knockout: true },
   { id: "arrowR",   label: "Callout",  text: "NEXT", w: 260, h: 120, font: "'Courier Prime', 'Courier New', monospace", size: 32, spacing: 1, knockout: true },
   { id: "quote",    label: "Quote",    text: "A sharp line worth pulling.", w: 420, h: 176, font: "Georgia, serif", size: 34 },
+  { id: "star5",    label: "Star",     text: "TOP",  w: 210, h: 200, font: "'Courier Prime', 'Courier New', monospace", size: 32, spacing: 1, knockout: true },
+  { id: "pentagon", label: "Pentagon", text: "NEW",  w: 210, h: 190, font: "'Courier Prime', 'Courier New', monospace", size: 30, spacing: 1, knockout: true },
+  { id: "octagon",  label: "Octagon",  text: "STOP", w: 200, h: 200, font: "'Courier Prime', 'Courier New', monospace", size: 30, spacing: 1, knockout: true },
+  { id: "chevron",  label: "Chevron",  text: "MORE", w: 280, h: 120, font: "'Courier Prime', 'Courier New', monospace", size: 32, spacing: 1, knockout: true },
+  { id: "arrowL",   label: "Back",     text: "PREV", w: 260, h: 120, font: "'Courier Prime', 'Courier New', monospace", size: 32, spacing: 1, knockout: true },
+  { id: "arrowU",   label: "Up",       text: "UP",   w: 190, h: 210, font: "'Courier Prime', 'Courier New', monospace", size: 32, spacing: 1, knockout: true },
+  { id: "paral",    label: "Slant",    text: "SALE", w: 280, h: 110, font: "Georgia, serif", size: 38, knockout: true },
+  { id: "plus",     label: "Plus",     text: "+",    w: 200, h: 200, font: "'Courier Prime', 'Courier New', monospace", size: 54, knockout: true },
 ];
 
 // Simple convex silhouettes (percent points in a 0..100 box), shared VERBATIM by
@@ -75,6 +83,14 @@ export const POLY_POINTS = {
   ribbon:   [[0, 0], [100, 0], [88, 50], [100, 100], [0, 100], [12, 50]], // banner with forked ends
   bookmark: [[0, 0], [100, 0], [100, 100], [50, 82], [0, 100]],           // pennant / bookmark notch
   arrowR:   [[0, 0], [75, 0], [100, 50], [75, 100], [0, 100]],            // right-pointing callout
+  star5:    [[50, 2], [63, 35], [98, 35], [70, 57], [80, 92], [50, 71], [20, 92], [30, 57], [2, 35], [37, 35]], // 5-point star
+  pentagon: [[50, 2], [98, 38], [80, 98], [20, 98], [2, 38]],             // upright pentagon
+  octagon:  [[30, 2], [70, 2], [98, 30], [98, 70], [70, 98], [30, 98], [2, 70], [2, 30]], // stop-sign octagon
+  chevron:  [[0, 0], [75, 0], [100, 50], [75, 100], [0, 100], [25, 50]],  // right chevron (notched tail)
+  arrowL:   [[25, 0], [100, 0], [100, 100], [25, 100], [0, 50]],          // left-pointing callout
+  arrowU:   [[50, 0], [100, 45], [72, 45], [72, 100], [28, 100], [28, 45], [0, 45]], // up arrow
+  paral:    [[22, 0], [100, 0], [78, 100], [0, 100]],                     // slanted parallelogram
+  plus:     [[36, 0], [64, 0], [64, 36], [100, 36], [100, 64], [64, 64], [64, 100], [36, 100], [36, 64], [0, 64], [0, 36], [36, 36]], // plus / cross
 };
 // The polygon points for a shape, or null when it isn't a polygon silhouette.
 export function shapePolygon(el) { return (el && POLY_POINTS[el.shape]) || null; }
@@ -121,6 +137,14 @@ export function shapePaint(el) {
     case "ribbon":
     case "bookmark":
     case "arrowR":
+    case "star5":
+    case "pentagon":
+    case "octagon":
+    case "chevron":
+    case "arrowL":
+    case "arrowU":
+    case "paral":
+    case "plus":
     case "burst":
     case "pill":   p = { bg: fill, border: "none" }; break;
     case "note":   p = { bg: fill || SHAPE_PAPER, border: "none" }; break;
@@ -189,6 +213,14 @@ export function shapePad(el) {
     case "ribbon":   return box(18, Math.round(w * 0.13));                 // clear the forked ends
     case "bookmark": return { top: 22, right: 20, bottom: Math.round(h * 0.24), left: 20 }; // clear the bottom notch
     case "arrowR":   return { top: 18, right: Math.round(w * 0.28), bottom: 18, left: 26 };  // clear the point
+    case "star5":    return { top: Math.round(h * 0.34), right: Math.round(w * 0.26), bottom: Math.round(h * 0.30), left: Math.round(w * 0.26) }; // central band of the star
+    case "pentagon": return { top: Math.round(h * 0.28), right: Math.round(w * 0.16), bottom: Math.round(h * 0.10), left: Math.round(w * 0.16) }; // clear the top apex
+    case "octagon":  return box(Math.round(h * 0.18), Math.round(w * 0.18));
+    case "chevron":  return { top: 18, right: Math.round(w * 0.24), bottom: 18, left: Math.round(w * 0.22) }; // clear point + tail notch
+    case "arrowL":   return { top: 18, right: 26, bottom: 18, left: Math.round(w * 0.28) };  // clear the left point
+    case "arrowU":   return { top: Math.round(h * 0.42), right: Math.round(w * 0.20), bottom: Math.round(h * 0.08), left: Math.round(w * 0.20) }; // sit below the top point
+    case "paral":    return box(18, Math.round(w * 0.2));                  // clear the slanted sides
+    case "plus":     return { top: Math.round(h * 0.34), right: Math.round(w * 0.08), bottom: Math.round(h * 0.34), left: Math.round(w * 0.08) }; // the horizontal bar
     case "quote":    return { top: 22, right: 28, bottom: 22, left: 34 };  // clear the left rule
     case "tag":    return { top: 18, right: 26, bottom: 18, left: tagNotch(el) + 24 };
     case "banner": return box(18, 30);
@@ -203,7 +235,10 @@ export function shapePad(el) {
 // Pointed / tapered silhouettes whose usable core is much smaller than their
 // bounding box — text overflows the point unless it shrinks to fit. "Fit text"
 // defaults ON for these when a shape is applied (store.setShape).
-const POINTED = { triangle: 1, diamond: 1, hexagon: 1, burst: 1, bookmark: 1, arrowR: 1, ribbon: 1 };
+const POINTED = {
+  triangle: 1, diamond: 1, hexagon: 1, burst: 1, bookmark: 1, arrowR: 1, ribbon: 1,
+  star5: 1, pentagon: 1, chevron: 1, arrowL: 1, arrowU: 1, paral: 1, plus: 1,
+};
 export function pointedShape(id) { return !!POINTED[id]; }
 
 // Fit-text-to-SHAPE (the inverse of fitShapeBox, which grows the box to the
