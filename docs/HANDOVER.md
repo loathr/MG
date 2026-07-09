@@ -244,14 +244,11 @@ offload `slide.content.image` too (`8f1e5f0`).
   **read-only**. Could add **duplicate into the admin's own account** and/or
   **edit-in-place**. (The per-generation audit log this once listed is now built —
   `b7aca2c`.)
-- **Client-mode white-label footer gap** (known, minor): the generated LOATHR
-  *footer running text* (role `footer`, content "LOATHR") is not auto-stripped when
-  a member toggles a deck into client mode — only the wordmark/logo/page-numbers are
-  managed. A guest deck is generated then immediately set to client mode, so this is
-  mostly a member-round-trip edge. Client **page numbers** replace the `pageno`
-  chrome cleanly; the running footer text would need the same strip-in-client-mode
-  treatment.
 - Deferred-by-design (low): more premium layouts, recent-projects shelf.
+
+(The client-mode white-label footer gap this once listed is now closed —
+`rebuildContentFooter` strips the LOATHR running footer entering client mode and
+restores it on the way back; see the store's `setBrandMode`/`setClientBrand` paths.)
 
 ## 🚀 Deploy-side actions owed by the user (NOT code — can't be done in-sandbox)
 
