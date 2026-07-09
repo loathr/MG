@@ -285,6 +285,9 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
   // Drag an image file straight onto the canvas → place it as a movable, resizable
   // element at the drop point. PNG alpha is preserved (readImageFile), large files
   // are downscaled, and the box fits within half the board centred on the drop.
+  // The box is sized to the image's aspect (fitDroppedImage), so object-fit:cover
+  // shows it WHOLE to start yet gives it the same true-crop + reframe handles as a
+  // photo — resizing reveals/hides instead of letterboxing (the old contain bug).
   const dragHasImage = (e) => {
     const dt = e.dataTransfer;
     if (!dt) return false;
@@ -311,7 +314,7 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
       if (!img) return;
       const box = fitDroppedImage(img.w, img.h, p.x, p.y, ARTBOARD_W, ARTBOARD_H);
       dispatch({ type: "add", element: makeElement("image", {
-        x: box.x, y: box.y, w: box.w, h: box.h, src: img.src, thumb: img.thumb, fit: "contain",
+        x: box.x, y: box.y, w: box.w, h: box.h, src: img.src, thumb: img.thumb, fit: "cover",
       }) });
     });
   }, [toArtboard, dispatch]);
