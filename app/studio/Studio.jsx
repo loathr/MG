@@ -115,8 +115,8 @@ function PresenceAvatars({ peers, slideCount, followId, onJump, onFollow }) {
                   {p.editing ? " · editing" : (p.selection && p.selection.length ? " · " + p.selection.length + " selected" : "")}
                 </div>
                 <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                  <button onClick={() => { onJump(p); setOpenId(null); }} style={cardBtn(true, p.color)}>→ Jump</button>
-                  <button onClick={() => { onFollow(p); setOpenId(null); }} style={cardBtn(followId === p.id, p.color)}>{followId === p.id ? "Following" : "◎ Follow"}</button>
+                  <button onClick={() => { onJump(p); setOpenId(null); }} style={cardBtn(true, p.color)}>Jump</button>
+                  <button onClick={() => { onFollow(p); setOpenId(null); }} style={cardBtn(followId === p.id, p.color)}>{followId === p.id ? "Following" : "Follow"}</button>
                 </div>
               </div>
             )}
@@ -1312,9 +1312,9 @@ export default function Studio() {
           )}
           {drive.phase === "done" && (
             <>
-              <div style={{ fontSize: 12.5, fontWeight: 650, color: "#8fd3a8", marginBottom: 6 }}>✓ Saved {drive.count} slide{drive.count === 1 ? "" : "s"} to Drive</div>
+              <div style={{ fontSize: 12.5, fontWeight: 650, color: "#8fd3a8", marginBottom: 6 }}>Saved {drive.count} slide{drive.count === 1 ? "" : "s"} to Drive</div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                {drive.folderUrl && <a href={drive.folderUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#9fd0ea", textDecoration: "none" }}>↗ Open Drive folder</a>}
+                {drive.folderUrl && <a href={drive.folderUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#9fd0ea", textDecoration: "none" }}>Open Drive folder</a>}
                 <button onClick={() => setDrive(null)} style={{ marginLeft: "auto", ...toastX }}>Dismiss</button>
               </div>
             </>

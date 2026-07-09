@@ -6,7 +6,7 @@ import { readImageFile, isImageFile, fitDroppedImage } from "./imageFile";
 import ElementView from "./Element";
 import { UI } from "./theme";
 import { expandGroups, marqueeHits, selectionBox } from "./group";
-import { Pencil, Copy, Scissors, ClipboardPaste, CopyPlus, Trash2, Group, Ungroup, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal } from "lucide-react";
+import { Pencil, Copy, Scissors, ClipboardPaste, CopyPlus, Trash2, Group, Ungroup, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Lock } from "lucide-react";
 
 const HANDLES = [
   { sx: -1, sy: -1 }, { sx: 0, sy: -1 }, { sx: 1, sy: -1 },
@@ -386,7 +386,7 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
                       It's advisory — you can still edit (last-writer-wins) — so it
                       informs rather than blocks. */}
                   {pr.editing && (
-                    <span style={{ position: "absolute", top: -9, right: -9, width: 18, height: 18, borderRadius: "50%", background: pr.color, color: "#0a0a0a", display: "grid", placeItems: "center", fontSize: 10, border: "2px solid " + (bg.color || "#0c0c0c") }}>🔒</span>
+                    <span style={{ position: "absolute", top: -9, right: -9, width: 18, height: 18, borderRadius: "50%", background: pr.color, color: "#0a0a0a", display: "grid", placeItems: "center", border: "2px solid " + (bg.color || "#0c0c0c") }} title={pr.name + " is editing this"}><Lock size={10} /></span>
                   )}
                 </div>
               );

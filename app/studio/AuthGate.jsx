@@ -92,7 +92,7 @@ function AccessFlow({ user, status, note, onOut, onRequested }) {
 
         {status === "pending" && (
           <>
-            <div style={{ ...banner, ...bPending }}><b>◷ </b>Request pending. We&rsquo;ll notify this address once an admin reviews it.</div>
+            <div style={{ ...banner, ...bPending }}>Request pending. We&rsquo;ll notify this address once an admin reviews it.</div>
             <button type="button" onClick={onOut} style={ghostBtn}>Sign out</button>
             <div style={fine}>Nothing to do here yet — you can close this tab.</div>
           </>
@@ -100,7 +100,7 @@ function AccessFlow({ user, status, note, onOut, onRequested }) {
 
         {status === "denied" && (
           <>
-            <div style={{ ...banner, ...bDenied }}><b>✕ </b>Access wasn&rsquo;t granted for this account. Contact whoever invited you if you think this is a mistake.{note ? <div style={{ marginTop: 6, opacity: 0.85 }}>{note}</div> : null}</div>
+            <div style={{ ...banner, ...bDenied }}>Access wasn&rsquo;t granted for this account. Contact whoever invited you if you think this is a mistake.{note ? <div style={{ marginTop: 6, opacity: 0.85 }}>{note}</div> : null}</div>
             <button type="button" onClick={onOut} style={ghostBtn}>Sign out</button>
           </>
         )}

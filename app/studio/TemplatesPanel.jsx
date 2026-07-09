@@ -64,11 +64,11 @@ export default function TemplatesPanel({ slide, brand, onApply, onApplyAll, onRe
       <button
         type="button"
         onClick={onReset}
-        title="Re-render EVERY slide from its text in the deck's current look — discards manual tweaks deck-wide. The header ↺ resets just the current slide. Undoable."
+        title="Re-render EVERY slide from its text in the deck's current look — discards manual tweaks deck-wide. The header reset button resets just the current slide. Undoable."
         style={{ margin: "0 12px 8px", height: 32, flexShrink: 0, background: "#26262b", color: "#cfcfcf", border: "1px solid #36363c", borderRadius: 6, fontSize: 12, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
       ><RotateCcw size={14} /> Reset all slides to the look</button>
       <p style={{ fontSize: 11, color: "#777", margin: 0, padding: "0 12px 12px", lineHeight: 1.5 }}>
-        Re-flows every slide&apos;s text into its layout, in the deck&apos;s look. The header ↺ button resets only the current slide. Undoable.
+        Re-flows every slide&apos;s text into its layout, in the deck&apos;s look. The header reset button resets only the current slide. Undoable.
       </p>
     </div>
   );
