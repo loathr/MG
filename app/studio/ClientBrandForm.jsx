@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useRef } from "react";
 import FontSelect from "./FontSelect";
 
 // The client-brand (self-branding) field block — name · handle · up to three
@@ -11,6 +11,8 @@ import FontSelect from "./FontSelect";
 const lbl = { fontSize: 11, color: "#9a9a9a", marginBottom: 6, display: "block" };
 const inp = { width: "100%", height: 34, background: "#26262b", color: "#fff", border: "1px solid #36363c", borderRadius: 6, fontSize: 13, padding: "0 10px", boxSizing: "border-box" };
 const addAccent = { height: 28, padding: "0 11px", background: "#26262b", color: "#9a9aa2", border: "1px dashed #3a3a42", borderRadius: 7, fontSize: 11.5, cursor: "pointer" };
+const logoBox = { width: 48, height: 48, flexShrink: 0, borderRadius: 9, border: "1.5px dashed #45454c", background: "#1a1a1e", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden", padding: 0 };
+const logoClear = { background: "none", border: "none", color: "#8a8a92", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline", textUnderlineOffset: 2 };
 
 // One accent colour swatch (native colour input), optionally clearable.
 export function Swatch({ label, value, onChange, clearable, onClear }) {
@@ -48,9 +50,31 @@ export function FontRow({ label, value, options, onChange }) {
 
 // The full client-brand field block (no kits row — the Brand panel adds that above).
 export default function ClientBrandFields({ cb, setCB, fontOptions }) {
+  const logoRef = useRef(null);
+  // Read a picked image into a data: URL — stored on cb.logo, stamped on the deck's
+  // cover + close bookends via effectiveBrand → store.stampLogo.
+  const onLogo = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setCB({ logo: reader.result });
+    reader.readAsDataURL(file);
+  };
   return (
     <>
-      <label style={lbl}>Brand name</label>
+      <label style={lbl}>Logo</label>
+      <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 4 }}>
+        <button type="button" style={logoBox} title={cb.logo ? "Replace logo" : "Upload a logo"} onClick={() => logoRef.current && logoRef.current.click()}>
+          {cb.logo ? <img src={cb.logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} /> : <span style={{ fontSize: 20, color: "#6f6f77", lineHeight: 1 }}>+</span>}
+        </button>
+        <div style={{ fontSize: 11, color: "#8a8a92", lineHeight: 1.4 }}>
+          {cb.logo
+            ? <button type="button" style={logoClear} onClick={() => setCB({ logo: null })}>Remove logo</button>
+            : <>PNG or SVG.<br />Shown on the cover &amp; closing slides.</>}
+        </div>
+        <input ref={logoRef} type="file" accept="image/*" style={{ display: "none" }}
+          onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; onLogo(f); }} />
+      </div>
+      <label style={{ ...lbl, marginTop: 12 }}>Brand name</label>
       <input style={inp} value={cb.name || ""} placeholder="Your client's name" onChange={(e) => setCB({ name: e.target.value })} />
       <label style={{ ...lbl, marginTop: 10 }}>Handle</label>
       <input style={inp} value={cb.handle || ""} placeholder="@handle" onChange={(e) => setCB({ handle: e.target.value })} />

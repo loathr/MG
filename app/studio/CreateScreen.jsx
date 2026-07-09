@@ -283,17 +283,21 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
       <div style={col}>
         <div style={brand}>loathrdotcom</div>
 
-        {/* Members: opt-in Client-mode banner — swaps LOATHR branding for a
-            client's own (the same self-branding a guest gets). Guests never see it
-            (they're always in client mode, under the hood). */}
+        {/* Members: opt-in Client-mode TOGGLE — swaps LOATHR branding for a client's
+            own (the same self-branding a guest gets), mirroring the editor Brand
+            panel's toggle. Guests never see it (always in client mode, under the
+            hood). */}
         {member && (
-          <button type="button" onClick={() => { setClientMode((v) => !v); if (!clientMode) setBrandOpen(true); }} style={cmBanner(clientMode)}>
-            <span style={cmIcon(clientMode)}><Palette size={15} /></span>
-            <span style={cmTxt(clientMode)}>{clientMode
-              ? <><b>Client mode on</b> — this deck uses the client&rsquo;s branding, not LOATHR&rsquo;s.</>
-              : <>Making this for a client? <b>Client mode</b> swaps LOATHR branding for theirs — same tools.</>}</span>
-            <span style={cmBtn(clientMode)}>{clientMode ? "Exit" : "Client mode"}</span>
-          </button>
+          <div style={cmRow}>
+            <span style={cmIcon(clientMode)}><Palette size={14} /></span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: "#e8e8ee" }}>Client mode</div>
+              <div style={{ fontSize: 10.5, color: clientMode ? "#c3a6ff" : "#6a6a72", marginTop: 1 }}>{clientMode ? "On · LOATHR branding hidden" : "Off · using LOATHR branding"}</div>
+            </div>
+            <button type="button" onClick={() => { setClientMode((v) => !v); if (!clientMode) setBrandOpen(true); }} title="Toggle client branding" style={cmToggle(clientMode)}>
+              <span style={cmKnob(clientMode)} />
+            </button>
+          </div>
         )}
 
         {guest ? (
@@ -670,15 +674,12 @@ const label = { fontSize: 12, letterSpacing: 1, color: "#8f8f97", marginBottom: 
 const gallery = { display: "flex", gap: 9, justifyContent: "center", flexWrap: "wrap" };
 // Guest desk lock — a quiet non-interactive badge naming the (Editorial) look.
 const deskBadge = { display: "inline-flex", alignItems: "center", gap: 6, height: 30, padding: "0 12px", margin: "0 auto 2px", borderRadius: 8, background: "#161619", border: "1px solid #2a2a31", color: "#9a9aa2", fontSize: 12, fontWeight: 600 };
-// Client-mode banner (members) — opt into client/self branding from the create screen.
-function cmBanner(on) {
-  return { display: "flex", alignItems: "center", gap: 11, width: "100%", maxWidth: 520, margin: "0 auto 14px", padding: "10px 12px", borderRadius: 11, cursor: "pointer", textAlign: "left",
-    background: on ? "linear-gradient(90deg,#132a1c 0%,#101814 100%)" : "linear-gradient(90deg,#1a1330 0%,#141018 100%)",
-    border: "1px solid " + (on ? "#2f6a45" : "#3a2f5e") };
-}
-function cmIcon(on) { return { width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", background: on ? "#2f7d4f" : "#6d3bd1" }; }
-function cmTxt(on) { return { flex: 1, fontSize: 12, lineHeight: 1.4, color: on ? "#a9e0c0" : "#cbbdf0" }; }
-function cmBtn(on) { return { flexShrink: 0, fontSize: 11.5, fontWeight: 700, borderRadius: 8, padding: "7px 13px", color: on ? "#cfcfd4" : "#fff", background: on ? "#26262e" : "#6d3bd1", border: "none" }; }
+// Client-mode TOGGLE (members) — opt into client/self branding from the create
+// screen, mirroring the editor Brand panel's toggle row.
+const cmRow = { display: "flex", alignItems: "center", gap: 10, width: "100%", maxWidth: 520, margin: "0 auto 14px", padding: "10px 13px", borderRadius: 11, background: "#131418", border: "1px solid #2a2f3a", textAlign: "left" };
+function cmIcon(on) { return { width: 28, height: 28, borderRadius: 8, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", background: on ? "#6d3bd1" : "#2a2a33" }; }
+function cmToggle(on) { return { marginLeft: "auto", flexShrink: 0, width: 40, height: 23, borderRadius: 12, border: "none", cursor: "pointer", position: "relative", background: on ? "#6d3bd1" : "#3a3a42" }; }
+function cmKnob(on) { return { position: "absolute", top: 2, [on ? "right" : "left"]: 2, width: 19, height: 19, borderRadius: "50%", background: "#fff" }; }
 // Self-branding accordion on the create screen.
 const brandAcc = { width: "100%", maxWidth: 520, margin: "12px auto 0" };
 function brandAccHead(open) {

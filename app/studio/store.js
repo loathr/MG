@@ -545,11 +545,14 @@ function docReducer(state, a) {
         const clientBrand = cur.clientBrand || blankClientBrand();
         const next = effectiveBrand(loathrBrand, clientBrand, "client");
         const staged = Object.assign({}, cur, { loathrBrand, clientBrand, brandMode: "client" });
-        return Object.assign({}, state, { doc: rethemeDoc(staged, cur.brand, next) });
+        // Stamp the client logo on the bookends (or strip the LOATHR one when the
+        // client has none) — rethemeDoc only recolours, it doesn't place the logo.
+        return Object.assign({}, state, { doc: stampLogo(rethemeDoc(staged, cur.brand, next), next.logo || null) });
       }
       const restore = cur.loathrBrand || cur.brand;
       const staged = Object.assign({}, cur, { brandMode: "loathr" });
-      return Object.assign({}, state, { doc: rethemeDoc(staged, cur.brand, restore) });
+      // Restore the LOATHR logo bookend on the way back.
+      return Object.assign({}, state, { doc: stampLogo(rethemeDoc(staged, cur.brand, restore), restore.logo || null) });
     }
     case "setClientBrand": {
       // Update the deck's client identity; in client mode, re-fold + re-theme live.
@@ -558,7 +561,8 @@ function docReducer(state, a) {
         const loathrBrand = state.doc.loathrBrand || state.doc.brand;
         const next = effectiveBrand(loathrBrand, cb, "client");
         const staged = Object.assign({}, state.doc, { clientBrand: cb });
-        return Object.assign({}, state, { doc: rethemeDoc(staged, state.doc.brand, next) });
+        // Re-stamp the client logo live as it's uploaded/changed/removed.
+        return Object.assign({}, state, { doc: stampLogo(rethemeDoc(staged, state.doc.brand, next), next.logo || null) });
       }
       return Object.assign({}, state, { doc: Object.assign({}, state.doc, { clientBrand: cb }) });
     }
