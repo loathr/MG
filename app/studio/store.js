@@ -254,6 +254,33 @@ export function stampPageNumbers(doc, opts) {
   return Object.assign({}, doc, { slides, brand: Object.assign({}, doc.brand, { pageNumbers: on, pageNumSide: side }) });
 }
 
+// Rebuild the CONTENT-slide running footer (footrule + LOATHR text + template page
+// number) from `brand`, honouring which parts to show. Strips the managed roles
+// first, then re-adds per `opts` — so entering client mode ({footer:false,
+// pageno:false}) removes the LOATHR running mark (white-label), and returning to
+// LOATHR mode ({footer:true, pageno:true}) restores it. Cover/closer slides are left
+// alone (their wordmark is handled by the re-theme). Page numbers are content-1-based
+// like generation. Pure; shares templates.footerElements with the generator + setChrome.
+export function rebuildContentFooter(doc, brand, opts) {
+  const showFooter = !(opts && opts.footer === false);
+  const showPage = !(opts && opts.pageno === false);
+  const slides = doc.slides, n = slides.length;
+  const roleOf = (s) => String((s.content && s.content.role) || s.role || "").toUpperCase();
+  let pageNum = 0;
+  const next = slides.map((s, i) => {
+    const isCover = i === 0 || roleOf(s) === "COVER";
+    const isCloser = !isCover && (i === n - 1 || roleOf(s) === "CLOSER" || roleOf(s) === "OUTRO");
+    let els = (s.elements || []).filter((e) => e.role !== "footer" && e.role !== "pageno" && e.role !== "footrule");
+    if (!isCover && !isCloser) {
+      pageNum += 1;
+      els = els.concat(footerElements(s.style || "editorial", pageNum, brand).filter((e) =>
+        e.role === "footer" ? showFooter : e.role === "pageno" ? showPage : (showFooter || showPage)));
+    }
+    return Object.assign({}, s, { elements: els });
+  });
+  return Object.assign({}, doc, { slides: next });
+}
+
 // Carry a user's brand kit from the previous deck onto a freshly generated one.
 // Only brand fields the user changed FROM the previous style's defaults are
 // carried, so choosing a NEW style still adopts that style's look — just the
@@ -587,17 +614,23 @@ function docReducer(state, a) {
         const clientBrand = cur.clientBrand || blankClientBrand();
         const next = effectiveBrand(loathrBrand, clientBrand, "client");
         const staged = Object.assign({}, cur, { loathrBrand, clientBrand, brandMode: "client" });
-        // rethemeDoc only recolours; place the logo (per the client's corner + scope)
-        // and the client page numbers (per side / off) as chrome elements.
+        // rethemeDoc only recolours; place the logo (per the client's corner + scope),
+        // strip the LOATHR running footer (white-label), and add the client's own page
+        // numbers (per side / off) as chrome elements.
         let out = rethemeDoc(staged, cur.brand, next);
         out = stampLogo(out, next.logo || null, { scope: next.logoScope, pos: next.logoPos });
+        out = rebuildContentFooter(out, next, { footer: false, pageno: false });   // drop LOATHR footer + template page numbers
         out = stampPageNumbers(out, { on: next.pageNumbers, side: next.pageNumSide });
         return Object.assign({}, state, { doc: out });
       }
       const restore = cur.loathrBrand || cur.brand;
       const staged = Object.assign({}, cur, { brandMode: "loathr" });
-      // Restore the LOATHR logo bookend on the way back.
-      return Object.assign({}, state, { doc: stampLogo(rethemeDoc(staged, cur.brand, restore), restore.logo || null) });
+      // On the way back: restore the LOATHR logo bookend AND the LOATHR running footer
+      // + page numbers (they were stripped entering client mode).
+      let out = rethemeDoc(staged, cur.brand, restore);
+      out = stampLogo(out, restore.logo || null);
+      out = rebuildContentFooter(out, restore, { footer: true, pageno: true });
+      return Object.assign({}, state, { doc: out });
     }
     case "setClientBrand": {
       // Update the deck's client identity; in client mode, re-fold + re-theme live.
@@ -606,9 +639,11 @@ function docReducer(state, a) {
         const loathrBrand = state.doc.loathrBrand || state.doc.brand;
         const next = effectiveBrand(loathrBrand, cb, "client");
         const staged = Object.assign({}, state.doc, { clientBrand: cb });
-        // Re-stamp the logo + page numbers live as they're edited (placement, side, on/off).
+        // Re-stamp the logo + page numbers live as they're edited (placement, side,
+        // on/off), keeping the LOATHR running footer stripped (white-label).
         let out = rethemeDoc(staged, state.doc.brand, next);
         out = stampLogo(out, next.logo || null, { scope: next.logoScope, pos: next.logoPos });
+        out = rebuildContentFooter(out, next, { footer: false, pageno: false });
         out = stampPageNumbers(out, { on: next.pageNumbers, side: next.pageNumSide });
         return Object.assign({}, state, { doc: out });
       }
