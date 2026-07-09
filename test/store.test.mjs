@@ -507,6 +507,46 @@ test("rethemeDoc carries the baked highlight run to the new accent + bg", () => 
   assert.equal(afterRun.color, "#111111"); // knockout text follows the new deck bg
 });
 
+test("#4 three accents: the generated CTA + highlight follow accent3, distinct from accent1", () => {
+  const doc = slidesToDoc(
+    [{ role: "COVER", heading: "A" },
+     { heading: "H", body: "the quick brown fox jumps over", highlight: "quick brown" },
+     { role: "CLOSER", heading: "Bye", cta: "Follow for more" }],
+    "editorial",
+  );
+  // Generation with a single-accent deck: accent3 resolves to the accent, so the
+  // CTA + highlight look unchanged (member decks stay byte-identical).
+  const cta = doc.slides.flatMap((s) => s.elements).find((e) => e.role === "cta");
+  assert.ok(cta, "closer CTA exists");
+  assert.equal(cta.color, "#e23744");                  // editorial accent (accent3 default)
+  const hlEl = doc.slides.flatMap((s) => s.elements).find((e) => e.highlightAccent === 3);
+  assert.ok(hlEl, "the generated highlight is tagged as the tertiary accent");
+  assert.equal(hlEl.runs.find((r) => r.bg).bg, "#e23744");
+  // A client kit with THREE distinct accents: the CTA + highlight adopt accent3,
+  // NOT the primary accent (the whole point of #4).
+  const prev = doc.brand;
+  const next = Object.assign({}, prev, { accent: "#3a86ff", secondary: "#f4b740", accent3: "#e85d75", bg: "#111111" });
+  const rt = rethemeDoc(doc, prev, next);
+  assert.equal(rt.slides.flatMap((s) => s.elements).find((e) => e.role === "cta").color, "#e85d75"); // A3
+  const hlRun = rt.slides.flatMap((s) => s.elements).find((e) => e.highlightAccent === 3).runs.find((r) => r.bg);
+  assert.equal(hlRun.bg, "#e85d75");                   // marker bg = A3
+  assert.equal(hlRun.color, "#111111");                // knockout text = deck bg
+});
+
+test("#4 rethemeDoc: the head-to-head divider (role vsrule) follows the third accent; the vs mark stays primary", () => {
+  const doc = { brand: { accent: "#e23744" }, slides: [{ style: "editorial", elements: [
+    { id: "d", type: "rect", role: "vsrule", fill: "#e23744" },
+    { id: "vs", type: "text", tier: "heading", content: "vs", color: "#e23744" },
+  ] }] };
+  const out = rethemeDoc(doc, doc.brand, { accent: "#3a86ff", accent3: "#e85d75" });
+  const els = out.slides[0].elements;
+  assert.equal(els.find((e) => e.role === "vsrule").fill, "#e85d75"); // divider = A3
+  assert.equal(els.find((e) => e.id === "vs").color, "#3a86ff");      // the "vs" mark = A1
+  // With no distinct accent3, the divider falls back to the primary accent.
+  const out2 = rethemeDoc(doc, doc.brand, { accent: "#3a86ff" });
+  assert.equal(out2.slides[0].elements.find((e) => e.role === "vsrule").fill, "#3a86ff");
+});
+
 test("rethemeDoc swaps fonts by TIER; other tiers + LOATHR marks stay put", () => {
   const doc = slidesToDoc(
     [{ role: "COVER", heading: "C" },

@@ -24,9 +24,9 @@ function makeText(font, props) {
 // `onPhoto` palette so any family stays readable on a darkened photo.
 function palette(st, hasImage) {
   if (hasImage && st.onPhoto) {
-    return { ink: st.onPhoto.ink, sub: st.onPhoto.sub, muted: st.onPhoto.muted, accent: st.onPhoto.accent, secondary: st.onPhoto.secondary || st.onPhoto.accent, accentBar: st.accentBar };
+    return { ink: st.onPhoto.ink, sub: st.onPhoto.sub, muted: st.onPhoto.muted, accent: st.onPhoto.accent, secondary: st.onPhoto.secondary || st.onPhoto.accent, accent3: st.onPhoto.accent3 || st.onPhoto.accent, accentBar: st.accentBar };
   }
-  return { ink: st.ink, sub: st.sub, muted: st.muted, accent: st.accent, secondary: st.secondary || st.accent, accentBar: st.accentBar };
+  return { ink: st.ink, sub: st.sub, muted: st.muted, accent: st.accent, secondary: st.secondary || st.accent, accent3: st.accent3 || st.accent, accentBar: st.accentBar };
 }
 
 // FLAT-LAYERS §3 background: one image (capped `src` + small `thumb`) plus one
@@ -123,7 +123,7 @@ export function closerTemplate(s, style, image, caution, brand) {
   return slideShell(st, image, [
     ...closerMarks(st, pal, brand, cy),
     makeText(st.headFont, { tier: "heading", x: M, y: cy + 130, w: ARTBOARD_W - 2 * M, h: 320, content: s.heading || s.body || "Thanks for reading.", fontSize: 52, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.15 }),
-    s.cta ? makeText(st.bodyFont, { tier: "body", x: M, y: cy + 470, w: ARTBOARD_W - 2 * M, h: 60, content: s.cta, fontSize: 26, fontWeight: 400, color: pal.accent, align: "center", lineHeight: 1.3 }) : null,
+    s.cta ? makeText(st.bodyFont, { tier: "body", role: "cta", x: M, y: cy + 470, w: ARTBOARD_W - 2 * M, h: 60, content: s.cta, fontSize: 26, fontWeight: 400, color: pal.accent3, align: "center", lineHeight: 1.3 }) : null,
     caution ? cautionElement(style, caution, !!(image && image.url), brand) : null,
   ]);
 }
@@ -408,6 +408,9 @@ function L_versus(c, st, pal) {
   const colValue = (txt, x) => makeText(st.headFont, { tier: "heading", x, y: 520, w: colW, h: 320, content: txt, fontSize: 52, fontWeight: st.headWeight, color: pal.ink, align: "center", lineHeight: 1.12 });
   return [
     c.kicker ? centeredKicker(st, pal, c.kicker, 250) : null,
+    // A thin tertiary-accent divider between the two columns (the "vs" mark sits
+    // on top of it). Role-tagged so rethemeDoc follows a brand's third accent.
+    makeElement("rect", { id: uid("r"), role: "vsrule", x: mid - 1, y: 500, w: 2, h: 360, fill: pal.accent3, opacity: 0.55 }),
     colLabel(v.l.label, M),
     colValue(v.l.value, M),
     makeText(st.headFont, { tier: "heading", x: mid - 70, y: 600, w: 140, h: 90, content: "vs", fontSize: 46, fontWeight: st.headWeight, color: pal.accent, align: "center", italic: true, lineHeight: 1 }),
@@ -642,8 +645,10 @@ function applyHighlight(els, highlight, color, knockout) {
     if (!e.content || String(e.content).toLowerCase().indexOf(needle) < 0) return e;
     // Bake straight into a real run (not the back-compat marker fields) so the
     // generated highlight is editable + removable from birth — same overlay the
-    // renderers use, so it looks identical.
-    return bakeHighlight(Object.assign({}, e, { highlight: hl, highlightColor: color, highlightText: knockout }));
+    // renderers use, so it looks identical. `highlightAccent: 3` survives the bake
+    // (a plain field) and lets rethemeDoc re-derive the marker onto a brand's third
+    // accent — the baked run's colour value alone can't be told from the primary.
+    return bakeHighlight(Object.assign({}, e, { highlight: hl, highlightColor: color, highlightText: knockout, highlightAccent: 3 }));
   });
 }
 
@@ -668,7 +673,7 @@ export function renderLayout(layoutKey, content, style, hasImage, brand) {
   const pal = palette(st, overPhoto);
   const fn = LAYOUT_FNS[layoutKey] || LAYOUT_FNS.classic;
   const els = fn(c, st, pal).filter(Boolean);
-  return applyHighlight(els, c.highlight, pal.accent, st.bg);
+  return applyHighlight(els, c.highlight, pal.accent3, st.bg);
 }
 
 // Pure re-flow: the slide patch for applying `layoutKey` to `slide`. The photo is

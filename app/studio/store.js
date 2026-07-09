@@ -112,6 +112,10 @@ export function rethemeDoc(doc, prev, next) {
     // bars/blocks AND the feature colour PANEL (bg-filled), which the accent-only
     // remap missed, so a palette swap left the panel on the old background colour.
     if (e.type === "rect" && e.fill) { const v = remapColor(e.fill); if (v !== e.fill) n = Object.assign({}, n, { fill: v }); }
+    // The head-to-head divider is the TERTIARY accent by ROLE — remapped by role
+    // (like the kicker's secondary) so it follows a third accent even when accent3
+    // currently equals the primary accent (a value-only match couldn't tell apart).
+    if (e.type === "rect" && e.role === "vsrule" && (b.accent3 || b.accent)) n = Object.assign({}, n, { fill: b.accent3 || b.accent });
     if (e.type === "text") {
       for (const k of COLORS) {
         if (b[k] && p[k] && e.color === p[k]) { n = Object.assign({}, n, { color: b[k] }); break; }
@@ -120,6 +124,9 @@ export function rethemeDoc(doc, prev, next) {
       // tier like fonts, so it follows a secondary change even when secondary
       // currently equals the accent (a value-only match couldn't tell them apart).
       if (e.tier === "label" && b.secondary) n = Object.assign({}, n, { color: b.secondary });
+      // The closer CTA is the TERTIARY accent by ROLE — follows a third accent the
+      // same way, overriding the value-match above (which would snap it to accent1).
+      if (n.role === "cta" && (b.accent3 || b.accent)) n = Object.assign({}, n, { color: b.accent3 || b.accent });
       // A text-shape backing whose accent still matches the deck follows a palette
       // swap (paper/knockout shapes carry their own fixed colors, so they don't
       // match prev.accent and are left alone — same idea as the rect fills above).
@@ -142,7 +149,7 @@ export function rethemeDoc(doc, prev, next) {
       // accent and its knockout text is the deck bg — set only by the renderer, with
       // no manual-edit path. So a palette swap must carry it too; otherwise the
       // marker keeps the old accent/bg (the most visible "didn't update" case).
-      if (n.highlightColor && b.accent) n = Object.assign({}, n, { highlightColor: b.accent });
+      if (n.highlightColor && b.accent) n = Object.assign({}, n, { highlightColor: b.accent3 || b.accent });
       if (n.highlightText && b.bg) n = Object.assign({}, n, { highlightText: b.bg });
       // The cover wordmark's red strike is a derived accent — carry it on a swap.
       if (n.strikeColor && b.accent) n = Object.assign({}, n, { strikeColor: b.accent });
@@ -160,6 +167,14 @@ export function rethemeDoc(doc, prev, next) {
           return rn;
         });
         if (changed) n = Object.assign({}, n, { runs });
+      }
+      // A GENERATED highlight (baked into runs, tagged highlightAccent:3) is the
+      // TERTIARY accent by ROLE — its knockout bg follows accent3 and its text the
+      // deck bg. The value-match above can't tell it from the primary accent, so
+      // re-derive the marked runs (the ones carrying a bg) here, last word wins.
+      if (n.highlightAccent === 3 && Array.isArray(n.runs) && n.runs.length && (b.accent3 || b.accent)) {
+        const hlBg = b.accent3 || b.accent;
+        n = Object.assign({}, n, { runs: n.runs.map((r) => (r.bg ? Object.assign({}, r, { bg: hlBg, color: b.bg || r.color }) : r)) });
       }
     }
     return n;
@@ -336,7 +351,7 @@ export function carryBrandKit(newDoc, prevDoc) {
   if (!prevBrand) return newDoc;
   const prevStyle = (prevDoc.slides && prevDoc.slides[0] && prevDoc.slides[0].style) || "editorial";
   const defaults = brandFromStyle(prevStyle);
-  const FIELDS = ["accent", "secondary", "bg", "ink", "sub", "muted", "labelFont", "headFont", "bodyFont", "wordmark"];
+  const FIELDS = ["accent", "secondary", "accent3", "bg", "ink", "sub", "muted", "labelFont", "headFont", "bodyFont", "wordmark"];
   const custom = {};
   for (const k of FIELDS) {
     if (prevBrand[k] != null && prevBrand[k] !== defaults[k]) custom[k] = prevBrand[k];

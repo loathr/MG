@@ -117,6 +117,7 @@ export function effectiveStyle(key, brand) {
   const out = Object.assign({}, st);
   if (brand.accent != null) out.accent = brand.accent;
   if (brand.secondary != null) out.secondary = brand.secondary;
+  if (brand.accent3 != null) out.accent3 = brand.accent3;
   if (brand.bg != null) out.bg = brand.bg;
   if (brand.ink != null) out.ink = brand.ink;
   if (brand.sub != null) out.sub = brand.sub;
@@ -124,10 +125,12 @@ export function effectiveStyle(key, brand) {
   if (brand.labelFont != null) out.kickerFont = brand.labelFont;
   if (brand.headFont != null) out.headFont = brand.headFont;
   if (brand.bodyFont != null) out.bodyFont = brand.bodyFont;
-  if (st.onPhoto && ((brand.accent != null && brand.accent !== st.accent) || (brand.secondary != null && brand.secondary !== st.secondary))) {
+  const a3 = brand.accent3 != null && brand.accent3 !== (st.accent3 || st.accent);
+  if (st.onPhoto && ((brand.accent != null && brand.accent !== st.accent) || (brand.secondary != null && brand.secondary !== st.secondary) || a3)) {
     out.onPhoto = Object.assign({}, st.onPhoto,
       brand.accent != null && brand.accent !== st.accent ? { accent: brand.accent } : null,
-      brand.secondary != null && brand.secondary !== st.secondary ? { secondary: brand.secondary } : null);
+      brand.secondary != null && brand.secondary !== st.secondary ? { secondary: brand.secondary } : null,
+      a3 ? { accent3: brand.accent3 } : null);
   }
   return out;
 }
@@ -171,6 +174,7 @@ export function paletteBrand(p) {
   return {
     bg: p.bg, accent: p.accent, ink: p.ink,
     secondary: p.secondary || p.accent,
+    accent3: p.accent3 || p.accent,
     sub: mix(p.ink, p.bg, 0.14), muted: mix(p.ink, p.bg, 0.46),
   };
 }
