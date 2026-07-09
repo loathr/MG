@@ -98,6 +98,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
   const [docBusy, setDocBusy] = useState(false);
   const [ddOpen, setDdOpen] = useState(null);        // open picker: "voice" | "tone" | null
   const docFileRef = React.useRef(null);
+  const refineRef = React.useRef(null); // the Topic refiner panel, so the "Refine" pill can reveal it
   // Grounding seed (R5) from a picked Trending card: { extract, source }. Cleared
   // when the topic is edited by hand, so a typed-over topic isn't grounded stale.
   const [seed, setSeed] = useState(null);
@@ -389,9 +390,15 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
                 // right padding only reserves room for the Refine pill when it shows.
                 style={{ ...topicInput, textAlign: "left", padding: (topic.trim() && !refineDecided) ? "0 96px 0 18px" : "0 18px" }}
               />
-              {/* Refine affordance — shown while choosing; hidden once decided so it
-                  never crowds a long locked topic. */}
-              {topic.trim() && !refineDecided && <span style={refineHint(true)}><Sparkles size={12} /> Refine</span>}
+              {/* Refine affordance — a real button that reveals/scrolls to the topic
+                  refiner below. Shown while choosing; hidden once decided so it never
+                  crowds a long locked topic. */}
+              {topic.trim() && !refineDecided && (
+                <button type="button" onClick={() => refineRef.current && refineRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" })}
+                  style={refineHint(true)} title="Refine this topic — sharper angles + virality">
+                  <Sparkles size={12} /> Refine
+                </button>
+              )}
             </div>
             {flagCountry && (
               <div style={flagChip(flagPalette)}>
@@ -423,7 +430,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
                 </div>
               </div>
             )}
-            {!guest && (
+            <div ref={refineRef} style={{ width: "100%" }}>
               <RefinePanel
                 topic={topic}
                 decided={refineDecided}
@@ -433,7 +440,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
                 onLock={lockTopic}
                 onEdit={editTopic}
               />
-            )}
+            </div>
           </>
         ) : (
           <div style={docZone} onDragOver={(e) => e.preventDefault()}
@@ -751,12 +758,13 @@ function flagChipBtn(on) {
     background: on ? "transparent" : "#26262e", color: on ? "#8a8a92" : "#dcdce2",
     border: "1px solid " + (on ? "#2a2a30" : "#3a3a42") };
 }
-// The "Refine" affordance pinned inside the topic box (the refiner auto-opens).
+// The "Refine" affordance pinned inside the topic box — a real button that reveals
+// the refiner panel below.
 const refineHint = (on) => ({
   position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
   display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700,
   color: on ? UI.onBrand : "#7c7c84", background: on ? UI.brand : "transparent",
-  border: on ? "none" : "1px solid #33333c", borderRadius: 7, padding: "4px 9px", pointerEvents: "none",
+  border: on ? "none" : "1px solid #33333c", borderRadius: 7, padding: "4px 9px", cursor: "pointer",
 });
 // --- source mode (Topic / Document) + Voice/Tone pickers ---
 const modeRow = { display: "flex", gap: 6, background: "#141417", border: "1px solid #26262c", borderRadius: 11, padding: 4, margin: "0 auto 10px", width: "max-content" };
