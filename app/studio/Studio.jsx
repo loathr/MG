@@ -219,6 +219,8 @@ export default function Studio() {
   const fcAbort = useRef(null);  // AbortController for the in-flight fact-check
   const coAbort = useRef(null);  // AbortController for the in-flight coherence check
   const dragFrom = useRef(null); // slide index being drag-reordered in the strip
+  const ownerDocRef = useRef(null); // latest doc/editing for the owner live-refresh pulse callback
+  const ownerEditRef = useRef(null);
   const slide = state.doc.slides[state.slideIndex];
   const selectedEl = slide && (slide.elements || []).find((e) => e.id === state.selectedId);
   const selectedIsText = !!(selectedEl && selectedEl.type === "text");
@@ -387,6 +389,35 @@ export default function Studio() {
     const id = setInterval(refetch, 20000);                  // fallback safety-net
     return () => { unsub(); clearInterval(id); };
   }, [sharedView, sharedEdit]);
+
+  // Owner live-refresh: when THIS deck is shared for EDIT, a shared editor's save
+  // bumps sharePulse — pull their change in so the owner sees it WITHOUT reloading.
+  // (Live op-sync already converges an actively-connected owner; this is the fallback
+  // that also reconciles the authoritative doc.) Guarded two ways: never while the
+  // owner is mid-edit (would clobber their in-progress change), and only when the
+  // fetched doc actually DIFFERS — so op-sync convergence or the owner's own save
+  // never causes a jarring reload. Refs feed the pulse callback the latest state
+  // (the subscription binds once). Whole-doc, last-writer-wins, matching writeShared.
+  ownerDocRef.current = state.doc;
+  ownerEditRef.current = state.editingId;
+  useEffect(() => {
+    const share = state.doc.share || {};
+    const on = cloud && !!user && screen === "editor" && !sharedView && !!projectId && share.link === "edit" && !!share.token;
+    if (!on) return undefined;
+    const pull = () => {
+      if (ownerEditRef.current) return;                 // don't clobber an in-progress edit
+      fetch("/api/shared?deck=" + encodeURIComponent(projectId) + "&s=" + encodeURIComponent(share.token))
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (!data || !data.doc || ownerEditRef.current) return;
+          if (JSON.stringify(data.doc) === JSON.stringify(ownerDocRef.current)) return; // already in sync
+          dispatch({ type: "loadDoc", doc: data.doc });
+        })
+        .catch(() => {});
+    };
+    const unsub = watchSharePulse(projectId, pull);
+    return () => unsub();
+  }, [cloud, user, screen, sharedView, projectId, state.doc.share && state.doc.share.link, state.doc.share && state.doc.share.token]);
 
   // Shared-edit autosave: an EDIT-link editor persists changes back to the owner's
   // deck through the token (debounced), bumping the pulse so the owner's other
