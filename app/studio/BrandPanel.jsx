@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { UI } from "./theme";
 import { loadKits, saveKits, upsertKit, removeKit } from "./brandkits";
 import { uid } from "./model";
-import { brandFromStyle, EDITORIAL_PALETTES, paletteBrand, BRAND_FONT, FONT_OPTIONS, FONT_PRESETS, activePresetId, STYLE_LIST } from "./styles";
+import { brandFromStyle, EDITORIAL_PALETTES, paletteBrand, BRAND_FONT, FONT_OPTIONS, CLIENT_FONT_OPTIONS, FONT_PRESETS, activePresetId, STYLE_LIST } from "./styles";
 import { cautionFor } from "./categories";
 import { uploadedFontGroup, fontFamilyValue } from "./fonts";
 import { Link2, ChevronDown, ChevronRight } from "lucide-react";
@@ -147,6 +147,9 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
   // Prepend the deck's uploaded fonts as a "Your fonts" group in every picker.
   const upl = uploadedFontGroup(fonts);
   const fontOptions = upl ? [upl].concat(FONT_OPTIONS) : FONT_OPTIONS;
+  // Client / guest branding uses the expanded standard faces (no proprietary loathr
+  // library) — plus any uploaded fonts on top.
+  const clientFontOptions = upl ? [upl].concat(CLIENT_FONT_OPTIONS) : CLIENT_FONT_OPTIONS;
   const pickFont = async (e) => {
     const f = e.target.files && e.target.files[0];
     e.target.value = "";
@@ -275,7 +278,7 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
                 ) : <div style={{ fontSize: 10.5, color: "#6a6a72", marginTop: 8 }}>{member ? "Save a brand to reuse it on future decks." : "Save a template to reuse it on future decks."}</div>
               )}
             </div>
-            <ClientBrandFields cb={cb} setCB={setCB} fontOptions={fontOptions} onAddImage={onAddImage} />
+            <ClientBrandFields cb={cb} setCB={setCB} fontOptions={clientFontOptions} onAddImage={onAddImage} />
             <p style={{ fontSize: 10.5, color: "#6a6a72", marginTop: 14, lineHeight: 1.5 }}>{member ? "Brand marks are the client’s — LOATHR branding is hidden on this deck." : "This deck uses your branding."}</p>
           </div>
         ) : (

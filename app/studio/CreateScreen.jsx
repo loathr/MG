@@ -21,7 +21,7 @@ import {
 import { effectiveCountry } from "./flag";
 import { blankClientBrand } from "./clientbrand";
 import ClientBrandFields from "./ClientBrandForm";
-import { FONT_OPTIONS } from "./styles";
+import { CLIENT_FONT_OPTIONS } from "./styles";
 
 // Voice-id → lucide icon (voices.js stores the name; this maps it to a component
 // so the data module stays JSX-free). Rendered in the Voice picker.
@@ -484,7 +484,7 @@ export default function CreateScreen({ onGenerate, onBlank, generating, phase, o
             </button>
             {brandOpen && (
               <div style={brandAccBody}>
-                <ClientBrandFields cb={cbrand} setCB={setCB} fontOptions={FONT_OPTIONS} />
+                <ClientBrandFields cb={cbrand} setCB={setCB} fontOptions={CLIENT_FONT_OPTIONS} />
               </div>
             )}
           </div>

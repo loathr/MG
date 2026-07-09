@@ -209,6 +209,45 @@ export const FONT_OPTIONS = [
   ] },
 ];
 
+// Font list for CLIENT / GUEST branding: an EXPANDED set of standard, license-free,
+// cross-platform system faces (each stack falls back cleanly) — and deliberately
+// WITHOUT the proprietary loathr library, since a guest/client brands with their own
+// type, not LOATHR's. Guests can also upload their own faces on top of this. Grouped
+// for scanability in the FontSelect dropdown.
+export const CLIENT_FONT_OPTIONS = [
+  { group: "Sans-serif", fonts: [
+    { label: "Helvetica", value: "Helvetica, Arial, sans-serif" },
+    { label: "Arial", value: "Arial, Helvetica, sans-serif" },
+    { label: "Verdana", value: "Verdana, Geneva, sans-serif" },
+    { label: "Tahoma", value: "Tahoma, Geneva, sans-serif" },
+    { label: "Trebuchet", value: "'Trebuchet MS', Helvetica, sans-serif" },
+    { label: "Segoe UI", value: "'Segoe UI', Roboto, Helvetica, sans-serif" },
+    { label: "Gill Sans", value: "'Gill Sans', 'Gill Sans MT', Calibri, sans-serif" },
+    { label: "Century Gothic", value: "'Century Gothic', 'Apple Gothic', sans-serif" },
+    { label: "Franklin Gothic", value: "'Franklin Gothic Medium', 'Arial Narrow', sans-serif" },
+    { label: "Optima", value: "Optima, 'Segoe UI', Candara, sans-serif" },
+    { label: "Futura", value: "Futura, 'Trebuchet MS', sans-serif" },
+    { label: "Lucida Sans", value: "'Lucida Sans', 'Lucida Grande', sans-serif" },
+  ] },
+  { group: "Serif", fonts: [
+    { label: "Georgia", value: "Georgia, 'Times New Roman', serif" },
+    { label: "Times", value: "'Times New Roman', Times, serif" },
+    { label: "Garamond", value: "Garamond, 'EB Garamond', Georgia, serif" },
+    { label: "Palatino", value: "'Palatino Linotype', Palatino, 'Book Antiqua', serif" },
+    { label: "Baskerville", value: "Baskerville, 'Baskerville Old Face', Georgia, serif" },
+    { label: "Cambria", value: "Cambria, Georgia, serif" },
+    { label: "Book Antiqua", value: "'Book Antiqua', Palatino, serif" },
+    { label: "Didot", value: "Didot, 'Bodoni MT', 'Playfair Display', Georgia, serif" },
+  ] },
+  { group: "Display & mono", fonts: [
+    { label: "Impact", value: "Impact, 'Arial Black', sans-serif" },
+    { label: "Arial Black", value: "'Arial Black', Impact, sans-serif" },
+    { label: "Copperplate", value: "Copperplate, 'Copperplate Gothic Light', serif" },
+    { label: "Courier", value: "'Courier New', Courier, monospace" },
+    { label: "Consolas", value: "Consolas, 'Courier New', monospace" },
+  ] },
+];
+
 export const FONT_PRESETS = [
   { id: "standard",   label: "Standard",   labelFont: BRAND_FONT, headFont: "Georgia, serif",                       bodyFont: "Helvetica, Arial, sans-serif" },
   { id: "editorial",  label: "Editorial",  labelFont: BRAND_FONT, headFont: "'VintageTypist', Georgia, serif",       bodyFont: "'Maheni', Georgia, serif" },
