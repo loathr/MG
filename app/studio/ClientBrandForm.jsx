@@ -168,7 +168,7 @@ export default function ClientBrandFields({ cb, setCB, fontOptions, onAddImage }
         <FontRow label="Body" value={cb.bodyFont} options={fopts} onChange={(v) => setCB({ bodyFont: v })} />
       </div>
       <button type="button" style={fontUp} disabled={busy} onClick={() => fontRef.current && fontRef.current.click()}>
-        {busy ? "Adding…" : "⬆ Upload a font…"}
+        {busy ? "Adding…" : "Upload a font…"}
       </button>
       <input ref={fontRef} type="file" accept=".ttf,.otf,.woff,.woff2,font/*" style={{ display: "none" }}
         onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; onFont(f); }} />
@@ -214,7 +214,7 @@ export default function ClientBrandFields({ cb, setCB, fontOptions, onAddImage }
       <input style={inp} value={(cb.closeout && cb.closeout.cta) || ""} placeholder="Closing call-to-action" onChange={(e) => setCB({ closeout: Object.assign({ on: true }, cb.closeout, { cta: e.target.value }) })} />
 
       <label style={{ ...lbl, marginTop: 14 }}>Brand images</label>
-      <button type="button" style={imgUp} onClick={() => imgRef.current && imgRef.current.click()}>⬆ Upload images…</button>
+      <button type="button" style={imgUp} onClick={() => imgRef.current && imgRef.current.click()}>Upload images…</button>
       <input ref={imgRef} type="file" accept="image/*" multiple style={{ display: "none" }}
         onChange={(e) => { const fs = Array.from(e.target.files || []); e.target.value = ""; fs.forEach(onImage); }} />
       <div style={fontHint}>.jpg · .png · .webp — downscaled on device.{onAddImage ? " Tap one to drop it on the current slide." : " Saved with your brand for reuse."}</div>

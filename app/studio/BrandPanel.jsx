@@ -233,7 +233,7 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
               <div style={kitHead}>
                 <button type="button" onClick={() => setKitsOpen((o) => !o)} style={kitHeadBtn} title={kitsOpen ? "Collapse" : "Expand"}>
                   <span style={{ color: kitsOpen ? "#c9c9d0" : "#8a8a92", width: 12 }}>{kitsOpen ? "▾" : "▸"}</span>
-                  <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.1, color: "#b7b7bf", textTransform: "uppercase" }}>Your brands</span>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 1.1, color: "#b7b7bf", textTransform: "uppercase" }}>{member ? "Your brands" : "Saved templates"}</span>
                   {kits.length > 0 ? <span style={kitCount}>{kits.length}</span> : null}
                   {!kitsOpen && kits.length > 0 && (
                     <span style={{ display: "flex", gap: 3, marginLeft: 4 }}>
@@ -241,7 +241,7 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
                     </span>
                   )}
                 </button>
-                <button type="button" onClick={saveCurrentKit} style={{ marginLeft: "auto", fontSize: 11, color: "#7fb2ff", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }} title="Save the current brand as a reusable kit">💾 Save</button>
+                <button type="button" onClick={saveCurrentKit} style={{ marginLeft: "auto", fontSize: 11, color: "#7fb2ff", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }} title={member ? "Save the current brand as a reusable kit" : "Save the current design as a reusable template"}>Save current</button>
               </div>
               {kitsOpen && (
                 kits.length > 0 ? (
@@ -272,11 +272,11 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
                       );
                     })}
                   </div>
-                ) : <div style={{ fontSize: 10.5, color: "#6a6a72", marginTop: 8 }}>Save a brand to reuse it on future decks.</div>
+                ) : <div style={{ fontSize: 10.5, color: "#6a6a72", marginTop: 8 }}>{member ? "Save a brand to reuse it on future decks." : "Save a template to reuse it on future decks."}</div>
               )}
             </div>
             <ClientBrandFields cb={cb} setCB={setCB} fontOptions={fontOptions} onAddImage={onAddImage} />
-            <p style={{ fontSize: 10.5, color: "#6a6a72", marginTop: 14, lineHeight: 1.5 }}>Brand marks are the client&apos;s — LOATHR branding is hidden on this deck.</p>
+            <p style={{ fontSize: 10.5, color: "#6a6a72", marginTop: 14, lineHeight: 1.5 }}>{member ? "Brand marks are the client’s — LOATHR branding is hidden on this deck." : "This deck uses your branding."}</p>
           </div>
         ) : (
         <>
