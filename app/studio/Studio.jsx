@@ -3,7 +3,8 @@ import React, { useEffect, useReducer, useRef, useState } from "react";
 import { reducer, initStudio, carryBrandKit, rethemeDoc } from "./store";
 import { flagBrand, effectiveCountry } from "./flag";
 import { makeElement, imageBackground, blankDoc, uid, ARTBOARD_W, ARTBOARD_H } from "./model";
-import { readFontFile, registerFont, registerDocFonts } from "./fonts";
+import { readFontFile, registerFont, registerDocFonts, uploadedFontGroup, fontFamilyValue } from "./fonts";
+import { FONT_OPTIONS, CLIENT_FONT_OPTIONS } from "./styles";
 import { generateCarousel, regenerateCaption } from "./generate";
 import { writeElementText } from "./aitext";
 import { setShare as buildShare, shareUrl } from "./sharing";
@@ -631,6 +632,21 @@ export default function Studio() {
       return null;
     } catch (e) { return (e && e.message) || "Couldn't add that font."; }
   };
+  // The toolbar's "Add font…": embed the font AND return its CSS family so the
+  // caller can apply it to the selected text box in one step (null on failure).
+  const uploadFontForToolbar = async (file) => {
+    try {
+      const font = await readFontFile(file, uid("fnt"));
+      await registerFont(font);
+      dispatch({ type: "addFont", font });
+      return fontFamilyValue(font.family);
+    } catch (e) { return null; }
+  };
+  // The per-element font picker's options: the deck's uploaded fonts first, then
+  // the standard set — the client set (no LOATHR library) in client / guest mode.
+  const uplGroup = uploadedFontGroup(state.doc.fonts);
+  const baseFonts = (state.doc.brandMode === "client") ? CLIENT_FONT_OPTIONS : FONT_OPTIONS;
+  const toolbarFontOptions = uplGroup ? [uplGroup].concat(baseFonts) : baseFonts;
 
   // ✨ Inline AI text — write/replace the SELECTED text box's copy from a preset
   // (Headline/Body/Shorten/…) and/or a free-text instruction, scoped to the deck's
@@ -1236,6 +1252,8 @@ export default function Studio() {
             siblings={selectedEl && slide ? (slide.elements || []).filter((e) => e.id !== selectedEl.id && !e.locked && e.tetherTo !== selectedEl.id) : []}
             onAiWrite={handleAiWrite}
             canPaste={!!state.clipboard}
+            fontOptions={toolbarFontOptions}
+            onUploadFont={uploadFontForToolbar}
           />
           {followPeer && (
             <div style={{ position: "fixed", top: 62, left: "50%", transform: "translateX(-50%)", zIndex: 55, display: "flex", alignItems: "center", gap: 10, background: "rgba(20,26,23,0.97)", border: "1px solid " + followPeer.color, borderRadius: 20, padding: "7px 8px 7px 14px", fontSize: 12, color: "#e6f5ee", boxShadow: "0 10px 30px rgba(0,0,0,0.5)" }}>

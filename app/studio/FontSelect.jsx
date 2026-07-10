@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { UI } from "./theme";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check, Plus } from "lucide-react";
 
 // A compact font picker that previews each option IN its own face — a native
 // <select> can't render options in their font, which matters when choosing
@@ -12,8 +12,12 @@ const btn = { width: "100%", height: 32, background: "#26262b", border: "1px sol
 const pop = { position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 60, background: "#202026", border: "1px solid #3a3a44", borderRadius: 8, padding: 5, maxHeight: 280, overflowY: "auto", boxShadow: "0 18px 50px rgba(0,0,0,0.6)" };
 const grp = { fontSize: 9.5, fontWeight: 700, letterSpacing: 1, color: "#6f6f78", padding: "8px 8px 4px", fontFamily: "Helvetica, Arial, sans-serif" };
 const opt = { fontSize: 15, color: "#e8e8e8", padding: "6px 9px", borderRadius: 6, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" };
+const addOpt = { fontSize: 12.5, color: "#8bb6ff", padding: "8px 9px", borderRadius: 6, cursor: "pointer", display: "flex", alignItems: "center", gap: 7, fontFamily: "Helvetica, Arial, sans-serif", borderTop: "1px solid #33333c", marginTop: 4 };
 
-export default function FontSelect({ value, options, onChange, title }) {
+// `onAddFont` (optional) renders an "Add font…" action so a font can be uploaded
+// straight from the picker — placed just below the "Your fonts" group when there
+// is one, else pinned to the top of the list.
+export default function FontSelect({ value, options, onChange, title, onAddFont }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef(null);
   React.useEffect(() => {
@@ -34,6 +38,11 @@ export default function FontSelect({ value, options, onChange, title }) {
       </button>
       {open ? (
         <div style={pop}>
+          {/* When there's no "Your fonts" group yet, the Add action pins to the top
+              so it's always reachable. */}
+          {onAddFont && !(options[0] && options[0].group === "Your fonts") ? (
+            <div onClick={() => { setOpen(false); onAddFont(); }} style={Object.assign({}, addOpt, { borderTop: "none", marginTop: 0 })}><Plus size={14} /> Add font…</div>
+          ) : null}
           {options.map((g) => (
             <div key={g.group}>
               <div style={grp}>{g.group}</div>
@@ -47,6 +56,10 @@ export default function FontSelect({ value, options, onChange, title }) {
                   </div>
                 );
               })}
+              {/* Add action sits right under the uploaded group (matches the mock). */}
+              {onAddFont && g.group === "Your fonts" ? (
+                <div onClick={() => { setOpen(false); onAddFont(); }} style={addOpt}><Plus size={14} /> Add font…</div>
+              ) : null}
             </div>
           ))}
         </div>

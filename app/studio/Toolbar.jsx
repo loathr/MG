@@ -27,12 +27,21 @@ function KindIcon({ type }) { const I = KIND_ICON[type] || Square; return <I siz
 // inline; denser ones (Position, Effects, Shape) open as dropdown popovers
 // anchored to the bar. Wired to the same reducer actions the Inspector used; a
 // selected text SPAN still routes colour/weight through the floating FormatBar.
-export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan, cropping, siblings, onAiWrite, canPaste }) {
+export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan, cropping, siblings, onAiWrite, canPaste, fontOptions, onUploadFont }) {
   const [pop, setPop] = useState(null); // open popover: "position" | "effects" | "shape" | "crop" | "more" | "ai" | null
   const [bgBusy, setBgBusy] = useState(false);
   const [barW, setBarW] = useState(9999); // measured width → responsive overflow
   const fileRef = useRef(null);
+  const fontRef = useRef(null);       // hidden input for the picker's "Add font…"
   const barRef = useRef(null);
+  // Upload a font from the toolbar picker, then apply it to the selected text.
+  const pickFontFile = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!f || !onUploadFont) return;
+    const family = await onUploadFont(f); // resolves to the CSS family, or null on error
+    if (family) up({ fontFamily: family });
+  };
   // Collapse low-priority pills into the ⋯ menu as the canvas narrows (Canva-style)
   // so the bar never wraps. High-frequency controls always stay inline.
   useEffect(() => {
@@ -86,7 +95,8 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
 
       {el.type === "text" && (
         <>
-          <span style={{ width: 150 }}><FontSelect value={el.fontFamily} options={FONT_OPTIONS} onChange={(v) => up({ fontFamily: v })} title="Font (whole text)" /></span>
+          <span style={{ width: 150 }}><FontSelect value={el.fontFamily} options={fontOptions || FONT_OPTIONS} onChange={(v) => up({ fontFamily: v })} title="Font (whole text)" onAddFont={onUploadFont ? () => fontRef.current && fontRef.current.click() : undefined} /></span>
+          <input ref={fontRef} type="file" accept=".ttf,.otf,.woff,.woff2,font/*" style={{ display: "none" }} onChange={pickFontFile} />
           <Stepper value={Math.round(el.fontSize || 0)} onDelta={(d) => up({ fontSize: Math.max(6, (el.fontSize || 0) + d) })} onSet={(v) => up({ fontSize: Math.max(6, Math.min(400, v)) })} />
           <ColorBtn title="Text colour" value={textColor} onChange={(v) => setStyle({ color: v })} glyph={<span style={{ fontWeight: 800, borderBottom: "3px solid " + (textColor || "#fff"), lineHeight: 1 }}>A</span>} />
           <Sep />
