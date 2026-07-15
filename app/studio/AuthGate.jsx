@@ -16,11 +16,24 @@ export default function AuthGate({ children }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [access, setAccess] = useState(null); // null = not yet checked; else { status }
+  const [shareLink, setShareLink] = useState(false); // opened via a public share URL
 
   useEffect(() => {
     if (!enabled) return undefined;
     return onAuthChange((u) => { setUser(u); setAccess(null); });
   }, [enabled]);
+
+  // A share link (`?deck=…&s=…`) is a PUBLIC capability — the token IS the grant,
+  // validated server-side by /api/shared (view) and the token-authorised write/live
+  // relays (edit). It must NOT sit behind the sign-in wall or the access-approval
+  // flow, or a recipient — including an anonymous guest editor — could never open
+  // it. Detect it after mount (so SSR and the first client render still agree → no
+  // hydration mismatch) and render straight through to Studio's shared view/editor.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("deck") && p.get("s")) setShareLink(true);
+  }, []);
 
   // Once signed in, resolve this account's server-side access status.
   useEffect(() => {
@@ -31,6 +44,7 @@ export default function AuthGate({ children }) {
   }, [enabled, user]);
 
   if (!enabled) return children;                 // cloud off → unchanged
+  if (shareLink) return children;                // public share link → no sign-in/approval
   if (user === undefined) return <Splash />;     // resolving auth state
 
   const go = async () => {
