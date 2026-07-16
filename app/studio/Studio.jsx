@@ -409,7 +409,16 @@ export default function Studio() {
     const refetch = () => {
       fetch("/api/shared?deck=" + encodeURIComponent(sharedView.deck) + "&s=" + encodeURIComponent(sharedView.s))
         .then((r) => (r.ok ? r.json() : null))
-        .then((data) => { if (data && data.doc) dispatch({ type: "loadDoc", doc: data.doc }); })
+        .then((data) => {
+          if (!data || !data.doc) return;
+          // Only reload when the deck ACTUALLY changed. Every owner save bumps the
+          // pulse, and the 20s net fires regardless; without this guard a viewer
+          // ran loadDoc on each — resetting to slide 0 and re-rendering the whole
+          // deck in a storm while the owner edits. The viewer already holds the
+          // offloaded (server-shape) doc, so a signature compare is exact.
+          if (docSig(data.doc) === docSig(ownerDocRef.current)) return;
+          dispatch({ type: "loadDoc", doc: data.doc });
+        })
         .catch(() => {});
     };
     const unsub = watchSharePulse(sharedView.deck, refetch); // instant on owner save
