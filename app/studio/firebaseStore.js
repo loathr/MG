@@ -1,6 +1,7 @@
 "use client";
 import { cloudConfig, projectRecord, docFromRecord, collectImageData, imageKey, rewriteImages } from "./cloud";
 import { shareIndex, sharePulse } from "./sharing";
+import { breadcrumb } from "./crashlog";
 
 // Guarded Firestore adapter for deck storage. The firebase SDK loads LAZILY and
 // only when cloud is configured; every call is a safe no-op (null / []) when
@@ -70,6 +71,7 @@ export async function saveDeck(uid, id, doc, opts) {
   const col = fs.collection(d, "users", uid, "decks");
   const ref = id ? fs.doc(col, id) : fs.doc(col);
   const o = opts || {};
+  breadcrumb("saveDeck:start images=" + collectImageData(doc).length);
   if (o.onUploading && collectImageData(doc).length) o.onUploading();
   const stored = await uploadDeckImages(uid, ref.id, doc);
   // Hand the caller the offloaded (server-shape) doc BEFORE the pulse bump below, so
@@ -90,7 +92,7 @@ export async function saveDeck(uid, id, doc, opts) {
     // save while shared, remove when unshared. Carries only a timestamp.
     const pulse = sharePulse(stored.share, rec.updatedAt);
     const pref = fs.doc(d, "sharePulse", ref.id);
-    if (pulse) await fs.setDoc(pref, pulse, { merge: true });
+    if (pulse) { breadcrumb("saveDeck:pulse-bump"); await fs.setDoc(pref, pulse, { merge: true }); }
     else await fs.deleteDoc(pref);
   } catch (e) { /* index + pulse are best-effort */ }
   return ref.id;

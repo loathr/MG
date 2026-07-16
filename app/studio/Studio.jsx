@@ -9,6 +9,7 @@ import { generateCarousel, regenerateCaption } from "./generate";
 import { writeElementText } from "./aitext";
 import { setShare as buildShare, shareUrl } from "./sharing";
 import { docSig } from "./docsig";
+import { breadcrumb } from "./crashlog";
 import { photosDemoDoc } from "./demo";
 import Artboard from "./Artboard";
 import Toolbar from "./Toolbar";
@@ -417,6 +418,7 @@ export default function Studio() {
           // deck in a storm while the owner edits. The viewer already holds the
           // offloaded (server-shape) doc, so a signature compare is exact.
           if (docSig(data.doc) === docSig(ownerDocRef.current)) return;
+          breadcrumb("viewer-pull:loadDoc");
           dispatch({ type: "loadDoc", doc: data.doc });
         })
         .catch(() => {});
@@ -446,6 +448,7 @@ export default function Studio() {
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           if (!data || !data.doc || ownerEditRef.current) return;
+          breadcrumb("owner-pull:fetched");
           // Skip our OWN save echoing back through the pulse. The fetched doc is the
           // offloaded (server-shape) doc; compare it — key-order-independent — against
           // the offloaded doc this tab last saved. Equal → it's my echo, do nothing.
@@ -453,6 +456,7 @@ export default function Studio() {
           // rewrites data-URLs to Storage URLs, which drove an infinite loop.)
           if (docSig(data.doc) === lastSavedSigRef.current) return;
           if (docSig(data.doc) === docSig(ownerDocRef.current)) return; // already in sync
+          breadcrumb("owner-pull:loadDoc");
           dispatch({ type: "loadDoc", doc: data.doc });
         })
         .catch(() => {});
@@ -499,6 +503,7 @@ export default function Studio() {
   // viewing a shared link — a watcher must not write the deck into their account.
   useEffect(() => {
     if (!cloud || !user || screen !== "editor" || sharedView) return undefined;
+    breadcrumb("autosave:schedule");
     setSaveState("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
@@ -1102,7 +1107,7 @@ export default function Studio() {
               const sh = state.doc.share || { link: "none", token: null };
               const url = typeof window !== "undefined" ? shareUrl(window.location.origin, projectId, sh) : null;
               const newToken = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
-              const setLevel = (level) => dispatch({ type: "setShare", share: buildShare(sh, level, sh.token ? undefined : newToken()) });
+              const setLevel = (level) => { breadcrumb("share:enable " + level); dispatch({ type: "setShare", share: buildShare(sh, level, sh.token ? undefined : newToken()) }); };
               const rotate = () => dispatch({ type: "setShare", share: buildShare(sh, sh.link === "none" ? "view" : sh.link, newToken()) });
               return (
                 <>

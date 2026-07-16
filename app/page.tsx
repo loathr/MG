@@ -1,5 +1,6 @@
 import Studio from "./studio/Studio";
 import AuthGate from "./studio/AuthGate";
+import CrashBanner from "./studio/CrashBanner";
 
 // The domain root IS the Studio now (the old monolith it used to render lives on
 // in `app/components/LoathrMediaGenerator.jsx` and the `monolith-archive` branch,
@@ -10,8 +11,11 @@ export const metadata = { title: "Loathr Studio" };
 
 export default function Home() {
   return (
-    <AuthGate>
-      <Studio />
-    </AuthGate>
+    <>
+      <CrashBanner />
+      <AuthGate>
+        <Studio />
+      </AuthGate>
+    </>
   );
 }
