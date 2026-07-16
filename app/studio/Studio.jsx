@@ -238,13 +238,7 @@ export default function Studio() {
   const fcAbort = useRef(null);  // AbortController for the in-flight fact-check
   const coAbort = useRef(null);  // AbortController for the in-flight coherence check
   const dragFrom = useRef(null); // slide index being drag-reordered in the strip
-  const ownerDocRef = useRef(null); // latest doc/editing for the owner live-refresh pulse callback
-  const ownerEditRef = useRef(null);
-  // Signature of the offloaded doc THIS tab last autosaved. The owner subscribes to
-  // its own deck's sharePulse (bumped by its own save), so the refresh callback must
-  // recognise its own echo and skip it — otherwise pull → loadDoc → save → pulse →
-  // pull loops forever and the browser kills the tab. See docSig / docsig.js.
-  const lastSavedSigRef = useRef(null);
+  const ownerDocRef = useRef(null); // latest doc, for the read-only viewer's change check
   const slide = state.doc.slides[state.slideIndex];
   const selectedEl = slide && (slide.elements || []).find((e) => e.id === state.selectedId);
   const selectedIsText = !!(selectedEl && selectedEl.type === "text");
@@ -428,42 +422,18 @@ export default function Studio() {
     return () => { unsub(); clearInterval(id); };
   }, [sharedView, sharedEdit]);
 
-  // Owner live-refresh: when THIS deck is shared for EDIT, a shared editor's save
-  // bumps sharePulse — pull their change in so the owner sees it WITHOUT reloading.
-  // (Live op-sync already converges an actively-connected owner; this is the fallback
-  // that also reconciles the authoritative doc.) Guarded two ways: never while the
-  // owner is mid-edit (would clobber their in-progress change), and only when the
-  // fetched doc actually DIFFERS — so op-sync convergence or the owner's own save
-  // never causes a jarring reload. Refs feed the pulse callback the latest state
-  // (the subscription binds once). Whole-doc, last-writer-wins, matching writeShared.
-  ownerDocRef.current = state.doc;
-  ownerEditRef.current = state.editingId;
-  useEffect(() => {
-    const share = state.doc.share || {};
-    const on = cloud && !!user && screen === "editor" && !sharedView && !!projectId && share.link === "edit" && !!share.token;
-    if (!on) return undefined;
-    const pull = () => {
-      if (ownerEditRef.current) return;                 // don't clobber an in-progress edit
-      fetch("/api/shared?deck=" + encodeURIComponent(projectId) + "&s=" + encodeURIComponent(share.token))
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => {
-          if (!data || !data.doc || ownerEditRef.current) return;
-          breadcrumb("owner-pull:fetched");
-          // Skip our OWN save echoing back through the pulse. The fetched doc is the
-          // offloaded (server-shape) doc; compare it — key-order-independent — against
-          // the offloaded doc this tab last saved. Equal → it's my echo, do nothing.
-          // (A raw compare against the in-memory doc never matched, because offload
-          // rewrites data-URLs to Storage URLs, which drove an infinite loop.)
-          if (docSig(data.doc) === lastSavedSigRef.current) return;
-          if (docSig(data.doc) === docSig(ownerDocRef.current)) return; // already in sync
-          breadcrumb("owner-pull:loadDoc");
-          dispatch({ type: "loadDoc", doc: data.doc });
-        })
-        .catch(() => {});
-    };
-    const unsub = watchSharePulse(projectId, pull);
-    return () => unsub();
-  }, [cloud, user, screen, sharedView, projectId, state.doc.share && state.doc.share.link, state.doc.share && state.doc.share.token]);
+  // The owner's editor is AUTHORITATIVE and is never overwritten by a background
+  // re-fetch. There used to be an "owner live-refresh" here that, when the deck was
+  // shared for edit, subscribed to its own sharePulse and re-loaded the whole doc on
+  // every bump. That was the source of two failures: (1) the tab-killing loop — the
+  // owner's own autosave bumps the pulse, so it re-loaded → changed the doc →
+  // autosaved → bumped → re-loaded, unbounded, until the browser reaped the tab
+  // ("This page couldn't load"); and (2) reverting live edits — a full loadDoc landed
+  // a stale server copy over the text you were typing. No guard on a whole-doc reload
+  // is safe against an actively-edited document, so it's gone. A shared editor's
+  // changes still reach the owner LIVE through op-sync (useSync → applyRemote), which
+  // merges ops and shields the element you're editing — never a wholesale reload.
+  ownerDocRef.current = state.doc; // latest doc for the read-only viewer's change check
 
   // Shared-edit autosave: an EDIT-link editor persists changes back to the owner's
   // deck through the token (debounced), bumping the pulse so the owner's other
@@ -507,12 +477,7 @@ export default function Studio() {
     setSaveState("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      saveDeck(user.uid, projectId, state.doc, {
-        name: projectName, now: Date.now(), onUploading: () => setSaveState("uploading"),
-        // Record what we actually persisted (offloaded, server-shape) so the owner
-        // live-refresh can recognise this save's pulse-echo and not reload on it.
-        onSaved: (storedDoc) => { lastSavedSigRef.current = docSig(storedDoc); },
-      })
+      saveDeck(user.uid, projectId, state.doc, { name: projectName, now: Date.now(), onUploading: () => setSaveState("uploading") })
         .then((id) => { if (id && !projectId) setProjectId(id); setSavedAt(Date.now()); setSaveState("saved"); })
         .catch(() => setSaveState("idle"));
     }, 1200);

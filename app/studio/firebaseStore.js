@@ -74,10 +74,6 @@ export async function saveDeck(uid, id, doc, opts) {
   breadcrumb("saveDeck:start images=" + collectImageData(doc).length);
   if (o.onUploading && collectImageData(doc).length) o.onUploading();
   const stored = await uploadDeckImages(uid, ref.id, doc);
-  // Hand the caller the offloaded (server-shape) doc BEFORE the pulse bump below, so
-  // an owner subscribed to its own sharePulse can record this save's signature and
-  // skip the echo it's about to receive (see Studio.jsx owner live-refresh).
-  if (o.onSaved) { try { o.onSaved(stored); } catch (e) { /* diagnostic only */ } }
   const rec = projectRecord(stored, Object.assign({ id: ref.id }, o));
   await fs.setDoc(ref, rec, { merge: true });
   // Maintain the top-level shares/{deckId} index so a share link (deck id + token,
