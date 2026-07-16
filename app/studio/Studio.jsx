@@ -8,6 +8,7 @@ import { FONT_OPTIONS, CLIENT_FONT_OPTIONS } from "./styles";
 import { generateCarousel, regenerateCaption } from "./generate";
 import { writeElementText } from "./aitext";
 import { setShare as buildShare, shareUrl } from "./sharing";
+import { docSig } from "./docsig";
 import { photosDemoDoc } from "./demo";
 import Artboard from "./Artboard";
 import Toolbar from "./Toolbar";
@@ -238,6 +239,11 @@ export default function Studio() {
   const dragFrom = useRef(null); // slide index being drag-reordered in the strip
   const ownerDocRef = useRef(null); // latest doc/editing for the owner live-refresh pulse callback
   const ownerEditRef = useRef(null);
+  // Signature of the offloaded doc THIS tab last autosaved. The owner subscribes to
+  // its own deck's sharePulse (bumped by its own save), so the refresh callback must
+  // recognise its own echo and skip it — otherwise pull → loadDoc → save → pulse →
+  // pull loops forever and the browser kills the tab. See docSig / docsig.js.
+  const lastSavedSigRef = useRef(null);
   const slide = state.doc.slides[state.slideIndex];
   const selectedEl = slide && (slide.elements || []).find((e) => e.id === state.selectedId);
   const selectedIsText = !!(selectedEl && selectedEl.type === "text");
@@ -431,7 +437,13 @@ export default function Studio() {
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           if (!data || !data.doc || ownerEditRef.current) return;
-          if (JSON.stringify(data.doc) === JSON.stringify(ownerDocRef.current)) return; // already in sync
+          // Skip our OWN save echoing back through the pulse. The fetched doc is the
+          // offloaded (server-shape) doc; compare it — key-order-independent — against
+          // the offloaded doc this tab last saved. Equal → it's my echo, do nothing.
+          // (A raw compare against the in-memory doc never matched, because offload
+          // rewrites data-URLs to Storage URLs, which drove an infinite loop.)
+          if (docSig(data.doc) === lastSavedSigRef.current) return;
+          if (docSig(data.doc) === docSig(ownerDocRef.current)) return; // already in sync
           dispatch({ type: "loadDoc", doc: data.doc });
         })
         .catch(() => {});
@@ -481,7 +493,12 @@ export default function Studio() {
     setSaveState("saving");
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      saveDeck(user.uid, projectId, state.doc, { name: projectName, now: Date.now(), onUploading: () => setSaveState("uploading") })
+      saveDeck(user.uid, projectId, state.doc, {
+        name: projectName, now: Date.now(), onUploading: () => setSaveState("uploading"),
+        // Record what we actually persisted (offloaded, server-shape) so the owner
+        // live-refresh can recognise this save's pulse-echo and not reload on it.
+        onSaved: (storedDoc) => { lastSavedSigRef.current = docSig(storedDoc); },
+      })
         .then((id) => { if (id && !projectId) setProjectId(id); setSavedAt(Date.now()); setSaveState("saved"); })
         .catch(() => setSaveState("idle"));
     }, 1200);
