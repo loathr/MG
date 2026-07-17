@@ -47,7 +47,7 @@ import {
   Type, Shapes, Image as ImageIcon, LayoutTemplate, Palette, Captions,
   Undo2, Redo2, RotateCcw, RotateCw, ShieldCheck, Share2, Download,
   ChevronDown, ChevronRight, CornerDownLeft, Eye, Workflow, Copy, Check,
-  ClipboardPaste, CopyPlus,
+  ClipboardPaste, CopyPlus, X,
 } from "lucide-react";
 
 const hbtn = {
