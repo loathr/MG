@@ -12,6 +12,7 @@ import { useEffect, useRef } from "react";
 import { uid } from "./model";
 import { diffDocs, applyOps } from "./sync";
 import { publishEdits, watchEdits } from "./firebaseStore";
+import { breadcrumb } from "./crashlog";
 
 export function useSync({ deckId, doc, dispatch, editingId, enabled }) {
   const sessionId = useRef(null);
@@ -30,7 +31,15 @@ export function useSync({ deckId, doc, dispatch, editingId, enabled }) {
   const applyRemote = useRef(() => {});
   applyRemote.current = (ops) => {
     const held = editingRef.current ? [editingRef.current] : [];
-    lastSynced.current = applyOps(docRef.current, ops, { held });
+    // Predict the reducer's result AND advance docRef, so a burst of batches (one
+    // onSnapshot can deliver several, all synchronously before React re-renders)
+    // predicts off the running result instead of the stale doc. Without this the
+    // prediction misses earlier batches, the publish effect re-broadcasts them, and
+    // two editors echo the ops back and forth forever (runaway autosave → tab dies).
+    const next = applyOps(docRef.current, ops, { held });
+    lastSynced.current = next;
+    docRef.current = next;
+    breadcrumb("sync:apply n=" + ops.length);
     dispatch({ type: "applyRemote", ops, held });
   };
 
@@ -42,7 +51,7 @@ export function useSync({ deckId, doc, dispatch, editingId, enabled }) {
     const base = lastSynced.current;
     lastSynced.current = doc;
     const ops = base ? diffDocs(base, doc) : [];
-    if (ops.length) publishEdits(deckId, sessionId.current, ops);
+    if (ops.length) { breadcrumb("sync:publish n=" + ops.length); publishEdits(deckId, sessionId.current, ops); }
   }, [on, doc, deckId]);
 
   // Subscribe to peers' batches.

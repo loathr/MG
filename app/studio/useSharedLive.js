@@ -13,6 +13,7 @@ import { uid } from "./model";
 import { livePeers } from "./presence";
 import { diffDocs, applyOps } from "./sync";
 import { sharedIdentity, collectOps, pollDelay } from "./livesync";
+import { breadcrumb } from "./crashlog";
 
 const TTL = 15000;         // a peer with no heartbeat for this long is "gone"
 const HEARTBEAT_MS = 4000; // force a presence write at least this often (liveness)
@@ -46,7 +47,12 @@ export function useSharedLive({ deckId, token, doc, dispatch, editingId, enabled
   const applyRemote = useRef(() => {});
   applyRemote.current = (ops) => {
     const held = editingRef.current ? [editingRef.current] : [];
-    lastSynced.current = applyOps(docRef.current, ops, { held });
+    // Advance the predictor as we apply (see useSync) so back-to-back batches don't
+    // desync lastSynced and cause the ops to echo back to the owner in a loop.
+    const next = applyOps(docRef.current, ops, { held });
+    lastSynced.current = next;
+    docRef.current = next;
+    breadcrumb("live:apply n=" + ops.length);
     dispatch({ type: "applyRemote", ops, held });
   };
 
@@ -74,6 +80,7 @@ export function useSharedLive({ deckId, token, doc, dispatch, editingId, enabled
       const base = lastSynced.current;
       lastSynced.current = docRef.current;
       const ops = base ? diffDocs(base, docRef.current) : [];
+      if (ops.length) breadcrumb("live:publish n=" + ops.length);
 
       try {
         const res = await fetch("/api/shared/live?deck=" + encodeURIComponent(deckId) + "&s=" + encodeURIComponent(token), {

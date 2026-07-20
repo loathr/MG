@@ -99,3 +99,42 @@ test("applyOps ignores unknown op types (forward-compat) and empty ops", () => {
   assert.deepEqual(applyOps(d, [{ t: "future.thing", foo: 1 }]).slides, d.slides);
   assert.equal(applyOps(d, []), d);
 });
+
+// --- echo-suppression convergence (the multi-batch loop fix) ---------------
+// The runaway that killed the owner tab when a second editor connected: a burst
+// of remote batches predicted off a stale doc, so the publish effect re-broadcast
+// them and the two peers echoed forever. These guard the property the fix relies on.
+
+test("no echo: applying a peer diff then re-diffing against the target yields []", () => {
+  const a = doc([slide("s1", [el("e1", 0)])]);
+  const b = doc([slide("s1", [{ ...el("e1", 0), content: "edited" }])]);
+  const ops = diffDocs(a, b);
+  const applied = applyOps(a, ops, {});
+  assert.deepEqual(applied.slides, b.slides);        // peer converged to b
+  assert.deepEqual(diffDocs(applied, b), []);         // ...and has nothing to re-broadcast
+});
+
+test("no echo: back-to-back batches predicted off the RUNNING doc match the reducer (no re-broadcast)", () => {
+  const base = doc([slide("s1", [el("e1", 0)])]);
+  const d1 = doc([slide("s1", [{ ...el("e1", 0), content: "b" }])]);
+  const d2 = doc([slide("s1", [{ ...el("e1", 0), content: "b" }, el("e2", 50)])]);
+  const ops1 = diffDocs(base, d1);
+  const ops2 = diffDocs(d1, d2);
+  // The fix advances the predictor as each batch applies: applyOps(applyOps(base,ops1),ops2).
+  const predicted = applyOps(applyOps(base, ops1, {}), ops2, {});
+  assert.deepEqual(predicted.slides, d2.slides);
+  assert.deepEqual(diffDocs(predicted, d2), []);      // matches target → publish effect broadcasts nothing
+});
+
+test("stale-predictor reproduction: predicting off the BASE (old bug) leaves a spurious diff", () => {
+  // Demonstrates why the bug echoed: predicting only the LAST batch off the stale
+  // base misses ops1, so a diff against the real result is non-empty (a re-broadcast).
+  const base = doc([slide("s1", [el("e1", 0)])]);
+  const d1 = doc([slide("s1", [{ ...el("e1", 0), content: "b" }])]);
+  const d2 = doc([slide("s1", [{ ...el("e1", 0), content: "b" }, el("e2", 50)])]);
+  const ops1 = diffDocs(base, d1);
+  const ops2 = diffDocs(d1, d2);
+  const realResult = applyOps(applyOps(base, ops1, {}), ops2, {});
+  const stalePrediction = applyOps(base, ops2, {});   // old bug: only last batch, off stale base
+  assert.notDeepEqual(diffDocs(stalePrediction, realResult), []); // <-- the spurious re-broadcast
+});
