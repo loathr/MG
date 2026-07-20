@@ -16,6 +16,11 @@ const idsOf = (arr) => (arr || []).map((x) => x.id);
 const sameOrder = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
+// Deck-level fields (NOT slides) that should still reach collaborators: uploaded
+// fonts, brand/theme, the caption. Deliberately EXCLUDES `share` (owner-only config
+// a shared editor must not broadcast) and `slides` (diffed element-by-element above).
+const SYNCED_META = ["fonts", "brand", "brandMode", "clientBrand", "caption"];
+
 // Shallow per-field diff of two elements (same id): { field: newValue } for every
 // key whose value changed, plus removed keys mapped to null. Returns null if equal.
 function elementPatch(prev, next) {
@@ -71,6 +76,16 @@ export function diffDocs(prev, next) {
     const ePrevSurv = pe.filter((e) => neById.has(e.id)).map((e) => e.id);
     if (!sameOrder(eSurv, ePrevSurv)) ops.push({ t: "els.order", slide: s.id, ids: idsOf(ne) });
   }
+
+  // Deck-level fields (fonts, brand, caption…) — send the ones that changed as a
+  // single meta patch. A removed field travels as null so applyOps can drop it.
+  const meta = {};
+  let metaChanged = false;
+  for (const k of SYNCED_META) {
+    if (!eq(prev[k], next[k])) { meta[k] = next[k] === undefined ? null : next[k]; metaChanged = true; }
+  }
+  if (metaChanged) ops.push({ t: "doc.meta", meta });
+
   return ops;
 }
 
@@ -92,6 +107,7 @@ export function applyOps(doc, ops, opts) {
   if (!doc || !ops || !ops.length) return doc;
   const held = new Set((opts && opts.held) || []);
   let slides = (doc.slides || []).map((s) => s);           // shallow clone of the list
+  let meta = null;                                          // accumulated deck-level field patch
   const idx = (id) => slides.findIndex((s) => s.id === id);
   const patchSlide = (id, fn) => { const i = idx(id); if (i >= 0) slides[i] = fn(slides[i]); };
 
@@ -138,9 +154,16 @@ export function applyOps(doc, ops, opts) {
       case "els.order":
         patchSlide(op.slide, (s) => Object.assign({}, s, { elements: reorderById(s.elements || [], op.ids || []) }));
         break;
+      case "doc.meta":
+        if (op.meta) meta = Object.assign(meta || {}, op.meta);
+        break;
       default:
         break;                                             // ignore unknown ops (forward-compat)
     }
   }
-  return Object.assign({}, doc, { slides });
+  const out = Object.assign({}, doc, { slides });
+  if (meta) {                                              // apply deck-level fields; null = drop
+    for (const k of Object.keys(meta)) { if (meta[k] === null) delete out[k]; else out[k] = meta[k]; }
+  }
+  return out;
 }

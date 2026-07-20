@@ -138,3 +138,38 @@ test("stale-predictor reproduction: predicting off the BASE (old bug) leaves a s
   const stalePrediction = applyOps(base, ops2, {});   // old bug: only last batch, off stale base
   assert.notDeepEqual(diffDocs(stalePrediction, realResult), []); // <-- the spurious re-broadcast
 });
+
+// --- deck-level field sync (fonts/brand/caption transfer to collaborators) --
+
+test("deck-level sync: an uploaded font travels to peers via a doc.meta op", () => {
+  const a = doc([slide("s1", [el("e1", 0)])]);
+  const b = { ...a, fonts: [{ id: "f1", name: "Bricolage", family: "upl-f1", dataUrl: "data:font/woff2;base64,AAAA" }] };
+  const ops = diffDocs(a, b);
+  assert.ok(ops.some((o) => o.t === "doc.meta"), "should emit a doc.meta op for fonts");
+  assert.deepEqual(applyOps(a, ops, {}).fonts, b.fonts);
+});
+
+test("deck-level sync: round-trip convergence includes fonts, brand, caption", () => {
+  const a = doc([slide("s1", [el("e1", 0)])]);
+  const b = { ...a, fonts: [{ id: "f1", family: "upl-f1" }], caption: "hello", brand: { accent: "#e23744" } };
+  assert.deepEqual(applyOps(a, diffDocs(a, b), {}), b);
+  assert.deepEqual(diffDocs(applyOps(a, diffDocs(a, b), {}), b), []); // no echo
+});
+
+test("deck-level sync: a removed field travels as null and is dropped", () => {
+  const a = { ...doc([slide("s1", [])]), caption: "x" };
+  const b = doc([slide("s1", [])]);
+  assert.equal("caption" in applyOps(a, diffDocs(a, b), {}), false);
+});
+
+test("deck-level sync: `share` is NEVER broadcast (owner-only config)", () => {
+  const a = doc([slide("s1", [])]);
+  const b = { ...a, share: { link: "edit", token: "t" } };
+  assert.deepEqual(diffDocs(a, b), []); // nothing to send — share is excluded
+});
+
+test("deck-level sync: slide edits and meta apply together", () => {
+  const a = doc([slide("s1", [el("e1", 0)])]);
+  const b = { ...doc([slide("s1", [{ ...el("e1", 0), content: "edited" }])]), fonts: [{ id: "f1" }] };
+  assert.deepEqual(applyOps(a, diffDocs(a, b), {}), b);
+});
