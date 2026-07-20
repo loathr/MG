@@ -8,6 +8,7 @@
 // this module is SSR/build-safe (no top-level DOM access).
 // ============================================================================
 import { ARTBOARD_W, ARTBOARD_H, styledRuns, isUniformText, cropRect, elementPolygon } from "./model";
+import { isProxyableImageUrl, proxyImageUrl } from "./imgproxy";
 import { effectShadow } from "./textfx";
 import { makeZip } from "./zip";
 import {
@@ -19,13 +20,21 @@ import {
 function loadImage(src) {
   return new Promise((resolve) => {
     if (!src) { resolve(null); return; }
-    const img = new Image();
-    // Needed so the photo doesn't taint the canvas (toBlob would throw).
-    // Unsplash/Pexels/Pixabay/picsum all send Access-Control-Allow-Origin: *.
-    img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = src;
+    // Try the photo directly first (fast path; Unsplash/Pexels/Pixabay/picsum/Storage
+    // all send Access-Control-Allow-Origin, so they load crossOrigin and don't taint).
+    // If a host DOESN'T send CORS the direct load errors — retry through our own
+    // origin (/api/img) so the export includes the photo instead of a blank box.
+    const attempt = (url, retried) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous"; // safe: proxied response is same-origin, direct needs it
+      img.onload = () => resolve(img);
+      img.onerror = () => {
+        if (!retried && isProxyableImageUrl(src)) attempt(proxyImageUrl(src), true);
+        else resolve(null);
+      };
+      img.src = url;
+    };
+    attempt(src, false);
   });
 }
 
