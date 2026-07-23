@@ -93,6 +93,21 @@ export function cssForOverride(s) {
   return d.join(";");
 }
 
+// content + runs → editable innerHTML, WITH a whole-box highlight wrapper when the
+// element carries a base `textBg` (an element-level highlight, not a run). The
+// wrapper has NO data-run attr, so domToContentRuns ignores it on read-back — the
+// base highlight stays on the element, never leaking into the runs. This mirrors
+// how RichText folds textBg into the run base, so a box-wide highlight previews
+// live while editing and survives a per-run restyle (which re-seeds this HTML).
+export function editableHtml(content, runs, base) {
+  const inner = runsToHtml(content, runs);
+  if (base && base.bg) {
+    const css = cssObjToStr(hlCss(base.bg, base.bgStyle, base.color));
+    return "<span data-basehl style=\"" + escAttr(css) + "\">" + inner + "</span>";
+  }
+  return inner;
+}
+
 // content + runs → HTML for the contentEditable. Plain segments are bare text
 // (newlines preserved for pre-wrap); styled segments are <span data-run='{json}'>
 // so reading the DOM back recovers the exact override. Pure (no DOM).

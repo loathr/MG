@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { runsToHtml, domToContentRuns, cssForOverride } from "../app/studio/richedit";
+import { runsToHtml, editableHtml, domToContentRuns, cssForOverride } from "../app/studio/richedit";
 
 // --- tiny fake-DOM helpers (no jsdom in this project) -----------------------
 const textNode = (v) => ({ nodeType: 3, nodeValue: v, childNodes: [] });
@@ -141,4 +141,24 @@ test("domToContentRuns: unparseable data-run is ignored, text still recovered", 
   const { text, runs } = domToContentRuns(tree);
   assert.equal(text, "hi");
   assert.deepEqual(runs, []);
+});
+
+// --- editableHtml: the whole-box highlight wrapper (live-preview while editing) ---
+
+test("editableHtml: no base highlight is byte-identical to runsToHtml", () => {
+  assert.equal(editableHtml("Hi", [], null), runsToHtml("Hi", []));
+  assert.equal(editableHtml("Hi", [], { bg: null }), runsToHtml("Hi", []));
+});
+
+test("editableHtml: a box-wide highlight wraps content in a data-basehl span, never a run", () => {
+  const html = editableHtml("Hi", [], { bg: "#ffd34e", bgStyle: "pill", color: "#111" });
+  assert.match(html, /^<span data-basehl style="[^"]*">Hi<\/span>$/);
+  assert.doesNotMatch(html, /data-run/); // element-level highlight is not a per-run override
+});
+
+test("editableHtml: the base-highlight wrapper does NOT leak into runs on read-back", () => {
+  const html = editableHtml("Hello", [], { bg: "#e2473e", bgStyle: "band", color: "#fff" });
+  const { text, runs } = domToContentRuns(parseEditorHtml(html));
+  assert.equal(text, "Hello");
+  assert.equal(runs.length, 0); // the wrapper carries no data-run, so it's invisible to the model
 });

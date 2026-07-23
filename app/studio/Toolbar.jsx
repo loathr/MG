@@ -27,7 +27,7 @@ function KindIcon({ type }) { const I = KIND_ICON[type] || Square; return <I siz
 // inline; denser ones (Position, Effects, Shape) open as dropdown popovers
 // anchored to the bar. Wired to the same reducer actions the Inspector used; a
 // selected text SPAN still routes colour/weight through the floating FormatBar.
-export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan, onClearSpan, cropping, siblings, onAiWrite, canPaste, fontOptions, onUploadFont }) {
+export default function Toolbar({ el, dispatch, editing, textSel, spanStyle, onStyleSpan, onClearSpan, cropping, siblings, onAiWrite, canPaste, fontOptions, onUploadFont }) {
   const [pop, setPop] = useState(null); // open popover: "position" | "effects" | "shape" | "crop" | "more" | "ai" | null
   const [bgBusy, setBgBusy] = useState(false);
   const [barW, setBarW] = useState(9999); // measured width → responsive overflow
@@ -53,6 +53,10 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
   }, []);
   const up = (patch) => el && dispatch({ type: "update", id: el.id, patch });
   const sel = (el && el.type === "text" && textSel && textSel.id === el.id && textSel.end > textSel.start) ? textSel : null;
+  // Keep the editor focused when an effect button is clicked while a text box is
+  // being edited (with or without a sub-selection), so a whole-box effect applies
+  // live and editing continues instead of the click blurring and ending the edit.
+  const keepEdit = !!sel || !!(el && el.type === "text" && editing);
   const setStyle = (patch) => { if (sel && onStyleSpan) onStyleSpan(patch); else up(patch); };
   const toggle = (name) => setPop((p) => (p === name ? null : name));
 
@@ -101,20 +105,20 @@ export default function Toolbar({ el, dispatch, textSel, spanStyle, onStyleSpan,
           <ColorBtn title="Text colour" value={textColor} onChange={(v) => setStyle({ color: v })} glyph={<span style={{ fontWeight: 800, borderBottom: "3px solid " + (textColor || "#fff"), lineHeight: 1 }}>A</span>} />
           <Sep />
           <Seg>
-            <SegBtn on={bold} sel={!!sel} onMouseDown={sel ? hold : undefined} onClick={() => setStyle(sel ? { bold: !bold } : { fontWeight: bold ? 400 : 700 })}><b>B</b></SegBtn>
-            <SegBtn on={italic} sel={!!sel} onMouseDown={sel ? hold : undefined} onClick={() => setStyle({ italic: !italic })}><i>I</i></SegBtn>
-            <SegBtn on={underline} sel={!!sel} onMouseDown={sel ? hold : undefined} onClick={() => setStyle({ underline: !underline })}><u>U</u></SegBtn>
-            <SegBtn on={strike} sel={!!sel} onMouseDown={sel ? hold : undefined} onClick={() => setStyle({ strike: !strike })}><s>S</s></SegBtn>
+            <SegBtn on={bold} sel={!!sel} onMouseDown={keepEdit ? hold : undefined} onClick={() => setStyle(sel ? { bold: !bold } : { fontWeight: bold ? 400 : 700 })}><b>B</b></SegBtn>
+            <SegBtn on={italic} sel={!!sel} onMouseDown={keepEdit ? hold : undefined} onClick={() => setStyle({ italic: !italic })}><i>I</i></SegBtn>
+            <SegBtn on={underline} sel={!!sel} onMouseDown={keepEdit ? hold : undefined} onClick={() => setStyle({ underline: !underline })}><u>U</u></SegBtn>
+            <SegBtn on={strike} sel={!!sel} onMouseDown={keepEdit ? hold : undefined} onClick={() => setStyle({ strike: !strike })}><s>S</s></SegBtn>
           </Seg>
           <Seg>
-            <SegBtn on={el.align === "left" || !el.align} onClick={() => up({ align: "left" })} title="Align left"><AlignLeft size={15} /></SegBtn>
-            <SegBtn on={el.align === "center"} onClick={() => up({ align: "center" })} title="Align center"><AlignCenter size={15} /></SegBtn>
-            <SegBtn on={el.align === "right"} onClick={() => up({ align: "right" })} title="Align right"><AlignRight size={15} /></SegBtn>
+            <SegBtn on={el.align === "left" || !el.align} onMouseDown={keepEdit ? hold : undefined} onClick={() => up({ align: "left" })} title="Align left"><AlignLeft size={15} /></SegBtn>
+            <SegBtn on={el.align === "center"} onMouseDown={keepEdit ? hold : undefined} onClick={() => up({ align: "center" })} title="Align center"><AlignCenter size={15} /></SegBtn>
+            <SegBtn on={el.align === "right"} onMouseDown={keepEdit ? hold : undefined} onClick={() => up({ align: "right" })} title="Align right"><AlignRight size={15} /></SegBtn>
           </Seg>
           <Sep />
           <ColorBtn title="Highlight" value={hl || "#ffd34e"} dim={!hl} onChange={(v) => setHl(v)}
             glyph={<span style={{ background: hl || "#ffd34e", color: "#101010", borderRadius: 3, padding: "0 3px", fontSize: 11, fontWeight: 700 }}>H</span>}
-            extra={<button style={miniClear} onMouseDown={sel ? hold : undefined} onClick={() => setHl(null)} title="No highlight"><Ban size={13} /></button>} />
+            extra={<button style={miniClear} onMouseDown={keepEdit ? hold : undefined} onClick={() => setHl(null)} title="No highlight"><Ban size={13} /></button>} />
           {onAiWrite && <><Sep /><button style={{ ...aiPill, ...(pop === "ai" ? aiPillOn : null) }} onClick={() => toggle("ai")} title="Write this text with AI"><Sparkles size={14} /> Write</button></>}
           {showEffects && <PopBtn label="Effects" open={pop === "effects"} onClick={() => toggle("effects")} />}
           {showShape && <PopBtn label="Shape" open={pop === "shape"} onClick={() => toggle("shape")} />}

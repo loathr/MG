@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 import { styledRuns, applyRunStyle, clearRunStyle } from "./model";
-import { selectionOffsets, runsToHtml, domToContentRuns, setCaret } from "./richedit";
+import { selectionOffsets, editableHtml, domToContentRuns, setCaret } from "./richedit";
 
 // The resolved style span covering character `idx` (drives the format bar /
 // Inspector active states), computed from the LIVE edited content+runs.
@@ -14,17 +14,25 @@ function spanStyleAt(el, idx) {
 
 // B1 · the live-preview editing surface. A rich contentEditable seeded from the
 // element's runs at edit start so existing styling shows WHILE editing (today it
-// renders plain until commit). It is wrapped in React.memo(() => true) below so
-// it NEVER re-renders — React stays out of its children and a store update can
-// never clobber the caret. We repaint only on an explicit style-apply (and
-// restore the caret by offset); plain typing is left fully native (no repaint
-// under the caret), which keeps the risky path off the hot keystroke path.
+// renders plain until commit). Its children (the styled spans) are managed
+// imperatively — React never owns them — so a store update can't clobber the caret.
+// The memo below (see bottom) lets it re-render ONLY when the element-level style
+// changes, so a WHOLE-BOX effect (colour/weight/italic/underline/strike/tracking/
+// shadow) lands on the container's style attribute LIVE while you keep editing;
+// React only patches that attribute and leaves the imperatively-set innerHTML and
+// caret untouched. Per-run styling still repaints via an explicit style-apply (and
+// restores the caret by offset); plain typing stays fully native.
 function RichEditable({ el, textStyle, onCommitText, onEndEdit, onTextSelect, onEditApi, onStyleApply }) {
   const editRef = useRef(null);
   const elRef = useRef(el);                 // element snapshot at edit start
   const pendingTextRef = useRef(el.content); // latest text/runs, tracked w/o re-render
   const pendingRunsRef = useRef(Array.isArray(el.runs) ? el.runs : []);
   const cancelledRef = useRef(false);
+  // The element-level (whole-box) highlight, refreshed every render so the wrapper
+  // it seeds into the editable stays live. Container-level looks (colour/weight/…)
+  // ride on `textStyle`; only the box highlight needs this wrapper (see editableHtml).
+  const baseRef = useRef(null);
+  baseRef.current = { bg: el.textBg || null, bgStyle: el.textBgStyle || null, color: el.color };
 
   // Read the edited DOM back to {text, runs}; fall back to plain text if the
   // markup is something the parser doesn't expect (never throws to the UI).
@@ -58,7 +66,7 @@ function RichEditable({ el, textStyle, onCommitText, onEndEdit, onTextSelect, on
     const next = clear ? clearRunStyle(text, runs, start, end) : applyRunStyle(text, runs, start, end, patch);
     pendingTextRef.current = text;
     pendingRunsRef.current = next;
-    node.innerHTML = runsToHtml(text, next);
+    node.innerHTML = editableHtml(text, next, baseRef.current);
     setCaret(node, start, end);
     if (onStyleApply) onStyleApply(elRef.current.id, text, next);
     reportSel();
@@ -70,7 +78,7 @@ function RichEditable({ el, textStyle, onCommitText, onEndEdit, onTextSelect, on
     if (!node) return;
     cancelledRef.current = false;
     // Seed the editable from the element's runs, then focus + caret to the end.
-    node.innerHTML = runsToHtml(el.content, el.runs) || "";
+    node.innerHTML = editableHtml(el.content, el.runs, baseRef.current) || "";
     node.focus();
     const sel = window.getSelection();
     const r = document.createRange();
@@ -96,6 +104,24 @@ function RichEditable({ el, textStyle, onCommitText, onEndEdit, onTextSelect, on
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A WHOLE-BOX highlight (or its colour) changed while editing: the container's
+  // style can't paint a per-line highlight, so re-lay the wrapper. Re-seed from the
+  // LIVE typed text (pending refs) — never el.content, which lags unsaved keystrokes
+  // — and restore the caret by offset. Skips the initial run (mount already seeded).
+  const firstBaseSync = useRef(true);
+  useEffect(() => {
+    if (firstBaseSync.current) { firstBaseSync.current = false; return; }
+    const node = editRef.current;
+    if (!node) return;
+    const off = selectionOffsets(node);
+    const { text, runs } = readDom(node);
+    pendingTextRef.current = text;
+    pendingRunsRef.current = runs;
+    node.innerHTML = editableHtml(text, runs, baseRef.current);
+    if (off) setCaret(node, off.start, off.end);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [el.textBg, el.textBgStyle, el.color]);
 
   return (
     <div
@@ -126,5 +152,9 @@ function RichEditable({ el, textStyle, onCommitText, onEndEdit, onTextSelect, on
   );
 }
 
-// Never re-render: props are captured at mount, the DOM is managed imperatively.
-export default React.memo(RichEditable, () => true);
+// Re-render ONLY when the element (and thus its container `textStyle`) changes, so
+// a whole-box style effect previews live. When `el` is unchanged — the hot path of
+// plain typing and per-run repaints — we skip the render entirely, keeping React
+// out of the imperatively-managed children and off the caret. (el identity carries
+// textStyle: Element recomputes it only when it itself re-renders on an el change.)
+export default React.memo(RichEditable, (a, b) => a.el === b.el);

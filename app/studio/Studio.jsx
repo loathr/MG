@@ -1240,6 +1240,7 @@ export default function Studio() {
           <Toolbar
             el={selectedEl}
             dispatch={dispatch}
+            editing={!!selectedEl && state.editingId === selectedEl.id}
             textSel={textSel}
             spanStyle={textSel ? textSel.style : null}
             onStyleSpan={styleSpan}
