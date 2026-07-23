@@ -1,5 +1,6 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
+import { Upload } from "lucide-react";
 import FontSelect from "./FontSelect";
 import { uid } from "./model";
 import { readFontFile, fontFileError, uploadedFontGroup, registerFont, registerDocFonts } from "./fonts";
@@ -17,7 +18,9 @@ const addAccent = { height: 28, padding: "0 11px", background: "#26262b", color:
 const logoBox = { width: 48, height: 48, flexShrink: 0, borderRadius: 9, border: "1.5px dashed #45454c", background: "#1a1a1e", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden", padding: 0 };
 const logoClear = { background: "none", border: "none", color: "#8a8a92", cursor: "pointer", fontSize: 11, padding: 0, textDecoration: "underline", textUnderlineOffset: 2 };
 const miniLbl = { fontSize: 9.5, letterSpacing: 0.5, textTransform: "uppercase", color: "#7c7c84", marginTop: 12, marginBottom: 6 };
-const fontUp = { width: "100%", height: 34, marginTop: 8, background: "#201a2e", color: "#cdbcff", border: "1px dashed #4a3a6e", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
+const fontUp = { width: "100%", minHeight: 66, marginTop: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, padding: "10px 8px", background: "#201a2e", color: "#cdbcff", border: "1.5px dashed #4a3a6e", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", textAlign: "center", transition: "border-color .12s, background .12s" };
+const fontUpHi = { borderColor: "#8b6fd6", background: "#28203a" };
+const fontUpSub = { fontSize: 10.5, color: "#8a7cae", fontWeight: 400 };
 const fontHint = { fontSize: 10, color: "#6f6f77", marginTop: 6, lineHeight: 1.45 };
 const errText = { fontSize: 11, color: "#ffb3a6", marginTop: 6, lineHeight: 1.4 };
 const fontItem = { display: "flex", alignItems: "center", gap: 8, background: "#26262b", border: "1px solid #34343c", borderRadius: 6, padding: "5px 6px 5px 9px" };
@@ -93,6 +96,7 @@ export default function ClientBrandFields({ cb, setCB, fontOptions, onAddImage }
   const imgRef = useRef(null);
   const [fontErr, setFontErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [fontDrag, setFontDrag] = useState(false);
 
   // Uploaded brand fonts sit at the top of every picker (Labels/Heading/Body).
   const uplGroup = uploadedFontGroup(cb.fonts);
@@ -183,9 +187,18 @@ export default function ClientBrandFields({ cb, setCB, fontOptions, onAddImage }
         <FontRow label="Heading" value={cb.headFont} options={fopts} onChange={(v) => setCB({ headFont: v })} />
         <FontRow label="Body" value={cb.bodyFont} options={fopts} onChange={(v) => setCB({ bodyFont: v })} />
       </div>
-      <button type="button" style={fontUp} disabled={busy} onClick={() => fontRef.current && fontRef.current.click()}>
-        {busy ? "Adding…" : "Upload a font…"}
-      </button>
+      <div
+        style={{ ...fontUp, ...(fontDrag ? fontUpHi : null) }}
+        onClick={() => fontRef.current && fontRef.current.click()}
+        onDragOver={(e) => { e.preventDefault(); if (!fontDrag) setFontDrag(true); }}
+        onDragLeave={(e) => { if (e.currentTarget === e.target) setFontDrag(false); }}
+        onDrop={(e) => { e.preventDefault(); setFontDrag(false); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; onFont(f); }}
+        title="Upload a font from your device"
+      >
+        <Upload size={15} style={{ color: fontDrag ? "#cdbcff" : "#8b7cb8" }} />
+        <span>{busy ? "Adding…" : "Upload a font"}</span>
+        <span style={fontUpSub}>Drag &amp; drop, or click</span>
+      </div>
       <input ref={fontRef} type="file" accept=".ttf,.otf,.woff,.woff2,font/*" style={{ display: "none" }}
         onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; onFont(f); }} />
       <div style={fontHint}>.ttf · .otf · .woff · .woff2 — up to 600 KB. Embedded in the deck so it exports.</div>

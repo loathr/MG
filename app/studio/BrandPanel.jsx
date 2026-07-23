@@ -6,7 +6,7 @@ import { uid } from "./model";
 import { brandFromStyle, EDITORIAL_PALETTES, paletteBrand, BRAND_FONT, FONT_OPTIONS, CLIENT_FONT_OPTIONS, FONT_PRESETS, activePresetId, STYLE_LIST } from "./styles";
 import { cautionFor } from "./categories";
 import { uploadedFontGroup, fontFamilyValue } from "./fonts";
-import { Link2, ChevronDown, ChevronRight } from "lucide-react";
+import { Link2, ChevronDown, ChevronRight, Upload } from "lucide-react";
 import FontSelect from "./FontSelect";
 import StylePreview from "./StylePreview";
 import ClientBrandFields from "./ClientBrandForm";
@@ -86,7 +86,9 @@ const disc = { width: "100%", display: "flex", alignItems: "center", gap: 8, hei
 const frow = { display: "flex", alignItems: "center", gap: 9, marginBottom: 8 };
 const frowK = { width: 56, flexShrink: 0, fontSize: 11, color: "#9a9a9a" };
 const lock = { fontSize: 10.5, color: "#b9b48a", background: "#22221b", border: "1px solid #3a3a2a", borderRadius: 6, padding: "7px 9px", lineHeight: 1.45, marginTop: 6 };
-const fontUpBtn = { width: "100%", height: 34, marginTop: 4, background: "#201a2e", color: "#cdbcff", border: "1px dashed #4a3a6e", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
+const fontUpBtn = { width: "100%", minHeight: 66, marginTop: 4, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, padding: "10px 8px", background: "#201a2e", color: "#cdbcff", border: "1.5px dashed #4a3a6e", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer", textAlign: "center", transition: "border-color .12s, background .12s" };
+const fontUpHi = { borderColor: "#8b6fd6", background: "#28203a" };
+const fontUpSub = { fontSize: 10.5, color: "#8a7cae", fontWeight: 400 };
 const fontHint = { fontSize: 10, color: "#6f6f77", marginTop: 6, lineHeight: 1.45 };
 const fontErrBox = { fontSize: 11, color: "#ffb3a6", background: "#2e1a1a", border: "1px solid #5a3030", borderRadius: 6, padding: "6px 8px", marginTop: 6, lineHeight: 1.4 };
 const fontList = { marginTop: 8, display: "flex", flexDirection: "column", gap: 4 };
@@ -143,22 +145,23 @@ function readLogoFile(file, cb) {
 export default function BrandPanel({ brand, category, family, slideFrame, onFamily, onApply, onLogo, onCaution, onFrame, onChrome, onResetAll, onClose, fonts, onUploadFont, onRemoveFont, member, brandMode, clientBrand, onBrandMode, onClientBrand, onAddImage }) {
   const [fontErr, setFontErr] = useState("");
   const [fontBusy, setFontBusy] = useState(false);
+  const [fontDrag, setFontDrag] = useState(false);
   const fontRef = useRef(null);
-  // Prepend the deck's uploaded fonts as a "Your fonts" group in every picker.
-  const upl = uploadedFontGroup(fonts);
-  const fontOptions = upl ? [upl].concat(FONT_OPTIONS) : FONT_OPTIONS;
-  // Client / guest branding uses the expanded standard faces (no proprietary loathr
-  // library) — plus any uploaded fonts on top.
-  const clientFontOptions = upl ? [upl].concat(CLIENT_FONT_OPTIONS) : CLIENT_FONT_OPTIONS;
-  const pickFont = async (e) => {
-    const f = e.target.files && e.target.files[0];
-    e.target.value = "";
+  // Shared upload path for both the file picker and drag-and-drop.
+  const uploadFont = async (f) => {
     if (!f || !onUploadFont) return;
     setFontErr(""); setFontBusy(true);
     const err = await onUploadFont(f);
     setFontBusy(false);
     if (err) setFontErr(err);
   };
+  // Prepend the deck's uploaded fonts as a "Your fonts" group in every picker.
+  const upl = uploadedFontGroup(fonts);
+  const fontOptions = upl ? [upl].concat(FONT_OPTIONS) : FONT_OPTIONS;
+  // Client / guest branding uses the expanded standard faces (no proprietary loathr
+  // library) — plus any uploaded fonts on top.
+  const clientFontOptions = upl ? [upl].concat(CLIENT_FONT_OPTIONS) : CLIENT_FONT_OPTIONS;
+  const pickFont = (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; uploadFont(f); };
   // Fill any missing fields from the editorial defaults so a swap always has a
   // known "previous" to remap from.
   const cur = Object.assign({}, brandFromStyle("editorial"), brand);
@@ -419,9 +422,18 @@ export default function BrandPanel({ brand, category, family, slideFrame, onFami
             up in all three pickers under "Your fonts". */}
         {onUploadFont && (
           <>
-            <button type="button" style={fontUpBtn} disabled={fontBusy} onClick={() => fontRef.current && fontRef.current.click()}>
-              {fontBusy ? "Adding…" : "Upload a font"}
-            </button>
+            <div
+              style={{ ...fontUpBtn, ...(fontDrag ? fontUpHi : null) }}
+              onClick={() => fontRef.current && fontRef.current.click()}
+              onDragOver={(e) => { e.preventDefault(); if (!fontDrag) setFontDrag(true); }}
+              onDragLeave={(e) => { if (e.currentTarget === e.target) setFontDrag(false); }}
+              onDrop={(e) => { e.preventDefault(); setFontDrag(false); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; uploadFont(f); }}
+              title="Upload a font from your device"
+            >
+              <Upload size={15} style={{ color: fontDrag ? "#cdbcff" : "#8b7cb8" }} />
+              <span>{fontBusy ? "Adding…" : "Upload a font"}</span>
+              <span style={fontUpSub}>Drag &amp; drop, or click</span>
+            </div>
             <input ref={fontRef} type="file" accept=".ttf,.otf,.woff,.woff2,font/*" style={{ display: "none" }} onChange={pickFont} />
             <div style={fontHint}>TTF · OTF · WOFF · WOFF2 · up to 600 KB. Stored with the deck; stamps into exports.</div>
             {fontErr ? <div style={fontErrBox}>{fontErr}</div> : null}
