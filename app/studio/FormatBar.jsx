@@ -2,7 +2,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { UI } from "./theme";
 import { barTop } from "./barlayout";
+import { HL_STYLES, normHlStyle, hlCss } from "./hlstyles";
 import { X } from "lucide-react";
+
+const STYLE_LABELS = { pill: "Pill", block: "Block", marker: "Marker", band: "Band", outline: "Outline" };
 
 const RECENT_KEY = "loathr.recentColors";
 
@@ -111,15 +114,34 @@ export default function FormatBar({ style, accent, rect, onStyle, onClear, onSiz
 
       {pop && (
         <div style={popStyle} onMouseDown={(e) => { if (e.target.tagName !== "INPUT") hold(e); }}>
-          <div style={popTitle}>{pop === "bg" ? "Highlight colour" : "Custom text colour"}</div>
+          <div style={popTitle}>{pop === "bg" ? "Highlight" : "Custom text colour"}</div>
           {pop === "bg" && (
-            <div style={{ display: "flex", gap: 6, marginBottom: 11 }}>
-              {HL_SWATCHES.map((c, i) => (
-                <button key={i} onMouseDown={hold} onClick={() => { apply(c); setHex(c); }} title={c} style={{ ...gsw, background: c }} />
-              ))}
-              <button onMouseDown={hold} onClick={() => { onStyle({ bg: null, color: null }); setPop(null); }} title="No highlight"
-                style={{ ...gsw, background: "#222", color: "#9a9a9a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⊘</button>
-            </div>
+            <>
+              {pop === "bg" && <div style={popSub}>Colour</div>}
+              <div style={{ display: "flex", gap: 6, marginBottom: 11 }}>
+                {HL_SWATCHES.map((c, i) => (
+                  <button key={i} onMouseDown={hold} onClick={() => { apply(c); setHex(c); }} title={c} style={{ ...gsw, background: c }} />
+                ))}
+                <button onMouseDown={hold} onClick={() => { onStyle({ bg: null, color: null }); setPop(null); }} title="No highlight"
+                  style={{ ...gsw, background: "#222", color: "#9a9a9a", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⊘</button>
+              </div>
+              <div style={popSub}>Style</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 5, marginBottom: 11 }}>
+                {HL_STYLES.map((st) => {
+                  const on = normHlStyle(s.bgStyle) === st;
+                  const prevBg = s.bg || normalizeHex(hex) || "#f4c542";
+                  return (
+                    <button key={st} onMouseDown={hold}
+                      onClick={() => onStyle({ bg: prevBg, bgStyle: st })}
+                      title={STYLE_LABELS[st]}
+                      style={{ border: on ? "1px solid " + (accent || "#e2473e") : "1px solid #2c2c32", boxShadow: on ? "0 0 0 1px " + (accent || "#e2473e") : "none", borderRadius: 7, background: "#161619", padding: "7px 0 4px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                      <span style={{ fontFamily: "Georgia, serif", fontWeight: 700, fontSize: 14, color: "#fff", lineHeight: 1, ...hlCss(prevBg, st, "#111") }}>Ab</span>
+                      <span style={{ fontSize: 8, color: "#8a8a92" }}>{STYLE_LABELS[st]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
           )}
           <div style={hexRow}>
             <span style={{ ...chip, background: normalizeHex(hex) || "#26262b" }} />
@@ -191,6 +213,7 @@ const popStyle = {
   boxShadow: "0 18px 40px rgba(0,0,0,0.6)", padding: 12,
 };
 const popTitle = { fontSize: 10, fontWeight: 700, letterSpacing: 1.1, color: "#7c7c84", textTransform: "uppercase", marginBottom: 9 };
+const popSub = { fontSize: 9.5, fontWeight: 700, letterSpacing: 0.6, color: "#6a6a72", textTransform: "uppercase", margin: "2px 0 7px" };
 const hexRow = { display: "flex", alignItems: "center", gap: 8, marginBottom: 11 };
 const chip = { width: 34, height: 34, borderRadius: 8, border: "1px solid #00000055", flexShrink: 0 };
 const hexField = { flex: 1, display: "flex", alignItems: "center", height: 34, background: "#26262b", border: "1px solid " + UI.select, borderRadius: 7, padding: "0 9px", gap: 2 };

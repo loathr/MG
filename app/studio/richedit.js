@@ -5,6 +5,16 @@
 // characters (the editor uses white-space: pre-wrap); <br> is one char.
 
 import { runSegments, overlayToRunsPublic } from "./model";
+import { hlCss } from "./hlstyles";
+
+// Serialise a React-style object (camelCase) to an inline CSS string (kebab-case),
+// so the contentEditable preview uses the EXACT same highlight CSS as RichText.
+function cssObjToStr(obj) {
+  return Object.keys(obj).map((k) => {
+    const prop = k.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/^Webkit/, "-webkit").toLowerCase();
+    return prop + ":" + obj[k];
+  }).join(";");
+}
 
 // (container, offset) from a DOM Range endpoint → flat character index in root.
 function pointToIndex(root, container, offset) {
@@ -68,18 +78,13 @@ export function cssForOverride(s) {
   if (s.bold != null) d.push("font-weight:" + (s.bold ? 700 : 400));
   if (s.italic != null) d.push("font-style:" + (s.italic ? "italic" : "normal"));
   if (s.size != null) d.push("font-size:" + s.size + "px");
-  if (s.strike) {
-    d.push("text-decoration-line:line-through");
+  if (s.strike || s.underline) {
+    d.push("text-decoration-line:" + [s.underline ? "underline" : "", s.strike ? "line-through" : ""].filter(Boolean).join(" "));
     d.push("text-decoration-color:" + (s.strikeColor || s.color || "currentColor"));
-    d.push("text-decoration-thickness:0.09em");
+    d.push("text-decoration-thickness:" + ((s.underline && !s.strike) ? "0.055em" : "0.09em"));
+    if (s.underline) { d.push("text-underline-offset:0.14em"); d.push("text-decoration-skip-ink:none"); }
   }
-  if (s.bg != null) {
-    d.push("background:" + s.bg);
-    d.push("padding:0 0.1em");
-    d.push("border-radius:3px");
-    d.push("-webkit-box-decoration-break:clone");
-    d.push("box-decoration-break:clone");
-  }
+  if (s.bg != null) d.push(cssObjToStr(hlCss(s.bg, s.bgStyle, s.color)));
   if (s.stroke != null && s.strokeWidth) {
     d.push("-webkit-text-stroke-width:" + s.strokeWidth + "px");
     d.push("-webkit-text-stroke-color:" + s.stroke);

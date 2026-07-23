@@ -335,7 +335,7 @@ export function highlightRuns(content, highlight) {
 
 // The style keys a run (or the element base) may carry. Booleans (bold/italic/
 // strike) are tri-state in a run: true / false / absent(inherit).
-export const RUN_STYLE_KEYS = ["color", "bold", "italic", "strike", "underline", "strikeColor", "bg", "stroke", "strokeWidth", "size"];
+export const RUN_STYLE_KEYS = ["color", "bold", "italic", "strike", "underline", "strikeColor", "bg", "bgStyle", "stroke", "strokeWidth", "size"];
 
 // Offsets of the first case-insensitive occurrence of `hl` in `text`, or null.
 export function highlightOffsets(text, hl) {
@@ -357,6 +357,7 @@ export function elementBaseStyle(el) {
     underline: !!e.underline,
     strikeColor: e.strikeColor || null,
     bg: e.textBg || null,
+    bgStyle: e.textBgStyle || null,
     stroke: e.textStroke || null,
     strokeWidth: e.textStrokeWidth || 0,
     fontSize: e.fontSize || 64,
@@ -382,13 +383,14 @@ function resolveStyle(base, ov) {
     underline: o.underline != null ? !!o.underline : base.underline,
     strikeColor: o.strikeColor != null ? o.strikeColor : (base.strikeColor || color),
     bg: o.bg != null ? o.bg : base.bg,
+    bgStyle: o.bgStyle != null ? o.bgStyle : base.bgStyle,
     stroke: o.stroke != null ? o.stroke : base.stroke,
     strokeWidth: o.strokeWidth != null ? o.strokeWidth : base.strokeWidth,
     fontSize: o.size != null ? o.size : base.fontSize,
   };
 }
 
-const styleKey = (s) => s.color + "|" + s.fontWeight + "|" + s.italic + "|" + s.strike + "|" + s.underline + "|" + (s.strikeColor || "") + "|" + (s.bg || "") + "|" + (s.stroke || "") + "|" + s.strokeWidth + "|" + s.fontSize;
+const styleKey = (s) => s.color + "|" + s.fontWeight + "|" + s.italic + "|" + s.strike + "|" + s.underline + "|" + (s.strikeColor || "") + "|" + (s.bg || "") + "|" + (s.bgStyle || "") + "|" + (s.stroke || "") + "|" + s.strokeWidth + "|" + s.fontSize;
 
 // Build the per-character override overlay for a text element: an array (length
 // = content length) of override objects (or null). Folds in the back-compat

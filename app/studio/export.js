@@ -9,6 +9,7 @@
 // ============================================================================
 import { ARTBOARD_W, ARTBOARD_H, styledRuns, isUniformText, cropRect, elementPolygon } from "./model";
 import { isProxyableImageUrl, proxyImageUrl } from "./imgproxy";
+import { hlSpec, normHlStyle } from "./hlstyles";
 import { effectShadow } from "./textfx";
 import { makeZip } from "./zip";
 import {
@@ -176,6 +177,31 @@ export function wrapRuns(ctx, runs, maxWidth, fontOf) {
 // derives from its LARGEST token's fontSize (B3 per-span size), and smaller tokens
 // are baseline-aligned within the line (mirroring the DOM, which aligns baselines,
 // not tops). With a uniform size this is identical to the old behaviour.
+// Draw a run's highlight in the chosen style, hugging the glyphs — mirrors hlCss so
+// the PNG matches the editor. `ty` is the token's top; the box is placed by fractions
+// of the font size (hlSpec). Filled (pill/block/marker), lower-band (highlighter), or
+// stroked (outline).
+function drawHighlight(ctx, color, style, x, ty, w, fs) {
+  const spec = hlSpec(style);
+  const padX = spec.padX * fs;
+  const bx = x - padX, bw = w + padX * 2;
+  const top = ty + spec.boxTop * fs, bh = spec.boxH * fs;
+  const r = Math.max(0, Math.min(spec.radius * fs, bw / 2, bh / 2));
+  ctx.save();
+  ctx.globalAlpha = spec.alpha;
+  if (spec.fill || spec.band) {
+    ctx.fillStyle = color;
+    if (r > 0) { roundRectPath(ctx, bx, top, bw, bh, r); ctx.fill(); }
+    else ctx.fillRect(bx, top, bw, bh);
+  } else if (spec.outline) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, spec.outline * fs);
+    if (r > 0) { roundRectPath(ctx, bx, top, bw, bh, r); ctx.stroke(); }
+    else ctx.strokeRect(bx, top, bw, bh);
+  }
+  ctx.restore();
+}
+
 function drawTokenLines(ctx, lines, fs, fontOf, lhFactor, align, boxLeft, boxW, startY) {
   let y = startY;
   for (const line of lines) {
@@ -190,14 +216,15 @@ function drawTokenLines(ctx, lines, fs, fontOf, lhFactor, align, boxLeft, boxW, 
       const ty = y + (lineFs - tokFs) * 0.8; // shift smaller tokens down so baselines line up
       ctx.font = fontOf(tok);
       const w = ctx.measureText(tok.text).width;
-      if (tok.bg) { ctx.fillStyle = tok.bg; ctx.fillRect(x - pad, y, w + pad * 2, lineLH); }
+      if (tok.bg) drawHighlight(ctx, tok.bg, tok.bgStyle, x, ty, w, tokFs);
       if (tok.stroke && tok.strokeWidth) {
         ctx.lineWidth = tok.strokeWidth;
         ctx.strokeStyle = tok.stroke;
         ctx.lineJoin = "round";
         ctx.strokeText(tok.text, x, ty);
       }
-      ctx.fillStyle = tok.color || "#ffffff";
+      // Outline highlight = coloured text in the highlight colour; else the run colour.
+      ctx.fillStyle = (tok.bg && normHlStyle(tok.bgStyle) === "outline") ? tok.bg : (tok.color || "#ffffff");
       ctx.fillText(tok.text, x, ty);
       if (tok.strike) {
         const th = Math.max(2, tokFs * 0.09);
@@ -205,9 +232,10 @@ function drawTokenLines(ctx, lines, fs, fontOf, lhFactor, align, boxLeft, boxW, 
         ctx.fillRect(x, ty + tokFs * 0.38 - th / 2, w, th);
       }
       if (tok.underline) {
-        const th = Math.max(2, tokFs * 0.07);
+        // Tight underline: thin, snug just below the baseline (matches RichText).
+        const th = Math.max(1.5, tokFs * 0.055);
         ctx.fillStyle = tok.strikeColor || tok.color || "#ffffff";
-        ctx.fillRect(x, ty + tokFs * 0.16, w, th);
+        ctx.fillRect(x, ty + tokFs * 0.92, w, th);
       }
       x += w;
     }
