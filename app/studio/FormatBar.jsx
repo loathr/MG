@@ -3,30 +3,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { UI } from "./theme";
 import { barTop } from "./barlayout";
 import { HL_STYLES, normHlStyle, hlCss } from "./hlstyles";
+import { normalizeHex, readRecents, pushRecent } from "./colors";
 import { X } from "lucide-react";
 
 const STYLE_LABELS = { pill: "Pill", block: "Block", marker: "Marker", band: "Band", outline: "Outline" };
-
-const RECENT_KEY = "loathr.recentColors";
-
-// Normalise a typed hex to "#rrggbb" (accepts "#rgb", "rrggbb", etc.) or null.
-function normalizeHex(v) {
-  if (!v) return null;
-  let h = String(v).trim().replace(/^#/, "");
-  if (/^[0-9a-fA-F]{3}$/.test(h)) h = h.split("").map((c) => c + c).join("");
-  if (/^[0-9a-fA-F]{6}$/.test(h)) return "#" + h.toLowerCase();
-  return null;
-}
-function readRecents() {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(window.localStorage.getItem(RECENT_KEY) || "[]").filter((c) => normalizeHex(c)); } catch (e) { return []; }
-}
-function pushRecent(hex) {
-  if (typeof window === "undefined" || !hex) return readRecents();
-  const next = [hex, ...readRecents().filter((c) => c.toLowerCase() !== hex.toLowerCase())].slice(0, 8);
-  try { window.localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch (e) { /* ignore */ }
-  return next;
-}
 
 // The floating format bar that appears above a text SELECTION while editing —
 // per-span colour (presets + a custom-hex popover), bold, italic, strike,

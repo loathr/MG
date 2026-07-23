@@ -2,6 +2,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { UI } from "./theme";
 import FontSelect from "./FontSelect";
+import ColorPopover from "./ColorPopover";
+import { normHlStyle } from "./hlstyles";
 import { FONT_OPTIONS } from "./styles";
 import { SHAPE_VARIANTS, shapePaint, shapeBorderW } from "./shapes";
 import { TEXT_EFFECTS } from "./textfx";
@@ -86,11 +88,16 @@ export default function Toolbar({ el, dispatch, editing, textSel, spanStyle, onS
   // bg:null + color:null run patch; on the WHOLE BOX it also strips every baked
   // highlight run (generated highlights fold into runs now, not the old `highlight`
   // marker) plus the legacy textBg/highlight fields for older decks.
-  const setHl = (v) => {
-    if (sel && onStyleSpan) onStyleSpan(v ? { bg: v } : { bg: null, color: null });
-    else if (v) up({ textBg: v });
-    else up({ textBg: null, highlight: null, highlightColor: null, highlightText: null, runs: clearHighlightRuns(el.runs) });
+  // v = colour (null clears); style = highlight shape (pill/block/…). A selection
+  // routes to the run (bg/bgStyle); the whole box keeps textBg/textBgStyle — both
+  // the renderers and the export read these, and the change previews live.
+  const setHl = (v, style) => {
+    const st = style || normHlStyle(el && el.textBgStyle);
+    if (sel && onStyleSpan) onStyleSpan(v ? { bg: v, bgStyle: st } : { bg: null, color: null });
+    else if (v) up({ textBg: v, textBgStyle: st });
+    else up({ textBg: null, textBgStyle: null, highlight: null, highlightColor: null, highlightText: null, runs: clearHighlightRuns(el.runs) });
   };
+  const hlStyle = el && el.type === "text" ? (sel ? normHlStyle(spanStyle && spanStyle.bgStyle) : normHlStyle(el.textBgStyle)) : "pill";
 
   return (
     <div ref={barRef} style={bar}>
@@ -102,7 +109,7 @@ export default function Toolbar({ el, dispatch, editing, textSel, spanStyle, onS
           <span style={{ width: 150 }}><FontSelect value={el.fontFamily} options={fontOptions || FONT_OPTIONS} onChange={(v) => up({ fontFamily: v })} title="Font (whole text)" onAddFont={onUploadFont ? () => fontRef.current && fontRef.current.click() : undefined} /></span>
           <input ref={fontRef} type="file" accept=".ttf,.otf,.woff,.woff2,font/*" style={{ display: "none" }} onChange={pickFontFile} />
           <Stepper value={Math.round(el.fontSize || 0)} onDelta={(d) => up({ fontSize: Math.max(6, (el.fontSize || 0) + d) })} onSet={(v) => up({ fontSize: Math.max(6, Math.min(400, v)) })} />
-          <ColorBtn title="Text colour" value={textColor} onChange={(v) => setStyle({ color: v })} glyph={<span style={{ fontWeight: 800, borderBottom: "3px solid " + (textColor || "#fff"), lineHeight: 1 }}>A</span>} />
+          <ColorPopover variant="text" title="Text colour" value={textColor} accent={UI.brand} onPick={(v) => setStyle({ color: v })} glyph={<span style={{ fontWeight: 800, borderBottom: "3px solid " + (textColor || "#fff"), lineHeight: 1 }}>A</span>} />
           <Sep />
           <Seg>
             <SegBtn on={bold} sel={!!sel} onMouseDown={keepEdit ? hold : undefined} onClick={() => setStyle(sel ? { bold: !bold } : { fontWeight: bold ? 400 : 700 })}><b>B</b></SegBtn>
@@ -116,9 +123,9 @@ export default function Toolbar({ el, dispatch, editing, textSel, spanStyle, onS
             <SegBtn on={el.align === "right"} onMouseDown={keepEdit ? hold : undefined} onClick={() => up({ align: "right" })} title="Align right"><AlignRight size={15} /></SegBtn>
           </Seg>
           <Sep />
-          <ColorBtn title="Highlight" value={hl || "#ffd34e"} dim={!hl} onChange={(v) => setHl(v)}
-            glyph={<span style={{ background: hl || "#ffd34e", color: "#101010", borderRadius: 3, padding: "0 3px", fontSize: 11, fontWeight: 700 }}>H</span>}
-            extra={<button style={miniClear} onMouseDown={keepEdit ? hold : undefined} onClick={() => setHl(null)} title="No highlight"><Ban size={13} /></button>} />
+          <ColorPopover variant="highlight" title="Highlight" value={hl || null} bgStyle={hlStyle} dim={!hl} accent={UI.brand}
+            onPick={(v) => setHl(v)} onPickStyle={(st) => setHl(hl || "#ffd34e", st)} onClear={() => setHl(null)}
+            glyph={<span style={{ background: hl || "#ffd34e", color: "#101010", borderRadius: 3, padding: "0 3px", fontSize: 11, fontWeight: 700 }}>H</span>} />
           {onAiWrite && <><Sep /><button style={{ ...aiPill, ...(pop === "ai" ? aiPillOn : null) }} onClick={() => toggle("ai")} title="Write this text with AI"><Sparkles size={14} /> Write</button></>}
           {showEffects && <PopBtn label="Effects" open={pop === "effects"} onClick={() => toggle("effects")} />}
           {showShape && <PopBtn label="Shape" open={pop === "shape"} onClick={() => toggle("shape")} />}
