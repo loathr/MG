@@ -23,6 +23,7 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
   const [pan, setPan] = useState({ x: 0, y: 0 });  // board offset from centre, CSS px
   const [spacePan, setSpacePan] = useState(false); // Space held → pan mode (cursor + intercept)
   const [guides, setGuides] = useState([]);
+  const [badges, setBadges] = useState([]);        // equal-spacing / distance badges while dragging
   const [dropping, setDropping] = useState(false); // a file is being dragged over
   const [marquee, setMarquee] = useState(null);    // rubber-band rect (artboard coords) or null
   const drag = useRef(null);
@@ -193,8 +194,9 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
       const nx = d.startEl.x + (p.x - d.start.x);
       const ny = d.startEl.y + (p.y - d.start.y);
       const box = { x: nx, y: ny, w: d.startEl.w, h: d.startEl.h };
-      const snapped = noSnap ? { x: nx, y: ny, guides: [] } : snapMove(box, { w: ARTBOARD_W, h: ARTBOARD_H }, d.siblings, 8);
+      const snapped = noSnap ? { x: nx, y: ny, guides: [], badges: [] } : snapMove(box, { w: ARTBOARD_W, h: ARTBOARD_H }, d.siblings, 8);
       setGuides(snapped.guides);
+      setBadges(snapped.badges || []);
       // "move" (not a plain x/y update) so any element tethered to this one (B6)
       // is dragged along by the same delta.
       dispatch({ type: "move", id: d.id, x: Math.round(snapped.x), y: Math.round(snapped.y), coalesce: true });
@@ -251,6 +253,7 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
     const d = drag.current;
     drag.current = null;
     setGuides([]);
+    setBadges([]);
     window.removeEventListener("pointermove", onWindowMove);
     window.removeEventListener("pointerup", endDrag);
     if (d && d.mode === "marquee") {
@@ -491,6 +494,10 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
           )}
         </div>
 
+        {/* Equal-spacing / distance badges (7b) — screen space so the labels stay a
+            constant, readable size at any zoom. Rendered above the board, click-through. */}
+        {badges.length > 0 && <SpacingBadges badges={badges} scale={scale} />}
+
         {/* Bleed "mat": a board-sized transparent box whose huge spread-shadow dims
             everything OUTSIDE the board (clipped by the container). It sits above the
             off-board element bleed but below the detach button and selection handles
@@ -662,6 +669,35 @@ const zbMenuItem = { display: "block", width: "100%", textAlign: "left", height:
 
 function roundBox(b) {
   return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.w), h: Math.round(b.h) };
+}
+
+// Equal-spacing / distance badges: a measurement line (with end caps) per gap and
+// a centred px label. Blue while measuring, pink when the two gaps are EQUAL (the
+// element is evenly distributed). Positions are artboard coords × scale; the line
+// caps and label are fixed px so they read the same at any zoom. Click-through.
+function SpacingBadges({ badges, scale }) {
+  const CAP = 7; // end-tick length, px
+  return (
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 23 }}>
+      {badges.map((b, i) => {
+        const color = b.equal ? "#ff2d9b" : "#3a86ff";
+        const x0 = b.x0 * scale, y0 = b.y0 * scale, x1 = b.x1 * scale, y1 = b.y1 * scale;
+        const horiz = Math.abs(y1 - y0) < 0.5;
+        const len = horiz ? Math.abs(x1 - x0) : Math.abs(y1 - y0);
+        const midX = (x0 + x1) / 2, midY = (y0 + y1) / 2;
+        return (
+          <React.Fragment key={i}>
+            <div style={{ position: "absolute", left: Math.min(x0, x1), top: Math.min(y0, y1), width: horiz ? len : 1, height: horiz ? 1 : len, background: color }} />
+            <div style={{ position: "absolute", left: x0 - (horiz ? 0 : CAP / 2), top: y0 - (horiz ? CAP / 2 : 0), width: horiz ? 1 : CAP, height: horiz ? CAP : 1, background: color }} />
+            <div style={{ position: "absolute", left: x1 - (horiz ? 0 : CAP / 2), top: y1 - (horiz ? CAP / 2 : 0), width: horiz ? 1 : CAP, height: horiz ? CAP : 1, background: color }} />
+            {len > 14 && (
+              <div style={{ position: "absolute", left: midX, top: midY, transform: "translate(-50%,-50%)", background: color, color: "#fff", fontSize: 10, fontWeight: 700, padding: "1px 5px", borderRadius: 4, whiteSpace: "nowrap", fontFamily: "Helvetica, Arial, sans-serif" }}>{Math.round(b.gap)}</div>
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
 }
 
 function SelectionOverlay({ el, scale, onHandleDown, cropMode }) {

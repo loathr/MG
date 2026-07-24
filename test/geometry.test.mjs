@@ -3,7 +3,7 @@
 // edge fixed, never below the minimum). Artboard-coordinate space; pure.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { snapMove, snapResize, scaleTextResize, imageCornerResize, wheelZoom, canvasFitScale, zoomPanToCursor, clampCanvasPan } from "../app/studio/geometry.js";
+import { snapMove, snapResize, scaleTextResize, imageCornerResize, wheelZoom, canvasFitScale, zoomPanToCursor, clampCanvasPan, distributionSnap } from "../app/studio/geometry.js";
 
 const ART = { w: 1080, h: 1350 };
 
@@ -177,4 +177,70 @@ test("clampCanvasPan: keeps at least `margin` px of the board on screen", () => 
   assert.equal(clamped.y, -((BOARD.h * scale) / 2 + VP.h / 2 - margin));
   // a small pan is untouched
   assert.deepEqual(clampCanvasPan(scale, { x: 10, y: -20 }, VP, BOARD, margin), { x: 10, y: -20 });
+});
+
+// --- equal-spacing distribution (7b) ---------------------------------------
+
+test("distributionSnap: box between two X-overlapping siblings snaps to equal gaps", () => {
+  const above = { x: 100, y: 0, w: 200, h: 100 };   // bottom = 100
+  const below = { x: 100, y: 500, w: 200, h: 100 };  // top = 500
+  // span = 400, box h = 80 → equal top = 100 + (400-80)/2 = 260. Start 6px off.
+  const box = { x: 100, y: 254, w: 200, h: 80 };
+  const r = distributionSnap(box, [above, below], 8);
+  assert.equal(r.y, 260, "snapped to the even position");
+  const gapTop = r.y - 100, gapBot = 500 - (r.y + 80);
+  assert.equal(gapTop, gapBot, "gaps equal");
+  assert.equal(r.badges.length, 2);
+  assert.ok(r.badges.every((b) => b.equal), "both badges flagged equal");
+  assert.equal(r.badges[0].gap, 160);
+});
+
+test("distributionSnap: too far from even → measured but not snapped, badges not equal", () => {
+  const above = { x: 100, y: 0, w: 200, h: 100 };
+  const below = { x: 100, y: 500, w: 200, h: 100 };
+  const box = { x: 100, y: 130, w: 200, h: 80 };     // gapTop=30, gapBot=290
+  const r = distributionSnap(box, [above, below], 8);
+  assert.equal(r.y, 130, "left where it was");
+  assert.equal(r.badges.length, 2);
+  assert.ok(!r.badges[0].equal && !r.badges[1].equal);
+  assert.equal(r.badges[0].gap, 30);
+  assert.equal(r.badges[1].gap, 290);
+});
+
+test("distributionSnap: horizontal distribution between left/right siblings", () => {
+  const left = { x: 0, y: 100, w: 100, h: 200 };     // right = 100
+  const right = { x: 600, y: 100, w: 100, h: 200 };   // left = 600
+  // span = 500, box w = 100 → equal left = 100 + (500-100)/2 = 300. Start 5px off.
+  const box = { x: 295, y: 150, w: 100, h: 100 };
+  const r = distributionSnap(box, [left, right], 8);
+  assert.equal(r.x, 300);
+  assert.ok(r.badges.length === 2 && r.badges.every((b) => b.equal));
+  // horizontal badges are drawn at the row through the box centre
+  assert.ok(r.badges.every((b) => b.y0 === b.y1));
+});
+
+test("distributionSnap: no vertical overlap → no badges, no snap", () => {
+  const off = { x: 900, y: 0, w: 100, h: 100 };       // doesn't overlap box on X
+  const below = { x: 900, y: 500, w: 100, h: 100 };
+  const box = { x: 100, y: 254, w: 200, h: 80 };
+  const r = distributionSnap(box, [off, below], 8);
+  assert.equal(r.y, 254);
+  assert.deepEqual(r.badges, []);
+});
+
+test("distributionSnap: a locked axis is measured but never re-snapped", () => {
+  const above = { x: 100, y: 0, w: 200, h: 100 };
+  const below = { x: 100, y: 500, w: 200, h: 100 };
+  const box = { x: 100, y: 254, w: 200, h: 80 };      // would snap to 260 if free
+  const r = distributionSnap(box, [above, below], 8, { lockY: true });
+  assert.equal(r.y, 254, "lockY keeps the edge-snap position");
+  assert.equal(r.badges.length, 2, "still shows the measurement");
+});
+
+test("snapMove: returns badges when between two aligned siblings", () => {
+  const above = { x: 100, y: 0, w: 200, h: 100 };
+  const below = { x: 100, y: 500, w: 200, h: 100 };
+  const r = snapMove({ x: 100, y: 254, w: 200, h: 80 }, { w: 1080, h: 1350 }, [above, below], 8);
+  assert.ok(Array.isArray(r.badges) && r.badges.length === 2);
+  assert.equal(r.y, 260);
 });

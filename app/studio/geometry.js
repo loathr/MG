@@ -166,7 +166,68 @@ export function snapMove(box, artboard, siblings, threshold) {
   let x = box.x, y = box.y;
   if (bestX) { x += bestX.diff; guides.push({ axis: "x", pos: bestX.pos }); }
   if (bestY) { y += bestY.diff; guides.push({ axis: "y", pos: bestY.pos }); }
-  return { x, y, guides };
+  // Equal-spacing (distribution) on axes not already pinned by edge/centre snap.
+  const dist = distributionSnap({ x, y, w: box.w, h: box.h }, siblings || [], th, { lockX: !!bestX, lockY: !!bestY });
+  return { x: dist.x, y: dist.y, guides, badges: dist.badges };
+}
+
+// Equal-spacing (distribution) snap + measurement badges. When the moving box sits
+// between two siblings that overlap it on the perpendicular axis, offer a position
+// that makes the two gaps EQUAL, and emit a measurement badge for each gap. An axis
+// already pinned by edge/centre snapping is measured but not re-snapped. Pure.
+// Badges are line segments in artboard coords: { x0, y0, x1, y1, gap, equal }.
+export function distributionSnap(box, siblings, threshold, lock) {
+  const th = threshold == null ? 7 : threshold;
+  const lockX = !!(lock && lock.lockX), lockY = !!(lock && lock.lockY);
+  let x = box.x, y = box.y;
+  const badges = [];
+  const overlapX = (s) => !(x > s.x + s.w || x + box.w < s.x);
+  const overlapY = (s) => !(y > s.y + s.h || y + box.h < s.y);
+
+  // vertical gaps — nearest sibling above and below that overlap on X
+  let above = null, below = null;
+  for (const s of siblings) {
+    if (!overlapX(s)) continue;
+    if (s.y + s.h <= y + 0.001) { if (!above || s.y + s.h > above.y + above.h) above = s; }
+    else if (s.y >= y + box.h - 0.001) { if (!below || s.y < below.y) below = s; }
+  }
+  if (above && below) {
+    const span = below.y - (above.y + above.h);
+    if (!lockY && span >= box.h) {
+      const eqTop = above.y + above.h + (span - box.h) / 2;
+      if (Math.abs(y - eqTop) <= th) y = eqTop;
+    }
+    const gapTop = y - (above.y + above.h);
+    const gapBot = below.y - (y + box.h);
+    const equal = Math.abs(gapTop - gapBot) <= 0.75;
+    const col = x + box.w / 2;
+    badges.push({ x0: col, y0: above.y + above.h, x1: col, y1: y, gap: gapTop, equal });
+    badges.push({ x0: col, y0: y + box.h, x1: col, y1: below.y, gap: gapBot, equal });
+  }
+
+  // horizontal gaps — nearest sibling left and right that overlap on Y (uses the
+  // possibly-updated y from the vertical pass)
+  let left = null, right = null;
+  for (const s of siblings) {
+    if (!overlapY(s)) continue;
+    if (s.x + s.w <= x + 0.001) { if (!left || s.x + s.w > left.x + left.w) left = s; }
+    else if (s.x >= x + box.w - 0.001) { if (!right || s.x < right.x) right = s; }
+  }
+  if (left && right) {
+    const span = right.x - (left.x + left.w);
+    if (!lockX && span >= box.w) {
+      const eqLeft = left.x + left.w + (span - box.w) / 2;
+      if (Math.abs(x - eqLeft) <= th) x = eqLeft;
+    }
+    const gapL = x - (left.x + left.w);
+    const gapR = right.x - (x + box.w);
+    const equal = Math.abs(gapL - gapR) <= 0.75;
+    const row = y + box.h / 2;
+    badges.push({ x0: left.x + left.w, y0: row, x1: x, y1: row, gap: gapL, equal });
+    badges.push({ x0: x + box.w, y0: row, x1: right.x, y1: row, gap: gapR, equal });
+  }
+
+  return { x, y, badges };
 }
 
 // Nearest target value within `th` of `v`, or null. Pure helper.
