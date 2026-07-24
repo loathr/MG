@@ -6,7 +6,7 @@ import { readImageFile, isImageFile, fitDroppedImage } from "./imageFile";
 import ElementView from "./Element";
 import { UI } from "./theme";
 import { expandGroups, marqueeHits, selectionBox } from "./group";
-import { Pencil, Copy, Scissors, ClipboardPaste, CopyPlus, Trash2, Group, Ungroup, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Lock, Minus, Plus, Maximize2, ChevronDown } from "lucide-react";
+import { Pencil, Copy, Scissors, ClipboardPaste, CopyPlus, Trash2, Group, Ungroup, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Lock, Minus, Plus, Maximize2, ChevronDown, RotateCw } from "lucide-react";
 
 const HANDLES = [
   { sx: -1, sy: -1 }, { sx: 0, sy: -1 }, { sx: 1, sy: -1 },
@@ -24,6 +24,7 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
   const [spacePan, setSpacePan] = useState(false); // Space held → pan mode (cursor + intercept)
   const [guides, setGuides] = useState([]);
   const [badges, setBadges] = useState([]);        // equal-spacing / distance badges while dragging
+  const [dragMode, setDragMode] = useState(null);  // active drag kind → drives the W×H / angle badge
   const [dropping, setDropping] = useState(false); // a file is being dragged over
   const [marquee, setMarquee] = useState(null);    // rubber-band rect (artboard coords) or null
   const drag = useRef(null);
@@ -254,6 +255,7 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
     drag.current = null;
     setGuides([]);
     setBadges([]);
+    setDragMode(null);
     window.removeEventListener("pointermove", onWindowMove);
     window.removeEventListener("pointerup", endDrag);
     if (d && d.mode === "marquee") {
@@ -296,6 +298,7 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
         drag.current.mode = "resize";
       }
     }
+    setDragMode(drag.current.mode);
     window.addEventListener("pointermove", onWindowMove);
     window.addEventListener("pointerup", endDrag);
   }, [slide, toArtboard, onWindowMove, endDrag]);
@@ -526,7 +529,7 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
             (R3: contextual controls now live in the right Inspector, not a
             floating toolbar — the canvas stays unobstructed.) */}
         {selected && !multi && !editingId && !cropEl && (
-          <SelectionOverlay el={selected} scale={scale} onHandleDown={beginDrag} />
+          <SelectionOverlay el={selected} scale={scale} onHandleDown={beginDrag} dragMode={dragMode} />
         )}
 
         {/* Floating action bar above the selected element — copy / cut / paste /
@@ -700,8 +703,9 @@ function SpacingBadges({ badges, scale }) {
   );
 }
 
-function SelectionOverlay({ el, scale, onHandleDown, cropMode }) {
-  const HS = 6; // handle screen size px (slim)
+function SelectionOverlay({ el, scale, onHandleDown, cropMode, dragMode }) {
+  const HIT = 18;  // invisible hit area (easy to grab)
+  const VIS = 10;  // visible handle size, px
   // On a very thin element the mid-edge handles stack on the corners and read as
   // chunky blue tabs — drop them there (there's nothing to grab from a 10px side).
   const thin = Math.min(el.w, el.h) * scale < 22;
@@ -713,65 +717,98 @@ function SelectionOverlay({ el, scale, onHandleDown, cropMode }) {
     height: el.h * scale,
     transform: "rotate(" + (el.rotation || 0) + "deg)",
     transformOrigin: "center center",
-    border: "1px solid " + UI.select,
+    // A 1.5px frame with a faint brand ring so the selection reads crisp on any
+    // background without a heavy outline.
+    border: "1.5px solid " + UI.select,
+    boxShadow: "0 0 0 1px rgba(45,140,255,0.18)",
+    borderRadius: 1,
     pointerEvents: "none",
     boxSizing: "border-box",
   };
-  // rotate handle sits above the top edge along the element's (rotated) top
-  // normal, a constant ~26px on screen regardless of zoom.
+  // rotate handle sits above the top edge along the element's (rotated) top normal,
+  // on a short connector stalk — a constant ~30px on screen regardless of zoom.
   const topCenter = handlePoint(el, 0, -1);
   const uy = axes(el.rotation).uy; // top edge outward normal is -uy
-  const off = 26 / scale; // artboard units that render to ~26px
+  const off = 30 / scale;          // artboard units that render to ~30px
   const rot = { x: topCenter.x - uy.x * off, y: topCenter.y - uy.y * off };
+  const p0 = { x: topCenter.x * scale, y: topCenter.y * scale };
+  const p1 = { x: rot.x * scale, y: rot.y * scale };
+  const stalkLen = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+  const stalkAng = Math.atan2(p1.y - p0.y, p1.x - p0.x) * 180 / Math.PI;
+  const cx = (el.x + el.w / 2) * scale;
+  const angle = (((Math.round(el.rotation || 0) % 360) + 360) % 360);
   return (
     // In crop mode the resize handles must sit ABOVE the pan capture layer (z22)
     // so dragging an edge reframes (pull in/out) while the interior still pans.
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: cropMode ? 24 : undefined }}>
       <div style={box} />
-      {/* resize handles — mid-edge ones (sx===0 || sy===0) drop out when the
-          element is too thin to resize from a side. */}
+      {/* resize handles — a larger invisible hit box centred on each point holds a
+          smaller visible handle; mid-edge ones drop out when the element is thin. */}
       {HANDLES.map((h, i) => {
         if (thin && (h.sx === 0 || h.sy === 0)) return null;
         const p = handlePoint(el, h.sx, h.sy);
+        const mid = h.sx === 0 || h.sy === 0;
         return (
           <div
             key={i}
             onPointerDown={(e) => { e.stopPropagation(); onHandleDown(cropMode ? "reframe" : "resize", el.id, e.clientX, e.clientY, h); }}
             style={{
-              position: "absolute",
-              left: p.x * scale - HS / 2,
-              top: p.y * scale - HS / 2,
-              width: HS, height: HS,
-              background: "#fff", border: "1px solid " + UI.select, borderRadius: 2,
-              cursor: cursorFor(h, el.rotation), pointerEvents: "auto", boxSizing: "border-box",
+              position: "absolute", left: p.x * scale - HIT / 2, top: p.y * scale - HIT / 2,
+              width: HIT, height: HIT, display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: cursorFor(h, el.rotation), pointerEvents: "auto",
             }}
-          />
+          >
+            <div style={{
+              width: VIS, height: VIS, background: "#fff", border: "1.5px solid " + UI.select,
+              borderRadius: mid ? 5 : 3, boxShadow: "0 1px 3px rgba(0,0,0,0.45)", boxSizing: "border-box",
+            }} />
+          </div>
         );
       })}
-      {/* rotate handle — hidden in crop mode (reframing only) */}
-      {!cropMode && <div
-        onPointerDown={(e) => { e.stopPropagation(); onHandleDown("rotate", el.id, e.clientX, e.clientY); }}
-        style={{
-          position: "absolute",
-          left: rot.x * scale - 6,
-          top: rot.y * scale - 6,
-          width: 12, height: 12, borderRadius: "50%",
-          background: "#fff", border: "1px solid " + UI.select,
-          cursor: "grab", pointerEvents: "auto", boxSizing: "border-box",
-        }}
-      />}
+      {/* rotate handle on a connector stalk — hidden in crop mode (reframing only) */}
+      {!cropMode && (
+        <>
+          <div style={{ position: "absolute", left: p0.x, top: p0.y - 0.75, width: stalkLen, height: 1.5, background: UI.select, transformOrigin: "0 50%", transform: "rotate(" + stalkAng + "deg)", pointerEvents: "none" }} />
+          <div
+            onPointerDown={(e) => { e.stopPropagation(); onHandleDown("rotate", el.id, e.clientX, e.clientY); }}
+            style={{
+              position: "absolute", left: p1.x - 9, top: p1.y - 9, width: 18, height: 18, borderRadius: "50%",
+              background: "#fff", border: "1.5px solid " + UI.select, boxShadow: "0 1px 3px rgba(0,0,0,0.45)",
+              cursor: "grab", pointerEvents: "auto", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          ><RotateCw size={10} color={UI.select} strokeWidth={2.4} /></div>
+        </>
+      )}
+      {/* live measurement badges while resizing / rotating (screen space, constant size) */}
+      {dragMode === "resize" && (
+        <div style={{ ...measureBadge, left: cx, top: (el.y + el.h) * scale + 14, transform: "translateX(-50%)" }}>
+          {Math.round(el.w)} × {Math.round(el.h)}
+        </div>
+      )}
+      {dragMode === "rotate" && (
+        <div style={{ ...measureBadge, left: cx, top: (el.y + el.h / 2) * scale, transform: "translate(-50%,-50%)" }}>
+          {angle}°
+        </div>
+      )}
     </div>
   );
 }
+const measureBadge = {
+  position: "absolute", background: "#111318", border: "1px solid #2d3350", color: "#dfe8ff",
+  fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 5, whiteSpace: "nowrap",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.5)", pointerEvents: "none", fontFamily: "Helvetica, Arial, sans-serif",
+};
 
 // The floating element action bar. Positioned in SCREEN space above the element's
 // (un-rotated) bounding box; flips below when there's no room above. pointerEvents
 // isolated so a click acts on the button, never the canvas beneath.
 function ActionBar({ el, scale, canPaste, dispatch }) {
-  const H = 40; // approx bar height incl. gap
-  const topAbove = el.y * scale - H;
+  // Sit clear ABOVE the rotate handle + its stalk (~30px + handle) so the two never
+  // overlap; flip below only when there's no room above (element near the top edge).
+  const ABOVE = 80;
+  const topAbove = el.y * scale - ABOVE;
   const below = topAbove < 4;
-  const top = below ? (el.y + el.h) * scale + 8 : el.y * scale - H;
+  const top = below ? (el.y + el.h) * scale + 8 : topAbove;
   const left = (el.x + el.w / 2) * scale;
   const act = (type, extra) => (e) => { e.stopPropagation(); dispatch(Object.assign({ type }, extra)); };
   return (
