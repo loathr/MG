@@ -1,12 +1,12 @@
 "use client";
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ARTBOARD_W, ARTBOARD_H, makeElement, cropAnchor, reframeCrop } from "./model";
-import { resize as geoResize, rotate as geoRotate, snapMove, snapResize, scaleTextResize, imageCornerResize, wheelZoom, handlePoint, axes } from "./geometry";
+import { resize as geoResize, rotate as geoRotate, snapMove, snapResize, scaleTextResize, imageCornerResize, handlePoint, axes, canvasFitScale, zoomPanToCursor, clampCanvasPan } from "./geometry";
 import { readImageFile, isImageFile, fitDroppedImage } from "./imageFile";
 import ElementView from "./Element";
 import { UI } from "./theme";
 import { expandGroups, marqueeHits, selectionBox } from "./group";
-import { Pencil, Copy, Scissors, ClipboardPaste, CopyPlus, Trash2, Group, Ungroup, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Lock } from "lucide-react";
+import { Pencil, Copy, Scissors, ClipboardPaste, CopyPlus, Trash2, Group, Ungroup, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Lock, Minus, Plus, Maximize2, ChevronDown } from "lucide-react";
 
 const HANDLES = [
   { sx: -1, sy: -1 }, { sx: 0, sy: -1 }, { sx: 1, sy: -1 },
@@ -19,7 +19,9 @@ const clamp01 = (n) => Math.max(0, Math.min(1, n));
 export default function Artboard({ slide, selectedId, selectedIds, editingId, croppingId, dispatch, onTextSelect, onEditApi, canPaste, peers, slideIndex, onCursor }) {
   const containerRef = useRef(null);
   const artRef = useRef(null);
-  const [scale, setScale] = useState(0.4);
+  const [scale, setScale] = useState(0.4);         // artboard px → CSS px (fit × user zoom)
+  const [pan, setPan] = useState({ x: 0, y: 0 });  // board offset from centre, CSS px
+  const [spacePan, setSpacePan] = useState(false); // Space held → pan mode (cursor + intercept)
   const [guides, setGuides] = useState([]);
   const [dropping, setDropping] = useState(false); // a file is being dragged over
   const [marquee, setMarquee] = useState(null);    // rubber-band rect (artboard coords) or null
@@ -28,43 +30,127 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
   // Latest slide, read by the (once-attached) wheel listener without re-binding.
   const slideRef = useRef(slide);
   slideRef.current = slide;
-  const wheelCommit = useRef(null);
+  // Live mirrors of zoom/pan state for the once-bound native wheel + pan handlers.
+  const scaleRef = useRef(scale); scaleRef.current = scale;
+  const panRef = useRef(pan); panRef.current = pan;
+  const fitScaleRef = useRef(0.4);   // the current fit-to-viewport scale
+  const atFitRef = useRef(true);     // is the view currently "at Fit" (auto-refit on resize)
+  const spaceRef = useRef(false);    // Space key held (pan intent)
+  const croppingRef = useRef(croppingId); croppingRef.current = croppingId;
+  const panDrag = useRef(null);
+  const vpSize = () => { const r = containerRef.current && containerRef.current.getBoundingClientRect(); return r ? { w: r.width, h: r.height } : { w: 1, h: 1 }; };
+  const BOARD = { w: ARTBOARD_W, h: ARTBOARD_H };
+  const SMIN = 0.05, SMAX = 8;
 
-  // Fit the artboard into the available space.
+  // Fit the artboard into the available space (and follow resizes while "at Fit").
   useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const fit = () => {
-      const pad = 48;
-      const cw = el.clientWidth - pad;
-      const ch = el.clientHeight - pad;
-      const s = Math.max(0.05, Math.min(cw / ARTBOARD_W, ch / ARTBOARD_H));
-      setScale(s);
+      const s = canvasFitScale({ w: el.clientWidth, h: el.clientHeight }, BOARD, 48, SMIN);
+      fitScaleRef.current = s;
+      if (atFitRef.current) { setScale(s); setPan({ x: 0, y: 0 }); }
     };
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(el);
     return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Scroll-to-zoom: when a plain image is selected, the wheel zooms its crop
-  // (enlarge/minimize) instead of scrolling the page. Native non-passive listener
-  // so preventDefault works; reads the live slide via a ref so it binds once per
-  // selection. No-op (normal scroll) when the selection isn't an image.
+  // --- zoom + pan controls (pure math lives in geometry.js) ---
+  const clampS = (s) => Math.max(SMIN, Math.min(SMAX, s));
+  const zoomToClient = useCallback((nextScale, clientX, clientY) => {
+    const r = containerRef.current && containerRef.current.getBoundingClientRect();
+    if (!r) return;
+    const ns = Math.max(SMIN, Math.min(SMAX, nextScale));
+    const vp = { w: r.width, h: r.height };
+    const cursor = { x: clientX - r.left, y: clientY - r.top };
+    const np = clampCanvasPan(ns, zoomPanToCursor(scaleRef.current, panRef.current, ns, cursor, vp, BOARD), vp, BOARD);
+    atFitRef.current = false;
+    setScale(ns); setPan(np);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const zoomCenter = useCallback((nextScale) => {
+    const r = containerRef.current && containerRef.current.getBoundingClientRect();
+    if (!r) return;
+    zoomToClient(nextScale, r.left + r.width / 2, r.top + r.height / 2);
+  }, [zoomToClient]);
+  const fitView = useCallback(() => { atFitRef.current = true; setScale(fitScaleRef.current); setPan({ x: 0, y: 0 }); }, []);
+  const zoomPreset = useCallback((s) => { atFitRef.current = false; setScale(clampS(s)); setPan({ x: 0, y: 0 }); }, []);
+
+  // One native wheel listener (non-passive): crop-zoom while cropping, else
+  // ⌘/Ctrl-scroll zooms to the cursor and plain scroll pans. Binds once; reads
+  // live state via refs.
   useEffect(() => {
-    const node = artRef.current;
+    const node = containerRef.current;
     if (!node) return undefined;
     const onWheel = (e) => {
-      const el = (slideRef.current.elements || []).find((x) => x.id === selectedId);
-      if (!el || el.type !== "image" || el.locked) return; // let the page scroll
+      const cid = croppingRef.current;
+      if (cid) {
+        const el = (slideRef.current.elements || []).find((x) => x.id === cid);
+        if (!el) return;
+        e.preventDefault();
+        const c0 = el.crop || { zoom: 1, x: 0.5, y: 0.5 };
+        const z = Math.max(1, Math.min(4, (c0.zoom || 1) - e.deltaY * 0.0015));
+        dispatch({ type: "update", id: cid, patch: { crop: { zoom: z, x: c0.x == null ? 0.5 : c0.x, y: c0.y == null ? 0.5 : c0.y } }, coalesce: true });
+        return;
+      }
       e.preventDefault();
-      dispatch({ type: "update", id: el.id, patch: { crop: wheelZoom(el, e.deltaY) }, coalesce: true });
-      if (wheelCommit.current) clearTimeout(wheelCommit.current);
-      wheelCommit.current = setTimeout(() => dispatch({ type: "commit" }), 250);
+      if (e.ctrlKey || e.metaKey) {
+        // Gentle: ~1.16x per mouse notch (deltaY≈100), finer for trackpad pinch.
+        zoomToClient(scaleRef.current * Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY);
+      } else {
+        const vp = vpSize();
+        atFitRef.current = false;
+        setPan(clampCanvasPan(scaleRef.current, { x: panRef.current.x - e.deltaX, y: panRef.current.y - e.deltaY }, vp, BOARD));
+      }
     };
     node.addEventListener("wheel", onWheel, { passive: false });
     return () => node.removeEventListener("wheel", onWheel);
-  }, [selectedId, dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, zoomToClient]);
+
+  // Space-drag / middle-mouse pan. Space toggles a pan mode (grab cursor + a
+  // capture-phase intercept so a press pans instead of selecting/marqueeing).
+  const onPanMove = useCallback((e) => {
+    const d = panDrag.current;
+    if (!d) return;
+    atFitRef.current = false;
+    setPan(clampCanvasPan(scaleRef.current, { x: d.px + (e.clientX - d.sx), y: d.py + (e.clientY - d.sy) }, vpSize(), BOARD));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const endPan = useCallback(() => {
+    panDrag.current = null;
+    window.removeEventListener("pointermove", onPanMove);
+    window.removeEventListener("pointerup", endPan);
+  }, [onPanMove]);
+  const beginPan = useCallback((clientX, clientY) => {
+    panDrag.current = { sx: clientX, sy: clientY, px: panRef.current.x, py: panRef.current.y };
+    window.addEventListener("pointermove", onPanMove);
+    window.addEventListener("pointerup", endPan);
+  }, [onPanMove, endPan]);
+  const onViewportPointerDownCapture = useCallback((e) => {
+    if (spaceRef.current || e.button === 1) { e.preventDefault(); e.stopPropagation(); beginPan(e.clientX, e.clientY); }
+  }, [beginPan]);
+
+  // Space (hold) → pan mode; keyboard zoom: ⌘0 = 100%, ⇧1 = Fit, ⌘± to step.
+  // All gated so they never fire while typing in a field or editing text.
+  useEffect(() => {
+    const typing = (t) => t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
+    const onKeyDown = (e) => {
+      if (typing(e.target) || editingId) return;
+      if (e.code === "Space" && !spaceRef.current) { spaceRef.current = true; setSpacePan(true); e.preventDefault(); return; }
+      if ((e.metaKey || e.ctrlKey) && e.key === "0") { e.preventDefault(); zoomPreset(1); }
+      else if (e.shiftKey && e.key === "1") { e.preventDefault(); fitView(); }
+      else if ((e.metaKey || e.ctrlKey) && (e.key === "=" || e.key === "+")) { e.preventDefault(); zoomCenter(scaleRef.current * 1.25); }
+      else if ((e.metaKey || e.ctrlKey) && e.key === "-") { e.preventDefault(); zoomCenter(scaleRef.current / 1.25); }
+    };
+    const onKeyUp = (e) => { if (e.code === "Space") { spaceRef.current = false; setSpacePan(false); } };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => { window.removeEventListener("keydown", onKeyDown); window.removeEventListener("keyup", onKeyUp); };
+  }, [editingId, zoomCenter, zoomPreset, fitView]);
 
   // client px -> artboard units, using the live measured scale (exact).
   const toArtboard = useCallback((clientX, clientY) => {
@@ -265,22 +351,8 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
 
   useEffect(() => () => endDrag(), [endDrag]);
 
-  // Scroll / pinch to zoom the photo being cropped (free-form crop). Native
-  // non-passive listener so preventDefault stops the page/canvas from scrolling.
-  useEffect(() => {
-    const node = containerRef.current;
-    if (!node || !croppingId) return undefined;
-    const onWheel = (e) => {
-      const el = slide.elements.find((x) => x.id === croppingId);
-      if (!el) return;
-      e.preventDefault();
-      const c0 = el.crop || { zoom: 1, x: 0.5, y: 0.5 };
-      const z = Math.max(1, Math.min(4, (c0.zoom || 1) - e.deltaY * 0.0015));
-      dispatch({ type: "update", id: croppingId, patch: { crop: { zoom: z, x: c0.x == null ? 0.5 : c0.x, y: c0.y == null ? 0.5 : c0.y } }, coalesce: true });
-    };
-    node.addEventListener("wheel", onWheel, { passive: false });
-    return () => node.removeEventListener("wheel", onWheel);
-  }, [croppingId, slide, dispatch]);
+  // (Scroll-to-zoom while cropping is handled by the unified wheel listener above,
+  // which routes to crop-zoom when a crop is active and to canvas zoom/pan otherwise.)
 
   // Drag an image file straight onto the canvas → place it as a movable, resizable
   // element at the drop point. PNG alpha is preserved (readImageFile), large files
@@ -324,11 +396,12 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
   const bg = slide.background || {};
 
   return (
-    <div ref={containerRef} style={{ flex: 1, minWidth: 0, minHeight: 0, display: "grid", placeItems: "center", overflow: "hidden", background: UI.bg, position: "relative" }}
+    <div ref={containerRef} style={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden", background: UI.bg, position: "relative", cursor: spacePan ? (panDrag.current ? "grabbing" : "grab") : "default" }}
       onDragOver={onCanvasDragOver} onDragLeave={onCanvasDragLeave} onDrop={onCanvasDrop}
       onPointerMove={onCanvasPointerMove}
+      onPointerDownCapture={onViewportPointerDownCapture}
       onPointerDown={(e) => { if (e.target === e.currentTarget) dispatch({ type: "deselect" }); }}>
-      <div style={{ position: "relative", width: ARTBOARD_W * scale, height: ARTBOARD_H * scale, boxShadow: "0 10px 40px rgba(0,0,0,0.5)" }}>
+      <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%) translate(" + pan.x + "px," + pan.y + "px)", width: ARTBOARD_W * scale, height: ARTBOARD_H * scale, boxShadow: "0 10px 40px rgba(0,0,0,0.5)" }}>
         {/* scaled artboard in artboard coordinates */}
         <div
           ref={artRef}
@@ -537,9 +610,55 @@ export default function Artboard({ slide, selectedId, selectedIds, editingId, cr
           </div>
         ))}
       </div>
+
+      {/* Zoom bar — bottom-centre of the viewport (screen space, above the board). */}
+      <ZoomBar scale={scale} onIn={() => zoomCenter(scale * 1.25)} onOut={() => zoomCenter(scale / 1.25)} onFit={fitView} onPreset={zoomPreset} />
     </div>
   );
 }
+
+// The canvas zoom control: − / % / + / Fit with a preset menu on the % label.
+// Lives in screen space, isolates its pointer events so a click never reaches the
+// canvas beneath (which would deselect). % is relative to 1:1 (actual pixels).
+function ZoomBar({ scale, onIn, onOut, onFit, onPreset }) {
+  const [menu, setMenu] = useState(false);
+  const pct = Math.round(scale * 100);
+  const PRESETS = [["Fit", null], ["50%", 0.5], ["100%", 1], ["200%", 2], ["400%", 4]];
+  return (
+    <div onPointerDown={(e) => e.stopPropagation()} style={zbWrap}>
+      {menu && (
+        <div style={zbMenu}>
+          {PRESETS.map(([label, v]) => (
+            <button key={label} style={zbMenuItem} onClick={() => { v == null ? onFit() : onPreset(v); setMenu(false); }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#2a2a30")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      <ZB onClick={onOut} title="Zoom out"><Minus size={15} /></ZB>
+      <button onClick={() => setMenu((m) => !m)} title="Zoom presets" style={zbPct}>
+        {pct}% <ChevronDown size={12} style={{ opacity: 0.6, marginLeft: 1 }} />
+      </button>
+      <ZB onClick={onIn} title="Zoom in"><Plus size={15} /></ZB>
+      <span style={{ width: 1, height: 18, background: "#33333a", margin: "0 4px" }} />
+      <ZB onClick={onFit} title="Fit to screen" wide><Maximize2 size={13} /> Fit</ZB>
+    </div>
+  );
+}
+function ZB({ children, onClick, title, wide }) {
+  return (
+    <button onClick={onClick} title={title}
+      style={{ height: 30, minWidth: wide ? undefined : 30, padding: wide ? "0 11px" : 0, border: "none", background: "transparent", color: "#cfcfd4", borderRadius: 7, cursor: "pointer", fontSize: wide ? 12 : 16, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "#2a2a30")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+      {children}
+    </button>
+  );
+}
+const zbWrap = { position: "absolute", bottom: 16, left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 2, background: "#1a1a1e", border: "1px solid #2c2c32", borderRadius: 11, padding: "5px 7px", boxShadow: "0 10px 28px rgba(0,0,0,0.55)", zIndex: 50, fontFamily: "Helvetica, Arial, sans-serif" };
+const zbPct = { height: 30, minWidth: 62, padding: "0 8px", border: "none", background: "transparent", color: "#eaeaea", borderRadius: 7, cursor: "pointer", fontSize: 12.5, display: "inline-flex", alignItems: "center", justifyContent: "center" };
+const zbMenu = { position: "absolute", bottom: 46, left: "50%", transform: "translateX(-50%)", background: "#1a1a1e", border: "1px solid #2c2c32", borderRadius: 10, padding: 5, boxShadow: "0 12px 30px rgba(0,0,0,0.55)", minWidth: 120 };
+const zbMenuItem = { display: "block", width: "100%", textAlign: "left", height: 30, padding: "0 10px", border: "none", background: "transparent", color: "#dcdce2", fontSize: 12.5, borderRadius: 6, cursor: "pointer" };
 
 function roundBox(b) {
   return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.w), h: Math.round(b.h) };

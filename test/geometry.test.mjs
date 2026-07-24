@@ -3,7 +3,7 @@
 // edge fixed, never below the minimum). Artboard-coordinate space; pure.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { snapMove, snapResize, scaleTextResize, imageCornerResize, wheelZoom } from "../app/studio/geometry.js";
+import { snapMove, snapResize, scaleTextResize, imageCornerResize, wheelZoom, canvasFitScale, zoomPanToCursor, clampCanvasPan } from "../app/studio/geometry.js";
 
 const ART = { w: 1080, h: 1350 };
 
@@ -135,4 +135,46 @@ test("wheelZoom: scroll up zooms in, down zooms out, clamped 1..8, focal kept", 
   assert.equal(wheelZoom(el, -100).x, 0.3); // focal preserved
   assert.equal(wheelZoom({ crop: { zoom: 1 } }, 10000).zoom, 1, "never below 1");
   assert.equal(wheelZoom({ crop: { zoom: 7.9 } }, -100000).zoom, 8, "clamped to 8");
+});
+
+// --- canvas zoom + pan (7a) ------------------------------------------------
+
+const BOARD = { w: 1080, h: 1350 };
+const VP = { w: 1200, h: 800 };
+
+test("canvasFitScale: fits the board inside the viewport minus padding", () => {
+  const s = canvasFitScale(VP, BOARD, 48);
+  assert.equal(s, Math.min((1200 - 48) / 1080, (800 - 48) / 1350));
+  assert.ok(BOARD.h * s <= VP.h && BOARD.w * s <= VP.w);
+  // never collapses below the floor
+  assert.equal(canvasFitScale({ w: 1, h: 1 }, BOARD, 48, 0.05), 0.05);
+});
+
+test("zoomPanToCursor: the artboard point under the cursor stays put across a zoom", () => {
+  const scale = 0.5, pan = { x: 0, y: 0 };
+  const cursor = { x: 300, y: 220 };
+  // artboard point under the cursor BEFORE the zoom (board centred, pan 0)
+  const tlx0 = VP.w / 2 - (BOARD.w * scale) / 2, tly0 = VP.h / 2 - (BOARD.h * scale) / 2;
+  const wx = (cursor.x - tlx0) / scale, wy = (cursor.y - tly0) / scale;
+  const ns = 1.4;
+  const np = zoomPanToCursor(scale, pan, ns, cursor, VP, BOARD);
+  // AFTER: same artboard point must map back to the same screen pixel
+  const tlx1 = VP.w / 2 + np.x - (BOARD.w * ns) / 2, tly1 = VP.h / 2 + np.y - (BOARD.h * ns) / 2;
+  assert.ok(Math.abs((tlx1 + wx * ns) - cursor.x) < 1e-6);
+  assert.ok(Math.abs((tly1 + wy * ns) - cursor.y) < 1e-6);
+});
+
+test("zoomPanToCursor: zooming exactly at the viewport centre leaves a centred board centred", () => {
+  const np = zoomPanToCursor(0.5, { x: 0, y: 0 }, 2, { x: VP.w / 2, y: VP.h / 2 }, VP, BOARD);
+  assert.ok(Math.abs(np.x) < 1e-6 && Math.abs(np.y) < 1e-6);
+});
+
+test("clampCanvasPan: keeps at least `margin` px of the board on screen", () => {
+  const scale = 1, margin = 60;
+  const maxX = (BOARD.w * scale) / 2 + VP.w / 2 - margin;
+  const clamped = clampCanvasPan(scale, { x: 99999, y: -99999 }, VP, BOARD, margin);
+  assert.equal(clamped.x, maxX);
+  assert.equal(clamped.y, -((BOARD.h * scale) / 2 + VP.h / 2 - margin));
+  // a small pan is untouched
+  assert.deepEqual(clampCanvasPan(scale, { x: 10, y: -20 }, VP, BOARD, margin), { x: 10, y: -20 });
 });

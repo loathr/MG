@@ -215,3 +215,40 @@ export function snapResize(box, sx, sy, artboard, siblings, threshold, min) {
   }
   return { x, y, w, h, guides };
 }
+
+// ---------------------------------------------------------------------------
+// Canvas zoom + pan (7a). The board is centred in the viewport, then offset by
+// `pan` (CSS px). `scale` is artboard-units → CSS px. These are pure so the
+// interaction math is unit-tested; Artboard feeds them live viewport/board sizes.
+// ---------------------------------------------------------------------------
+
+// The scale that fits the board inside the viewport (minus padding), floored so it
+// never collapses to nothing.
+export function canvasFitScale(viewport, board, pad = 48, min = 0.05) {
+  return Math.max(min, Math.min((viewport.w - pad) / board.w, (viewport.h - pad) / board.h));
+}
+
+// Zoom to `nextScale` while keeping the artboard point currently under `cursor`
+// (viewport-relative px) pinned on screen. Returns the new pan {x,y}.
+export function zoomPanToCursor(scale, pan, nextScale, cursor, viewport, board) {
+  const vcx = viewport.w / 2, vcy = viewport.h / 2;
+  const tlx = vcx + pan.x - (board.w * scale) / 2;  // board top-left on screen
+  const tly = vcy + pan.y - (board.h * scale) / 2;
+  const wx = (cursor.x - tlx) / scale;              // artboard-unit point under cursor
+  const wy = (cursor.y - tly) / scale;
+  return {
+    x: cursor.x - vcx + (board.w * nextScale) / 2 - wx * nextScale,
+    y: cursor.y - vcy + (board.h * nextScale) / 2 - wy * nextScale,
+  };
+}
+
+// Clamp pan so at least `margin` px of the board stays inside the viewport (you can
+// never fling it fully off-screen).
+export function clampCanvasPan(scale, pan, viewport, board, margin = 60) {
+  const maxX = (board.w * scale) / 2 + viewport.w / 2 - margin;
+  const maxY = (board.h * scale) / 2 + viewport.h / 2 - margin;
+  return {
+    x: Math.max(-maxX, Math.min(maxX, pan.x)),
+    y: Math.max(-maxY, Math.min(maxY, pan.y)),
+  };
+}
