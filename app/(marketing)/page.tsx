@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { sanityFetch } from "../../sanity/lib/fetch";
 
 const MARQUEE = ["Brand Strategy", "Photography", "Film & Motion", "Consultancy", "Web Design", "Storytelling", "Media Production", "Marketing", "Publishing"];
 
@@ -10,18 +11,57 @@ const SELECTED = [
   { name: "L.O.A", sub: "Music", title: "The album, made visual", desc: "Cover & campaign imagery for the release.", tag: "MUSIC" },
 ];
 
-export default function Home() {
+// Editable copy lives in Sanity (Site Settings singleton). These are the exact
+// current values, used verbatim whenever Sanity isn't configured or a field is
+// left blank — so the page reads identically until someone actually edits it.
+const HOME_FALLBACK = {
+  heroEyebrow: "Strategy-led · Creative studio",
+  heroLine1: "From concept",
+  heroLine2: "to completion.",
+  heroLead:
+    "Loathr is a strategy-led creative consultancy. We build stronger brands, execute meaningful projects, and create lasting impact — strategy first, creative throughout.",
+  marquee: MARQUEE,
+  ctaHeadingA: "Let's build something",
+  ctaHeadingB: "undeniable.",
+  ctaBody: "Developing brands, and driving visibility — from concept to completion.",
+};
+
+const HOME_QUERY = `*[_type == "siteSettings"][0]{
+  heroEyebrow, heroLine1, heroLine2, heroLead, marquee,
+  ctaHeadingA, ctaHeadingB, ctaBody
+}`;
+
+// The trailing word of line 2 is rendered underlined; split it out.
+function splitTail(line: string): [string, string] {
+  const t = line.trim();
+  const i = t.lastIndexOf(" ");
+  return i === -1 ? ["", t] : [t.slice(0, i + 1), t.slice(i + 1)];
+}
+
+export default async function Home() {
+  const cms = await sanityFetch<Partial<typeof HOME_FALLBACK> | null>(HOME_QUERY, null);
+  const c = { ...HOME_FALLBACK, ...(cms || {}) };
+  // A present-but-empty field should still fall back rather than blank the page.
+  const heroEyebrow = c.heroEyebrow || HOME_FALLBACK.heroEyebrow;
+  const heroLine1 = c.heroLine1 || HOME_FALLBACK.heroLine1;
+  const heroLine2 = c.heroLine2 || HOME_FALLBACK.heroLine2;
+  const heroLead = c.heroLead || HOME_FALLBACK.heroLead;
+  const marquee = c.marquee && c.marquee.length ? c.marquee : HOME_FALLBACK.marquee;
+  const ctaHeadingA = c.ctaHeadingA || HOME_FALLBACK.ctaHeadingA;
+  const ctaHeadingB = c.ctaHeadingB || HOME_FALLBACK.ctaHeadingB;
+  const ctaBody = c.ctaBody || HOME_FALLBACK.ctaBody;
+  const [line2Lead, line2Tail] = splitTail(heroLine2);
   return (
     <>
       <section className="hero">
         <div className="heroGlow" />
         <div className="wrap">
-          <div className="eyebrow mono">Strategy-led · Creative studio</div>
+          <div className="eyebrow mono">{heroEyebrow}</div>
           <h1 className="h-xl">
-            <span className="ln"><span>From concept</span></span>
-            <span className="ln"><span>to <em className="uline" style={{ fontStyle: "normal" }}>completion.</em></span></span>
+            <span className="ln"><span>{heroLine1}</span></span>
+            <span className="ln"><span>{line2Lead}<em className="uline" style={{ fontStyle: "normal" }}>{line2Tail}</em></span></span>
           </h1>
-          <p className="lead">Loathr is a strategy-led creative consultancy. We build stronger brands, execute meaningful projects, and create lasting impact — strategy first, creative throughout.</p>
+          <p className="lead">{heroLead}</p>
           <div className="btnrow">
             <Link className="btn red" href="/work" data-cursor="View" data-label="VIEW">See the work</Link>
             <Link className="btn ghost" href="/contact" data-cursor="Start" data-label="→">Start a project</Link>
@@ -31,7 +71,7 @@ export default function Home() {
       </section>
 
       <div className="marq"><div className="track">
-        {[0, 1].map((k) => MARQUEE.map((w, i) => (
+        {[0, 1].map((k) => marquee.map((w, i) => (
           <React.Fragment key={`${k}-${i}`}><b>{w}</b><span className="dot">✦</span></React.Fragment>
         )))}
       </div></div>
@@ -64,8 +104,8 @@ export default function Home() {
       </div></section>
 
       <div className="band"><div className="g" /><div className="wrap">
-        <h2 className="h-xl reveal">Let&apos;s build something<br /><em>undeniable.</em></h2>
-        <p className="reveal d1">Developing brands, and driving visibility — from concept to completion.</p>
+        <h2 className="h-xl reveal">{ctaHeadingA}<br /><em>{ctaHeadingB}</em></h2>
+        <p className="reveal d1">{ctaBody}</p>
         <div className="btnrow reveal d2"><Link className="btn red" href="/contact" data-cursor="Let's talk" data-label="→">Get Started</Link></div>
       </div></div>
     </>
