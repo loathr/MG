@@ -1,15 +1,32 @@
 import React from "react";
 import Link from "next/link";
 import { sanityFetch } from "../../sanity/lib/fetch";
+import { urlForImage } from "../../sanity/lib/image";
 
 const MARQUEE = ["Brand Strategy", "Photography", "Film & Motion", "Consultancy", "Web Design", "Storytelling", "Media Production", "Marketing", "Publishing"];
 
-const SELECTED = [
+type Selected = { name: string; sub: string; title: string; desc: string; play?: boolean; tag: string; img?: string | null };
+
+// The current Selected-work strip. Used verbatim whenever Sanity isn't configured
+// or has no featured projects — so Home reads identically until real ones exist.
+const SELECTED: Selected[] = [
   { name: "GAS", sub: "Film", title: "A film with a point of view", desc: "Short film + stills, shot and cut in-house.", play: true, tag: "FILM" },
   { name: "Agidi Magazine", sub: "Fashion", title: "Editorial fashion, art-directed", desc: "A magazine story shot end to end.", tag: "FASHION" },
   { name: "Portraits", sub: "Portraiture", title: "Faces, framed with intent", desc: "Studio & location portraiture.", tag: "PORTRAITS" },
   { name: "L.O.A", sub: "Music", title: "The album, made visual", desc: "Cover & campaign imagery for the release.", tag: "MUSIC" },
 ];
+
+type FeaturedDoc = {
+  name?: string; sub?: string; title?: string; desc?: string;
+  play?: boolean; category?: string; coverUrl?: string; cover?: unknown;
+};
+
+// Featured projects drive the strip; same `project` documents as Our Work,
+// filtered to `featured == true`, capped at the four the layout expects.
+const FEATURED_QUERY = `*[_type == "project" && featured == true] | order(order asc, _createdAt asc)[0...4]{
+  "name": title, "sub": kind, "title": headline, "desc": summary,
+  "play": hasVideo, category, coverUrl, cover
+}`;
 
 // Editable copy lives in Sanity (Site Settings singleton). These are the exact
 // current values, used verbatim whenever Sanity isn't configured or a field is
@@ -51,6 +68,19 @@ export default async function Home() {
   const ctaHeadingB = c.ctaHeadingB || HOME_FALLBACK.ctaHeadingB;
   const ctaBody = c.ctaBody || HOME_FALLBACK.ctaBody;
   const [line2Lead, line2Tail] = splitTail(heroLine2);
+
+  const featured = await sanityFetch<FeaturedDoc[] | null>(FEATURED_QUERY, null);
+  const selected: Selected[] = featured && featured.length
+    ? featured.map((p) => ({
+        name: p.name || "Untitled",
+        sub: p.sub || "",
+        title: p.title || p.name || "",
+        desc: p.desc || "",
+        play: !!p.play,
+        tag: (p.category || "").toUpperCase(),
+        img: p.coverUrl || urlForImage(p.cover as never)?.width(900).height(560).fit("crop").url() || null,
+      }))
+    : SELECTED;
   return (
     <>
       <section className="hero">
@@ -94,9 +124,13 @@ export default async function Home() {
           <Link className="btn ghost reveal d1" href="/work" data-cursor="All" data-label="ALL">All work</Link>
         </div>
         <div className="work">
-          {SELECTED.map((w, i) => (
-            <Link key={w.name} className={`wcard reveal${i ? " d" + i : ""}`} href="/work" data-cursor="Open" data-label="OPEN">
-              <div className={`media${w.play ? " play" : ""}`}>{w.play ? <span className="pi">▶</span> : null}<div className="tag"><b>{w.tag}</b>media · pending</div></div>
+          {selected.map((w, i) => (
+            <Link key={w.name + w.title} className={`wcard reveal${i ? " d" + i : ""}`} href="/work" data-cursor="Open" data-label="OPEN">
+              <div className={`media${w.play ? " play" : ""}`}>
+                {w.img ? <img className="cover" src={w.img} alt={w.title || w.name} loading="lazy" /> : null}
+                {w.play ? <span className="pi">▶</span> : null}
+                {w.img ? null : <div className="tag"><b>{w.tag}</b>media · pending</div>}
+              </div>
               <div className="body"><div className="meta"><span>{w.name}</span><span>{w.sub}</span></div><h3>{w.title}</h3><p>{w.desc}</p><span className="go">View project →</span></div>
             </Link>
           ))}
