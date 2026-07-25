@@ -163,7 +163,7 @@ export default function SiteChrome({ children }) {
         <div className="player">
           <span className="grip" data-cursor="Move" data-label="⠿"><i /><i /><i /></span>
           <iframe title="Loathr Radio" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
-            src="https://open.spotify.com/embed/playlist/37i9dQZF1DX4sWSpwq3LiO?utm_source=generator&theme=0" />
+            src="https://open.spotify.com/embed/playlist/1SvWV3KHDI0GDU239ErQFL?utm_source=generator&theme=0" />
           <button className="close" data-cursor="Close" data-label="×">×</button>
         </div>
       </div>
