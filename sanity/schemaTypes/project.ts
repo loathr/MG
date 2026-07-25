@@ -1,8 +1,10 @@
 import { defineType, defineField } from "sanity";
 
-// A curated Work item. The user manages these to drive the Our Work grid and
-// the Home "Selected work" strip — cover art comes from Sanity's asset pipeline
-// (or, later, a direct R2 URL via `coverUrl` for the already-uploaded library).
+// A curated Work item. Fields map 1:1 to what a Work card renders, so editing is
+// literal. Cover art can be an uploaded image or a direct URL (e.g. the R2 CDN
+// where the existing library already lives). `category` doubles as the Our Work
+// filter bucket, and `featured` promotes an item to the Home "Selected work"
+// strip.
 export const project = defineType({
   name: "project",
   title: "Project",
@@ -10,8 +12,9 @@ export const project = defineType({
   fields: [
     defineField({
       name: "title",
-      title: "Title",
+      title: "Project name",
       type: "string",
+      description: 'Short label shown in the card meta, e.g. "GAS", "Agidi Magazine".',
       validation: (r) => r.required(),
     }),
     defineField({
@@ -22,34 +25,43 @@ export const project = defineType({
       validation: (r) => r.required(),
     }),
     defineField({
-      name: "client",
-      title: "Client / label",
+      name: "kind",
+      title: "Kind / label",
       type: "string",
-      description: 'Short attribution shown in the card meta, e.g. "GAS".',
+      description: 'The small tag beside the name, e.g. "Editorial", "Film", "Music".',
+    }),
+    defineField({
+      name: "headline",
+      title: "Headline",
+      type: "string",
+      description: 'The card\'s title line, e.g. "A film with a point of view".',
     }),
     defineField({
       name: "category",
       title: "Category",
       type: "string",
+      description: "Drives the Our Work filter this project appears under.",
       options: {
         list: [
-          "Film & Motion",
-          "Photography",
-          "Fashion",
-          "Portraits",
-          "Music",
-          "Branding",
-          "Publishing",
-          "Web",
+          { title: "Fashion", value: "fashion" },
+          { title: "Portraits", value: "portraits" },
+          { title: "Events", value: "events" },
+          { title: "Weddings", value: "weddings" },
+          { title: "Film", value: "film" },
+          { title: "Music", value: "music" },
+          { title: "Postcards", value: "postcards" },
+          { title: "Publishing", value: "publishing" },
+          { title: "Graphics", value: "graphics" },
         ],
       },
+      validation: (r) => r.required(),
     }),
-    defineField({ name: "year", title: "Year", type: "string" }),
     defineField({
       name: "summary",
       title: "Summary",
       type: "text",
-      rows: 3,
+      rows: 2,
+      description: "One-line description under the headline.",
     }),
     defineField({
       name: "cover",
@@ -68,12 +80,14 @@ export const project = defineType({
       name: "hasVideo",
       title: "Show play affordance",
       type: "boolean",
+      description: "Adds the ▶ marker for film / motion / video work.",
       initialValue: false,
     }),
     defineField({
       name: "featured",
       title: "Feature on Home",
       type: "boolean",
+      description: 'Also show this project in the Home "Selected work" strip.',
       initialValue: false,
     }),
     defineField({

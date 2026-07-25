@@ -1,8 +1,14 @@
-"use client";
-import React, { useState } from "react";
+import { sanityFetch } from "../../../sanity/lib/fetch";
+import { urlForImage } from "../../../sanity/lib/image";
+import WorkGrid from "./WorkGrid";
 
-const FILTERS = ["all", "fashion", "portraits", "events", "weddings", "film", "music", "postcards", "publishing", "graphics"];
-const CARDS = [
+export const metadata = { title: "Our Work — Loathr" };
+
+type Card = { c: string; n: string; s: string; t: string; d: string; play?: boolean; img?: string | null };
+
+// The current curated grid. Used verbatim whenever Sanity isn't configured or
+// has no projects yet — the page reads identically until real projects exist.
+const FALLBACK_CARDS: Card[] = [
   { c: "fashion", n: "Agidi Magazine", s: "Editorial", t: "Editorial fashion, art-directed", d: "A magazine story, shot end to end." },
   { c: "fashion", n: "LA SYNCDOCHE", s: "Campaign", t: "A fashion world, built", d: "Campaign & lookbook imagery." },
   { c: "fashion", n: "Black Renaissance", s: "Editorial", t: "Heritage, restated", d: "A fashion editorial series." },
@@ -19,8 +25,31 @@ const CARDS = [
   { c: "graphics", n: "Afrotide Shorts", s: "Motion", t: "Motion with rhythm", d: "Motion-graphic shorts & loops.", play: true },
 ];
 
-export default function Work() {
-  const [f, setF] = useState("all");
+type ProjectDoc = {
+  c?: string; n?: string; s?: string; t?: string; d?: string;
+  play?: boolean; coverUrl?: string; cover?: unknown;
+};
+
+const WORK_QUERY = `*[_type == "project"] | order(order asc, _createdAt asc){
+  "c": category, "n": title, "s": kind, "t": headline, "d": summary,
+  "play": hasVideo, coverUrl, cover
+}`;
+
+export default async function Work() {
+  const docs = await sanityFetch<ProjectDoc[] | null>(WORK_QUERY, null);
+
+  const cards: Card[] = docs && docs.length
+    ? docs.map((p) => ({
+        c: p.c || "graphics",
+        n: p.n || "Untitled",
+        s: p.s || "",
+        t: p.t || p.n || "",
+        d: p.d || "",
+        play: !!p.play,
+        img: p.coverUrl || urlForImage(p.cover as never)?.width(900).height(560).fit("crop").url() || null,
+      }))
+    : FALLBACK_CARDS;
+
   return (
     <>
       <section><div className="wrap" style={{ paddingTop: 112 }}>
@@ -29,21 +58,7 @@ export default function Work() {
         <p className="lead reveal d2" style={{ marginTop: 22 }}>Each project tells a story — client, challenge, solution, outcome. Not just a wall of images.</p>
       </div></section>
 
-      <section><div className="wrap">
-        <div className="filters">
-          {FILTERS.map((x) => (
-            <button key={x} className={f === x ? "on" : ""} onClick={() => setF(x)}>{x === "all" ? "All" : x[0].toUpperCase() + x.slice(1)}</button>
-          ))}
-        </div>
-        <div className="work">
-          {CARDS.filter((c) => f === "all" || c.c === f).map((c) => (
-            <div className="wcard" key={c.n} data-cursor="Open" data-label="OPEN">
-              <div className={`media${c.play ? " play" : ""}`}>{c.play ? <span className="pi">▶</span> : null}<div className="tag"><b>{c.c.toUpperCase()}</b>media · R2</div></div>
-              <div className="body"><div className="meta"><span>{c.n}</span><span>{c.s}</span></div><h3>{c.t}</h3><p>{c.d}</p><span className="go">View project →</span></div>
-            </div>
-          ))}
-        </div>
-      </div></section>
+      <WorkGrid cards={cards} />
     </>
   );
 }
