@@ -1,19 +1,48 @@
+import { draftMode } from "next/headers";
+import { createClient } from "next-sanity";
+import { apiVersion, dataset, projectId, isSanityConfigured } from "../env";
 import { client } from "./client";
 
+// A second client used only inside the Presentation editor (draft mode): reads
+// the "drafts" perspective with a token and stega-encodes results so the visual
+// overlay can map a clicked element back to its field (studioUrl = /cms).
+const readToken = process.env.SANITY_API_READ_TOKEN;
+const draftClient =
+  isSanityConfigured && readToken
+    ? createClient({
+        projectId,
+        dataset,
+        apiVersion,
+        useCdn: false,
+        token: readToken,
+        perspective: "drafts",
+        stega: { enabled: true, studioUrl: "/cms" },
+      })
+    : null;
+
 // Env-gated fetch. Returns `fallback` when Sanity isn't configured, and also if
-// a query errors or comes back empty — the marketing site must never blank out
-// because the CMS is unreachable. Revalidates on a short interval so edits show
-// up without a redeploy.
+// a query errors or comes back empty — the marketing site must never blank out.
+// In Presentation (draft mode) it reads live drafts; otherwise published content
+// with a short revalidate.
 export async function sanityFetch<T>(
   query: string,
   fallback: T,
   params: Record<string, unknown> = {}
 ): Promise<T> {
-  if (!client) return fallback;
+  let isDraft = false;
   try {
-    const data = await client.fetch<T>(query, params, {
-      next: { revalidate: 60 },
-    });
+    isDraft = (await draftMode()).isEnabled;
+  } catch {
+    isDraft = false;
+  }
+  const active = isDraft && draftClient ? draftClient : client;
+  if (!active) return fallback;
+  try {
+    const data = await active.fetch<T>(
+      query,
+      params,
+      isDraft ? { cache: "no-store" } : { next: { revalidate: 60 } }
+    );
     if (data == null) return fallback;
     if (Array.isArray(data) && data.length === 0) return fallback;
     return data;

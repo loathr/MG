@@ -1,4 +1,6 @@
 import "./site/site.css";
+import { draftMode } from "next/headers";
+import { VisualEditing } from "next-sanity/visual-editing";
 import SiteChrome from "./site/SiteChrome";
 
 export const metadata = {
@@ -7,6 +9,12 @@ export const metadata = {
     "Loathr is a strategy-led creative consultancy — we build stronger brands, execute meaningful projects, and create lasting impact through strategy, media, and design.",
 };
 
-export default function MarketingLayout({ children }: { children: React.ReactNode }) {
-  return <SiteChrome>{children}</SiteChrome>;
+export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
+  const { isEnabled } = await draftMode();
+  return (
+    <SiteChrome>
+      {children}
+      {isEnabled ? <VisualEditing /> : null}
+    </SiteChrome>
+  );
 }
