@@ -35,8 +35,16 @@ const WORK_QUERY = `*[_type == "project"] | order(order asc, _createdAt asc){
   "play": hasVideo, coverUrl, cover
 }`;
 
+const HERO_F = {
+  eyebrow: "Our work",
+  heading: "We bring your boldest ideas to life.",
+  lead: "Each project tells a story — client, challenge, solution, outcome. Not just a wall of images.",
+};
+const HERO_QUERY = `*[_type == "workPage"][0]{ eyebrow, heading, lead }`;
+
 export default async function Work() {
   const docs = await sanityFetch<ProjectDoc[] | null>(WORK_QUERY, null);
+  const hero = { ...HERO_F, ...((await sanityFetch<Partial<typeof HERO_F> | null>(HERO_QUERY, null)) || {}) };
 
   const cards: Card[] = docs && docs.length
     ? docs.map((p) => ({
@@ -53,9 +61,9 @@ export default async function Work() {
   return (
     <>
       <section><div className="wrap" style={{ paddingTop: 112 }}>
-        <div className="eyebrow mono reveal">Our work</div>
-        <h1 className="h-hd reveal d1">We bring your boldest ideas to life.</h1>
-        <p className="lead reveal d2" style={{ marginTop: 22 }}>Each project tells a story — client, challenge, solution, outcome. Not just a wall of images.</p>
+        <div className="eyebrow mono reveal">{hero.eyebrow || HERO_F.eyebrow}</div>
+        <h1 className="h-hd reveal d1">{hero.heading || HERO_F.heading}</h1>
+        <p className="lead reveal d2" style={{ marginTop: 22 }}>{hero.lead || HERO_F.lead}</p>
       </div></section>
 
       <WorkGrid cards={cards} />

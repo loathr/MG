@@ -38,6 +38,17 @@ const HOME_FALLBACK = {
   heroLead:
     "Loathr is a strategy-led creative consultancy. We build stronger brands, execute meaningful projects, and create lasting impact — strategy first, creative throughout.",
   marquee: MARQUEE,
+  pillarsEyebrow: "What we do",
+  pillarsHeadA: "Three pillars.",
+  pillarsHeadB: "One integrated partner.",
+  pillarsLead: "Strategy leads; creative and growth execute. One consultancy, one plan — never eleven disconnected services.",
+  homePillars: [
+    { n: "01", title: "Strategy", desc: "Clarity, direction, and priorities that become your competitive advantage.", items: ["Brand Strategy", "Business Consultancy", "Project Management"] },
+    { n: "02", title: "Creative", desc: "The visual execution arm — Loathr Studios. Creative in service of the strategy.", items: ["Branding & Identity", "Design", "Photography", "Storytelling", "Media Production"] },
+    { n: "03", title: "Growth", desc: "Turning presence into demand, and perception into your most valuable asset.", items: ["Marketing", "Social Media", "Web Design", "Digital Support"] },
+  ],
+  selectedEyebrow: "Selected work",
+  selectedHeading: "Proof, not decoration.",
   ctaHeadingA: "Let's build something",
   ctaHeadingB: "undeniable.",
   ctaBody: "Developing brands, and driving visibility — from concept to completion.",
@@ -45,6 +56,9 @@ const HOME_FALLBACK = {
 
 const HOME_QUERY = `*[_type == "siteSettings"][0]{
   heroEyebrow, heroLine1, heroLine2, heroLead, marquee,
+  pillarsEyebrow, pillarsHeadA, pillarsHeadB, pillarsLead,
+  homePillars[]{ n, title, desc, items },
+  selectedEyebrow, selectedHeading,
   ctaHeadingA, ctaHeadingB, ctaBody
 }`;
 
@@ -67,6 +81,13 @@ export default async function Home() {
   const ctaHeadingA = c.ctaHeadingA || HOME_FALLBACK.ctaHeadingA;
   const ctaHeadingB = c.ctaHeadingB || HOME_FALLBACK.ctaHeadingB;
   const ctaBody = c.ctaBody || HOME_FALLBACK.ctaBody;
+  const pillarsEyebrow = c.pillarsEyebrow || HOME_FALLBACK.pillarsEyebrow;
+  const pillarsHeadA = c.pillarsHeadA || HOME_FALLBACK.pillarsHeadA;
+  const pillarsHeadB = c.pillarsHeadB || HOME_FALLBACK.pillarsHeadB;
+  const pillarsLead = c.pillarsLead || HOME_FALLBACK.pillarsLead;
+  const homePillars = c.homePillars && c.homePillars.length ? c.homePillars : HOME_FALLBACK.homePillars;
+  const selectedEyebrow = c.selectedEyebrow || HOME_FALLBACK.selectedEyebrow;
+  const selectedHeading = c.selectedHeading || HOME_FALLBACK.selectedHeading;
   const [line2Lead, line2Tail] = splitTail(heroLine2);
 
   const featured = await sanityFetch<FeaturedDoc[] | null>(FEATURED_QUERY, null);
@@ -108,19 +129,19 @@ export default async function Home() {
 
       <section><div className="wrap">
         <div className="shead">
-          <div className="reveal"><div className="eyebrow mono">What we do</div><h2 className="h-lg">Three pillars.<br />One integrated partner.</h2></div>
-          <p className="lead reveal d1">Strategy leads; creative and growth execute. One consultancy, one plan — never eleven disconnected services.</p>
+          <div className="reveal"><div className="eyebrow mono">{pillarsEyebrow}</div><h2 className="h-lg">{pillarsHeadA}<br />{pillarsHeadB}</h2></div>
+          <p className="lead reveal d1">{pillarsLead}</p>
         </div>
         <div className="grid3">
-          <div className="pill reveal"><div className="n">01</div><h3>Strategy</h3><p>Clarity, direction, and priorities that become your competitive advantage.</p><ul><li>Brand Strategy</li><li>Business Consultancy</li><li>Project Management</li></ul></div>
-          <div className="pill reveal d1"><div className="n">02</div><h3>Creative</h3><p>The visual execution arm — Loathr Studios. Creative in service of the strategy.</p><ul><li>Branding &amp; Identity</li><li>Design</li><li>Photography</li><li>Storytelling</li><li>Media Production</li></ul></div>
-          <div className="pill reveal d2"><div className="n">03</div><h3>Growth</h3><p>Turning presence into demand, and perception into your most valuable asset.</p><ul><li>Marketing</li><li>Social Media</li><li>Web Design</li><li>Digital Support</li></ul></div>
+          {homePillars.map((p, i) => (
+            <div className={`pill reveal${i ? " d" + i : ""}`} key={p.n}><div className="n">{p.n}</div><h3>{p.title}</h3><p>{p.desc}</p><ul>{(p.items || []).map((it) => <li key={it}>{it}</li>)}</ul></div>
+          ))}
         </div>
       </div></section>
 
       <section><div className="wrap">
         <div className="shead">
-          <div className="reveal"><div className="eyebrow mono">Selected work</div><h2 className="h-lg">Proof, not decoration.</h2></div>
+          <div className="reveal"><div className="eyebrow mono">{selectedEyebrow}</div><h2 className="h-lg">{selectedHeading}</h2></div>
           <Link className="btn ghost reveal d1" href="/work" data-cursor="All" data-label="ALL">All work</Link>
         </div>
         <div className="work">

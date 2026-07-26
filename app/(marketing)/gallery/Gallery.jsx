@@ -6,7 +6,7 @@ import "./gallery.css";
 // Progressive enhancement: server renders the accessible grid; on a capable
 // desktop (fine pointer, motion allowed, wide) we upgrade to the immersive
 // gallery. Mobile / reduced-motion keep the grid.
-export default function GalleryExperience({ projects, cards }) {
+export default function GalleryExperience({ projects, cards, hero }) {
   const [immersive, setImmersive] = useState(false);
   useEffect(() => {
     const ok =
@@ -15,16 +15,17 @@ export default function GalleryExperience({ projects, cards }) {
       window.innerWidth > 900;
     setImmersive(ok);
   }, []);
-  return immersive ? <Immersive projects={projects} /> : <Fallback cards={cards} />;
+  return immersive ? <Immersive projects={projects} /> : <Fallback cards={cards} hero={hero} />;
 }
 
-function Fallback({ cards }) {
+function Fallback({ cards, hero }) {
+  const h = hero || {};
   return (
     <>
       <section><div className="wrap" style={{ paddingTop: 112 }}>
-        <div className="eyebrow mono reveal">Our work</div>
-        <h1 className="h-hd reveal d1">We bring your boldest ideas to life.</h1>
-        <p className="lead reveal d2" style={{ marginTop: 22 }}>Each project tells a story — client, challenge, solution, outcome. Not just a wall of images.</p>
+        <div className="eyebrow mono reveal">{h.eyebrow || "Our work"}</div>
+        <h1 className="h-hd reveal d1">{h.heading || "We bring your boldest ideas to life."}</h1>
+        <p className="lead reveal d2" style={{ marginTop: 22 }}>{h.lead || "Each project tells a story — client, challenge, solution, outcome. Not just a wall of images."}</p>
       </div></section>
       <WorkGrid cards={cards} />
     </>
