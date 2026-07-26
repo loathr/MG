@@ -26,6 +26,14 @@ export default defineConfig({
             message: "Home hero, marquee & closing band",
             locations: [{ title: "Home", href: "/" }],
           }),
+          aboutPage: defineLocations({
+            message: "The About page",
+            locations: [{ title: "About", href: "/about" }],
+          }),
+          whatWeDoPage: defineLocations({
+            message: "The What We Do page",
+            locations: [{ title: "What We Do", href: "/what-we-do" }],
+          }),
           project: defineLocations({
             select: { title: "title" },
             resolve: (doc) => ({
