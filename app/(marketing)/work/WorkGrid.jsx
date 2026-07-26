@@ -4,7 +4,7 @@ import Link from "next/link";
 
 // Canonical filter order — the buttons shown are this list intersected with the
 // categories actually present, so an empty category never renders a dead filter.
-const ORDER = ["fashion", "portraits", "photography", "events", "weddings", "film", "music", "postcards", "publishing", "graphics"];
+const ORDER = ["fashion", "portraits", "photography", "events", "weddings", "film", "music", "commercial", "social", "postcards", "publishing", "graphics"];
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
 export default function WorkGrid({ cards }) {
