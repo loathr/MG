@@ -53,6 +53,8 @@ export const project = defineType({
           { title: "Postcards", value: "postcards" },
           { title: "Publishing", value: "publishing" },
           { title: "Graphics", value: "graphics" },
+          { title: "Commercial", value: "commercial" },
+          { title: "Social", value: "social" },
         ],
       },
       validation: (r) => r.required(),
