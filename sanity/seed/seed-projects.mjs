@@ -215,14 +215,21 @@ if (!projectId || !token) {
   process.exit(1);
 }
 
+const dataset = process.env.SANITY_DATASET || "production";
+console.log(`→ Target: project "${projectId}", dataset "${dataset}"`);
+
 const { createClient } = await import("@sanity/client");
 const client = createClient({
   projectId,
-  dataset: process.env.SANITY_DATASET || "production",
+  dataset,
   apiVersion: process.env.SANITY_API_VERSION || "2025-01-01",
   token,
   useCdn: false,
 });
+
+// Read the count from THIS connection before and after — proves what landed
+// where, using the exact project+dataset the write targeted (no CDN, no guesswork).
+const before = await client.fetch('count(*[_type == "project"])');
 
 const tx = client.transaction();
 for (const d of docs) {
@@ -230,8 +237,35 @@ for (const d of docs) {
   else tx.createIfNotExists(d);
 }
 const res = await tx.commit();
+
+const after = await client.fetch('count(*[_type == "project"])');
 console.log(
   `Seeded ${docs.length} projects (${REPLACE ? "createOrReplace" : "createIfNotExists"}). ` +
-    `Transaction ${res.transactionId}. These are created as published documents (public _id), ` +
-    `so they go live on the site immediately — open /cms to edit copy or reorder.`
+    `Transaction ${res.transactionId}.`
 );
+console.log(`✔ project docs in ${projectId}/${dataset}: ${before} → ${after}`);
+if (after === 0) {
+  console.log("⚠ Still 0 after write — the token does not belong to this project id. Regenerate the token from inside the project whose ID matches above.");
+}
+
+// Diagnostics: published vs draft breakdown, plus an anonymous read that
+// reproduces EXACTLY what the public website sees.
+const pub = await client.fetch('count(*[_type == "project" && !(_id in path("drafts.**"))])');
+const draft = await client.fetch('count(*[_type == "project" && (_id in path("drafts.**"))])');
+console.log(`  published: ${pub}  ·  drafts: ${draft}`);
+
+const anon = createClient({ projectId, dataset, apiVersion: process.env.SANITY_API_VERSION || "2025-01-01", useCdn: false });
+let anonCount;
+try {
+  anonCount = await anon.fetch('count(*[_type == "project"])');
+} catch (e) {
+  anonCount = `ERROR: ${e.statusCode || ""} ${e.message}`;
+}
+console.log(`  anonymous / tokenless (what the site sees): ${anonCount}`);
+if (typeof anonCount === "number" && anonCount === 0 && pub > 0) {
+  console.log("→ Docs are published but anonymous reads see 0: the dataset is still NOT public at the API (visibility change not effective). Fix visibility, or use a read token.");
+} else if (draft > 0 && pub === 0) {
+  console.log("→ Docs are DRAFTS: the public site cannot read drafts. They need publishing.");
+} else if (typeof anonCount === "number" && anonCount >= pub && pub > 0) {
+  console.log("→ Anonymous can read them — the site should work after a cache-off redeploy.");
+}
