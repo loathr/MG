@@ -20,6 +20,14 @@ export const structure: StructureResolver = (S) =>
         .title("What We Do Page")
         .id("whatWeDoPage")
         .child(S.document().schemaType("whatWeDoPage").documentId("whatWeDoPage")),
+      S.listItem()
+        .title("Newsletter Page")
+        .id("newsletterPage")
+        .child(S.document().schemaType("newsletterPage").documentId("newsletterPage")),
+      S.listItem()
+        .title("Contact Page")
+        .id("contactPage")
+        .child(S.document().schemaType("contactPage").documentId("contactPage")),
       S.divider(),
       S.documentTypeListItem("project").title("Projects"),
       S.documentTypeListItem("post").title("Posts"),
