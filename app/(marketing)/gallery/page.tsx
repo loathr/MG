@@ -4,7 +4,7 @@ import GalleryExperience from "./Gallery";
 
 export const metadata = { title: "Our Work · The Gallery — Loathr" };
 
-type Proj = { n: string; c: string; m: string; d: string; img: string | null; vid: string | null };
+type Proj = { n: string; c: string; m: string; d: string; img: string | null; vid: string | null; slug: string | null };
 type Card = { c: string; n: string; s: string; t: string; d: string; play?: boolean; img?: string | null };
 
 // Safety-net fallback (mirrors /work) for when Sanity has no projects.
@@ -21,12 +21,12 @@ const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
 type Doc = {
   n?: string; cat?: string; kind?: string; headline?: string; summary?: string;
-  play?: boolean; coverUrl?: string; cover?: unknown; videoUrl?: string;
+  play?: boolean; coverUrl?: string; cover?: unknown; videoUrl?: string; slug?: string;
 };
 
 const QUERY = `*[_type == "project"] | order(order asc, _createdAt asc){
   "n": title, "cat": category, "kind": kind, "headline": headline, "summary": summary,
-  "play": hasVideo, coverUrl, cover, videoUrl
+  "play": hasVideo, coverUrl, cover, videoUrl, "slug": slug.current
 }`;
 
 const HERO_QUERY = `*[_type == "workPage"][0]{ eyebrow, heading, lead }`;
@@ -49,6 +49,7 @@ export default async function GalleryPage() {
       d: d.summary || d.headline || "",
       img: imgOf(d),
       vid: d.videoUrl || null,
+      slug: d.slug || null,
     }));
     cards = docs.map((d) => ({
       c: d.cat || "graphics",
@@ -61,7 +62,7 @@ export default async function GalleryPage() {
     }));
   } else {
     cards = FALLBACK_CARDS;
-    projects = FALLBACK_CARDS.map((c) => ({ n: c.n, c: cap(c.c), m: c.s, d: c.d, img: c.img || null, vid: null }));
+    projects = FALLBACK_CARDS.map((c) => ({ n: c.n, c: cap(c.c), m: c.s, d: c.d, img: c.img || null, vid: null, slug: null }));
   }
 
   return <GalleryExperience projects={projects} cards={cards} hero={hero || undefined} />;

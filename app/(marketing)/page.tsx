@@ -5,7 +5,7 @@ import { urlForImage } from "../../sanity/lib/image";
 
 const MARQUEE = ["Brand Strategy", "Photography", "Film & Motion", "Consultancy", "Web Design", "Storytelling", "Media Production", "Marketing", "Publishing"];
 
-type Selected = { name: string; sub: string; title: string; desc: string; play?: boolean; tag: string; img?: string | null };
+type Selected = { name: string; sub: string; title: string; desc: string; play?: boolean; tag: string; img?: string | null; slug?: string };
 
 // The current Selected-work strip. Used verbatim whenever Sanity isn't configured
 // or has no featured projects — so Home reads identically until real ones exist.
@@ -18,14 +18,14 @@ const SELECTED: Selected[] = [
 
 type FeaturedDoc = {
   name?: string; sub?: string; title?: string; desc?: string;
-  play?: boolean; category?: string; coverUrl?: string; cover?: unknown;
+  play?: boolean; category?: string; coverUrl?: string; cover?: unknown; slug?: string;
 };
 
 // Featured projects drive the strip; same `project` documents as Our Work,
 // filtered to `featured == true`, capped at the four the layout expects.
 const FEATURED_QUERY = `*[_type == "project" && featured == true] | order(order asc, _createdAt asc)[0...4]{
   "name": title, "sub": kind, "title": headline, "desc": summary,
-  "play": hasVideo, category, coverUrl, cover
+  "play": hasVideo, category, coverUrl, cover, "slug": slug.current
 }`;
 
 // Editable copy lives in Sanity (Site Settings singleton). These are the exact
@@ -100,6 +100,7 @@ export default async function Home() {
         play: !!p.play,
         tag: (p.category || "").toUpperCase(),
         img: p.coverUrl || urlForImage(p.cover as never)?.width(900).height(560).fit("crop").url() || null,
+        slug: p.slug,
       }))
     : SELECTED;
   return (
@@ -146,7 +147,7 @@ export default async function Home() {
         </div>
         <div className="work">
           {selected.map((w, i) => (
-            <Link key={w.name + w.title} className={`wcard reveal${i ? " d" + i : ""}`} href="/work" data-cursor="Open" data-label="OPEN">
+            <Link key={w.name + w.title} className={`wcard reveal${i ? " d" + i : ""}`} href={w.slug ? `/work/${w.slug}` : "/work"} data-cursor="Open" data-label="OPEN">
               <div className={`media${w.play ? " play" : ""}`}>
                 {w.img ? <img className="cover" src={w.img} alt={w.title || w.name} loading="lazy" /> : null}
                 {w.play ? <span className="pi">▶</span> : null}
