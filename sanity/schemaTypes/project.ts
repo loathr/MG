@@ -65,6 +65,41 @@ export const project = defineType({
       description: "One-line description under the headline.",
     }),
     defineField({
+      name: "body",
+      title: "Story",
+      type: "array",
+      of: [{ type: "block" }],
+      description: "The project write-up on its detail page.",
+    }),
+    defineField({
+      name: "gallery",
+      title: "Gallery",
+      type: "array",
+      description: "The project's images on its detail page. Paste R2 URLs or upload.",
+      of: [{
+        type: "object",
+        fields: [
+          { name: "url", title: "Image URL (R2 / external)", type: "url" },
+          { name: "image", title: "Or upload", type: "image", options: { hotspot: true } },
+          { name: "caption", title: "Caption", type: "string" },
+        ],
+        preview: { select: { title: "caption", subtitle: "url", media: "image" } },
+      }],
+    }),
+    defineField({
+      name: "credits",
+      title: "Credits",
+      type: "array",
+      of: [{
+        type: "object",
+        fields: [
+          { name: "role", title: "Role", type: "string" },
+          { name: "name", title: "Name", type: "string" },
+        ],
+        preview: { select: { title: "name", subtitle: "role" } },
+      }],
+    }),
+    defineField({
       name: "cover",
       title: "Cover image",
       type: "image",

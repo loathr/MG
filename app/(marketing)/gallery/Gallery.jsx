@@ -192,7 +192,7 @@ function Immersive({ projects }) {
               <div className="eye">{(bp.c || "").toUpperCase()}</div>
               <h3>{bp.n}</h3>
               <p>{bp.d}</p>
-              <button className="go" data-hover>View full project →</button>
+              {bp.slug ? <a className="go" href={`/work/${bp.slug}`} data-hover>View full project →</a> : <button className="go" data-hover>View full project →</button>}
             </div></div>
             <div className="spine" />
             <div className="cover"><img src={bp.img || undefined} alt="" /></div>

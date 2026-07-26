@@ -4,7 +4,7 @@ import WorkGrid from "./WorkGrid";
 
 export const metadata = { title: "Our Work — Loathr" };
 
-type Card = { c: string; n: string; s: string; t: string; d: string; play?: boolean; img?: string | null };
+type Card = { c: string; n: string; s: string; t: string; d: string; play?: boolean; img?: string | null; slug?: string };
 
 // The current curated grid. Used verbatim whenever Sanity isn't configured or
 // has no projects yet — the page reads identically until real projects exist.
@@ -27,12 +27,12 @@ const FALLBACK_CARDS: Card[] = [
 
 type ProjectDoc = {
   c?: string; n?: string; s?: string; t?: string; d?: string;
-  play?: boolean; coverUrl?: string; cover?: unknown;
+  play?: boolean; coverUrl?: string; cover?: unknown; slug?: string;
 };
 
 const WORK_QUERY = `*[_type == "project"] | order(order asc, _createdAt asc){
   "c": category, "n": title, "s": kind, "t": headline, "d": summary,
-  "play": hasVideo, coverUrl, cover
+  "play": hasVideo, coverUrl, cover, "slug": slug.current
 }`;
 
 const HERO_F = {
@@ -55,6 +55,7 @@ export default async function Work() {
         d: p.d || "",
         play: !!p.play,
         img: p.coverUrl || urlForImage(p.cover as never)?.width(900).height(560).fit("crop").url() || null,
+        slug: p.slug,
       }))
     : FALLBACK_CARDS;
 
