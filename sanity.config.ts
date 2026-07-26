@@ -42,6 +42,14 @@ export default defineConfig({
             message: "The Contact page",
             locations: [{ title: "Contact", href: "/contact" }],
           }),
+          workPage: defineLocations({
+            message: "Our Work hero",
+            locations: [{ title: "Our Work", href: "/work" }, { title: "Gallery", href: "/gallery" }],
+          }),
+          insightsPage: defineLocations({
+            message: "Insights hero",
+            locations: [{ title: "Insights", href: "/insights" }],
+          }),
           project: defineLocations({
             select: { title: "title" },
             resolve: (doc) => ({

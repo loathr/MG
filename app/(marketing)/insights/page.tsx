@@ -24,8 +24,24 @@ const POSTS_QUERY = `*[_type == "post" && defined(publishedAt)] | order(publishe
   "cat": category, "t": title, "d": excerpt, "engine": fromEngine, cover
 }`;
 
+const HERO_F = {
+  eyebrow: "Insights",
+  heading: "The blog, with a point of view.",
+  engineNote: "Posts published straight from the loathrdotcom engine — generated, then rendered here as articles.",
+};
+const HERO_QUERY = `*[_type == "insightsPage"][0]{ eyebrow, heading, engineNote }`;
+
+// Render the engine note, bolding any "loathrdotcom" mention so it stays
+// editable as one plain string.
+function noteParts(s: string) {
+  return s.split(/(loathrdotcom)/g).map((seg, i) =>
+    seg === "loathrdotcom" ? <b key={i}>{seg}</b> : <span key={i}>{seg}</span>
+  );
+}
+
 export default async function Insights() {
   const docs = await sanityFetch<PostDoc[] | null>(POSTS_QUERY, null);
+  const hero = { ...HERO_F, ...((await sanityFetch<Partial<typeof HERO_F> | null>(HERO_QUERY, null)) || {}) };
 
   const posts: Post[] = docs && docs.length
     ? docs.map((p) => ({
@@ -40,9 +56,9 @@ export default async function Insights() {
   return (
     <>
       <section><div className="wrap" style={{ paddingTop: 112 }}>
-        <div className="eyebrow mono reveal">Insights</div>
-        <h1 className="h-hd reveal d1">The blog, with a point of view.</h1>
-        <div className="enginenote reveal d2" style={{ marginTop: 26 }}><span className="d" /> Posts published straight from the <b>loathrdotcom</b> engine — generated, then rendered here as articles.</div>
+        <div className="eyebrow mono reveal">{hero.eyebrow || HERO_F.eyebrow}</div>
+        <h1 className="h-hd reveal d1">{hero.heading || HERO_F.heading}</h1>
+        <div className="enginenote reveal d2" style={{ marginTop: 26 }}><span className="d" /> {noteParts(hero.engineNote || HERO_F.engineNote)}</div>
       </div></section>
 
       <InsightsGrid posts={posts} />

@@ -17,7 +17,7 @@ const NAV = [
   { href: "/contact", label: "Contact" },
 ];
 
-export default function SiteChrome({ children }) {
+export default function SiteChrome({ children, footerTagline, footerFine }) {
   const pathname = usePathname();
   const router = useRouter();
   const curRef = useRef(null);
@@ -143,7 +143,7 @@ export default function SiteChrome({ children }) {
           <div className="foot">
             <div>
               <span className="logo" style={{ fontSize: 24 }}>LOATHR</span>
-              <p className="lead">A strategy-led creative consultancy. From concept to completion.</p>
+              <p className="lead">{footerTagline || "A strategy-led creative consultancy. From concept to completion."}</p>
             </div>
             <div className="fcols">
               <div className="fcol"><b>Explore</b><Link href="/about">About</Link><Link href="/what-we-do">What We Do</Link><Link href="/work">Our Work</Link><Link href="/insights">Insights</Link></div>
@@ -151,7 +151,7 @@ export default function SiteChrome({ children }) {
               <div className="fcol"><b>Connect</b><Link href="/newsletter">Newsletter</Link><Link href="/contact">Contact</Link><Link href="/studio">Studio</Link></div>
             </div>
           </div>
-          <div className="fine"><span>© 2026 Loathr</span><span className="mono">Black &amp; white · red accent</span></div>
+          <div className="fine"><span>© 2026 Loathr</span><span className="mono">{footerFine || "Black & white · red accent"}</span></div>
         </div>
       </footer>
 

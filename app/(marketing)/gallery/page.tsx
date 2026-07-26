@@ -29,11 +29,14 @@ const QUERY = `*[_type == "project"] | order(order asc, _createdAt asc){
   "play": hasVideo, coverUrl, cover, videoUrl
 }`;
 
+const HERO_QUERY = `*[_type == "workPage"][0]{ eyebrow, heading, lead }`;
+
 const imgOf = (d: Doc) =>
   d.coverUrl || urlForImage(d.cover as never)?.width(720).height(900).fit("crop").url() || null;
 
 export default async function GalleryPage() {
   const docs = await sanityFetch<Doc[] | null>(QUERY, null);
+  const hero = await sanityFetch<{ eyebrow?: string; heading?: string; lead?: string } | null>(HERO_QUERY, null);
 
   let projects: Proj[];
   let cards: Card[];
@@ -61,5 +64,5 @@ export default async function GalleryPage() {
     projects = FALLBACK_CARDS.map((c) => ({ n: c.n, c: cap(c.c), m: c.s, d: c.d, img: c.img || null, vid: null }));
   }
 
-  return <GalleryExperience projects={projects} cards={cards} />;
+  return <GalleryExperience projects={projects} cards={cards} hero={hero || undefined} />;
 }
