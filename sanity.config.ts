@@ -34,6 +34,14 @@ export default defineConfig({
             message: "The What We Do page",
             locations: [{ title: "What We Do", href: "/what-we-do" }],
           }),
+          newsletterPage: defineLocations({
+            message: "The Newsletter page",
+            locations: [{ title: "Newsletter", href: "/newsletter" }],
+          }),
+          contactPage: defineLocations({
+            message: "The Contact page",
+            locations: [{ title: "Contact", href: "/contact" }],
+          }),
           project: defineLocations({
             select: { title: "title" },
             resolve: (doc) => ({
