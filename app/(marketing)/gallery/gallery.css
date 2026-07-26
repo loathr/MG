@@ -1,0 +1,84 @@
+/* The virtual gallery — fully self-contained under .galleryRoot so it never
+   touches the rest of the site. Theme (light museum / dark) is set by the
+   data-gtheme attribute on .galleryRoot. */
+.galleryRoot{--disp:"Space Grotesk",system-ui,sans-serif;position:fixed;inset:0;z-index:40;overflow:hidden;cursor:none;font-family:Inter,system-ui,sans-serif}
+.galleryRoot[data-gtheme="light"]{--bg:#e9e4da;--wallA:#efeae1;--wallB:#ddd6c9;--floorA:#d9d1c3;--floorB:#c8bda8;--frame:#26211c;--frameB:#0e0c0a;--mat:#fbfaf7;--ink:#201c16;--soft:#6a6157;--line:rgba(0,0,0,.08);--cur:rgba(30,26,20,.5);--dot:#201c16;--red:#d23a2c;--light:rgba(255,252,244,.7)}
+.galleryRoot[data-gtheme="dark"]{--bg:#0a0908;--wallA:#0d0b0a;--wallB:#100e0d;--floorA:#0c0a08;--floorB:#060504;--frame:#1a1614;--frameB:#0c0a09;--mat:#e9e3d7;--ink:#f2f2f2;--soft:#9a9187;--line:rgba(255,255,255,.06);--cur:rgba(255,255,255,.55);--dot:#fff;--red:#e5342a;--light:rgba(255,246,226,.14)}
+.galleryRoot *{box-sizing:border-box;margin:0}
+.galleryRoot img{-webkit-user-drag:none;user-select:none}
+.galleryRoot .gbg{position:absolute;inset:0;background:linear-gradient(var(--wallA),var(--bg) 56%,var(--wallB));transition:background .6s}
+
+.galleryRoot .gcur{position:fixed;width:44px;height:44px;border:1px solid var(--cur);border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:9999;display:grid;place-items:center;font-family:var(--disp);font-size:8px;letter-spacing:.14em;color:var(--ink);text-transform:uppercase;transition:width .2s,height .2s,background .2s,border-color .2s}
+.galleryRoot .gcur.big{width:78px;height:78px;background:rgba(210,58,44,.12);border-color:var(--red);color:var(--red)}
+.galleryRoot .gcur.pull{width:70px;height:70px;border-color:var(--red);border-style:dashed;background:rgba(210,58,44,.08)}
+.galleryRoot .gcur .arw{position:absolute;left:50%;top:50%;width:0;height:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:11px solid var(--red);opacity:0;transition:opacity .15s;transform:translate(-50%,-50%) translateX(26px)}
+.galleryRoot .gcur.pull .arw{opacity:1}
+.galleryRoot .gdot{position:fixed;width:5px;height:5px;background:var(--dot);border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:9999}
+
+.galleryRoot .lights{position:absolute;inset:0;pointer-events:none;background:radial-gradient(40vw 62vh at 26% -8%,var(--light),transparent 60%),radial-gradient(40vw 62vh at 68% -8%,var(--light),transparent 60%),radial-gradient(40vw 62vh at 108% -8%,var(--light),transparent 60%)}
+.galleryRoot .floor{position:absolute;left:0;right:0;bottom:0;height:23vh;background:linear-gradient(var(--floorA),var(--floorB))}
+.galleryRoot .floor::before{content:"";position:absolute;inset:0;background:linear-gradient(102deg,transparent 42%,rgba(255,255,255,.14),transparent 60%)}
+.galleryRoot .baseboard{position:absolute;left:0;right:0;bottom:23vh;height:6px;background:linear-gradient(var(--wallA),var(--wallB));box-shadow:0 1px 2px rgba(0,0,0,.12)}
+
+.galleryRoot .stage{position:absolute;top:0;left:0;right:0;bottom:23vh;touch-action:none;z-index:3}
+.galleryRoot .track{position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;gap:20vw;padding:0 40vw;will-change:transform}
+.galleryRoot .gpiece{position:relative;flex:0 0 auto;width:min(322px,66vw);transform:translateY(-2.5vh)}
+.galleryRoot .pool{position:absolute;left:50%;top:-15%;width:150%;height:130%;transform:translateX(-50%);background:radial-gradient(ellipse at 50% 20%,var(--light),transparent 60%);z-index:-1;opacity:.6;transition:opacity .4s}
+.galleryRoot .gpiece.center .pool{opacity:1}
+.galleryRoot .frame{position:relative;padding:14px;background:linear-gradient(150deg,var(--frame),var(--frameB));border-radius:1px;box-shadow:0 34px 52px -24px rgba(0,0,0,.7),0 2px 6px rgba(0,0,0,.25),0 0 0 1px rgba(0,0,0,.3)}
+.galleryRoot .mat{background:var(--mat);padding:20px;box-shadow:inset 0 0 20px rgba(0,0,0,.08)}
+.galleryRoot .gmedia{position:relative;aspect-ratio:4/5;overflow:hidden;background:#ccc}
+.galleryRoot .gmedia img,.galleryRoot .gmedia video{width:100%;height:100%;object-fit:cover;display:block}
+.galleryRoot .vbadge{position:absolute;bottom:8px;right:8px;z-index:3;display:flex;align-items:center;gap:5px;background:rgba(20,18,15,.62);color:#fff;font-family:var(--disp);font-size:8px;letter-spacing:.12em;text-transform:uppercase;padding:4px 8px;border-radius:100px;font-weight:600}
+.galleryRoot .vbadge .p{width:0;height:0;border-left:6px solid #fff;border-top:3.5px solid transparent;border-bottom:3.5px solid transparent}
+.galleryRoot .glabel{position:absolute;right:0;bottom:-78px;width:170px}
+.galleryRoot .glabel .n{font-family:var(--disp);font-size:12.5px;font-weight:700;color:var(--ink)}
+.galleryRoot .glabel .m{font-size:10px;color:var(--soft);margin-top:3px;font-style:italic;line-height:1.4}
+.galleryRoot .refl{position:absolute;left:14px;right:14px;top:calc(100% + 2.5vh);height:84px;overflow:hidden;-webkit-mask-image:linear-gradient(rgba(0,0,0,.22),transparent);mask-image:linear-gradient(rgba(0,0,0,.22),transparent);opacity:.26;pointer-events:none}
+.galleryRoot .refl img{width:100%;height:290px;object-fit:cover;transform:scaleY(-1);object-position:bottom}
+
+.galleryRoot .gui{position:absolute;z-index:20;font-family:var(--disp)}
+.galleryRoot .gtop{top:88px;left:36px}
+.galleryRoot .gtop .eye{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--soft);font-weight:600}
+.galleryRoot .gtop h2{font-size:26px;letter-spacing:-.02em;margin-top:6px;color:var(--ink)}
+.galleryRoot .gplate{top:92px;right:150px;text-align:right}
+.galleryRoot .gplate .g{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
+.galleryRoot .gplate b{display:block;font-size:15px;margin-top:3px;color:var(--ink)}
+.galleryRoot .gtoggle{top:90px;right:36px;display:flex;gap:8px;align-items:center;background:transparent;border:1px solid var(--line);color:var(--ink);font-family:var(--disp);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:8px 12px;border-radius:100px;cursor:none}
+.galleryRoot .gtoggle .sw{width:24px;height:12px;border-radius:100px;border:1px solid var(--soft);position:relative}
+.galleryRoot .gtoggle .sw::after{content:"";position:absolute;top:1px;left:1px;width:8px;height:8px;border-radius:50%;background:var(--ink);transition:transform .3s}
+.galleryRoot[data-gtheme="dark"] .gtoggle .sw::after{transform:translateX(12px)}
+.galleryRoot .exit{top:90px;left:36px;background:transparent;border:1px solid var(--line);color:var(--ink);font-family:var(--disp);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:8px 13px;border-radius:100px;cursor:none;display:none}
+.galleryRoot .ghint{bottom:3.4vh;left:50%;transform:translateX(-50%);display:flex;gap:9px;align-items:center;color:var(--soft);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;z-index:20;transition:opacity .6s}
+.galleryRoot .ghint.gone{opacity:0}
+.galleryRoot .ghint .key{border:1px solid var(--line);border-radius:5px;padding:3px 7px;color:var(--ink)}
+.galleryRoot .gnav{position:absolute;bottom:8.5vh;left:50%;transform:translateX(-50%);z-index:20;width:min(360px,52vw);height:20px;opacity:.42;transition:opacity .3s}
+.galleryRoot .gnav:hover{opacity:.95}
+.galleryRoot .gnav .rail{position:absolute;left:0;right:0;top:50%;height:1px;background:var(--soft);opacity:.5}
+.galleryRoot .gnav .tick{position:absolute;top:50%;width:7px;height:7px;border:1px solid var(--soft);border-radius:50%;transform:translate(-50%,-50%);transition:.2s}
+.galleryRoot .gnav .tick:hover{border-color:var(--red);background:rgba(210,58,44,.35);transform:translate(-50%,-50%) scale(1.3)}
+.galleryRoot .gnav .you{position:absolute;top:50%;width:9px;height:9px;background:var(--red);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 8px var(--red);pointer-events:none}
+
+.galleryRoot .book{position:fixed;inset:0;z-index:60;display:none;place-items:center;background:rgba(10,8,6,0);perspective:2200px;transition:background .5s}
+.galleryRoot .book.show{display:grid}
+.galleryRoot .book.lit{background:rgba(10,8,6,.72);backdrop-filter:blur(3px)}
+.galleryRoot .spread{position:relative;width:min(900px,92vw);height:min(560px,74vh);transform-style:preserve-3d;transform:rotateX(6deg);box-shadow:0 60px 120px -30px rgba(0,0,0,.7)}
+.galleryRoot .pg{position:absolute;top:0;height:100%;width:50%;background:#141210;overflow:hidden}
+.galleryRoot .pg.left{left:0}
+.galleryRoot .pg.right{right:0;padding:44px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(#171412,#0e0c0a);color:#f2ede3}
+.galleryRoot .pg .inner{position:absolute;inset:0;opacity:0;transition:opacity .5s .45s}
+.galleryRoot .book.open .pg .inner{opacity:1}
+.galleryRoot .pg.left img,.galleryRoot .pg.left video{width:100%;height:100%;object-fit:cover}
+.galleryRoot .pg.right .in{opacity:0;transition:opacity .5s .5s}
+.galleryRoot .book.open .pg.right .in{opacity:1}
+.galleryRoot .pg.right .eye{font-family:var(--disp);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--red);font-weight:600}
+.galleryRoot .pg.right h3{font-family:var(--disp);font-size:36px;letter-spacing:-.03em;line-height:1;margin:12px 0 16px}
+.galleryRoot .pg.right p{color:#b3a89b;font-size:14px;line-height:1.7;max-width:330px}
+.galleryRoot .pg.right .go{align-self:flex-start;margin-top:24px;display:inline-flex;gap:9px;background:var(--red);color:#fff;font-family:var(--disp);font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:12px 20px;border:none;border-radius:2px;cursor:none}
+.galleryRoot .spine{position:absolute;left:50%;top:0;width:2px;height:100%;transform:translateX(-50%);background:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,.15),rgba(0,0,0,.6));z-index:5}
+.galleryRoot .cover{position:absolute;top:0;left:50%;width:50%;height:100%;transform-origin:left center;transform:rotateY(0);transition:transform 1.05s cubic-bezier(.5,.02,.16,1);z-index:4;backface-visibility:hidden;box-shadow:0 30px 70px -20px rgba(0,0,0,.7)}
+.galleryRoot .cover img{width:100%;height:100%;object-fit:cover;filter:brightness(.9)}
+.galleryRoot .book.open .cover{transform:rotateY(-172deg)}
+.galleryRoot .bclose{position:fixed;top:90px;left:36px;z-index:70;background:rgba(20,18,15,.7);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(6px);color:#fff;font-family:var(--disp);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:10px 16px;border-radius:100px;display:none;cursor:none}
+.galleryRoot .book.show ~ .bclose,.galleryRoot .bclose.show{display:inline-flex;gap:8px;align-items:center}
+@media (prefers-reduced-motion: reduce){.galleryRoot .cover{transition:opacity .3s}}

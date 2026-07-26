@@ -85,6 +85,13 @@ export const project = defineType({
       initialValue: false,
     }),
     defineField({
+      name: "videoUrl",
+      title: "Video URL (R2 / external)",
+      type: "url",
+      description:
+        "Optional: a web-friendly MP4 (e.g. transcoded to the R2 CDN). In the gallery this plays inline when the work is centred. Leave blank to show the still.",
+    }),
+    defineField({
       name: "featured",
       title: "Feature on Home",
       type: "boolean",
