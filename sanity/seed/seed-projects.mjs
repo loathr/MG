@@ -215,14 +215,21 @@ if (!projectId || !token) {
   process.exit(1);
 }
 
+const dataset = process.env.SANITY_DATASET || "production";
+console.log(`→ Target: project "${projectId}", dataset "${dataset}"`);
+
 const { createClient } = await import("@sanity/client");
 const client = createClient({
   projectId,
-  dataset: process.env.SANITY_DATASET || "production",
+  dataset,
   apiVersion: process.env.SANITY_API_VERSION || "2025-01-01",
   token,
   useCdn: false,
 });
+
+// Read the count from THIS connection before and after — proves what landed
+// where, using the exact project+dataset the write targeted (no CDN, no guesswork).
+const before = await client.fetch('count(*[_type == "project"])');
 
 const tx = client.transaction();
 for (const d of docs) {
@@ -230,8 +237,13 @@ for (const d of docs) {
   else tx.createIfNotExists(d);
 }
 const res = await tx.commit();
+
+const after = await client.fetch('count(*[_type == "project"])');
 console.log(
   `Seeded ${docs.length} projects (${REPLACE ? "createOrReplace" : "createIfNotExists"}). ` +
-    `Transaction ${res.transactionId}. These are created as published documents (public _id), ` +
-    `so they go live on the site immediately — open /cms to edit copy or reorder.`
+    `Transaction ${res.transactionId}.`
 );
+console.log(`✔ project docs in ${projectId}/${dataset}: ${before} → ${after}`);
+if (after === 0) {
+  console.log("⚠ Still 0 after write — the token does not belong to this project id. Regenerate the token from inside the project whose ID matches above.");
+}
