@@ -25,6 +25,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
+        {/* Marketing-site typography (loaded client-side; no build-time font fetch) */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Graduate&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <link rel="preload" href="/Fonts/CourierPrime/CourierPrime-Regular.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
         <link rel="preload" href="/Fonts/CourierPrime/CourierPrime-Bold.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
         <link rel="preload" href="/Fonts/Foun/OpenType-TT/Foun.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
