@@ -19,14 +19,14 @@ const siteSettings = {
   _id: "siteSettings", _type: "siteSettings",
   heroEyebrow: "Strategy-led · Creative studio",
   heroLine1: "From concept", heroLine2: "to completion.",
-  heroLead: "Loathr is a strategy-led creative consultancy. We build stronger brands, execute meaningful projects, and create lasting impact. Strategy first, creative throughout.",
+  heroLead: "Loathr is a strategy-led creative consultancy. We build your company a stronger brand, execute meaningful projects, and create lasting impact. Strategy first, creative throughout.",
   marquee: ["Brand Strategy", "Photography", "Film & Motion", "Consultancy", "Web Design", "Storytelling", "Media Production", "Marketing", "Publishing"],
   pillarsEyebrow: "What we do", pillarsHeadA: "Three pillars.", pillarsHeadB: "One integrated partner.",
   pillarsLead: "Strategy leads; creative and growth execute. One consultancy, one plan. Never eleven disconnected services.",
   homePillars: [
-    { ...k("p", 0), n: "01", title: "Strategy", desc: "Clarity, direction, and priorities that become your competitive advantage.", items: ["Brand Strategy", "Business Consultancy", "Project Management"] },
+    { ...k("p", 0), n: "01", title: "Strategy", desc: "Clarity, direction, and priorities that become your company’s competitive advantage.", items: ["Brand Strategy", "Business Consultancy", "Project Management"] },
     { ...k("p", 1), n: "02", title: "Creative", desc: "The visual execution arm, Loathr Studios. Creative in service of the strategy.", items: ["Branding & Identity", "Design", "Photography", "Storytelling", "Media Production"] },
-    { ...k("p", 2), n: "03", title: "Growth", desc: "Turning presence into demand, and perception into your most valuable asset.", items: ["Marketing", "Social Media", "Web Design", "Digital Support"] },
+    { ...k("p", 2), n: "03", title: "Growth", desc: "Turning presence into demand, and perception into your company’s most valuable asset.", items: ["Marketing", "Social Media", "Web Design", "Digital Support"] },
   ],
   selectedEyebrow: "Selected work", selectedHeading: "Proof, not decoration.",
   ctaHeadingA: "Let's build something", ctaHeadingB: "undeniable.",
@@ -38,7 +38,7 @@ const siteSettings = {
 const aboutPage = {
   _id: "aboutPage", _type: "aboutPage",
   eyebrow: "About Loathr",
-  heading: "We help organisations make sense of who they are, and how they’re perceived.",
+  heading: "We help your company make sense of who you are, and how you’re perceived.",
   lead: "A strategy-first consultancy with a creative studio inside it, uniting strategy, creative, and growth on precision, long-term thinking, and ruthless execution.",
   stats: [
     { ...k("s", 0), value: "100", suffix: "+", label: "creatives & collaborators" },
@@ -64,7 +64,7 @@ const aboutPage = {
 const whatWeDoPage = {
   _id: "whatWeDoPage", _type: "whatWeDoPage",
   eyebrow: "What we do",
-  heading: "Everything a company needs, under one roof, organised, not scattered.",
+  heading: "Everything your company needs, under one roof, organised, not scattered.",
   lead: "Grouped into three pillars so it’s clear how we work together, not eleven disconnected services.",
   pillars: [
     { ...k("pl", 0), eyebrow: "Strategy & Consultancy · Loathr Enterprises", heading: "The thinking that comes first", services: [
@@ -73,7 +73,7 @@ const whatWeDoPage = {
       { ...k("a", 2), h: "Advisory & Delivery", p: "Business consultancy, project management, organisational development, representation & negotiation." },
     ] },
     { ...k("pl", 1), eyebrow: "Creative · Loathr Studios", heading: "The visual execution arm", services: [
-      { ...k("b", 0), h: "Branding & Identity", p: "The visual systems that make your presence undeniable." },
+      { ...k("b", 0), h: "Branding & Identity", p: "The visual systems that make your company’s presence undeniable." },
       { ...k("b", 1), h: "Photography", p: "Product, lifestyle, editorial, portraiture, art-directed end to end." },
       { ...k("b", 2), h: "Media Production", p: "Film, motion, commercials, documentary, cinematic precision." },
       { ...k("b", 3), h: "Design", p: "Editorial, campaign, and publishing design for longevity." },
@@ -83,7 +83,7 @@ const whatWeDoPage = {
     { ...k("pl", 2), eyebrow: "Growth", heading: "Turning presence into demand", services: [
       { ...k("c", 0), h: "Marketing", p: "Measurable growth: SEO, PPC, and lead generation across the full funnel." },
       { ...k("c", 1), h: "Social Media", p: "Commanding the conversation with tactical, relentless digital." },
-      { ...k("c", 2), h: "Web Design", p: "Award-worthy sites that meet business goals and feel like an experience." },
+      { ...k("c", 2), h: "Web Design", p: "Award-worthy sites that meet your company’s goals and feel like an experience." },
     ] },
   ],
   steps: [
@@ -124,7 +124,7 @@ const newsletterPage = {
 const contactPage = {
   _id: "contactPage", _type: "contactPage",
   eyebrow: "Get started", heading: "Let’s talk.",
-  lead: "Whether you have a question or a project to scope, from concept to completion, we’re here.",
+  lead: "Whether your company has a question or a project to scope, from concept to completion, we’re here.",
   serviceOptions: ["Strategy: Business / Consultancy / PM", "Creative: Branding / Photo / Film", "Growth: Marketing / Social / Web", "Not sure yet"],
   submitLabel: "Send message",
   faq: [

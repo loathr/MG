@@ -10,7 +10,7 @@ type WWD = { eyebrow: string; heading: string; lead: string; pillars: Pillar[]; 
 // Current copy, verbatim.
 const F: WWD = {
   eyebrow: "What we do",
-  heading: "Everything a company needs, under one roof, organised, not scattered.",
+  heading: "Everything your company needs, under one roof, organised, not scattered.",
   lead: "Grouped into three pillars so it’s clear how we work together, not eleven disconnected services.",
   pillars: [
     {
@@ -26,7 +26,7 @@ const F: WWD = {
       eyebrow: "Creative · Loathr Studios",
       heading: "The visual execution arm",
       services: [
-        { h: "Branding & Identity", p: "The visual systems that make your presence undeniable." },
+        { h: "Branding & Identity", p: "The visual systems that make your company’s presence undeniable." },
         { h: "Photography", p: "Product, lifestyle, editorial, portraiture, art-directed end to end." },
         { h: "Media Production", p: "Film, motion, commercials, documentary, cinematic precision." },
         { h: "Design", p: "Editorial, campaign, and publishing design for longevity." },
@@ -40,7 +40,7 @@ const F: WWD = {
       services: [
         { h: "Marketing", p: "Measurable growth: SEO, PPC, and lead generation across the full funnel." },
         { h: "Social Media", p: "Commanding the conversation with tactical, relentless digital." },
-        { h: "Web Design", p: "Award-worthy sites that meet business goals and feel like an experience." },
+        { h: "Web Design", p: "Award-worthy sites that meet your company’s goals and feel like an experience." },
       ],
     },
   ],

@@ -16,7 +16,7 @@ type About = {
 // Current copy, verbatim — the page reads identically until edited in the CMS.
 const F: About = {
   eyebrow: "About Loathr",
-  heading: "We help organisations make sense of who they are, and how they’re perceived.",
+  heading: "We help your company make sense of who you are, and how you’re perceived.",
   lead: "A strategy-first consultancy with a creative studio inside it, uniting strategy, creative, and growth on precision, long-term thinking, and ruthless execution.",
   stats: [
     { value: "100", suffix: "+", label: "creatives & collaborators" },

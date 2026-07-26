@@ -9,7 +9,7 @@ type Contact = { eyebrow: string; heading: string; lead: string; serviceOptions:
 const F: Contact = {
   eyebrow: "Get started",
   heading: "Let’s talk.",
-  lead: "Whether you have a question or a project to scope, from concept to completion, we’re here.",
+  lead: "Whether your company has a question or a project to scope, from concept to completion, we’re here.",
   serviceOptions: [
     "Strategy: Business / Consultancy / PM",
     "Creative: Branding / Photo / Film",
