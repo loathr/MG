@@ -45,6 +45,7 @@ export const project = defineType({
         list: [
           { title: "Fashion", value: "fashion" },
           { title: "Portraits", value: "portraits" },
+          { title: "Photography", value: "photography" },
           { title: "Events", value: "events" },
           { title: "Weddings", value: "weddings" },
           { title: "Film", value: "film" },

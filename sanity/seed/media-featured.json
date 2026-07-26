@@ -1,0 +1,4702 @@
+{
+ "base": "https://pub-ea1f271a548f41ada37411b1a646b020.r2.dev",
+ "count": 119,
+ "assets": [
+  {
+   "id": "portraits-portraits-dsc00270",
+   "category": "portraits",
+   "project": "Portraits",
+   "title": "Portraits",
+   "alt": "",
+   "width": 2912,
+   "height": 4813,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc00270-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc00270-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc00270-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc00270-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc00270-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc00270-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Portraits. /DSC00270.JPG"
+  },
+  {
+   "id": "portraits-portraits-dsc00269",
+   "category": "portraits",
+   "project": "Portraits",
+   "title": "Portraits",
+   "alt": "",
+   "width": 2912,
+   "height": 4712,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc00269-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc00269-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc00269-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc00269-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc00269-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc00269-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Portraits. /DSC00269.JPG"
+  },
+  {
+   "id": "portraits-portraits-dsc-2437",
+   "category": "portraits",
+   "project": "Portraits",
+   "title": "Portraits",
+   "alt": "",
+   "width": 2500,
+   "height": 3750,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc-2437-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc-2437-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc-2437-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc-2437-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc-2437-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc-2437-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Portraits. /DSC_2437.jpeg"
+  },
+  {
+   "id": "portraits-portraits-dsc02719",
+   "category": "portraits",
+   "project": "Portraits",
+   "title": "Portraits",
+   "alt": "",
+   "width": 2500,
+   "height": 3748,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc02719-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc02719-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc02719-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc02719-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc02719-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc02719-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Portraits. /DSC02719.jpeg"
+  },
+  {
+   "id": "portraits-portraits-dsc00268",
+   "category": "portraits",
+   "project": "Portraits",
+   "title": "Portraits",
+   "alt": "",
+   "width": 2390,
+   "height": 3908,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc00268-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc00268-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc00268-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc00268-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc00268-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc00268-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Portraits. /DSC00268.JPG"
+  },
+  {
+   "id": "portraits-portraits-dsc-1073",
+   "category": "portraits",
+   "project": "Portraits",
+   "title": "Portraits",
+   "alt": "",
+   "width": 2500,
+   "height": 3385,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc-1073-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc-1073-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc-1073-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc-1073-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc-1073-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc-1073-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Portraits. /DSC_1073.JPG"
+  },
+  {
+   "id": "portraits-portraits-emeka-8",
+   "category": "portraits",
+   "project": "Portraits",
+   "title": "Portraits",
+   "alt": "",
+   "width": 2550,
+   "height": 3300,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/emeka-8-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/emeka-8-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/emeka-8-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/emeka-8-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/emeka-8-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/emeka-8-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Portraits. /Emeka-8.png"
+  },
+  {
+   "id": "portraits-portraits-josh-2",
+   "category": "portraits",
+   "project": "Portraits",
+   "title": "Portraits",
+   "alt": "",
+   "width": 2500,
+   "height": 3236,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/josh-2-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/josh-2-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/josh-2-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/josh-2-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/josh-2-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/josh-2-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Portraits. /Josh-2.jpg"
+  },
+  {
+   "id": "portraits-portraits-mom-3",
+   "category": "portraits",
+   "project": "Portraits",
+   "title": "Portraits",
+   "alt": "",
+   "width": 2500,
+   "height": 3235,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/mom-3-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/mom-3-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/mom-3-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/mom-3-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/mom-3-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/mom-3-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Portraits. /Mom+-3.jpg"
+  },
+  {
+   "id": "portraits-portraits-emeka-4",
+   "category": "portraits",
+   "project": "Portraits",
+   "title": "Portraits",
+   "alt": "",
+   "width": 2378,
+   "height": 2972,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/emeka-4-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/emeka-4-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/emeka-4-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/emeka-4-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/emeka-4-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/emeka-4-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Portraits. /Emeka-4.png"
+  },
+  {
+   "id": "portraits-portraits-dsc-2405",
+   "category": "portraits",
+   "project": "Portraits",
+   "title": "Portraits",
+   "alt": "",
+   "width": 2500,
+   "height": 1540,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc-2405-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc-2405-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc-2405-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc-2405-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc-2405-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc-2405-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Portraits. /DSC_2405.jpeg"
+  },
+  {
+   "id": "portraits-portraits-dsc00704",
+   "category": "portraits",
+   "project": "Portraits",
+   "title": "Portraits",
+   "alt": "",
+   "width": 2048,
+   "height": 1366,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc00704-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc00704-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc00704-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "portraits/portraits/dsc00704-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "portraits/portraits/dsc00704-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "portraits/portraits/dsc00704-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Portraits. /DSC00704.jpg"
+  },
+  {
+   "id": "other-iphotos-ii-img-6397",
+   "category": "iphotos",
+   "project": "iPhotos II",
+   "title": "Iphotos Ii",
+   "alt": "",
+   "width": 2500,
+   "height": 3125,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "other/iphotos-ii/img-6397-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-ii/img-6397-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-ii/img-6397-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "other/iphotos-ii/img-6397-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-ii/img-6397-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-ii/img-6397-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos II/IMG_6397.jpeg"
+  },
+  {
+   "id": "other-iphotos-i-img-3070-edit-1",
+   "category": "iphotos",
+   "project": "iPhotos I",
+   "title": "Iphotos I",
+   "alt": "",
+   "width": 2500,
+   "height": 3406,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "other/iphotos-i/img-3070-edit-1-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-i/img-3070-edit-1-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-i/img-3070-edit-1-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "other/iphotos-i/img-3070-edit-1-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-i/img-3070-edit-1-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-i/img-3070-edit-1-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/IMG_3070-Edit(1).jpeg"
+  },
+  {
+   "id": "other-iphotos-ii-img-6399",
+   "category": "iphotos",
+   "project": "iPhotos II",
+   "title": "Iphotos Ii",
+   "alt": "",
+   "width": 2500,
+   "height": 3125,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "other/iphotos-ii/img-6399-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-ii/img-6399-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-ii/img-6399-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "other/iphotos-ii/img-6399-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-ii/img-6399-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-ii/img-6399-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos II/IMG_6399.jpeg"
+  },
+  {
+   "id": "other-iphotos-i-img-0674",
+   "category": "iphotos",
+   "project": "iPhotos I",
+   "title": "Iphotos I",
+   "alt": "",
+   "width": 2500,
+   "height": 3406,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "other/iphotos-i/img-0674-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-i/img-0674-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-i/img-0674-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "other/iphotos-i/img-0674-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-i/img-0674-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-i/img-0674-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/IMG_0674.jpeg"
+  },
+  {
+   "id": "other-iphotos-ii-img-6394",
+   "category": "iphotos",
+   "project": "iPhotos II",
+   "title": "Iphotos Ii",
+   "alt": "",
+   "width": 2500,
+   "height": 3125,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "other/iphotos-ii/img-6394-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-ii/img-6394-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-ii/img-6394-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "other/iphotos-ii/img-6394-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-ii/img-6394-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-ii/img-6394-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos II/IMG_6394.jpeg"
+  },
+  {
+   "id": "other-iphotos-i-img-3145",
+   "category": "iphotos",
+   "project": "iPhotos I",
+   "title": "Iphotos I",
+   "alt": "",
+   "width": 2500,
+   "height": 3406,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "other/iphotos-i/img-3145-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-i/img-3145-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-i/img-3145-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "other/iphotos-i/img-3145-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-i/img-3145-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-i/img-3145-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/IMG_3145.jpeg"
+  },
+  {
+   "id": "other-iphotos-ii-img-6393",
+   "category": "iphotos",
+   "project": "iPhotos II",
+   "title": "Iphotos Ii",
+   "alt": "",
+   "width": 2500,
+   "height": 3125,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "other/iphotos-ii/img-6393-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-ii/img-6393-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-ii/img-6393-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "other/iphotos-ii/img-6393-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-ii/img-6393-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-ii/img-6393-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos II/IMG_6393.jpeg"
+  },
+  {
+   "id": "other-iphotos-i-img-3070-edit",
+   "category": "iphotos",
+   "project": "iPhotos I",
+   "title": "Iphotos I",
+   "alt": "",
+   "width": 2500,
+   "height": 3406,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "other/iphotos-i/img-3070-edit-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-i/img-3070-edit-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-i/img-3070-edit-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "other/iphotos-i/img-3070-edit-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-i/img-3070-edit-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-i/img-3070-edit-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/IMG_3070-Edit.jpeg"
+  },
+  {
+   "id": "other-iphotos-ii-img-6392",
+   "category": "iphotos",
+   "project": "iPhotos II",
+   "title": "Iphotos Ii",
+   "alt": "",
+   "width": 2500,
+   "height": 3125,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "other/iphotos-ii/img-6392-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-ii/img-6392-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-ii/img-6392-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "other/iphotos-ii/img-6392-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-ii/img-6392-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-ii/img-6392-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos II/IMG_6392.jpg"
+  },
+  {
+   "id": "other-iphotos-i-img-3145",
+   "category": "iphotos",
+   "project": "iPhotos I",
+   "title": "Iphotos I",
+   "alt": "",
+   "width": 2500,
+   "height": 3406,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "other/iphotos-i/img-3145-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-i/img-3145-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-i/img-3145-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "other/iphotos-i/img-3145-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-i/img-3145-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-i/img-3145-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/IMG_3145.png"
+  },
+  {
+   "id": "other-iphotos-ii-img-6396",
+   "category": "iphotos",
+   "project": "iPhotos II",
+   "title": "Iphotos Ii",
+   "alt": "",
+   "width": 2500,
+   "height": 3125,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "other/iphotos-ii/img-6396-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-ii/img-6396-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-ii/img-6396-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "other/iphotos-ii/img-6396-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-ii/img-6396-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-ii/img-6396-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos II/IMG_6396.jpeg"
+  },
+  {
+   "id": "other-iphotos-i-img-0674",
+   "category": "iphotos",
+   "project": "iPhotos I",
+   "title": "Iphotos I",
+   "alt": "",
+   "width": 2500,
+   "height": 3406,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "other/iphotos-i/img-0674-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-i/img-0674-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-i/img-0674-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "other/iphotos-i/img-0674-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "other/iphotos-i/img-0674-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "other/iphotos-i/img-0674-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/IMG_0674.png"
+  },
+  {
+   "id": "publishing-book-1-book-43",
+   "category": "publishing",
+   "project": "BOOK 1",
+   "title": "Book 1",
+   "alt": "",
+   "width": 3024,
+   "height": 4032,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "publishing/book-1/book-43-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/book-1/book-43-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/book-1/book-43-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "publishing/book-1/book-43-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/book-1/book-43-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/book-1/book-43-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/BOOK 1/BOOK-43.jpg"
+  },
+  {
+   "id": "publishing-png-img-0675",
+   "category": "publishing",
+   "project": "PNG",
+   "title": "Png",
+   "alt": "",
+   "width": 3024,
+   "height": 4032,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "publishing/png/img-0675-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/png/img-0675-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/png/img-0675-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "publishing/png/img-0675-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/png/img-0675-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/png/img-0675-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/BOOK 1/PNG/IMG_0675.png"
+  },
+  {
+   "id": "publishing-iphotos-i-book-16-1",
+   "category": "publishing",
+   "project": "iPhotos I",
+   "title": "Iphotos I",
+   "alt": "",
+   "width": 2500,
+   "height": 3406,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "publishing/iphotos-i/book-16-1-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/iphotos-i/book-16-1-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/iphotos-i/book-16-1-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "publishing/iphotos-i/book-16-1-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/iphotos-i/book-16-1-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/iphotos-i/book-16-1-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/BOOK-16(1).jpeg"
+  },
+  {
+   "id": "publishing-book-1-book-40",
+   "category": "publishing",
+   "project": "BOOK 1",
+   "title": "Book 1",
+   "alt": "",
+   "width": 3024,
+   "height": 4032,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "publishing/book-1/book-40-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/book-1/book-40-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/book-1/book-40-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "publishing/book-1/book-40-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/book-1/book-40-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/book-1/book-40-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/BOOK 1/BOOK-40.jpg"
+  },
+  {
+   "id": "publishing-png-img-0638",
+   "category": "publishing",
+   "project": "PNG",
+   "title": "Png",
+   "alt": "",
+   "width": 3024,
+   "height": 4032,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "publishing/png/img-0638-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/png/img-0638-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/png/img-0638-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "publishing/png/img-0638-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/png/img-0638-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/png/img-0638-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/BOOK 1/PNG/IMG_0638.png"
+  },
+  {
+   "id": "publishing-iphotos-i-book-19-2-1",
+   "category": "publishing",
+   "project": "iPhotos I",
+   "title": "Iphotos I",
+   "alt": "",
+   "width": 2500,
+   "height": 3406,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "publishing/iphotos-i/book-19-2-1-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/iphotos-i/book-19-2-1-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/iphotos-i/book-19-2-1-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "publishing/iphotos-i/book-19-2-1-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/iphotos-i/book-19-2-1-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/iphotos-i/book-19-2-1-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/BOOK-19+2(1).jpeg"
+  },
+  {
+   "id": "publishing-book-1-book-36",
+   "category": "publishing",
+   "project": "BOOK 1",
+   "title": "Book 1",
+   "alt": "",
+   "width": 3024,
+   "height": 4032,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "publishing/book-1/book-36-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/book-1/book-36-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/book-1/book-36-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "publishing/book-1/book-36-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/book-1/book-36-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/book-1/book-36-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/BOOK 1/BOOK-36.jpg"
+  },
+  {
+   "id": "publishing-png-img-0663",
+   "category": "publishing",
+   "project": "PNG",
+   "title": "Png",
+   "alt": "",
+   "width": 3024,
+   "height": 4032,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "publishing/png/img-0663-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/png/img-0663-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/png/img-0663-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "publishing/png/img-0663-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/png/img-0663-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/png/img-0663-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/BOOK 1/PNG/IMG_0663.png"
+  },
+  {
+   "id": "publishing-iphotos-i-book-8",
+   "category": "publishing",
+   "project": "iPhotos I",
+   "title": "Iphotos I",
+   "alt": "",
+   "width": 2500,
+   "height": 3406,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "publishing/iphotos-i/book-8-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/iphotos-i/book-8-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/iphotos-i/book-8-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "publishing/iphotos-i/book-8-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/iphotos-i/book-8-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/iphotos-i/book-8-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/BOOK-8.png"
+  },
+  {
+   "id": "publishing-book-1-book-23",
+   "category": "publishing",
+   "project": "BOOK 1",
+   "title": "Book 1",
+   "alt": "",
+   "width": 3024,
+   "height": 4032,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "publishing/book-1/book-23-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/book-1/book-23-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/book-1/book-23-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "publishing/book-1/book-23-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/book-1/book-23-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/book-1/book-23-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/BOOK 1/BOOK-23.jpg"
+  },
+  {
+   "id": "publishing-png-img-0674",
+   "category": "publishing",
+   "project": "PNG",
+   "title": "Png",
+   "alt": "",
+   "width": 3024,
+   "height": 4032,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "publishing/png/img-0674-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/png/img-0674-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/png/img-0674-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "publishing/png/img-0674-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/png/img-0674-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/png/img-0674-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/BOOK 1/PNG/IMG_0674.png"
+  },
+  {
+   "id": "publishing-iphotos-i-book-17",
+   "category": "publishing",
+   "project": "iPhotos I",
+   "title": "Iphotos I",
+   "alt": "",
+   "width": 2500,
+   "height": 3406,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "publishing/iphotos-i/book-17-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/iphotos-i/book-17-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/iphotos-i/book-17-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "publishing/iphotos-i/book-17-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "publishing/iphotos-i/book-17-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "publishing/iphotos-i/book-17-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /iPhotos I/BOOK-17.jpg"
+  },
+  {
+   "id": "music-l-o-a-finals-i-loa-5",
+   "category": "music",
+   "project": "L.O.A Finals I",
+   "title": "L.O.A Finals I",
+   "alt": "",
+   "width": 10002,
+   "height": 5626,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "music/l-o-a-finals-i/loa-5-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "music/l-o-a-finals-i/loa-5-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "music/l-o-a-finals-i/loa-5-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "music/l-o-a-finals-i/loa-5-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "music/l-o-a-finals-i/loa-5-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "music/l-o-a-finals-i/loa-5-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Music/L.O.A Finals I/LOA--5.jpg"
+  },
+  {
+   "id": "music-music-dsc-2107",
+   "category": "music",
+   "project": "Music",
+   "title": "Music",
+   "alt": "",
+   "width": 2500,
+   "height": 3750,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "music/music/dsc-2107-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "music/music/dsc-2107-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "music/music/dsc-2107-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "music/music/dsc-2107-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "music/music/dsc-2107-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "music/music/dsc-2107-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Music/DSC_2107.jpeg"
+  },
+  {
+   "id": "music-wavy-star-01-01-30-08",
+   "category": "music",
+   "project": "Wavy",
+   "title": "Wavy",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "music/wavy/star-01-01-30-08-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "music/wavy/star-01-01-30-08-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "music/wavy/star-01-01-30-08-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "music/wavy/star-01-01-30-08-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "music/wavy/star-01-01-30-08-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "music/wavy/star-01-01-30-08-2000.webp"
+     }
+    ]
+   },
+   "source": "Videos. /Visuals/Music./Wavy/Star_01_01_30_08.jpg"
+  },
+  {
+   "id": "music-l-o-a-finals-i-loa-6",
+   "category": "music",
+   "project": "L.O.A Finals I",
+   "title": "L.O.A Finals I",
+   "alt": "",
+   "width": 4960,
+   "height": 6200,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "music/l-o-a-finals-i/loa-6-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "music/l-o-a-finals-i/loa-6-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "music/l-o-a-finals-i/loa-6-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "music/l-o-a-finals-i/loa-6-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "music/l-o-a-finals-i/loa-6-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "music/l-o-a-finals-i/loa-6-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Music/L.O.A Finals I/LOA--6.jpg"
+  },
+  {
+   "id": "music-music-dsc-1978",
+   "category": "music",
+   "project": "Music",
+   "title": "Music",
+   "alt": "",
+   "width": 2500,
+   "height": 1667,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "music/music/dsc-1978-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "music/music/dsc-1978-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "music/music/dsc-1978-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "music/music/dsc-1978-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "music/music/dsc-1978-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "music/music/dsc-1978-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Music/DSC_1978.jpeg"
+  },
+  {
+   "id": "music-wavy-star-01-01-41-23",
+   "category": "music",
+   "project": "Wavy",
+   "title": "Wavy",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "music/wavy/star-01-01-41-23-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "music/wavy/star-01-01-41-23-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "music/wavy/star-01-01-41-23-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "music/wavy/star-01-01-41-23-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "music/wavy/star-01-01-41-23-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "music/wavy/star-01-01-41-23-2000.webp"
+     }
+    ]
+   },
+   "source": "Videos. /Visuals/Music./Wavy/Star_01_01_41_23.jpg"
+  },
+  {
+   "id": "music-l-o-a-finals-i-loa-7",
+   "category": "music",
+   "project": "L.O.A Finals I",
+   "title": "L.O.A Finals I",
+   "alt": "",
+   "width": 4960,
+   "height": 6200,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "music/l-o-a-finals-i/loa-7-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "music/l-o-a-finals-i/loa-7-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "music/l-o-a-finals-i/loa-7-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "music/l-o-a-finals-i/loa-7-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "music/l-o-a-finals-i/loa-7-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "music/l-o-a-finals-i/loa-7-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Music/L.O.A Finals I/LOA--7.jpg"
+  },
+  {
+   "id": "music-music-dsc08207-edit-edit",
+   "category": "music",
+   "project": "Music",
+   "title": "Music",
+   "alt": "",
+   "width": 2048,
+   "height": 1990,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "music/music/dsc08207-edit-edit-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "music/music/dsc08207-edit-edit-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "music/music/dsc08207-edit-edit-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "music/music/dsc08207-edit-edit-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "music/music/dsc08207-edit-edit-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "music/music/dsc08207-edit-edit-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Music/DSC08207-Edit-Edit.JPG"
+  },
+  {
+   "id": "music-wavy-star-01-01-16-15",
+   "category": "music",
+   "project": "Wavy",
+   "title": "Wavy",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "music/wavy/star-01-01-16-15-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "music/wavy/star-01-01-16-15-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "music/wavy/star-01-01-16-15-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "music/wavy/star-01-01-16-15-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "music/wavy/star-01-01-16-15-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "music/wavy/star-01-01-16-15-2000.webp"
+     }
+    ]
+   },
+   "source": "Videos. /Visuals/Music./Wavy/Star_01_01_16_15.jpg"
+  },
+  {
+   "id": "music-l-o-a-finals-i-loa-236",
+   "category": "music",
+   "project": "L.O.A Finals I",
+   "title": "L.O.A Finals I",
+   "alt": "",
+   "width": 6000,
+   "height": 4000,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "music/l-o-a-finals-i/loa-236-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "music/l-o-a-finals-i/loa-236-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "music/l-o-a-finals-i/loa-236-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "music/l-o-a-finals-i/loa-236-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "music/l-o-a-finals-i/loa-236-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "music/l-o-a-finals-i/loa-236-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Music/L.O.A Finals I/LOA--236.jpg"
+  },
+  {
+   "id": "music-music-dsc08219-edit-edit",
+   "category": "music",
+   "project": "Music",
+   "title": "Music",
+   "alt": "",
+   "width": 2048,
+   "height": 1968,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "music/music/dsc08219-edit-edit-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "music/music/dsc08219-edit-edit-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "music/music/dsc08219-edit-edit-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "music/music/dsc08219-edit-edit-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "music/music/dsc08219-edit-edit-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "music/music/dsc08219-edit-edit-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Music/DSC08219-Edit-Edit.JPG"
+  },
+  {
+   "id": "music-wavy-star-01-00-50-15",
+   "category": "music",
+   "project": "Wavy",
+   "title": "Wavy",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "music/wavy/star-01-00-50-15-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "music/wavy/star-01-00-50-15-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "music/wavy/star-01-00-50-15-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "music/wavy/star-01-00-50-15-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "music/wavy/star-01-00-50-15-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "music/wavy/star-01-00-50-15-2000.webp"
+     }
+    ]
+   },
+   "source": "Videos. /Visuals/Music./Wavy/Star_01_00_50_15.jpg"
+  },
+  {
+   "id": "fashion-fashion-dsc07853",
+   "category": "fashion",
+   "project": "Fashion",
+   "title": "Fashion",
+   "alt": "",
+   "width": 2500,
+   "height": 4444,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "fashion/fashion/dsc07853-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/fashion/dsc07853-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/fashion/dsc07853-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "fashion/fashion/dsc07853-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/fashion/dsc07853-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/fashion/dsc07853-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Fashion/DSC07853.jpg"
+  },
+  {
+   "id": "fashion-la-syncdoche-post-1-50",
+   "category": "fashion",
+   "project": "LA SYNCDOCHE",
+   "title": "La Syncdoche",
+   "alt": "",
+   "width": 2500,
+   "height": 3091,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "fashion/la-syncdoche/post-1-50-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/la-syncdoche/post-1-50-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/la-syncdoche/post-1-50-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "fashion/la-syncdoche/post-1-50-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/la-syncdoche/post-1-50-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/la-syncdoche/post-1-50-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Fashion/LA SYNCDOCHE/Post+1-50.jpeg"
+  },
+  {
+   "id": "fashion-agidi-magazine-agidi-magazine-volume1",
+   "category": "fashion",
+   "project": "Agidi magazine",
+   "title": "Agidi Magazine",
+   "alt": "",
+   "width": 3448,
+   "height": 4310,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "fashion/agidi-magazine/agidi-magazine-volume1-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/agidi-magazine/agidi-magazine-volume1-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/agidi-magazine/agidi-magazine-volume1-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "fashion/agidi-magazine/agidi-magazine-volume1-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/agidi-magazine/agidi-magazine-volume1-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/agidi-magazine/agidi-magazine-volume1-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Fashion/Agidi magazine/Agidi Magazine Volume1 .JPG"
+  },
+  {
+   "id": "fashion-rothy-s-dsc01625-2",
+   "category": "fashion",
+   "project": "Rothy's",
+   "title": "Rothy'S",
+   "alt": "",
+   "width": 2012,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "fashion/rothy-s/dsc01625-2-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/rothy-s/dsc01625-2-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/rothy-s/dsc01625-2-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "fashion/rothy-s/dsc01625-2-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/rothy-s/dsc01625-2-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/rothy-s/dsc01625-2-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Fashion/Rothy's/DSC01625-2.JPG"
+  },
+  {
+   "id": "fashion-black-renaissance-17842312790542694",
+   "category": "fashion",
+   "project": "Black Renaissance",
+   "title": "Black Renaissance",
+   "alt": "",
+   "width": 1440,
+   "height": 1800,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "fashion/black-renaissance/17842312790542694-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/black-renaissance/17842312790542694-1280.avif"
+     },
+     {
+      "w": 1440,
+      "src": "fashion/black-renaissance/17842312790542694-1440.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "fashion/black-renaissance/17842312790542694-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/black-renaissance/17842312790542694-1280.webp"
+     },
+     {
+      "w": 1440,
+      "src": "fashion/black-renaissance/17842312790542694-1440.webp"
+     }
+    ]
+   },
+   "source": "Images. /Fashion/Black Renaissance /17842312790542694.jpg"
+  },
+  {
+   "id": "fashion-p-e-p-3",
+   "category": "fashion",
+   "project": "P.E.P",
+   "title": "P.E.P",
+   "alt": "",
+   "width": 1200,
+   "height": 1500,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "fashion/p-e-p/3-640.avif"
+     },
+     {
+      "w": 1200,
+      "src": "fashion/p-e-p/3-1200.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "fashion/p-e-p/3-640.webp"
+     },
+     {
+      "w": 1200,
+      "src": "fashion/p-e-p/3-1200.webp"
+     }
+    ]
+   },
+   "source": "Images. /Fashion/P.E.P/3.png"
+  },
+  {
+   "id": "fashion-fashion-dsc00828",
+   "category": "fashion",
+   "project": "Fashion",
+   "title": "Fashion",
+   "alt": "",
+   "width": 2500,
+   "height": 3748,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "fashion/fashion/dsc00828-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/fashion/dsc00828-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/fashion/dsc00828-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "fashion/fashion/dsc00828-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/fashion/dsc00828-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/fashion/dsc00828-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Fashion/DSC00828.jpeg"
+  },
+  {
+   "id": "fashion-la-syncdoche-post-1-1",
+   "category": "fashion",
+   "project": "LA SYNCDOCHE",
+   "title": "La Syncdoche",
+   "alt": "",
+   "width": 2500,
+   "height": 3089,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "fashion/la-syncdoche/post-1-1-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/la-syncdoche/post-1-1-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/la-syncdoche/post-1-1-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "fashion/la-syncdoche/post-1-1-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/la-syncdoche/post-1-1-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/la-syncdoche/post-1-1-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Fashion/LA SYNCDOCHE/Post+1-1.jpeg"
+  },
+  {
+   "id": "fashion-agidi-magazine-dsc02583-recovered",
+   "category": "fashion",
+   "project": "Agidi magazine",
+   "title": "Agidi Magazine",
+   "alt": "",
+   "width": 3448,
+   "height": 4310,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "fashion/agidi-magazine/dsc02583-recovered-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/agidi-magazine/dsc02583-recovered-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/agidi-magazine/dsc02583-recovered-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "fashion/agidi-magazine/dsc02583-recovered-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/agidi-magazine/dsc02583-recovered-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/agidi-magazine/dsc02583-recovered-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Fashion/Agidi magazine/DSC02583-Recovered.JPG"
+  },
+  {
+   "id": "fashion-rothy-s-dsc01636",
+   "category": "fashion",
+   "project": "Rothy's",
+   "title": "Rothy'S",
+   "alt": "",
+   "width": 2048,
+   "height": 2004,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "fashion/rothy-s/dsc01636-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/rothy-s/dsc01636-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/rothy-s/dsc01636-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "fashion/rothy-s/dsc01636-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/rothy-s/dsc01636-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "fashion/rothy-s/dsc01636-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Fashion/Rothy's/DSC01636.JPG"
+  },
+  {
+   "id": "fashion-black-renaissance-18089218504246194",
+   "category": "fashion",
+   "project": "Black Renaissance",
+   "title": "Black Renaissance",
+   "alt": "",
+   "width": 1440,
+   "height": 1800,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "fashion/black-renaissance/18089218504246194-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/black-renaissance/18089218504246194-1280.avif"
+     },
+     {
+      "w": 1440,
+      "src": "fashion/black-renaissance/18089218504246194-1440.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "fashion/black-renaissance/18089218504246194-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "fashion/black-renaissance/18089218504246194-1280.webp"
+     },
+     {
+      "w": 1440,
+      "src": "fashion/black-renaissance/18089218504246194-1440.webp"
+     }
+    ]
+   },
+   "source": "Images. /Fashion/Black Renaissance /18089218504246194.jpg"
+  },
+  {
+   "id": "fashion-p-e-p-2",
+   "category": "fashion",
+   "project": "P.E.P",
+   "title": "P.E.P",
+   "alt": "",
+   "width": 1200,
+   "height": 1500,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "fashion/p-e-p/2-640.avif"
+     },
+     {
+      "w": 1200,
+      "src": "fashion/p-e-p/2-1200.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "fashion/p-e-p/2-640.webp"
+     },
+     {
+      "w": 1200,
+      "src": "fashion/p-e-p/2-1200.webp"
+     }
+    ]
+   },
+   "source": "Images. /Fashion/P.E.P/2.png"
+  },
+  {
+   "id": "postcards-post-cards-touch-of-green",
+   "category": "postcards",
+   "project": "Post Cards",
+   "title": "Post Cards",
+   "alt": "",
+   "width": 6000,
+   "height": 3141,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/touch-of-green-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/touch-of-green-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/touch-of-green-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/touch-of-green-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/touch-of-green-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/touch-of-green-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Post Cards/Touch of Green.tif"
+  },
+  {
+   "id": "postcards-post-cards-bassy-15",
+   "category": "postcards",
+   "project": "Post Cards",
+   "title": "Post Cards",
+   "alt": "",
+   "width": 2684,
+   "height": 3355,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/bassy-15-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/bassy-15-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/bassy-15-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/bassy-15-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/bassy-15-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/bassy-15-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Post Cards/BASSY-15.PNG"
+  },
+  {
+   "id": "postcards-post-cards-bassy-12",
+   "category": "postcards",
+   "project": "Post Cards",
+   "title": "Post Cards",
+   "alt": "",
+   "width": 2660,
+   "height": 3325,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/bassy-12-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/bassy-12-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/bassy-12-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/bassy-12-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/bassy-12-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/bassy-12-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Post Cards/BASSY-12.PNG"
+  },
+  {
+   "id": "postcards-post-cards-bassy-13",
+   "category": "postcards",
+   "project": "Post Cards",
+   "title": "Post Cards",
+   "alt": "",
+   "width": 2640,
+   "height": 3300,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/bassy-13-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/bassy-13-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/bassy-13-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/bassy-13-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/bassy-13-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/bassy-13-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Post Cards/BASSY-13.PNG"
+  },
+  {
+   "id": "postcards-post-cards-bassy-14",
+   "category": "postcards",
+   "project": "Post Cards",
+   "title": "Post Cards",
+   "alt": "",
+   "width": 2624,
+   "height": 3280,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/bassy-14-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/bassy-14-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/bassy-14-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/bassy-14-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/bassy-14-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/bassy-14-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Post Cards/BASSY-14.PNG"
+  },
+  {
+   "id": "postcards-post-cards-dsc04333",
+   "category": "postcards",
+   "project": "Post Cards",
+   "title": "Post Cards",
+   "alt": "",
+   "width": 2048,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc04333-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc04333-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/dsc04333-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc04333-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc04333-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/dsc04333-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Post Cards/DSC04333.jpg"
+  },
+  {
+   "id": "postcards-post-cards-dsc03250",
+   "category": "postcards",
+   "project": "Post Cards",
+   "title": "Post Cards",
+   "alt": "",
+   "width": 2500,
+   "height": 1668,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc03250-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc03250-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/dsc03250-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc03250-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc03250-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/dsc03250-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Post Cards/DSC03250.jpeg"
+  },
+  {
+   "id": "postcards-post-cards-dsc1117",
+   "category": "postcards",
+   "project": "Post Cards",
+   "title": "Post Cards",
+   "alt": "",
+   "width": 2500,
+   "height": 1667,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc1117-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc1117-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/dsc1117-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc1117-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc1117-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/dsc1117-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Post Cards/_DSC1117.jpeg"
+  },
+  {
+   "id": "postcards-post-cards-dsc04714",
+   "category": "postcards",
+   "project": "Post Cards",
+   "title": "Post Cards",
+   "alt": "",
+   "width": 2048,
+   "height": 1736,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc04714-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc04714-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/dsc04714-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc04714-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc04714-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "postcards/post-cards/dsc04714-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Post Cards/DSC04714.jpg"
+  },
+  {
+   "id": "postcards-post-cards-dsc04651",
+   "category": "postcards",
+   "project": "Post Cards",
+   "title": "Post Cards",
+   "alt": "",
+   "width": 1648,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc04651-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc04651-1280.avif"
+     },
+     {
+      "w": 1648,
+      "src": "postcards/post-cards/dsc04651-1648.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc04651-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc04651-1280.webp"
+     },
+     {
+      "w": 1648,
+      "src": "postcards/post-cards/dsc04651-1648.webp"
+     }
+    ]
+   },
+   "source": "Images. /Post Cards/DSC04651.jpg"
+  },
+  {
+   "id": "postcards-post-cards-dsc02014-edit",
+   "category": "postcards",
+   "project": "Post Cards",
+   "title": "Post Cards",
+   "alt": "",
+   "width": 1446,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc02014-edit-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc02014-edit-1280.avif"
+     },
+     {
+      "w": 1446,
+      "src": "postcards/post-cards/dsc02014-edit-1446.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc02014-edit-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc02014-edit-1280.webp"
+     },
+     {
+      "w": 1446,
+      "src": "postcards/post-cards/dsc02014-edit-1446.webp"
+     }
+    ]
+   },
+   "source": "Images. /Post Cards/DSC02014-Edit.jpg"
+  },
+  {
+   "id": "postcards-post-cards-dsc04717",
+   "category": "postcards",
+   "project": "Post Cards",
+   "title": "Post Cards",
+   "alt": "",
+   "width": 1423,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc04717-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc04717-1280.avif"
+     },
+     {
+      "w": 1423,
+      "src": "postcards/post-cards/dsc04717-1423.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "postcards/post-cards/dsc04717-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "postcards/post-cards/dsc04717-1280.webp"
+     },
+     {
+      "w": 1423,
+      "src": "postcards/post-cards/dsc04717-1423.webp"
+     }
+    ]
+   },
+   "source": "Images. /Post Cards/DSC04717.jpg"
+  },
+  {
+   "id": "events-events-img-1469",
+   "category": "events",
+   "project": "Events",
+   "title": "Events",
+   "alt": "",
+   "width": 2048,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "events/events/img-1469-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/img-1469-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/img-1469-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "events/events/img-1469-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/img-1469-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/img-1469-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Events/IMG_1469.JPG"
+  },
+  {
+   "id": "events-events-dsc5088",
+   "category": "events",
+   "project": "Events",
+   "title": "Events",
+   "alt": "",
+   "width": 2500,
+   "height": 1667,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "events/events/dsc5088-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc5088-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/dsc5088-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "events/events/dsc5088-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc5088-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/dsc5088-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Events/_DSC5088.jpeg"
+  },
+  {
+   "id": "events-events-dsc03319",
+   "category": "events",
+   "project": "Events",
+   "title": "Events",
+   "alt": "",
+   "width": 2048,
+   "height": 1996,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "events/events/dsc03319-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc03319-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/dsc03319-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "events/events/dsc03319-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc03319-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/dsc03319-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Events/DSC03319.JPG"
+  },
+  {
+   "id": "events-events-dsc03342",
+   "category": "events",
+   "project": "Events",
+   "title": "Events",
+   "alt": "",
+   "width": 1991,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "events/events/dsc03342-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc03342-1280.avif"
+     },
+     {
+      "w": 1991,
+      "src": "events/events/dsc03342-1991.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "events/events/dsc03342-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc03342-1280.webp"
+     },
+     {
+      "w": 1991,
+      "src": "events/events/dsc03342-1991.webp"
+     }
+    ]
+   },
+   "source": "Images. /Events/DSC03342.JPG"
+  },
+  {
+   "id": "events-events-dsc07386",
+   "category": "events",
+   "project": "Events",
+   "title": "Events",
+   "alt": "",
+   "width": 1951,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "events/events/dsc07386-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc07386-1280.avif"
+     },
+     {
+      "w": 1951,
+      "src": "events/events/dsc07386-1951.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "events/events/dsc07386-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc07386-1280.webp"
+     },
+     {
+      "w": 1951,
+      "src": "events/events/dsc07386-1951.webp"
+     }
+    ]
+   },
+   "source": "Images. /Events/DSC07386.JPG"
+  },
+  {
+   "id": "events-events-dsc03302",
+   "category": "events",
+   "project": "Events",
+   "title": "Events",
+   "alt": "",
+   "width": 1943,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "events/events/dsc03302-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc03302-1280.avif"
+     },
+     {
+      "w": 1943,
+      "src": "events/events/dsc03302-1943.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "events/events/dsc03302-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc03302-1280.webp"
+     },
+     {
+      "w": 1943,
+      "src": "events/events/dsc03302-1943.webp"
+     }
+    ]
+   },
+   "source": "Images. /Events/DSC03302.JPG"
+  },
+  {
+   "id": "events-events-dsc09642",
+   "category": "events",
+   "project": "Events",
+   "title": "Events",
+   "alt": "",
+   "width": 2048,
+   "height": 1925,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "events/events/dsc09642-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc09642-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/dsc09642-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "events/events/dsc09642-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc09642-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/dsc09642-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Events/DSC09642.jpg"
+  },
+  {
+   "id": "events-events-dsc07387",
+   "category": "events",
+   "project": "Events",
+   "title": "Events",
+   "alt": "",
+   "width": 2048,
+   "height": 1868,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "events/events/dsc07387-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc07387-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/dsc07387-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "events/events/dsc07387-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc07387-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/dsc07387-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Events/DSC07387.JPG"
+  },
+  {
+   "id": "events-events-dsc03339",
+   "category": "events",
+   "project": "Events",
+   "title": "Events",
+   "alt": "",
+   "width": 1857,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "events/events/dsc03339-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc03339-1280.avif"
+     },
+     {
+      "w": 1857,
+      "src": "events/events/dsc03339-1857.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "events/events/dsc03339-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc03339-1280.webp"
+     },
+     {
+      "w": 1857,
+      "src": "events/events/dsc03339-1857.webp"
+     }
+    ]
+   },
+   "source": "Images. /Events/DSC03339.JPG"
+  },
+  {
+   "id": "events-events-dsc07466",
+   "category": "events",
+   "project": "Events",
+   "title": "Events",
+   "alt": "",
+   "width": 2048,
+   "height": 1806,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "events/events/dsc07466-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc07466-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/dsc07466-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "events/events/dsc07466-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc07466-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/dsc07466-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Events/DSC07466.JPG"
+  },
+  {
+   "id": "events-events-dsc07622",
+   "category": "events",
+   "project": "Events",
+   "title": "Events",
+   "alt": "",
+   "width": 2048,
+   "height": 1771,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "events/events/dsc07622-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc07622-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/dsc07622-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "events/events/dsc07622-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc07622-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "events/events/dsc07622-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Events/DSC07622.JPG"
+  },
+  {
+   "id": "events-events-dsc03316",
+   "category": "events",
+   "project": "Events",
+   "title": "Events",
+   "alt": "",
+   "width": 1766,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "events/events/dsc03316-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc03316-1280.avif"
+     },
+     {
+      "w": 1766,
+      "src": "events/events/dsc03316-1766.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "events/events/dsc03316-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "events/events/dsc03316-1280.webp"
+     },
+     {
+      "w": 1766,
+      "src": "events/events/dsc03316-1766.webp"
+     }
+    ]
+   },
+   "source": "Images. /Events/DSC03316.JPG"
+  },
+  {
+   "id": "weddings-taye-dsc04390",
+   "category": "weddings",
+   "project": "taye",
+   "title": "Taye",
+   "alt": "",
+   "width": 2048,
+   "height": 2005,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "weddings/taye/dsc04390-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/taye/dsc04390-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "weddings/taye/dsc04390-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "weddings/taye/dsc04390-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/taye/dsc04390-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "weddings/taye/dsc04390-2000.webp"
+     }
+    ]
+   },
+   "source": "Images. /Weddings/Engagements. /taye /DSC04390.jpg"
+  },
+  {
+   "id": "weddings-engagements-dsc06342",
+   "category": "weddings",
+   "project": "Engagements",
+   "title": "Engagements",
+   "alt": "",
+   "width": 1415,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "weddings/engagements/dsc06342-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/engagements/dsc06342-1280.avif"
+     },
+     {
+      "w": 1415,
+      "src": "weddings/engagements/dsc06342-1415.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "weddings/engagements/dsc06342-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/engagements/dsc06342-1280.webp"
+     },
+     {
+      "w": 1415,
+      "src": "weddings/engagements/dsc06342-1415.webp"
+     }
+    ]
+   },
+   "source": "Images. /Weddings/Engagements. /DSC06342.JPG"
+  },
+  {
+   "id": "weddings-taye-dsc04387",
+   "category": "weddings",
+   "project": "taye",
+   "title": "Taye",
+   "alt": "",
+   "width": 1871,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "weddings/taye/dsc04387-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/taye/dsc04387-1280.avif"
+     },
+     {
+      "w": 1871,
+      "src": "weddings/taye/dsc04387-1871.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "weddings/taye/dsc04387-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/taye/dsc04387-1280.webp"
+     },
+     {
+      "w": 1871,
+      "src": "weddings/taye/dsc04387-1871.webp"
+     }
+    ]
+   },
+   "source": "Images. /Weddings/Engagements. /taye /DSC04387.jpg"
+  },
+  {
+   "id": "weddings-engagements-dsc06486",
+   "category": "weddings",
+   "project": "Engagements",
+   "title": "Engagements",
+   "alt": "",
+   "width": 1366,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "weddings/engagements/dsc06486-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/engagements/dsc06486-1280.avif"
+     },
+     {
+      "w": 1366,
+      "src": "weddings/engagements/dsc06486-1366.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "weddings/engagements/dsc06486-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/engagements/dsc06486-1280.webp"
+     },
+     {
+      "w": 1366,
+      "src": "weddings/engagements/dsc06486-1366.webp"
+     }
+    ]
+   },
+   "source": "Images. /Weddings/Engagements. /DSC06486.JPG"
+  },
+  {
+   "id": "weddings-taye-dsc04406",
+   "category": "weddings",
+   "project": "taye",
+   "title": "Taye",
+   "alt": "",
+   "width": 1832,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "weddings/taye/dsc04406-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/taye/dsc04406-1280.avif"
+     },
+     {
+      "w": 1832,
+      "src": "weddings/taye/dsc04406-1832.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "weddings/taye/dsc04406-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/taye/dsc04406-1280.webp"
+     },
+     {
+      "w": 1832,
+      "src": "weddings/taye/dsc04406-1832.webp"
+     }
+    ]
+   },
+   "source": "Images. /Weddings/Engagements. /taye /DSC04406.jpg"
+  },
+  {
+   "id": "weddings-engagements-dsc06475",
+   "category": "weddings",
+   "project": "Engagements",
+   "title": "Engagements",
+   "alt": "",
+   "width": 1366,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "weddings/engagements/dsc06475-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/engagements/dsc06475-1280.avif"
+     },
+     {
+      "w": 1366,
+      "src": "weddings/engagements/dsc06475-1366.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "weddings/engagements/dsc06475-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/engagements/dsc06475-1280.webp"
+     },
+     {
+      "w": 1366,
+      "src": "weddings/engagements/dsc06475-1366.webp"
+     }
+    ]
+   },
+   "source": "Images. /Weddings/Engagements. /DSC06475.JPG"
+  },
+  {
+   "id": "weddings-taye-dsc04391",
+   "category": "weddings",
+   "project": "taye",
+   "title": "Taye",
+   "alt": "",
+   "width": 1687,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "weddings/taye/dsc04391-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/taye/dsc04391-1280.avif"
+     },
+     {
+      "w": 1687,
+      "src": "weddings/taye/dsc04391-1687.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "weddings/taye/dsc04391-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/taye/dsc04391-1280.webp"
+     },
+     {
+      "w": 1687,
+      "src": "weddings/taye/dsc04391-1687.webp"
+     }
+    ]
+   },
+   "source": "Images. /Weddings/Engagements. /taye /DSC04391.jpg"
+  },
+  {
+   "id": "weddings-engagements-dsc06315",
+   "category": "weddings",
+   "project": "Engagements",
+   "title": "Engagements",
+   "alt": "",
+   "width": 1366,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "weddings/engagements/dsc06315-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/engagements/dsc06315-1280.avif"
+     },
+     {
+      "w": 1366,
+      "src": "weddings/engagements/dsc06315-1366.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "weddings/engagements/dsc06315-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/engagements/dsc06315-1280.webp"
+     },
+     {
+      "w": 1366,
+      "src": "weddings/engagements/dsc06315-1366.webp"
+     }
+    ]
+   },
+   "source": "Images. /Weddings/Engagements. /DSC06315.JPG"
+  },
+  {
+   "id": "weddings-taye-dsc04392",
+   "category": "weddings",
+   "project": "taye",
+   "title": "Taye",
+   "alt": "",
+   "width": 1633,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "weddings/taye/dsc04392-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/taye/dsc04392-1280.avif"
+     },
+     {
+      "w": 1633,
+      "src": "weddings/taye/dsc04392-1633.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "weddings/taye/dsc04392-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/taye/dsc04392-1280.webp"
+     },
+     {
+      "w": 1633,
+      "src": "weddings/taye/dsc04392-1633.webp"
+     }
+    ]
+   },
+   "source": "Images. /Weddings/Engagements. /taye /DSC04392.jpg"
+  },
+  {
+   "id": "weddings-engagements-dsc06169",
+   "category": "weddings",
+   "project": "Engagements",
+   "title": "Engagements",
+   "alt": "",
+   "width": 1366,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "weddings/engagements/dsc06169-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/engagements/dsc06169-1280.avif"
+     },
+     {
+      "w": 1366,
+      "src": "weddings/engagements/dsc06169-1366.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "weddings/engagements/dsc06169-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/engagements/dsc06169-1280.webp"
+     },
+     {
+      "w": 1366,
+      "src": "weddings/engagements/dsc06169-1366.webp"
+     }
+    ]
+   },
+   "source": "Images. /Weddings/Engagements. /DSC06169.JPG"
+  },
+  {
+   "id": "weddings-taye-dsc04391-2",
+   "category": "weddings",
+   "project": "taye",
+   "title": "Taye",
+   "alt": "",
+   "width": 1598,
+   "height": 1940,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "weddings/taye/dsc04391-2-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/taye/dsc04391-2-1280.avif"
+     },
+     {
+      "w": 1598,
+      "src": "weddings/taye/dsc04391-2-1598.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "weddings/taye/dsc04391-2-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/taye/dsc04391-2-1280.webp"
+     },
+     {
+      "w": 1598,
+      "src": "weddings/taye/dsc04391-2-1598.webp"
+     }
+    ]
+   },
+   "source": "Images. /Weddings/Engagements. /taye /DSC04391-2.jpg"
+  },
+  {
+   "id": "weddings-engagements-dsc06161-2",
+   "category": "weddings",
+   "project": "Engagements",
+   "title": "Engagements",
+   "alt": "",
+   "width": 1366,
+   "height": 2048,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "weddings/engagements/dsc06161-2-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/engagements/dsc06161-2-1280.avif"
+     },
+     {
+      "w": 1366,
+      "src": "weddings/engagements/dsc06161-2-1366.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "weddings/engagements/dsc06161-2-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "weddings/engagements/dsc06161-2-1280.webp"
+     },
+     {
+      "w": 1366,
+      "src": "weddings/engagements/dsc06161-2-1366.webp"
+     }
+    ]
+   },
+   "source": "Images. /Weddings/Engagements. /DSC06161-2.JPG"
+  },
+  {
+   "id": "graphics-graphics-perfect",
+   "category": "graphics",
+   "project": "Graphics",
+   "title": "Graphics",
+   "alt": "",
+   "width": 2500,
+   "height": 3235,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/perfect-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "graphics/graphics/perfect-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "graphics/graphics/perfect-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/perfect-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "graphics/graphics/perfect-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "graphics/graphics/perfect-2000.webp"
+     }
+    ]
+   },
+   "source": "Graphics/Perfect.jpg"
+  },
+  {
+   "id": "graphics-graphics-one-last-drive-1-copy",
+   "category": "graphics",
+   "project": "Graphics",
+   "title": "Graphics",
+   "alt": "",
+   "width": 2500,
+   "height": 3125,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/one-last-drive-1-copy-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "graphics/graphics/one-last-drive-1-copy-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "graphics/graphics/one-last-drive-1-copy-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/one-last-drive-1-copy-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "graphics/graphics/one-last-drive-1-copy-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "graphics/graphics/one-last-drive-1-copy-2000.webp"
+     }
+    ]
+   },
+   "source": "Graphics/One+last+drive...+(1)+copy.jpg"
+  },
+  {
+   "id": "graphics-graphics-1",
+   "category": "graphics",
+   "project": "Graphics",
+   "title": "Graphics",
+   "alt": "",
+   "width": 1563,
+   "height": 1563,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/1-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "graphics/graphics/1-1280.avif"
+     },
+     {
+      "w": 1563,
+      "src": "graphics/graphics/1-1563.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/1-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "graphics/graphics/1-1280.webp"
+     },
+     {
+      "w": 1563,
+      "src": "graphics/graphics/1-1563.webp"
+     }
+    ]
+   },
+   "source": "Graphics/1.png"
+  },
+  {
+   "id": "graphics-graphics-2",
+   "category": "graphics",
+   "project": "Graphics",
+   "title": "Graphics",
+   "alt": "",
+   "width": 1563,
+   "height": 1563,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/2-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "graphics/graphics/2-1280.avif"
+     },
+     {
+      "w": 1563,
+      "src": "graphics/graphics/2-1563.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/2-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "graphics/graphics/2-1280.webp"
+     },
+     {
+      "w": 1563,
+      "src": "graphics/graphics/2-1563.webp"
+     }
+    ]
+   },
+   "source": "Graphics/2.png"
+  },
+  {
+   "id": "graphics-graphics-53e19ab3-5279-4068-af1b-ca2742410066",
+   "category": "graphics",
+   "project": "Graphics",
+   "title": "Graphics",
+   "alt": "",
+   "width": 1600,
+   "height": 1142,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/53e19ab3-5279-4068-af1b-ca2742410066-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "graphics/graphics/53e19ab3-5279-4068-af1b-ca2742410066-1280.avif"
+     },
+     {
+      "w": 1600,
+      "src": "graphics/graphics/53e19ab3-5279-4068-af1b-ca2742410066-1600.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/53e19ab3-5279-4068-af1b-ca2742410066-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "graphics/graphics/53e19ab3-5279-4068-af1b-ca2742410066-1280.webp"
+     },
+     {
+      "w": 1600,
+      "src": "graphics/graphics/53e19ab3-5279-4068-af1b-ca2742410066-1600.webp"
+     }
+    ]
+   },
+   "source": "Graphics/53e19ab3-5279-4068-af1b-ca2742410066.JPG"
+  },
+  {
+   "id": "graphics-graphics-logo-3-lugards-green-bk",
+   "category": "graphics",
+   "project": "Graphics",
+   "title": "Graphics",
+   "alt": "",
+   "width": 1200,
+   "height": 1500,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/logo-3-lugards-green-bk-640.avif"
+     },
+     {
+      "w": 1200,
+      "src": "graphics/graphics/logo-3-lugards-green-bk-1200.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/logo-3-lugards-green-bk-640.webp"
+     },
+     {
+      "w": 1200,
+      "src": "graphics/graphics/logo-3-lugards-green-bk-1200.webp"
+     }
+    ]
+   },
+   "source": "Graphics/Logo 3 (Lugards) Green Bk.PNG"
+  },
+  {
+   "id": "graphics-graphics-logo-3-lugards-black-bk",
+   "category": "graphics",
+   "project": "Graphics",
+   "title": "Graphics",
+   "alt": "",
+   "width": 1200,
+   "height": 1500,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/logo-3-lugards-black-bk-640.avif"
+     },
+     {
+      "w": 1200,
+      "src": "graphics/graphics/logo-3-lugards-black-bk-1200.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/logo-3-lugards-black-bk-640.webp"
+     },
+     {
+      "w": 1200,
+      "src": "graphics/graphics/logo-3-lugards-black-bk-1200.webp"
+     }
+    ]
+   },
+   "source": "Graphics/Logo 3 (Lugards) Black Bk.PNG"
+  },
+  {
+   "id": "graphics-graphics-dnpt-offical-green-light",
+   "category": "graphics",
+   "project": "Graphics",
+   "title": "Graphics",
+   "alt": "",
+   "width": 768,
+   "height": 1366,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/dnpt-offical-green-light-640.avif"
+     },
+     {
+      "w": 768,
+      "src": "graphics/graphics/dnpt-offical-green-light-768.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/dnpt-offical-green-light-640.webp"
+     },
+     {
+      "w": 768,
+      "src": "graphics/graphics/dnpt-offical-green-light-768.webp"
+     }
+    ]
+   },
+   "source": "Graphics/DNPT OFfical Green Light_.PNG"
+  },
+  {
+   "id": "graphics-graphics-img-3915",
+   "category": "graphics",
+   "project": "Graphics",
+   "title": "Graphics",
+   "alt": "",
+   "width": 750,
+   "height": 529,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/img-3915-640.avif"
+     },
+     {
+      "w": 750,
+      "src": "graphics/graphics/img-3915-750.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/img-3915-640.webp"
+     },
+     {
+      "w": 750,
+      "src": "graphics/graphics/img-3915-750.webp"
+     }
+    ]
+   },
+   "source": "Graphics/IMG_3915.JPG"
+  },
+  {
+   "id": "graphics-graphics-2-1",
+   "category": "graphics",
+   "project": "Graphics",
+   "title": "Graphics",
+   "alt": "",
+   "width": 695,
+   "height": 460,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/2-1-640.avif"
+     },
+     {
+      "w": 695,
+      "src": "graphics/graphics/2-1-695.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/2-1-640.webp"
+     },
+     {
+      "w": 695,
+      "src": "graphics/graphics/2-1-695.webp"
+     }
+    ]
+   },
+   "source": "Graphics/2 (1).png"
+  },
+  {
+   "id": "graphics-graphics-1-1",
+   "category": "graphics",
+   "project": "Graphics",
+   "title": "Graphics",
+   "alt": "",
+   "width": 695,
+   "height": 460,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/1-1-640.avif"
+     },
+     {
+      "w": 695,
+      "src": "graphics/graphics/1-1-695.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "graphics/graphics/1-1-640.webp"
+     },
+     {
+      "w": 695,
+      "src": "graphics/graphics/1-1-695.webp"
+     }
+    ]
+   },
+   "source": "Graphics/1 (1).png"
+  },
+  {
+   "id": "film-gas-stills-gas-01-13-18-07",
+   "category": "film",
+   "project": "GAS ( Stills)",
+   "title": "Gas ( Stills)",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "film/gas-stills/gas-01-13-18-07-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "film/gas-stills/gas-01-13-18-07-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "film/gas-stills/gas-01-13-18-07-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "film/gas-stills/gas-01-13-18-07-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "film/gas-stills/gas-01-13-18-07-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "film/gas-stills/gas-01-13-18-07-2000.webp"
+     }
+    ]
+   },
+   "source": "Films/GAS ( Stills)/GAS_01_13_18_07.jpg"
+  },
+  {
+   "id": "film-we-both-know-to-much-stills-wbntm-01-00-26-01",
+   "category": "film",
+   "project": "We Both Know to Much - Stills",
+   "title": "We Both Know To Much - Stills",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-26-01-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-26-01-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-26-01-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-26-01-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-26-01-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-26-01-2000.webp"
+     }
+    ]
+   },
+   "source": "Films/We Both Know to Much - Stills/WBNTM_01_00_26_01.jpg"
+  },
+  {
+   "id": "film-gas-stills-gas-01-13-15-01",
+   "category": "film",
+   "project": "GAS ( Stills)",
+   "title": "Gas ( Stills)",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "film/gas-stills/gas-01-13-15-01-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "film/gas-stills/gas-01-13-15-01-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "film/gas-stills/gas-01-13-15-01-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "film/gas-stills/gas-01-13-15-01-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "film/gas-stills/gas-01-13-15-01-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "film/gas-stills/gas-01-13-15-01-2000.webp"
+     }
+    ]
+   },
+   "source": "Films/GAS ( Stills)/GAS_01_13_15_01.jpg"
+  },
+  {
+   "id": "film-we-both-know-to-much-stills-wbntm-01-00-09-12",
+   "category": "film",
+   "project": "We Both Know to Much - Stills",
+   "title": "We Both Know To Much - Stills",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-09-12-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-09-12-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-09-12-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-09-12-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-09-12-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-09-12-2000.webp"
+     }
+    ]
+   },
+   "source": "Films/We Both Know to Much - Stills/WBNTM_01_00_09_12.jpg"
+  },
+  {
+   "id": "film-gas-stills-gas-01-13-10-01",
+   "category": "film",
+   "project": "GAS ( Stills)",
+   "title": "Gas ( Stills)",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "film/gas-stills/gas-01-13-10-01-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "film/gas-stills/gas-01-13-10-01-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "film/gas-stills/gas-01-13-10-01-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "film/gas-stills/gas-01-13-10-01-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "film/gas-stills/gas-01-13-10-01-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "film/gas-stills/gas-01-13-10-01-2000.webp"
+     }
+    ]
+   },
+   "source": "Films/GAS ( Stills)/GAS_01_13_10_01.jpg"
+  },
+  {
+   "id": "film-we-both-know-to-much-stills-wbntm-01-00-38-02",
+   "category": "film",
+   "project": "We Both Know to Much - Stills",
+   "title": "We Both Know To Much - Stills",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-38-02-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-38-02-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-38-02-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-38-02-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-38-02-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-00-38-02-2000.webp"
+     }
+    ]
+   },
+   "source": "Films/We Both Know to Much - Stills/WBNTM_01_00_38_02.jpg"
+  },
+  {
+   "id": "film-gas-stills-gas-01-09-46-13",
+   "category": "film",
+   "project": "GAS ( Stills)",
+   "title": "Gas ( Stills)",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "film/gas-stills/gas-01-09-46-13-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "film/gas-stills/gas-01-09-46-13-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "film/gas-stills/gas-01-09-46-13-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "film/gas-stills/gas-01-09-46-13-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "film/gas-stills/gas-01-09-46-13-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "film/gas-stills/gas-01-09-46-13-2000.webp"
+     }
+    ]
+   },
+   "source": "Films/GAS ( Stills)/GAS_01_09_46_13.jpg"
+  },
+  {
+   "id": "film-we-both-know-to-much-stills-wbntm-01-02-03-12",
+   "category": "film",
+   "project": "We Both Know to Much - Stills",
+   "title": "We Both Know To Much - Stills",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-03-12-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-03-12-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-03-12-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-03-12-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-03-12-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-03-12-2000.webp"
+     }
+    ]
+   },
+   "source": "Films/We Both Know to Much - Stills/WBNTM_01_02_03_12.jpg"
+  },
+  {
+   "id": "film-gas-stills-gas-01-09-48-14",
+   "category": "film",
+   "project": "GAS ( Stills)",
+   "title": "Gas ( Stills)",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "film/gas-stills/gas-01-09-48-14-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "film/gas-stills/gas-01-09-48-14-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "film/gas-stills/gas-01-09-48-14-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "film/gas-stills/gas-01-09-48-14-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "film/gas-stills/gas-01-09-48-14-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "film/gas-stills/gas-01-09-48-14-2000.webp"
+     }
+    ]
+   },
+   "source": "Films/GAS ( Stills)/GAS_01_09_48_14.jpg"
+  },
+  {
+   "id": "film-we-both-know-to-much-stills-wbntm-01-02-02-01",
+   "category": "film",
+   "project": "We Both Know to Much - Stills",
+   "title": "We Both Know To Much - Stills",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-02-01-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-02-01-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-02-01-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-02-01-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-02-01-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-02-01-2000.webp"
+     }
+    ]
+   },
+   "source": "Films/We Both Know to Much - Stills/WBNTM_01_02_02_01.jpg"
+  },
+  {
+   "id": "film-gas-stills-gas-01-10-37-08",
+   "category": "film",
+   "project": "GAS ( Stills)",
+   "title": "Gas ( Stills)",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "film/gas-stills/gas-01-10-37-08-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "film/gas-stills/gas-01-10-37-08-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "film/gas-stills/gas-01-10-37-08-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "film/gas-stills/gas-01-10-37-08-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "film/gas-stills/gas-01-10-37-08-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "film/gas-stills/gas-01-10-37-08-2000.webp"
+     }
+    ]
+   },
+   "source": "Films/GAS ( Stills)/GAS_01_10_37_08.jpg"
+  },
+  {
+   "id": "film-we-both-know-to-much-stills-wbntm-01-02-58-16",
+   "category": "film",
+   "project": "We Both Know to Much - Stills",
+   "title": "We Both Know To Much - Stills",
+   "alt": "",
+   "width": 3840,
+   "height": 2160,
+   "variants": {
+    "avif": [
+     {
+      "w": 640,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-58-16-640.avif"
+     },
+     {
+      "w": 1280,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-58-16-1280.avif"
+     },
+     {
+      "w": 2000,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-58-16-2000.avif"
+     }
+    ],
+    "webp": [
+     {
+      "w": 640,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-58-16-640.webp"
+     },
+     {
+      "w": 1280,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-58-16-1280.webp"
+     },
+     {
+      "w": 2000,
+      "src": "film/we-both-know-to-much-stills/wbntm-01-02-58-16-2000.webp"
+     }
+    ]
+   },
+   "source": "Films/We Both Know to Much - Stills/WBNTM_01_02_58_16.jpg"
+  }
+ ]
+}
