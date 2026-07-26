@@ -1,6 +1,7 @@
 "use client";
 import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
+import { presentationTool, defineLocations } from "sanity/presentation";
 import { visionTool } from "@sanity/vision";
 import { apiVersion, dataset, projectId } from "./sanity/env";
 import { schemaTypes } from "./sanity/schemaTypes";
@@ -14,5 +15,36 @@ export default defineConfig({
   projectId: projectId || "missing-project-id",
   dataset,
   schema: { types: schemaTypes },
-  plugins: [structureTool({ structure }), visionTool({ defaultApiVersion: apiVersion })],
+  plugins: [
+    // Presentation = the live/visual editor: a preview of the site beside the
+    // fields, click-to-edit. Draft edits preview via /api/draft-mode/enable.
+    presentationTool({
+      previewUrl: { previewMode: { enable: "/api/draft-mode/enable" } },
+      resolve: {
+        locations: {
+          siteSettings: defineLocations({
+            message: "Home hero, marquee & closing band",
+            locations: [{ title: "Home", href: "/" }],
+          }),
+          project: defineLocations({
+            select: { title: "title" },
+            resolve: (doc) => ({
+              locations: [
+                { title: (doc?.title as string) || "Project", href: "/work" },
+                { title: "The Gallery", href: "/gallery" },
+              ],
+            }),
+          }),
+          post: defineLocations({
+            select: { title: "title" },
+            resolve: (doc) => ({
+              locations: [{ title: (doc?.title as string) || "Post", href: "/insights" }],
+            }),
+          }),
+        },
+      },
+    }),
+    structureTool({ structure }),
+    visionTool({ defaultApiVersion: apiVersion }),
+  ],
 });
