@@ -2,7 +2,7 @@ import { sanityFetch } from "../../../sanity/lib/fetch";
 import { urlForImage } from "../../../sanity/lib/image";
 import GalleryExperience from "./Gallery";
 
-export const metadata = { title: "Our Work · The Gallery — Loathr" };
+export const metadata = { title: "Our Work · The Gallery · Loathr" };
 
 type Proj = { n: string; c: string; m: string; d: string; img: string | null; vid: string | null; slug: string | null };
 type Card = { c: string; n: string; s: string; t: string; d: string; play?: boolean; img?: string | null };
@@ -14,7 +14,7 @@ const FALLBACK_CARDS: Card[] = [
   { c: "portraits", n: "Portraits", s: "Portraiture", t: "Faces, framed with intent", d: "Studio & location portraits." },
   { c: "film", n: "GAS", s: "Film", t: "A film with a point of view", d: "Short film + stills.", play: true },
   { c: "music", n: "L.O.A", s: "Music", t: "The album, made visual", d: "Cover & campaign imagery." },
-  { c: "publishing", n: "BOOK 1", s: "Publishing", t: "A legacy artefact", d: "Photo book — layout & sequencing." },
+  { c: "publishing", n: "BOOK 1", s: "Publishing", t: "A legacy artefact", d: "Photo book: layout & sequencing." },
 ];
 
 const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);

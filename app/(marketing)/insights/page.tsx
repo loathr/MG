@@ -2,7 +2,7 @@ import { sanityFetch } from "../../../sanity/lib/fetch";
 import { urlForImage } from "../../../sanity/lib/image";
 import InsightsGrid from "./InsightsGrid";
 
-export const metadata = { title: "Insights — Loathr" };
+export const metadata = { title: "Insights · Loathr" };
 
 type Post = { cat: string; t: string; d: string; img?: string | null; engine?: boolean };
 
@@ -10,10 +10,10 @@ type Post = { cat: string; t: string; d: string; img?: string | null; engine?: b
 // the page reads identically until the loathrdotcom feed (or a hand-written
 // post) populates the `post` collection.
 const FALLBACK: Post[] = [
-  { cat: "Film & TV", t: "The sequel nobody asked for earned it", d: "Six reasons the follow-up outran the original — receipts inside." },
+  { cat: "Film & TV", t: "The sequel nobody asked for earned it", d: "Six reasons the follow-up outran the original. Receipts inside." },
   { cat: "Enterprise", t: "What the market is actually pricing in", d: "The structural read three weeks before everyone else." },
-  { cat: "News Desk", t: "Today — what we know, what we don't", d: "The story, framed. Handed to analysis, clean." },
-  { cat: "Culture", t: "This one has hours on it", d: "Texture, history, weight — and why it matters." },
+  { cat: "News Desk", t: "Today: what we know, what we don't", d: "The story, framed. Handed to analysis, clean." },
+  { cat: "Culture", t: "This one has hours on it", d: "Texture, history, weight, and why it matters." },
   { cat: "Culture", t: "The one true thing", d: "Everything else stripped away. Nothing phony survives." },
   { cat: "Branding", t: "10 brand failures worth learning from", d: "What standards look like when they're missing." },
 ];
@@ -27,7 +27,7 @@ const POSTS_QUERY = `*[_type == "post" && defined(publishedAt)] | order(publishe
 const HERO_F = {
   eyebrow: "Insights",
   heading: "The blog, with a point of view.",
-  engineNote: "Posts published straight from the loathrdotcom engine — generated, then rendered here as articles.",
+  engineNote: "Posts published straight from the loathrdotcom engine, generated, then rendered here as articles.",
 };
 const HERO_QUERY = `*[_type == "insightsPage"][0]{ eyebrow, heading, engineNote }`;
 

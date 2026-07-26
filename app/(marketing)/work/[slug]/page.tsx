@@ -47,7 +47,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const p = await sanityFetch<Project | null>(QUERY, null, { slug });
-  return { title: p ? `${p.title} — Loathr` : "Project — Loathr" };
+  return { title: p ? `${p.title} · Loathr` : "Project · Loathr" };
 }
 
 export default async function ProjectPage({ params }: { params: Promise<{ slug: string }> }) {

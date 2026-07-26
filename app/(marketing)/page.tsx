@@ -36,22 +36,22 @@ const HOME_FALLBACK = {
   heroLine1: "From concept",
   heroLine2: "to completion.",
   heroLead:
-    "Loathr is a strategy-led creative consultancy. We build stronger brands, execute meaningful projects, and create lasting impact — strategy first, creative throughout.",
+    "Loathr is a strategy-led creative consultancy. We build stronger brands, execute meaningful projects, and create lasting impact. Strategy first, creative throughout.",
   marquee: MARQUEE,
   pillarsEyebrow: "What we do",
   pillarsHeadA: "Three pillars.",
   pillarsHeadB: "One integrated partner.",
-  pillarsLead: "Strategy leads; creative and growth execute. One consultancy, one plan — never eleven disconnected services.",
+  pillarsLead: "Strategy leads; creative and growth execute. One consultancy, one plan. Never eleven disconnected services.",
   homePillars: [
     { n: "01", title: "Strategy", desc: "Clarity, direction, and priorities that become your competitive advantage.", items: ["Brand Strategy", "Business Consultancy", "Project Management"] },
-    { n: "02", title: "Creative", desc: "The visual execution arm — Loathr Studios. Creative in service of the strategy.", items: ["Branding & Identity", "Design", "Photography", "Storytelling", "Media Production"] },
+    { n: "02", title: "Creative", desc: "The visual execution arm, Loathr Studios. Creative in service of the strategy.", items: ["Branding & Identity", "Design", "Photography", "Storytelling", "Media Production"] },
     { n: "03", title: "Growth", desc: "Turning presence into demand, and perception into your most valuable asset.", items: ["Marketing", "Social Media", "Web Design", "Digital Support"] },
   ],
   selectedEyebrow: "Selected work",
   selectedHeading: "Proof, not decoration.",
   ctaHeadingA: "Let's build something",
   ctaHeadingB: "undeniable.",
-  ctaBody: "Developing brands, and driving visibility — from concept to completion.",
+  ctaBody: "Developing brands, and driving visibility, from concept to completion.",
 };
 
 const HOME_QUERY = `*[_type == "siteSettings"][0]{

@@ -19,18 +19,18 @@ const siteSettings = {
   _id: "siteSettings", _type: "siteSettings",
   heroEyebrow: "Strategy-led · Creative studio",
   heroLine1: "From concept", heroLine2: "to completion.",
-  heroLead: "Loathr is a strategy-led creative consultancy. We build stronger brands, execute meaningful projects, and create lasting impact — strategy first, creative throughout.",
+  heroLead: "Loathr is a strategy-led creative consultancy. We build stronger brands, execute meaningful projects, and create lasting impact. Strategy first, creative throughout.",
   marquee: ["Brand Strategy", "Photography", "Film & Motion", "Consultancy", "Web Design", "Storytelling", "Media Production", "Marketing", "Publishing"],
   pillarsEyebrow: "What we do", pillarsHeadA: "Three pillars.", pillarsHeadB: "One integrated partner.",
-  pillarsLead: "Strategy leads; creative and growth execute. One consultancy, one plan — never eleven disconnected services.",
+  pillarsLead: "Strategy leads; creative and growth execute. One consultancy, one plan. Never eleven disconnected services.",
   homePillars: [
     { ...k("p", 0), n: "01", title: "Strategy", desc: "Clarity, direction, and priorities that become your competitive advantage.", items: ["Brand Strategy", "Business Consultancy", "Project Management"] },
-    { ...k("p", 1), n: "02", title: "Creative", desc: "The visual execution arm — Loathr Studios. Creative in service of the strategy.", items: ["Branding & Identity", "Design", "Photography", "Storytelling", "Media Production"] },
+    { ...k("p", 1), n: "02", title: "Creative", desc: "The visual execution arm, Loathr Studios. Creative in service of the strategy.", items: ["Branding & Identity", "Design", "Photography", "Storytelling", "Media Production"] },
     { ...k("p", 2), n: "03", title: "Growth", desc: "Turning presence into demand, and perception into your most valuable asset.", items: ["Marketing", "Social Media", "Web Design", "Digital Support"] },
   ],
   selectedEyebrow: "Selected work", selectedHeading: "Proof, not decoration.",
   ctaHeadingA: "Let's build something", ctaHeadingB: "undeniable.",
-  ctaBody: "Developing brands, and driving visibility — from concept to completion.",
+  ctaBody: "Developing brands, and driving visibility, from concept to completion.",
   footerTagline: "A strategy-led creative consultancy. From concept to completion.",
   footerFine: "Black & white · red accent",
 };
@@ -39,7 +39,7 @@ const aboutPage = {
   _id: "aboutPage", _type: "aboutPage",
   eyebrow: "About Loathr",
   heading: "We help organisations make sense of who they are, and how they’re perceived.",
-  lead: "A strategy-first consultancy with a creative studio inside it — uniting strategy, creative, and growth on precision, long-term thinking, and ruthless execution.",
+  lead: "A strategy-first consultancy with a creative studio inside it, uniting strategy, creative, and growth on precision, long-term thinking, and ruthless execution.",
   stats: [
     { ...k("s", 0), value: "100", suffix: "+", label: "creatives & collaborators" },
     { ...k("s", 1), value: "5", suffix: "yr+", label: "work that stays future-proof" },
@@ -47,16 +47,16 @@ const aboutPage = {
     { ...k("s", 3), value: "1", label: "content engine · loathrdotcom" },
   ],
   cards: [
-    { ...k("c", 0), label: "Our Story", body: "Loathr began as a refusal to settle for “good enough” — an editorial stance that grew into a full consultancy." },
-    { ...k("c", 1), label: "Mission", body: "To develop brands and drive visibility — turning high-level thinking into real-world results that actually work." },
+    { ...k("c", 0), label: "Our Story", body: "Loathr began as a refusal to settle for “good enough,” an editorial stance that grew into a full consultancy." },
+    { ...k("c", 1), label: "Mission", body: "To develop brands and drive visibility, turning high-level thinking into real-world results that actually work." },
     { ...k("c", 2), label: "Approach", body: "Diagnose, design, deploy, monitor, sustain. We don’t hand over a report and walk away." },
   ],
   stanceEyebrow: "A deliberate stance", stanceHeadA: "We stay ", stanceHeadEm: "faceless", stanceHeadB: " on purpose.",
   stanceLines: [
     { ...k("l", 0), text: "No founder headshots. No team carousel. No names to remember." },
-    { ...k("l", 1), text: "The work is the introduction — everything else is noise until we’re in a room." },
+    { ...k("l", 1), text: "The work is the introduction. Everything else is noise until we’re in a room." },
     { ...k("l", 2), text: "Judge us on what we make, not on who’s in the photo.", strong: true },
-    { ...k("l", 3), text: "When it matters, you’ll meet us. Until then — the work." },
+    { ...k("l", 3), text: "When it matters, you’ll meet us. Until then, the work." },
   ],
   ctaHeadA: "Let's build something", ctaHeadEm: "undeniable.",
 };
@@ -64,7 +64,7 @@ const aboutPage = {
 const whatWeDoPage = {
   _id: "whatWeDoPage", _type: "whatWeDoPage",
   eyebrow: "What we do",
-  heading: "Everything a brand needs, under one roof — organised, not scattered.",
+  heading: "Everything a company needs, under one roof, organised, not scattered.",
   lead: "Grouped into three pillars so it’s clear how we work together, not eleven disconnected services.",
   pillars: [
     { ...k("pl", 0), eyebrow: "Strategy & Consultancy · Loathr Enterprises", heading: "The thinking that comes first", services: [
@@ -74,14 +74,14 @@ const whatWeDoPage = {
     ] },
     { ...k("pl", 1), eyebrow: "Creative · Loathr Studios", heading: "The visual execution arm", services: [
       { ...k("b", 0), h: "Branding & Identity", p: "The visual systems that make your presence undeniable." },
-      { ...k("b", 1), h: "Photography", p: "Product, lifestyle, editorial, portraiture — art-directed end to end." },
-      { ...k("b", 2), h: "Media Production", p: "Film, motion, commercials, documentary — cinematic precision." },
+      { ...k("b", 1), h: "Photography", p: "Product, lifestyle, editorial, portraiture, art-directed end to end." },
+      { ...k("b", 2), h: "Media Production", p: "Film, motion, commercials, documentary, cinematic precision." },
       { ...k("b", 3), h: "Design", p: "Editorial, campaign, and publishing design for longevity." },
-      { ...k("b", 4), h: "Storytelling", p: "Documentary & narrative — stories worth the runtime." },
+      { ...k("b", 4), h: "Storytelling", p: "Documentary & narrative, stories worth the runtime." },
       { ...k("b", 5), h: "AI & Hybrid Production", p: "Synthetic + hybrid visual assets, disciplined and strategic." },
     ] },
     { ...k("pl", 2), eyebrow: "Growth", heading: "Turning presence into demand", services: [
-      { ...k("c", 0), h: "Marketing", p: "Measurable growth — SEO, PPC, and lead generation across the full funnel." },
+      { ...k("c", 0), h: "Marketing", p: "Measurable growth: SEO, PPC, and lead generation across the full funnel." },
       { ...k("c", 1), h: "Social Media", p: "Commanding the conversation with tactical, relentless digital." },
       { ...k("c", 2), h: "Web Design", p: "Award-worthy sites that meet business goals and feel like an experience." },
     ] },
@@ -98,19 +98,19 @@ const whatWeDoPage = {
 const workPage = {
   _id: "workPage", _type: "workPage",
   eyebrow: "Our work", heading: "We bring your boldest ideas to life.",
-  lead: "Each project tells a story — client, challenge, solution, outcome. Not just a wall of images.",
+  lead: "Each project tells a story: client, challenge, solution, outcome. Not just a wall of images.",
 };
 
 const insightsPage = {
   _id: "insightsPage", _type: "insightsPage",
   eyebrow: "Insights", heading: "The blog, with a point of view.",
-  engineNote: "Posts published straight from the loathrdotcom engine — generated, then rendered here as articles.",
+  engineNote: "Posts published straight from the loathrdotcom engine, generated, then rendered here as articles.",
 };
 
 const newsletterPage = {
   _id: "newsletterPage", _type: "newsletterPage",
   eyebrow: "The Weekly", heading: "One issue a week.\nAssembled from the week.",
-  lead: "The best of what loathrdotcom generated this week — culture, enterprise, and the news desk — in one edition. No filler.",
+  lead: "The best of what loathrdotcom generated this week: culture, enterprise, and the news desk, all in one edition. No filler.",
   formKicker: "Subscribe · free", placeholder: "you@company.com", submitLabel: "Subscribe",
   fineprint: "Weekly. Unsubscribe anytime. Sound-designed reading experience on the web edition.",
   archiveEyebrow: "Archive", archiveHeading: "Past issues",
@@ -124,13 +124,13 @@ const newsletterPage = {
 const contactPage = {
   _id: "contactPage", _type: "contactPage",
   eyebrow: "Get started", heading: "Let’s talk.",
-  lead: "Whether you have a question or a project to scope — from concept to completion, we’re here.",
-  serviceOptions: ["Strategy — Business / Consultancy / PM", "Creative — Branding / Photo / Film", "Growth — Marketing / Social / Web", "Not sure yet"],
+  lead: "Whether you have a question or a project to scope, from concept to completion, we’re here.",
+  serviceOptions: ["Strategy: Business / Consultancy / PM", "Creative: Branding / Photo / Film", "Growth: Marketing / Social / Web", "Not sure yet"],
   submitLabel: "Send message",
   faq: [
-    { ...k("f", 0), q: "What services do you offer?", a: "Strategy, creative/production, and growth — grouped as three pillars so engagements stay integrated, not scattered." },
-    { ...k("f", 1), q: "Typical project timeline?", a: "Scoped per engagement. We define scope, timeline, and budget parameters up front — no surprises." },
-    { ...k("f", 2), q: "Do you offer post-launch support?", a: "Yes — we embed systems and transfer knowledge. We don't hand over a report and walk away." },
+    { ...k("f", 0), q: "What services do you offer?", a: "Strategy, creative/production, and growth, grouped as three pillars so engagements stay integrated, not scattered." },
+    { ...k("f", 1), q: "Typical project timeline?", a: "Scoped per engagement. We define scope, timeline, and budget parameters up front. No surprises." },
+    { ...k("f", 2), q: "Do you offer post-launch support?", a: "Yes. We embed systems and transfer knowledge. We don't hand over a report and walk away." },
     { ...k("f", 3), q: "Online and offline projects?", a: "Both. Digital experiences, film, print, and physical brand systems." },
   ],
   trustNote: "Accredited & trusted · logos pending",

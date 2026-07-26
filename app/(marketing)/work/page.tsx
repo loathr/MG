@@ -2,7 +2,7 @@ import { sanityFetch } from "../../../sanity/lib/fetch";
 import { urlForImage } from "../../../sanity/lib/image";
 import WorkGrid from "./WorkGrid";
 
-export const metadata = { title: "Our Work — Loathr" };
+export const metadata = { title: "Our Work · Loathr" };
 
 type Card = { c: string; n: string; s: string; t: string; d: string; play?: boolean; img?: string | null; slug?: string };
 
@@ -21,7 +21,7 @@ const FALLBACK_CARDS: Card[] = [
   { c: "music", n: "L.O.A", s: "Music", t: "The album, made visual", d: "Cover & campaign imagery." },
   { c: "music", n: "Wavy", s: "Music Video", t: "The record, on screen", d: "Music video + performance stills.", play: true },
   { c: "postcards", n: "Post Cards", s: "Series", t: "Small format, big intent", d: "A postcard photo series." },
-  { c: "publishing", n: "BOOK 1", s: "Publishing", t: "A legacy artefact", d: "Photo book — layout & sequencing." },
+  { c: "publishing", n: "BOOK 1", s: "Publishing", t: "A legacy artefact", d: "Photo book: layout & sequencing." },
   { c: "graphics", n: "Afrotide Shorts", s: "Motion", t: "Motion with rhythm", d: "Motion-graphic shorts & loops.", play: true },
 ];
 
@@ -38,7 +38,7 @@ const WORK_QUERY = `*[_type == "project"] | order(order asc, _createdAt asc){
 const HERO_F = {
   eyebrow: "Our work",
   heading: "We bring your boldest ideas to life.",
-  lead: "Each project tells a story — client, challenge, solution, outcome. Not just a wall of images.",
+  lead: "Each project tells a story: client, challenge, solution, outcome. Not just a wall of images.",
 };
 const HERO_QUERY = `*[_type == "workPage"][0]{ eyebrow, heading, lead }`;
 

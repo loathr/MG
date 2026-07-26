@@ -5,9 +5,9 @@ import SiteChrome from "./site/SiteChrome";
 import { sanityFetch } from "../../sanity/lib/fetch";
 
 export const metadata = {
-  title: "Loathr — strategy-led creative consultancy",
+  title: "Loathr · strategy-led creative consultancy",
   description:
-    "Loathr is a strategy-led creative consultancy — we build stronger brands, execute meaningful projects, and create lasting impact through strategy, media, and design.",
+    "Loathr is a strategy-led creative consultancy. We build stronger brands, execute meaningful projects, and create lasting impact through strategy, media, and design.",
 };
 
 const FOOTER_QUERY = `*[_type == "siteSettings"][0]{ footerTagline, footerFine }`;
