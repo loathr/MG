@@ -1,6 +1,6 @@
 import { sanityFetch } from "../../../sanity/lib/fetch";
 
-export const metadata = { title: "What We Do — Loathr" };
+export const metadata = { title: "What We Do · Loathr" };
 
 type Svc = { h: string; p: string };
 type Pillar = { eyebrow: string; heading: string; services: Svc[] };
@@ -10,7 +10,7 @@ type WWD = { eyebrow: string; heading: string; lead: string; pillars: Pillar[]; 
 // Current copy, verbatim.
 const F: WWD = {
   eyebrow: "What we do",
-  heading: "Everything a brand needs, under one roof — organised, not scattered.",
+  heading: "Everything a company needs, under one roof, organised, not scattered.",
   lead: "Grouped into three pillars so it’s clear how we work together, not eleven disconnected services.",
   pillars: [
     {
@@ -27,10 +27,10 @@ const F: WWD = {
       heading: "The visual execution arm",
       services: [
         { h: "Branding & Identity", p: "The visual systems that make your presence undeniable." },
-        { h: "Photography", p: "Product, lifestyle, editorial, portraiture — art-directed end to end." },
-        { h: "Media Production", p: "Film, motion, commercials, documentary — cinematic precision." },
+        { h: "Photography", p: "Product, lifestyle, editorial, portraiture, art-directed end to end." },
+        { h: "Media Production", p: "Film, motion, commercials, documentary, cinematic precision." },
         { h: "Design", p: "Editorial, campaign, and publishing design for longevity." },
-        { h: "Storytelling", p: "Documentary & narrative — stories worth the runtime." },
+        { h: "Storytelling", p: "Documentary & narrative, stories worth the runtime." },
         { h: "AI & Hybrid Production", p: "Synthetic + hybrid visual assets, disciplined and strategic." },
       ],
     },
@@ -38,7 +38,7 @@ const F: WWD = {
       eyebrow: "Growth",
       heading: "Turning presence into demand",
       services: [
-        { h: "Marketing", p: "Measurable growth — SEO, PPC, and lead generation across the full funnel." },
+        { h: "Marketing", p: "Measurable growth: SEO, PPC, and lead generation across the full funnel." },
         { h: "Social Media", p: "Commanding the conversation with tactical, relentless digital." },
         { h: "Web Design", p: "Award-worthy sites that meet business goals and feel like an experience." },
       ],

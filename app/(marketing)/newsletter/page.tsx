@@ -1,6 +1,6 @@
 import { sanityFetch } from "../../../sanity/lib/fetch";
 
-export const metadata = { title: "The Weekly — Loathr" };
+export const metadata = { title: "The Weekly · Loathr" };
 
 type Issue = { no: string; t: string; d: string; dt: string };
 type NL = {
@@ -12,7 +12,7 @@ type NL = {
 const F: NL = {
   eyebrow: "The Weekly",
   heading: "One issue a week.\nAssembled from the week.",
-  lead: "The best of what loathrdotcom generated this week — culture, enterprise, and the news desk — in one edition. No filler.",
+  lead: "The best of what loathrdotcom generated this week: culture, enterprise, and the news desk, all in one edition. No filler.",
   formKicker: "Subscribe · free",
   placeholder: "you@company.com",
   submitLabel: "Subscribe",

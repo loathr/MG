@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { sanityFetch } from "../../../sanity/lib/fetch";
 
-export const metadata = { title: "About — Loathr" };
+export const metadata = { title: "About · Loathr" };
 
 type Stat = { value: string; suffix?: string; label: string };
 type Card = { label: string; body: string };
@@ -17,7 +17,7 @@ type About = {
 const F: About = {
   eyebrow: "About Loathr",
   heading: "We help organisations make sense of who they are, and how they’re perceived.",
-  lead: "A strategy-first consultancy with a creative studio inside it — uniting strategy, creative, and growth on precision, long-term thinking, and ruthless execution.",
+  lead: "A strategy-first consultancy with a creative studio inside it, uniting strategy, creative, and growth on precision, long-term thinking, and ruthless execution.",
   stats: [
     { value: "100", suffix: "+", label: "creatives & collaborators" },
     { value: "5", suffix: "yr+", label: "work that stays future-proof" },
@@ -25,8 +25,8 @@ const F: About = {
     { value: "1", label: "content engine · loathrdotcom" },
   ],
   cards: [
-    { label: "Our Story", body: "Loathr began as a refusal to settle for “good enough” — an editorial stance that grew into a full consultancy." },
-    { label: "Mission", body: "To develop brands and drive visibility — turning high-level thinking into real-world results that actually work." },
+    { label: "Our Story", body: "Loathr began as a refusal to settle for “good enough,” an editorial stance that grew into a full consultancy." },
+    { label: "Mission", body: "To develop brands and drive visibility, turning high-level thinking into real-world results that actually work." },
     { label: "Approach", body: "Diagnose, design, deploy, monitor, sustain. We don’t hand over a report and walk away." },
   ],
   stanceEyebrow: "A deliberate stance",
@@ -35,9 +35,9 @@ const F: About = {
   stanceHeadB: " on purpose.",
   stanceLines: [
     { text: "No founder headshots. No team carousel. No names to remember." },
-    { text: "The work is the introduction — everything else is noise until we’re in a room." },
+    { text: "The work is the introduction. Everything else is noise until we’re in a room." },
     { text: "Judge us on what we make, not on who’s in the photo.", strong: true },
-    { text: "When it matters, you’ll meet us. Until then — the work." },
+    { text: "When it matters, you’ll meet us. Until then, the work." },
   ],
   ctaHeadA: "Let's build something",
   ctaHeadEm: "undeniable.",
