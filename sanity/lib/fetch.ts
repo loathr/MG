@@ -16,7 +16,20 @@ const draftClient =
         useCdn: false,
         token: readToken,
         perspective: "drafts",
-        stega: { enabled: true, studioUrl: "/cms" },
+        stega: {
+          enabled: true,
+          studioUrl: "/cms",
+          // Stega is for DISPLAY TEXT only. Never encode fields used in logic
+          // (category → filter buttons, slug) or as URLs (cover/video/image) —
+          // the invisible characters would break string matching and media.
+          filter: (props) => {
+            const path = props.sourcePath || [];
+            const last = path[path.length - 1];
+            if (typeof last === "string" && (last === "category" || last === "slug" || /url$/i.test(last))) return false;
+            if (typeof props.value === "string" && /^https?:\/\//.test(props.value)) return false;
+            return props.filterDefault(props);
+          },
+        },
       })
     : null;
 
