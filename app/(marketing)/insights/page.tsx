@@ -1,8 +1,15 @@
-"use client";
-import React, { useState } from "react";
+import { sanityFetch } from "../../../sanity/lib/fetch";
+import { urlForImage } from "../../../sanity/lib/image";
+import InsightsGrid from "./InsightsGrid";
 
-const TABS = ["Latest", "Film & TV", "Enterprise", "News Desk", "Culture", "Branding"];
-const POSTS = [
+export const metadata = { title: "Insights — Loathr" };
+
+type Post = { cat: string; t: string; d: string; img?: string | null; engine?: boolean };
+
+// The current sample articles. Used verbatim whenever Sanity has no posts yet —
+// the page reads identically until the loathrdotcom feed (or a hand-written
+// post) populates the `post` collection.
+const FALLBACK: Post[] = [
   { cat: "Film & TV", t: "The sequel nobody asked for earned it", d: "Six reasons the follow-up outran the original — receipts inside." },
   { cat: "Enterprise", t: "What the market is actually pricing in", d: "The structural read three weeks before everyone else." },
   { cat: "News Desk", t: "Today — what we know, what we don't", d: "The story, framed. Handed to analysis, clean." },
@@ -11,8 +18,25 @@ const POSTS = [
   { cat: "Branding", t: "10 brand failures worth learning from", d: "What standards look like when they're missing." },
 ];
 
-export default function Insights() {
-  const [tab, setTab] = useState("Latest");
+type PostDoc = { cat?: string; t?: string; d?: string; engine?: boolean; cover?: unknown };
+
+const POSTS_QUERY = `*[_type == "post" && defined(publishedAt)] | order(publishedAt desc){
+  "cat": category, "t": title, "d": excerpt, "engine": fromEngine, cover
+}`;
+
+export default async function Insights() {
+  const docs = await sanityFetch<PostDoc[] | null>(POSTS_QUERY, null);
+
+  const posts: Post[] = docs && docs.length
+    ? docs.map((p) => ({
+        cat: p.cat || "Culture",
+        t: p.t || "Untitled",
+        d: p.d || "",
+        engine: !!p.engine,
+        img: urlForImage(p.cover as never)?.width(720).height(900).fit("crop").url() || null,
+      }))
+    : FALLBACK;
+
   return (
     <>
       <section><div className="wrap" style={{ paddingTop: 112 }}>
@@ -21,19 +45,7 @@ export default function Insights() {
         <div className="enginenote reveal d2" style={{ marginTop: 26 }}><span className="d" /> Posts published straight from the <b>loathrdotcom</b> engine — generated, then rendered here as articles.</div>
       </div></section>
 
-      <section><div className="wrap">
-        <div className="tabs">
-          {TABS.map((t) => <button key={t} className={tab === t ? "on" : ""} onClick={() => setTab(t)}>{t}</button>)}
-        </div>
-        <div className="posts">
-          {POSTS.filter((p) => tab === "Latest" || p.cat === tab).map((p) => (
-            <div className="post" key={p.t} data-cursor="Read" data-label="READ">
-              <div className="media"><div className="tag"><b>CAROUSEL → ARTICLE</b>cover · from loathrdotcom</div></div>
-              <div className="body"><span className="cat">{p.cat}</span><h3 style={{ marginTop: 10 }}>{p.t}</h3><p>{p.d}</p></div>
-            </div>
-          ))}
-        </div>
-      </div></section>
+      <InsightsGrid posts={posts} />
     </>
   );
 }
