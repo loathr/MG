@@ -1,15 +1,27 @@
-# LOATHR Studio — Session Handover
+# Loathr — Session Handover
 
-A pick-it-up-cold snapshot of **LOATHR Studio** (a Next.js Instagram-carousel
-maker). Read this end-to-end before touching code. For the original as-built
-architecture and rationale, `docs/STUDIO_REBUILD.md` is the deeper reference;
-this file is the *current* working state on top of it.
+A pick-it-up-cold snapshot of the **`loathr/mg`** repo. It is now **two apps in
+one Next.js 16 project**, sharing a build, a deploy, and the standing rules below:
+
+1. **The Loathr marketing site** (route group `app/(marketing)`) — the agency
+   site (Home, Our Work + project detail pages, What We Do, Insights, Contact,
+   Newsletter, a virtual Gallery), content-managed by **Sanity** with an embedded
+   Studio at `/cms` and live visual editing. Degrades to hardcoded copy when
+   Sanity is unconfigured. See `docs/SANITY_SETUP.md`.
+2. **LOATHR Studio** (`app/studio`, `/studio`) — the Instagram-carousel maker: a
+   generation pipeline, a full canvas editor, keyless trending + image search, and
+   a Firebase cloud workspace. `docs/STUDIO_REBUILD.md` is its deeper as-built
+   reference; the Studio sections below are the *current* working state on top.
+
+Read this end-to-end before touching code.
 
 - **Dev branch:** `claude/handover-docs-review-h9qhlp`
 - **Promotion:** every shipped change is promoted to production `main` with
   `git push origin claude/handover-docs-review-h9qhlp:main` (there is **no PR** in
-  this flow — main is updated directly after the gate passes).
-- **HEAD at this writing:** `b7aca2c` · **Tests:** 503 passing · **Build:** clean
+  this flow — main is updated directly after the gate passes). If the branch has
+  fallen behind `main` (it is fully merged each session), restart it first:
+  `git fetch origin main && git checkout -B claude/handover-docs-review-h9qhlp origin/main`.
+- **HEAD at this writing:** `e4f8e9d` · **Tests:** 569 passing · **Build:** clean
   (Next 16 / Turbopack).
 
 > **Branch note:** the task harness may name a *different* dev branch. Ignore it —
@@ -50,10 +62,13 @@ this file is the *current* working state on top of it.
 
 ## ▶️ PROMPT FOR THE NEW SESSION (start here)
 
-> You are continuing **LOATHR Studio** on branch `claude/handover-docs-review-h9qhlp`,
-> promoting each shipped change to `main`. Read this handover first.
+> You are continuing the **`loathr/mg`** project on branch
+> `claude/handover-docs-review-h9qhlp`, promoting each shipped change to `main`.
+> Read this handover first. The repo holds two apps: the **Loathr marketing site**
+> (`app/(marketing)`, Sanity-backed, Studio at `/cms`) and the **LOATHR Studio**
+> carousel maker (`/studio`) described next.
 >
-> The app is a mature Next.js 16 carousel maker: a generation pipeline (Opus 4.8
+> The Studio is a mature Next.js 16 carousel maker: a generation pipeline (Opus 4.8
 > via `/api/generate`), a full canvas editor (top contextual Toolbar, rich-text
 > runs, text shapes, free-form crop, background remover), keyless trending +
 > entity image search, and a multi-account **cloud workspace** (Firebase auth
@@ -76,7 +91,48 @@ this file is the *current* working state on top of it.
 
 **Pattern throughout: pure logic in tested modules, network/IO in thin adapters.**
 Decisions live in unit-tested pure functions; routes and Firebase/Wikimedia
-adapters just wire them to IO and fail *open/safe*.
+adapters just wire them to IO and fail *open/safe*. The same fail-open discipline
+governs the marketing site: **every Sanity read has a hardcoded fallback**, so an
+unconfigured or erroring CMS renders the built-in copy instead of blanking.
+
+### Marketing site (`app/(marketing)`) + Sanity CMS
+The agency site, a Next 16 route group. Same fail-open rule as the Studio: no
+Sanity project → hardcoded copy, and `/cms` shows a "not configured" notice.
+- **Routes:** `page.tsx` (Home) · `work` + `work/[slug]` (Our Work grid + editorial
+  project detail pages, SSG via `generateStaticParams`) · `what-we-do` · `insights`
+  (wired to the `post` schema) · `contact` (+ `ContactForm.jsx`) · `newsletter` ·
+  `gallery` (a preview "virtual gallery"). `site/SiteChrome.jsx` is the shared
+  nav/footer; `layout.tsx` reads the footer from `siteSettings` and mounts
+  `VisualEditing` only in draft mode.
+- **Sanity read path (`sanity/lib/`):** `env.ts` gates everything on
+  `isSanityConfigured` (a `NEXT_PUBLIC_SANITY_PROJECT_ID`). `client.ts` is the
+  server read client — `perspective: "published"` so Studio drafts never leak
+  live; an optional server-only `SANITY_API_READ_TOKEN` lets it read authenticated
+  (never `NEXT_PUBLIC_`). `fetch.ts` exposes **`sanityFetch(query, fallback,
+  params)`** — the one helper every page uses: returns `fallback` when
+  unconfigured, on error, **or on empty result**; in Presentation/draft mode it
+  swaps to a token'd `drafts`-perspective client with **stega** enabled.
+- **Stega guardrail:** stega encodes invisible source-map chars into DISPLAY TEXT
+  only. The `fetch.ts` filter excludes `category`, `slug`, and any `*url`/`http…`
+  value — encoding those would break filter-button matching and media URLs (fixed
+  in `8dbb6cf`; do not reintroduce).
+- **Embedded Studio + schema (`sanity/`):** `sanity.config.ts` mounts the Studio at
+  **`/cms`** (`app/cms/[[...tool]]`). Schema (`schemaTypes/`): `siteSettings`
+  (singleton), `project`, `post`, and per-page singletons under `pages/`
+  (`aboutPage`, `whatWeDoPage`, `workPage`, `insightsPage`, `contactPage`,
+  `newsletterPage`) — **all page copy is now editable**, each with a hardcoded
+  fallback. `structure.ts` shapes the desk.
+- **Seeding (`sanity/seed/`, Node scripts, need a write token):** `seed-projects.mjs`
+  (R2 media manifest → `project` docs, idempotent, `--dry`/`--html`/`--replace`),
+  `seed-pages.mjs` (page singletons from current copy), `seed-posters.mjs`,
+  `seed-videos.mjs`, and `diagnose.mjs` (read-path check). See `sanity/seed/README.md`
+  and `docs/SANITY_SETUP.md`.
+- **Video:** a transcode → Cloudflare **R2** pipeline (Colab) feeds project covers /
+  gallery media as R2 CDN URLs rather than uploaded Sanity assets (`2c1ae94`).
+
+---
+
+*The remaining sections describe **LOATHR Studio** (`app/studio`, `/studio`).*
 
 ### Generation
 - `app/api/generate/route.js` — the model proxy. Opus 4.8 (`claude-opus-4-8`),
@@ -173,10 +229,45 @@ admin deck viewer via `onBack`/`admin` props).
 
 ---
 
-## 🧾 What happened THIS SESSION (conversation → work → commits)
+## 🧾 What happened (recent sessions → work → commits)
 
-Grouped by cluster, newest last. All gated (`npm test` + `npm run build`), signed,
-and promoted to `main`. The product name shown to users is **loathrdotcom**.
+Grouped by cluster. All gated (`npm test` + `npm run build`), signed, and promoted
+to `main`. The Studio product name shown to users is **loathrdotcom**. The most
+recent arc (marketing site + Sanity) is first; the Studio log follows.
+
+### Latest arc — the marketing site + Sanity CMS (and Studio hardening)
+
+The big pivot since the previous snapshot (`b7aca2c`): a full agency site was built
+alongside the Studio, and Studio crash/collab bugs were fixed. HEAD is now `e4f8e9d`.
+
+- **Marketing site, Phase 1** — routing, Home, shared chrome (`3799eab`); "Get
+  Started" nav accent (`97b08f2`); real Spotify playlist pill (`ddb4bb6`).
+- **Sanity CMS** — schema + embedded Studio at `/cms`, Home copy wired (`d6b9fbe`);
+  Our Work → `project` schema (`96a3682`), Home "Selected work" → `featured`
+  (`942c8ed`); setup guide (`edb8410`); R2 → Sanity seeding prep + Photography
+  category (`67b3b2a`); merged (`9c6fb29`). Read-token support + seed diagnostics
+  (`ab5dfeb`, `52af2ef`, `5e8d35d`, `72b9992`).
+- **Everything editable (fallback-guarded):** Insights → `post` (`3fea3e1`); About +
+  What We Do (`0550f56`); Contact + Newsletter (`27a0002`); Home/Work/Insights heroes
+  + footer (`cb16be7`) — all pages now CMS-editable; page-content seed (`3176137`).
+- **Live visual editing** — Sanity Presentation (`31c0820`); **stega leak fix** —
+  don't encode `category`/URLs (`8dbb6cf`).
+- **Virtual gallery** at `/gallery` (`2e03968`); **project detail pages** at
+  `/work/[slug]` with `story`/`gallery`/`credits` on the schema (`67363a4`,
+  `fea9273`); Commercial/Social categories + video seed (`2337a4e`); poster-frame
+  cover seed for video projects (`bd9bcec`).
+- **Video** transcode → R2 Colab pipeline (`2c1ae94`).
+- **Copy** — brand language + em-dash removal, "your company" value-prop voice
+  (`ed82ef4`, `e4f8e9d`).
+- **Studio hardening (same arc):** share-link AuthGate bypass fix (`fffe28b`);
+  tab-crash / owner self-refresh loop fixes + crash-capture diagnostic (`6f16aba`,
+  `2e1705e`, `661d3f4`, `23cf345`, `d918f89`); collab echo-loop + deck-field sync +
+  cross-origin PNG-export fixes (`16d04c8`, `8d7dbc6`, `00bb641`); font drag-drop
+  upload (`076bbcf`); highlight style picker + live formatting preview + in-app
+  colour popover (`b986842`, `6444825`, `c65f75b`); canvas zoom/pan + equal-spacing
+  badges + selection polish (`e3e1410`, `0eddced`, `aa3ee00`).
+
+### Studio arc (previous session — the carousel maker)
 
 **Editor / create-screen polish (earlier in the arc):** create-screen reflow to the
 topic pipeline + merged rail (`96f2e29`, `0d0f6a7`, `e5c6d44`); flag-derived deck
@@ -240,11 +331,19 @@ offload `slide.content.image` too (`8f1e5f0`).
 
 ## ⏭ Open / offered-but-unbuilt
 
-- **Admin deck viewer — write scope** (offered, awaiting a call): the viewer is
-  **read-only**. Could add **duplicate into the admin's own account** and/or
+- **Sanity content is live but empty until seeded.** The schema + fallbacks ship,
+  but a fresh Sanity project shows the hardcoded copy until the seed scripts run
+  with a write token (see the marketing-site map above and `sanity/seed/README.md`).
+- **`docs/SANITY_SETUP.md` "editable surfaces" table is behind the code** — it lists
+  only Home + Work, but every page is now editable (`3176137`). Worth refreshing.
+- **Marketing polish (open):** the `/gallery` "virtual gallery" is a preview;
+  project detail pages (`/work/[slug]`) render `story`/`gallery`/`credits` only when
+  seeded.
+- **Admin deck viewer — write scope** (Studio; offered, awaiting a call): the viewer
+  is **read-only**. Could add **duplicate into the admin's own account** and/or
   **edit-in-place**. (The per-generation audit log this once listed is now built —
   `b7aca2c`.)
-- Deferred-by-design (low): more premium layouts, recent-projects shelf.
+- Deferred-by-design (low): more premium Studio layouts, recent-projects shelf.
 
 (The client-mode white-label footer gap this once listed is now closed —
 `rebuildContentFooter` strips the LOATHR running footer entering client mode and
@@ -257,7 +356,14 @@ deploy. Track them in `docs/VERIFY.md` and `docs/CLOUD_SETUP.md`:
 
 1. **Redeploy from `main`** to pick up this session's features (several screenshot
    diagnoses traced to a stale deploy, not a code bug).
-2. **Firebase Admin credentials** must be configured on the deploy, or the admin /
+2. **Sanity env + seed (marketing site)** — set `NEXT_PUBLIC_SANITY_PROJECT_ID`
+   (+ optional `NEXT_PUBLIC_SANITY_DATASET`, `NEXT_PUBLIC_SANITY_API_VERSION`, and a
+   server-only `SANITY_API_READ_TOKEN` for authenticated reads / live editing), then
+   run the `sanity/seed/*` scripts with a **write token** to populate projects +
+   page copy. Until then the site serves hardcoded fallbacks. Confirm `/cms` loads,
+   Presentation live-editing works, and no stega chars leak into filters/URLs. See
+   `docs/SANITY_SETUP.md`.
+3. **Firebase Admin credentials** must be configured on the deploy, or the admin /
    gate / access-request / live-relay routes safely no-op.
 3. **Firestore security rules** — add every collection now documented in
    `CLOUD_SETUP.md`: `sharePulse`, `presence`, `edits` (+ the anon-relay note),
@@ -280,24 +386,35 @@ deploy. Track them in `docs/VERIFY.md` and `docs/CLOUD_SETUP.md`:
 - **Network:** only the Anthropic API proxy is reachable. Firebase, Google OAuth/
   Drive, Wikimedia, stock, and news feeds all return `000`/`403` in-sandbox — do
   not retry policy denials; reason from code + unit tests instead.
-- **Gate:** `npm test` (**503 passing**) — `node --import ./test/register.mjs
+- **Gate:** `npm test` (**569 passing**) — `node --import ./test/register.mjs
   --test test/*.test.mjs` (node:test, extensionless ESM). Plus `npm run build`
   (Next 16 / Turbopack).
+- **Sanity in-sandbox:** the CMS is network-gated like Firebase — with no
+  `NEXT_PUBLIC_SANITY_PROJECT_ID`, `isSanityConfigured` is false, `sanityFetch`
+  returns fallbacks, and the marketing pages render hardcoded copy (that IS the
+  testable path). Seed scripts and live editing are **deploy-only**. Verify the
+  fallback logic from `sanity/lib/fetch.ts` + unit tests, not a live query.
 - **Mocks:** a `.cjs` writes an HTML file into the session scratchpad; send it
   with `SendUserFile` (`display:"render"`). Mocks never go in the repo.
 - **Live UI in-sandbox:** `npm run build` → `npx next start` → drive Chromium at
   `/opt/pw-browsers/chromium` with `puppeteer-core` (`--no-save`). External
-  images 404 (proxy) but the UI + text/shape editing work.
+  images 404 (proxy) but the UI + text/shape editing work. The marketing pages
+  (`/`, `/work`, `/gallery`, …) render on their fallback copy.
 - **Signing check:** `git cat-file -p HEAD | grep gpgsig` (not `%G?`).
 
 ## 🔧 Key constraints recap
 - Next 16 (Turbopack), pure ESM, **extensionless imports** (resolver in
-  `test/register.mjs`).
+  `test/register.mjs`). Two apps share the build: marketing (`app/(marketing)`, TS)
+  and Studio (`app/studio`, JS).
+- **Sanity is optional and fail-open:** gated on `isSanityConfigured`; every read
+  goes through `sanityFetch(query, fallback, params)` and falls back on
+  unconfigured/error/empty. Server-only token is never `NEXT_PUBLIC_`. Never encode
+  stega into `category`/`slug`/URL fields. Studio owns `/studio`; Sanity owns `/cms`.
 - Artboard 1080×1350; slide = background + flat element list (FLAT-LAYERS §3).
 - Roles: viewer/editor/admin (Firebase custom claims); Firestore `users/{uid}/
   decks`; `shares/{deckId}` + `sharePulse/{deckId}` for share links; `presence/` +
   `edits/` (collab), `accessRequests/` + `config/allowlist` (access gate),
   `auditLog/` (audit). Member vs guest = email domain (`isMemberEmail`); guests get
   client branding + a 9/month cap.
-- Today's date reference in-session: **2026-07-09**. User email:
+- Today's date reference in-session: **2026-08-04**. User email:
   `loathr@loathr.com`.
