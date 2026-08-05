@@ -63,7 +63,14 @@ rclone config                       # add a "drive" remote once
 rclone copy drive:OTE/photography ./drive-in/photography
 ```
 
-### Optimize + upload
+### Easiest: run it in Google Colab (no local install)
+
+Open **`scripts/OTE_media_to_R2.ipynb`** in [Colab](https://colab.research.google.com)
+(File → Upload notebook). It mounts your Google Drive, installs the tools, and
+uploads optimized variants to R2 — just paste your R2 token values and run the
+cells. Arrange Drive as `OTE/<discipline>/<id>.<ext>` first.
+
+### Or locally
 
 Requires **ffmpeg** on PATH for video. Then:
 
