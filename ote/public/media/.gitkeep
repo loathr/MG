@@ -1,0 +1,3 @@
+# Drop real media here (e.g. /public/media/photo/ph-01.jpg) and point to it from
+# lib/content.ts via each work's `src` / `poster`. Until then, panels render
+# generative placeholder art automatically.
