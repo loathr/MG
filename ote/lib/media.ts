@@ -3,6 +3,18 @@ import { rng, hashSeed } from "./rng";
 import type { Work } from "./content";
 
 export type Frame = CanvasImageSource & { width: number; height: number };
+export type Variant = "wall" | "full" | "poster";
+
+// Public base URL for media (R2 public r2.dev URL now, cdn.otes.me later).
+// Set NEXT_PUBLIC_MEDIA_BASE in .env / Vercel. Empty → everything is placeholder.
+const BASE = (process.env.NEXT_PUBLIC_MEDIA_BASE || "").replace(/\/+$/, "");
+
+// Build the R2/CDN URL for a work variant. "" when no base is configured.
+// Key convention: <discipline>/<id>/<variant>.webp
+export function mediaUrl(discipline: string, id: string, variant: Variant): string {
+  if (!BASE) return "";
+  return `${BASE}/${discipline}/${id}/${variant}.webp`;
+}
 
 // Generative placeholder "photograph" in a discipline's palette — stands in for
 // real media so every panel is filled from day one.
@@ -54,15 +66,28 @@ export function placeholder(
   return cv;
 }
 
-// Resolve a Work into a drawable frame: load the real image/poster if present,
-// otherwise synthesize a placeholder. Always resolves (falls back on error).
-export function loadWork(work: Work, pal: [string, string]): Promise<Frame> {
+// Resolve a Work into a drawable frame.
+// Priority: explicit work.src/poster override → R2 variant → generative placeholder.
+// Never rejects: a missing/failed image falls back to placeholder so the wall
+// stays complete while the bucket is filled piece by piece.
+export function loadWork(
+  work: Work,
+  discipline: string,
+  pal: [string, string],
+  variant: Variant = "wall"
+): Promise<Frame> {
   const seed = hashSeed(work.id);
-  const url = work.type === "video" ? work.poster : work.src;
+  const explicit = work.type === "video" ? work.poster : work.src;
+  const url =
+    explicit ||
+    mediaUrl(discipline, work.id, work.type === "video" ? "poster" : variant);
   if (!url) return Promise.resolve(placeholder(seed, pal) as Frame);
   return new Promise((resolve) => {
     const img = new Image();
     img.decoding = "async";
+    // R2 must send CORS headers allowing https://otes.me (see README) so the
+    // canvas stays untainted; if they're missing the image simply falls back.
+    img.crossOrigin = "anonymous";
     img.onload = () => resolve(img as Frame);
     img.onerror = () => resolve(placeholder(seed, pal) as Frame);
     img.src = url;

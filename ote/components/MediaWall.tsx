@@ -65,7 +65,9 @@ export default function MediaWall({ disciplineSlug }: Props) {
           disc,
           index,
           works: disc.works,
-          frames: await Promise.all(disc.works.map((wk) => loadWork(wk, disc.pal))),
+          frames: await Promise.all(
+            disc.works.map((wk) => loadWork(wk, disc.slug, disc.pal, "wall"))
+          ),
         }))
       );
       if (!alive) return;
