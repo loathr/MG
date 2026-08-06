@@ -101,8 +101,17 @@ export default function MediaWall({ disciplineSlug }: Props) {
       cw = W / cols;
       ch = H / rows;
       const raw = pack(cols, rows, 7);
+      // On the landing, weight discipline assignment by how many works each has,
+      // so populated disciplines (real media) dominate over sparse placeholders.
+      const weights = set.map((s) => Math.max(1, s.works.length));
+      const total = weights.reduce((a, b) => a + b, 0);
+      const pickDisc = (r: number) => {
+        let x = r * total;
+        for (let k = 0; k < weights.length; k++) if ((x -= weights[k]) < 0) return k;
+        return weights.length - 1;
+      };
       panels = raw.map((cell, i) => {
-        const d = single ? 0 : (cell.c * 3 + cell.r * 7 + i) % set.length;
+        const d = single ? 0 : pickDisc(rng(i * 13 + 5)());
         const pr = rng(i * 13 + 2)();
         const mode: Panel["mode"] =
           pr > 0.88 ? "ticker" : pr > 0.74 ? "scroll" : "cross";
