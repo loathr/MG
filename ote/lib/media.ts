@@ -85,9 +85,9 @@ export function loadWork(
   return new Promise((resolve) => {
     const img = new Image();
     img.decoding = "async";
-    // R2 must send CORS headers allowing https://otes.me (see README) so the
-    // canvas stays untainted; if they're missing the image simply falls back.
-    img.crossOrigin = "anonymous";
+    // No crossOrigin: the wall only draws these images, never reads their pixels,
+    // so they load with or without a CORS header. (Add crossOrigin + a bucket CORS
+    // rule later if a feature needs to read canvas pixels of remote media.)
     img.onload = () => resolve(img as Frame);
     img.onerror = () => resolve(placeholder(seed, pal) as Frame);
     img.src = url;
